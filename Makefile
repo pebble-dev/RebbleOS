@@ -1,6 +1,7 @@
 TARGET:=test
-# TOOLCHAIN_PATH:=~/yagarto-4.7.2/bin
-TOOLCHAIN_PATH:=/Users/wang/gcc-arm-none-eabi/bin
+# TODO change to your ARM gcc toolchain path
+TOOLCHARN_ROOT:=~/gcc-arm-none-eabi
+TOOLCHAIN_PATH:=$(TOOLCHARN_ROOT)/bin
 TOOLCHAIN_PREFIX:=arm-none-eabi
 
 # Optimization level, can be [0, 1, 2, 3, s].
@@ -14,12 +15,7 @@ INCLUDE=-I$(CURDIR)/hardware
 INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
 INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Include
 INCLUDE+=-I$(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
-
 INCLUDE+=-I$(CURDIR)/config
-
-# PBC
-#INCLUDE+=-I/Users/wang/Documents/workspace/drone/firmware/Libraries/encryption/pbc
-#INCLUDE+=-I/Users/wang/Documents/workspace/drone/firmware/Libraries/encryption/pbc/include
 
 BUILD_DIR = $(CURDIR)/build
 BIN_DIR = $(CURDIR)/binary
@@ -28,11 +24,6 @@ BIN_DIR = $(CURDIR)/binary
 # of the same directory as their source files
 vpath %.c $(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/src \
 	  $(CURDIR)/Libraries/syscall $(CURDIR)/hardware
-
-#	  /Users/wang/Documents/workspace/drone/firmware/Libraries/encryption/pbc/arith \
-#	  $(CURDIR)/Libraries/encryption/gmp \
-#	  /Users/wang/Documents/workspace/drone/firmware/Libraries/encryption/pbc/ecc \
-#	  /Users/wang/Documents/workspace/drone/firmware/Libraries/encryption/pbc/misc
 
 vpath %.s $(STARTUP)
 ASRC=startup_stm32f4xx.s
@@ -61,15 +52,15 @@ SRC+=stm32f4xx_rng.c
 CDEFS=-DUSE_STDPERIPH_DRIVER
 CDEFS+=-DSTM32F4XX
 CDEFS+=-DHSE_VALUE=8000000
+CDEFS+=-D__FPU_PRESENT=1
+CDEFS+=-D__FPU_USED=1
+CDEFS+=-DARM_MATH_CM4
 
-MCUFLAGS=-mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=softfp
-COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall --specs=nano.specs
+MCUFLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard
+COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall
 CFLAGS=$(COMMONFLAGS) $(MCUFLAGS) $(INCLUDE) $(CDEFS)
-
-LDLIBS=-lm
-LDFLAGS=$(COMMONFLAGS) -fno-exceptions -ffunction-sections -fdata-sections -nostartfiles -Wl,--gc-sections,-T$(LINKER_SCRIPT) -mthumb -v
-
-OBJ = $(SRC:%.c=$(BUILD_DIR)/%.o)
+LDLIBS=$(TOOLCHARN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libc_s.a $(TOOLCHARN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libm.a
+LDFLAGS=$(COMMONFLAGS) -fno-exceptions -ffunction-sections -fdata-sections -nostartfiles -Wl,--gc-sections,-T$(LINKER_SCRIPT) -v
 
 CC=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
 LD=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
@@ -77,6 +68,8 @@ OBJCOPY=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-objcopy
 AS=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-as
 AR=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-ar
 GDB=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gdb
+
+OBJ = $(SRC:%.c=$(BUILD_DIR)/%.o)
 
 $(BUILD_DIR)/%.o: %.c
 	$(CC) $(CFLAGS) $< -c -o $@
@@ -96,8 +89,3 @@ clean:
 	rm -f $(BIN_DIR)/$(TARGET).hex
 	rm -f $(BIN_DIR)/$(TARGET).bin
 
-
-flash: all
-	st-flash write $(BIN_DIR)/$(TARGET).bin 0x8000000
-
-reflash: clean flash

@@ -188,7 +188,7 @@
 
 static void SetSysClock(void);
 #ifdef DATA_IN_ExtSRAM
-  static void SystemInit_ExtMemCtl(void); 
+static void SystemInit_ExtMemCtl(void); 
 #endif /* DATA_IN_ExtSRAM */
 
 /**
@@ -240,6 +240,11 @@ void SystemInit(void)
   SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
   SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+#endif
+
+  // Enable FPU
+#if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
+  SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));
 #endif
 }
 
