@@ -15,5 +15,8 @@
 *.exe
 *.out
 *.app
+*.hex
+*.bin
+*.elf
 
 .DS_Store
