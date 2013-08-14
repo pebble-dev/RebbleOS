@@ -1,4 +1,4 @@
-TARGET:=test
+TARGET:=FreeRTOS
 # TODO change to your ARM gcc toolchain path
 TOOLCHARN_ROOT:=~/gcc-arm-none-eabi
 TOOLCHAIN_PATH:=$(TOOLCHARN_ROOT)/bin
@@ -8,10 +8,13 @@ TOOLCHAIN_PREFIX:=arm-none-eabi
 OPTLVL:=0
 DBG:=-g
 
+FREERTOS:=$(CURDIR)/FreeRTOS
 STARTUP:=$(CURDIR)/hardware
 LINKER_SCRIPT:=$(CURDIR)/Utilities/stm32_flash.ld
 
 INCLUDE=-I$(CURDIR)/hardware
+INCLUDE+=-I$(FREERTOS)/include
+INCLUDE+=-I$(FREERTOS)/portable/GCC/ARM_CM4F
 INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
 INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Include
 INCLUDE+=-I$(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
@@ -23,7 +26,8 @@ BIN_DIR = $(CURDIR)/binary
 # vpath is used so object files are written to the current directory instead
 # of the same directory as their source files
 vpath %.c $(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/src \
-	  $(CURDIR)/Libraries/syscall $(CURDIR)/hardware
+	  $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(FREERTOS) \
+	  $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
 
 vpath %.s $(STARTUP)
 ASRC=startup_stm32f4xx.s
@@ -32,6 +36,15 @@ ASRC=startup_stm32f4xx.s
 SRC+=stm32f4xx_it.c
 SRC+=system_stm32f4xx.c
 SRC+=main.c
+SRC+=syscalls.c
+
+# FreeRTOS Source Files
+SRC+=port.c
+SRC+=list.c
+SRC+=queue.c
+SRC+=tasks.c
+SRC+=timers.c
+SRC+=heap_4.c
 
 # Standard Peripheral Source Files
 # SRC+=stm32f4xx_syscfg.c

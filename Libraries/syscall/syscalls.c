@@ -42,33 +42,22 @@
 
 #include "stdio.h"
 
-#include "usart.h"// for usart_send_byte
-
-#define URANDOM 10
-
 /***************************************************************************/
 
-int _open_r(struct _reent *r, const char *name, int flags, int mode){
-  if (name && (strcmp(name, "/dev/urandom") == 0))
-    return URANDOM;
+int _open(const char *name, int flags, int mode){
   return -1;
 }
 
-int _read_r (struct _reent *r, int file, char * ptr, int len) {
-  r = r;
+int _read(int file, char * ptr, int len) {
   ptr = ptr;
   len = len;
   errno = EINVAL;
-  if (file == URANDOM) {
-    // TODO hardware random generator
-  }
   return -1;
 }
 
 /***************************************************************************/
 
-int _lseek_r (struct _reent *r, int file, int ptr, int dir) {
-  r = r;
+int _lseek(int file, int ptr, int dir) {
   file = file;
   ptr = ptr;
   dir = dir;
@@ -77,23 +66,17 @@ int _lseek_r (struct _reent *r, int file, int ptr, int dir) {
 
 /***************************************************************************/
 
-int _write_r(struct _reent *r, int file, char * ptr, int len) {
-  if (file == 1 || file == 2) {
-    int index;
-    for (index = 0; index < len; index++) {
-      if (ptr[index] == '\n') {
-	USART_send_byte(USART3, '\r');
-      }
-      USART_send_byte(USART3, ptr[index]);
-    }
+int _write(int file, char * ptr, int len) {
+  int index;
+  for (index = 0; index < len; index++) {
+    // TODO send data via USART
   }
   return len;
 }
 
 /***************************************************************************/
 
-int _close_r (struct _reent *r, int file)
-{
+int _close(int file) {
   return 0;
 }
 
@@ -102,7 +85,7 @@ int _close_r (struct _reent *r, int file)
 /* Register name faking - works in collusion with the linker.  */
 register char * stack_ptr asm ("sp");
 
-caddr_t _sbrk_r (struct _reent *r, int incr) {
+caddr_t _sbrk(int incr) {
   extern char   end asm ("end"); // Defined by the linker.
   static char * heap_end;
   char *        prev_heap_end;
@@ -127,11 +110,8 @@ caddr_t _sbrk_r (struct _reent *r, int incr) {
 
 /***************************************************************************/
 
-int _fstat_r (struct _reent *r, int file, struct stat * st)
-{
-  r = r;
+int _fstat(int file, struct stat * st) {
   file = file;
-    
   memset (st, 0, sizeof (* st));
   st->st_mode = S_IFCHR;
   return 0;
@@ -139,15 +119,12 @@ int _fstat_r (struct _reent *r, int file, struct stat * st)
 
 /***************************************************************************/
 
-int _isatty_r(struct _reent *r, int fd)
-{
-  r = r;
+int _isatty(int fd) {
   fd = fd;
-    
   return 1;
 }
 
-int _kill(int pid, int sig){
+int _kill(int pid, int sig) {
   errno=EINVAL;
   return(-1);
 }

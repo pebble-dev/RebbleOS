@@ -92,15 +92,6 @@ void UsageFault_Handler(void)
 }
 
 /**
-  * @brief  This function handles SVCall exception.
-  * @param  None
-  * @retval None
-  */
-void SVC_Handler(void)
-{
-}
-
-/**
   * @brief  This function handles Debug Monitor exception.
   * @param  None
   * @retval None
@@ -108,81 +99,4 @@ void SVC_Handler(void)
 void DebugMon_Handler(void)
 {
 }
-
-/**
-  * @brief  This function handles PendSVC exception.
-  * @param  None
-  * @retval None
-  */
-void PendSV_Handler(void)
-{
-}
-
-/**
-  * @brief  This function handles SysTick Handler.
-  * @param  None
-  * @retval None
-  */
-void SysTick_Handler(void)
-{
-}
-
-/******************************************************************************/
-/*                 STM32Fxxx Peripherals Interrupt Handlers                   */
-/*  Add here the Interrupt Handler for the used peripheral(s) (PPP), for the  */
-/*  available peripheral interrupt handler's name please refer to the startup */
-/*  file (startup_stm32fxxx.s).                                               */
-/******************************************************************************/
-
-/**
-  * @brief  This function handles PPP interrupt request.
-  * @param  None
-  * @retval None
-  */
-/*void PPP_IRQHandler(void)
-{
-}*/
-
-/**
-  * @brief  This function handles EXTI0_IRQ Handler.
-  * @param  None
-  * @retval None
-  */
-void EXTI0_IRQHandler(void)
-{
-}
-
-/**
-  * @brief  This function handles EXTI15_10_IRQ Handler.
-  * @param  None
-  * @retval None
-  */
-/*
-void OTG_FS_WKUP_IRQHandler(void)
-{
-}
-*/
-
-/**
-  * @brief  This function handles OTG_HS Handler.
-  * @param  None
-  * @retval None
-  */
-/*
-void OTG_FS_IRQHandler(void)
-{
-}
-*/
-
-/**
-* @brief  USBD_HID_GetPos
-* @param  None
-* @retval Pointer to report
-*/
-/*
-static uint8_t *USBD_HID_GetPos (void)
-{
-  return NULL;
-}
-*/
 /******************* (C) COPYRIGHT 2011 STMicroelectronics *****END OF FILE****/
