@@ -41,6 +41,7 @@
 #include <sys/types.h>
 
 #include "stdio.h"
+#include "stm32f4xx_usart.h"
 
 /***************************************************************************/
 
@@ -69,7 +70,8 @@ int _lseek(int file, int ptr, int dir) {
 int _write(int file, char * ptr, int len) {
   int index;
   for (index = 0; index < len; index++) {
-    // TODO send data via USART
+    while (!(USART3->SR & 0x00000040));
+    USART_SendData(USART3, ptr[index]);
   }
   return len;
 }
