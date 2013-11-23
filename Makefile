@@ -1,7 +1,7 @@
 TARGET:=FreeRTOS
 # TODO change to your ARM gcc toolchain path
-TOOLCHARN_ROOT:=~/gcc-arm-none-eabi
-TOOLCHAIN_PATH:=$(TOOLCHARN_ROOT)/bin
+TOOLCHAIN_ROOT:=~/gcc-arm-none-eabi
+TOOLCHAIN_PATH:=$(TOOLCHAIN_ROOT)/bin
 TOOLCHAIN_PREFIX:=arm-none-eabi
 
 # Optimization level, can be [0, 1, 2, 3, s].
@@ -72,7 +72,7 @@ CDEFS+=-DARM_MATH_CM4
 MCUFLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard
 COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall
 CFLAGS=$(COMMONFLAGS) $(MCUFLAGS) $(INCLUDE) $(CDEFS)
-LDLIBS=$(TOOLCHARN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libc_s.a $(TOOLCHARN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libm.a
+LDLIBS=$(TOOLCHAIN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libc_s.a $(TOOLCHAIN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libm.a
 LDFLAGS=$(COMMONFLAGS) -fno-exceptions -ffunction-sections -fdata-sections -nostartfiles -Wl,--gc-sections,-T$(LINKER_SCRIPT) -v
 
 CC=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
