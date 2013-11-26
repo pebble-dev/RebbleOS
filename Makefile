@@ -102,3 +102,5 @@ clean:
 	rm -f $(BIN_DIR)/$(TARGET).hex
 	rm -f $(BIN_DIR)/$(TARGET).bin
 
+flash:
+	st-flash write $(BIN_DIR)/$(TARGET).bin 0x8000000

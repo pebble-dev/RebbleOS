@@ -10,10 +10,12 @@ void init_USART3(void);
 void test_FPU_test(void* p);
 
 int main(void) {
-  uint8_t ret = pdFALSE;
+  uint8_t ret;
 
+  SystemInit();
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
   init_USART3();
+
   ret = xTaskCreate(test_FPU_test, "FPU", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
   if (ret == pdTRUE) {
@@ -21,7 +23,7 @@ int main(void) {
     vTaskStartScheduler();  // should never return
   } else {
     printf("System Error!\n");
-    // --TODO blink some LEDs to indicates fatal system error
+    // --TODO blink some LEDs to indicate fatal system error
   }
 
   for (;;);
@@ -74,7 +76,6 @@ void test_FPU_test(void* p) {
     float s = sinf(ff);
     ff += s;
     // TODO some other test
-
     vTaskDelay(1000);
   }
   vTaskDelete(NULL);
@@ -86,8 +87,7 @@ void test_FPU_test(void* p) {
 void init_USART3(void) {
   GPIO_InitTypeDef GPIO_InitStruct;
   USART_InitTypeDef USART_InitStruct;
-  NVIC_InitTypeDef NVIC_InitStructure;
-  
+
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
