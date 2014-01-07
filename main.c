@@ -110,3 +110,4 @@ void init_USART3(void) {
   USART_Init(USART3, &USART_InitStruct);
   USART_Cmd(USART3, ENABLE);
 }
+
