@@ -43,21 +43,22 @@ SRC+=port.c
 SRC+=list.c
 SRC+=queue.c
 SRC+=tasks.c
+SRC+=event_groups.c
 SRC+=timers.c
 SRC+=heap_4.c
 
 # Standard Peripheral Source Files
-# SRC+=stm32f4xx_syscfg.c
+SRC+=stm32f4xx_syscfg.c
 SRC+=misc.c
-#SRC+=stm32f4xx_adc.c
-#SRC+=stm32f4xx_dac.c
-# SRC+=stm32f4xx_dma.c
-#SRC+=stm32f4xx_exti.c
-#SRC+=stm32f4xx_flash.c
+SRC+=stm32f4xx_adc.c
+SRC+=stm32f4xx_dac.c
+SRC+=stm32f4xx_dma.c
+SRC+=stm32f4xx_exti.c
+SRC+=stm32f4xx_flash.c
 SRC+=stm32f4xx_gpio.c
 SRC+=stm32f4xx_i2c.c
 SRC+=stm32f4xx_rcc.c
-#SRC+=stm32f4xx_spi.c
+SRC+=stm32f4xx_spi.c
 SRC+=stm32f4xx_tim.c
 SRC+=stm32f4xx_usart.c
 SRC+=stm32f4xx_rng.c
@@ -85,22 +86,29 @@ GDB=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gdb
 OBJ = $(SRC:%.c=$(BUILD_DIR)/%.o)
 
 $(BUILD_DIR)/%.o: %.c
-	$(CC) $(CFLAGS) $< -c -o $@
+	@echo [CC] $<
+	@$(CC) $(CFLAGS) $< -c -o $@
 
 all: $(OBJ)
-	$(AS) -o $(ASRC:%.s=$(BUILD_DIR)/%.o) $(STARTUP)/$(ASRC)
-	$(CC) -o $(BIN_DIR)/$(TARGET).elf $(LDFLAGS) $(OBJ) $(ASRC:%.s=$(BUILD_DIR)/%.o) $(LDLIBS)
-	$(OBJCOPY) -O ihex $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).hex
-	$(OBJCOPY) -O binary $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).bin
+	@echo [AS] $(STARTUP)/$(ASRC)
+	@$(AS) -o $(ASRC:%.s=$(BUILD_DIR)/%.o) $(STARTUP)/$(ASRC)
+	@echo [LD] $(BIN_DIR)/$(TARGET).elf
+	@$(CC) -o $(BIN_DIR)/$(TARGET).elf $(LDFLAGS) $(OBJ) $(ASRC:%.s=$(BUILD_DIR)/%.o) $(LDLIBS)
+	@echo [OBJCOPY] $(BIN_DIR)/$(TARGET).hex
+	@$(OBJCOPY) -O ihex $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).hex
+	@echo [OBJCOPY] $(BIN_DIR)/$(TARGET).bin
+	@$(OBJCOPY) -O binary $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).bin
 
 .PHONY: clean
 
 clean:
-	rm -f $(OBJ)
-	rm -f $(ASRC:%.s=$(BUILD_DIR)/%.o)
-	rm -f $(BIN_DIR)/$(TARGET).elf
-	rm -f $(BIN_DIR)/$(TARGET).hex
-	rm -f $(BIN_DIR)/$(TARGET).bin
+	@echo [RM] OBJ
+	@rm -f $(OBJ)
+	@rm -f $(ASRC:%.s=$(BUILD_DIR)/%.o)
+	@echo [RM] BIN
+	@rm -f $(BIN_DIR)/$(TARGET).elf
+	@rm -f $(BIN_DIR)/$(TARGET).hex
+	@rm -f $(BIN_DIR)/$(TARGET).bin
 
 flash:
-	st-flash write $(BIN_DIR)/$(TARGET).bin 0x8000000
+	@st-flash write $(BIN_DIR)/$(TARGET).bin 0x8000000

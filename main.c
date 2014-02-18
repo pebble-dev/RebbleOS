@@ -16,6 +16,7 @@ int main(void) {
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
   init_USART3();
 
+  // Create a task
   ret = xTaskCreate(test_FPU_test, "FPU", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
 
   if (ret == pdTRUE) {
