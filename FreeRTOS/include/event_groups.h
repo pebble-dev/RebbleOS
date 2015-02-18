@@ -1,22 +1,8 @@
 /*
-    FreeRTOS V8.0.0:rc2 - Copyright (C) 2014 Real Time Engineers Ltd.
+    FreeRTOS V8.2.0 - Copyright (C) 2015 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
-
-    ***************************************************************************
-     *                                                                       *
-     *    FreeRTOS provides completely free yet professionally developed,    *
-     *    robust, strictly quality controlled, supported, and cross          *
-     *    platform software that has become a de facto standard.             *
-     *                                                                       *
-     *    Help yourself get started quickly and support the FreeRTOS         *
-     *    project by purchasing a FreeRTOS tutorial book, reference          *
-     *    manual, or both from: http://www.FreeRTOS.org/Documentation        *
-     *                                                                       *
-     *    Thank you!                                                         *
-     *                                                                       *
-    ***************************************************************************
 
     This file is part of the FreeRTOS distribution.
 
@@ -24,37 +10,55 @@
     the terms of the GNU General Public License (version 2) as published by the
     Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
 
-    >>! NOTE: The modification to the GPL is included to allow you to distribute
-    >>! a combined work that includes FreeRTOS without being obliged to provide
-    >>! the source code for proprietary components outside of the FreeRTOS
-    >>! kernel.
+	***************************************************************************
+    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
+    >>!   distribute a combined work that includes FreeRTOS without being   !<<
+    >>!   obliged to provide the source code for proprietary components     !<<
+    >>!   outside of the FreeRTOS kernel.                                   !<<
+	***************************************************************************
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE.  Full license text is available from the following
+    FOR A PARTICULAR PURPOSE.  Full license text is available on the following
     link: http://www.freertos.org/a00114.html
 
-    1 tab == 4 spaces!
-
     ***************************************************************************
      *                                                                       *
-     *    Having a problem?  Start by reading the FAQ "My application does   *
-     *    not run, what could be wrong?"                                     *
+     *    FreeRTOS provides completely free yet professionally developed,    *
+     *    robust, strictly quality controlled, supported, and cross          *
+     *    platform software that is more than just the market leader, it     *
+     *    is the industry's de facto standard.                               *
      *                                                                       *
-     *    http://www.FreeRTOS.org/FAQHelp.html                               *
+     *    Help yourself get started quickly while simultaneously helping     *
+     *    to support the FreeRTOS project by purchasing a FreeRTOS           *
+     *    tutorial book, reference manual, or both:                          *
+     *    http://www.FreeRTOS.org/Documentation                              *
      *                                                                       *
     ***************************************************************************
 
-    http://www.FreeRTOS.org - Documentation, books, training, latest versions,
-    license and Real Time Engineers Ltd. contact details.
+    http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
+	the FAQ page "My application does not run, what could be wrong?".  Have you
+	defined configASSERT()?
+
+	http://www.FreeRTOS.org/support - In return for receiving this top quality
+	embedded software for free we request you assist our global community by
+	participating in the support forum.
+
+	http://www.FreeRTOS.org/training - Investing in training allows your team to
+	be as productive as possible as early as possible.  Now you can receive
+	FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
+	Ltd, and the world's leading authority on the world's leading RTOS.
 
     http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
     including FreeRTOS+Trace - an indispensable productivity tool, a DOS
     compatible FAT file system, and our tiny thread aware UDP/IP stack.
 
-    http://www.OpenRTOS.com - Real Time Engineers ltd license FreeRTOS to High
-    Integrity Systems to sell under the OpenRTOS brand.  Low cost OpenRTOS
-    licenses offer ticketed support, indemnification and middleware.
+    http://www.FreeRTOS.org/labs - Where new FreeRTOS products go to incubate.
+    Come and try FreeRTOS+TCP, our new open source TCP/IP stack for FreeRTOS.
+
+    http://www.OpenRTOS.com - Real Time Engineers ltd. license FreeRTOS to High
+    Integrity Systems ltd. to sell under the OpenRTOS brand.  Low cost OpenRTOS
+    licenses offer ticketed support, indemnification and commercial middleware.
 
     http://www.SafeRTOS.com - High Integrity Systems also provide a safety
     engineered and independently SIL3 certified version for use in safety and
@@ -325,16 +329,61 @@ EventBits_t xEventGroupClearBits( EventGroupHandle_t xEventGroup, const EventBit
 /**
  * event_groups.h
  *<pre>
-	EventBits_t xEventGroupClearBitsFromISR( EventGroupHandle_t xEventGroup, const EventBits_t uxBitsToClear );
+	BaseType_t xEventGroupClearBitsFromISR( EventGroupHandle_t xEventGroup, const EventBits_t uxBitsToSet );
  </pre>
  *
- * A version of xEventGroupClearBits() that can be called from an interrupt
- * service routine.  See the xEventGroupClearBits() documentation.
+ * A version of xEventGroupClearBits() that can be called from an interrupt.
  *
- * \defgroup xEventGroupClearBitsFromISR xEventGroupClearBitsFromISR
+ * Setting bits in an event group is not a deterministic operation because there
+ * are an unknown number of tasks that may be waiting for the bit or bits being
+ * set.  FreeRTOS does not allow nondeterministic operations to be performed
+ * while interrupts are disabled, so protects event groups that are accessed
+ * from tasks by suspending the scheduler rather than disabling interrupts.  As
+ * a result event groups cannot be accessed directly from an interrupt service
+ * routine.  Therefore xEventGroupClearBitsFromISR() sends a message to the 
+ * timer task to have the clear operation performed in the context of the timer 
+ * task.
+ *
+ * @param xEventGroup The event group in which the bits are to be cleared.
+ *
+ * @param uxBitsToClear A bitwise value that indicates the bit or bits to clear.
+ * For example, to clear bit 3 only, set uxBitsToClear to 0x08.  To clear bit 3
+ * and bit 0 set uxBitsToClear to 0x09.
+ *
+ * @return If the request to execute the function was posted successfully then 
+ * pdPASS is returned, otherwise pdFALSE is returned.  pdFALSE will be returned 
+ * if the timer service queue was full.
+ *
+ * Example usage:
+   <pre>
+   #define BIT_0	( 1 << 0 )
+   #define BIT_4	( 1 << 4 )
+
+   // An event group which it is assumed has already been created by a call to
+   // xEventGroupCreate().
+   EventGroupHandle_t xEventGroup;
+
+   void anInterruptHandler( void )
+   {
+		// Clear bit 0 and bit 4 in xEventGroup.
+		xResult = xEventGroupClearBitsFromISR(
+							xEventGroup,	 // The event group being updated.
+							BIT_0 | BIT_4 ); // The bits being set.
+
+		if( xResult == pdPASS )
+		{
+			// The message was posted successfully.
+		}
+  }
+   </pre>
+ * \defgroup xEventGroupSetBitsFromISR xEventGroupSetBitsFromISR
  * \ingroup EventGroup
  */
-EventBits_t xEventGroupClearBitsFromISR( EventGroupHandle_t xEventGroup, const EventBits_t uxBitsToClear ) PRIVILEGED_FUNCTION;
+#if( configUSE_TRACE_FACILITY == 1 )
+	BaseType_t xEventGroupClearBitsFromISR( EventGroupHandle_t xEventGroup, const EventBits_t uxBitsToSet );
+#else
+	#define xEventGroupClearBitsFromISR( xEventGroup, uxBitsToClear ) xTimerPendFunctionCallFromISR( vEventGroupClearBitsCallback, ( void * ) xEventGroup, ( uint32_t ) uxBitsToClear, NULL )
+#endif
 
 /**
  * event_groups.h
@@ -482,7 +531,11 @@ EventBits_t xEventGroupSetBits( EventGroupHandle_t xEventGroup, const EventBits_
  * \defgroup xEventGroupSetBitsFromISR xEventGroupSetBitsFromISR
  * \ingroup EventGroup
  */
-#define xEventGroupSetBitsFromISR( xEventGroup, uxBitsToSet, pxHigherPriorityTaskWoken ) xTimerPendFunctionCallFromISR( vEventGroupSetBitsCallback, ( void * ) xEventGroup, ( uint32_t ) uxBitsToSet, pxHigherPriorityTaskWoken )
+#if( configUSE_TRACE_FACILITY == 1 )
+	BaseType_t xEventGroupSetBitsFromISR( EventGroupHandle_t xEventGroup, const EventBits_t uxBitsToSet, BaseType_t *pxHigherPriorityTaskWoken );
+#else
+	#define xEventGroupSetBitsFromISR( xEventGroup, uxBitsToSet, pxHigherPriorityTaskWoken ) xTimerPendFunctionCallFromISR( vEventGroupSetBitsCallback, ( void * ) xEventGroup, ( uint32_t ) uxBitsToSet, pxHigherPriorityTaskWoken )
+#endif
 
 /**
  * event_groups.h
@@ -644,7 +697,7 @@ EventBits_t xEventGroupSync( EventGroupHandle_t xEventGroup, const EventBits_t u
  * \defgroup xEventGroupGetBitsFromISR xEventGroupGetBitsFromISR
  * \ingroup EventGroup
  */
-#define xEventGroupGetBitsFromISR( xEventGroup ) xEventGroupClearBitsFromISR( xEventGroup, 0 )
+EventBits_t xEventGroupGetBitsFromISR( EventGroupHandle_t xEventGroup );
 
 /**
  * event_groups.h
@@ -662,7 +715,11 @@ void vEventGroupDelete( EventGroupHandle_t xEventGroup );
 
 /* For internal use only. */
 void vEventGroupSetBitsCallback( void *pvEventGroup, const uint32_t ulBitsToSet );
+void vEventGroupClearBitsCallback( void *pvEventGroup, const uint32_t ulBitsToClear );
 
+#if (configUSE_TRACE_FACILITY == 1)
+	UBaseType_t uxEventGroupGetNumber( void* xEventGroup );
+#endif
 
 #ifdef __cplusplus
 }

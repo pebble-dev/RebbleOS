@@ -74,7 +74,7 @@ MCUFLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard
 COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall
 CFLAGS=$(COMMONFLAGS) $(MCUFLAGS) $(INCLUDE) $(CDEFS)
 LDLIBS=$(TOOLCHAIN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libc_s.a $(TOOLCHAIN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libm.a
-LDFLAGS=$(COMMONFLAGS) -fno-exceptions -ffunction-sections -fdata-sections -nostartfiles -Wl,--gc-sections,-T$(LINKER_SCRIPT) -v
+LDFLAGS=$(COMMONFLAGS) -fno-exceptions -ffunction-sections -fdata-sections -nostartfiles -Wl,--gc-sections,-T$(LINKER_SCRIPT)
 
 CC=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
 LD=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
@@ -86,17 +86,17 @@ GDB=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gdb
 OBJ = $(SRC:%.c=$(BUILD_DIR)/%.o)
 
 $(BUILD_DIR)/%.o: %.c
-	@echo [CC] $<
+	@echo [CC] $(notdir $<)
 	@$(CC) $(CFLAGS) $< -c -o $@
 
 all: $(OBJ)
-	@echo [AS] $(STARTUP)/$(ASRC)
+	@echo [AS] $(ASRC)
 	@$(AS) -o $(ASRC:%.s=$(BUILD_DIR)/%.o) $(STARTUP)/$(ASRC)
-	@echo [LD] $(BIN_DIR)/$(TARGET).elf
+	@echo [LD] $(TARGET).elf
 	@$(CC) -o $(BIN_DIR)/$(TARGET).elf $(LDFLAGS) $(OBJ) $(ASRC:%.s=$(BUILD_DIR)/%.o) $(LDLIBS)
-	@echo [OBJCOPY] $(BIN_DIR)/$(TARGET).hex
+	@echo [OBJCOPY] $(TARGET).hex
 	@$(OBJCOPY) -O ihex $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).hex
-	@echo [OBJCOPY] $(BIN_DIR)/$(TARGET).bin
+	@echo [OBJCOPY] $(TARGET).bin
 	@$(OBJCOPY) -O binary $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).bin
 
 .PHONY: clean

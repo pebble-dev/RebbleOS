@@ -1,22 +1,8 @@
 /*
-    FreeRTOS V8.0.0:rc2 - Copyright (C) 2014 Real Time Engineers Ltd.
+    FreeRTOS V8.2.0 - Copyright (C) 2015 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
-
-    ***************************************************************************
-     *                                                                       *
-     *    FreeRTOS provides completely free yet professionally developed,    *
-     *    robust, strictly quality controlled, supported, and cross          *
-     *    platform software that has become a de facto standard.             *
-     *                                                                       *
-     *    Help yourself get started quickly and support the FreeRTOS         *
-     *    project by purchasing a FreeRTOS tutorial book, reference          *
-     *    manual, or both from: http://www.FreeRTOS.org/Documentation        *
-     *                                                                       *
-     *    Thank you!                                                         *
-     *                                                                       *
-    ***************************************************************************
 
     This file is part of the FreeRTOS distribution.
 
@@ -24,37 +10,55 @@
     the terms of the GNU General Public License (version 2) as published by the
     Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
 
-    >>! NOTE: The modification to the GPL is included to allow you to distribute
-    >>! a combined work that includes FreeRTOS without being obliged to provide
-    >>! the source code for proprietary components outside of the FreeRTOS
-    >>! kernel.
+	***************************************************************************
+    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
+    >>!   distribute a combined work that includes FreeRTOS without being   !<<
+    >>!   obliged to provide the source code for proprietary components     !<<
+    >>!   outside of the FreeRTOS kernel.                                   !<<
+	***************************************************************************
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-    FOR A PARTICULAR PURPOSE.  Full license text is available from the following
+    FOR A PARTICULAR PURPOSE.  Full license text is available on the following
     link: http://www.freertos.org/a00114.html
 
-    1 tab == 4 spaces!
-
     ***************************************************************************
      *                                                                       *
-     *    Having a problem?  Start by reading the FAQ "My application does   *
-     *    not run, what could be wrong?"                                     *
+     *    FreeRTOS provides completely free yet professionally developed,    *
+     *    robust, strictly quality controlled, supported, and cross          *
+     *    platform software that is more than just the market leader, it     *
+     *    is the industry's de facto standard.                               *
      *                                                                       *
-     *    http://www.FreeRTOS.org/FAQHelp.html                               *
+     *    Help yourself get started quickly while simultaneously helping     *
+     *    to support the FreeRTOS project by purchasing a FreeRTOS           *
+     *    tutorial book, reference manual, or both:                          *
+     *    http://www.FreeRTOS.org/Documentation                              *
      *                                                                       *
     ***************************************************************************
 
-    http://www.FreeRTOS.org - Documentation, books, training, latest versions,
-    license and Real Time Engineers Ltd. contact details.
+    http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
+	the FAQ page "My application does not run, what could be wrong?".  Have you
+	defined configASSERT()?
+
+	http://www.FreeRTOS.org/support - In return for receiving this top quality
+	embedded software for free we request you assist our global community by
+	participating in the support forum.
+
+	http://www.FreeRTOS.org/training - Investing in training allows your team to
+	be as productive as possible as early as possible.  Now you can receive
+	FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
+	Ltd, and the world's leading authority on the world's leading RTOS.
 
     http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
     including FreeRTOS+Trace - an indispensable productivity tool, a DOS
     compatible FAT file system, and our tiny thread aware UDP/IP stack.
 
-    http://www.OpenRTOS.com - Real Time Engineers ltd license FreeRTOS to High
-    Integrity Systems to sell under the OpenRTOS brand.  Low cost OpenRTOS
-    licenses offer ticketed support, indemnification and middleware.
+    http://www.FreeRTOS.org/labs - Where new FreeRTOS products go to incubate.
+    Come and try FreeRTOS+TCP, our new open source TCP/IP stack for FreeRTOS.
+
+    http://www.OpenRTOS.com - Real Time Engineers ltd. license FreeRTOS to High
+    Integrity Systems ltd. to sell under the OpenRTOS brand.  Low cost OpenRTOS
+    licenses offer ticketed support, indemnification and commercial middleware.
 
     http://www.SafeRTOS.com - High Integrity Systems also provide a safety
     engineered and independently SIL3 certified version for use in safety and
@@ -66,24 +70,35 @@
 #ifndef INC_FREERTOS_H
 #define INC_FREERTOS_H
 
-
 /*
  * Include the generic headers required for the FreeRTOS port being used.
  */
 #include <stddef.h>
-#include <stdint.h>
 
-/* Basic FreeRTOS definitions. */
-#include "projdefs.h"
+/*
+ * If stdint.h cannot be located then:
+ *   + If using GCC ensure the -nostdint options is *not* being used.
+ *   + Ensure the project's include path includes the directory in which your
+ *     compiler stores stdint.h.
+ *   + Set any compiler options necessary for it to support C99, as technically
+ *     stdint.h is only mandatory with C99 (FreeRTOS does not require C99 in any
+ *     other way).
+ *   + The FreeRTOS download includes a simple stdint.h definition that can be
+ *     used in cases where none is provided by the compiler.  The files only
+ *     contains the typedefs required to build FreeRTOS.  Read the instructions
+ *     in FreeRTOS/source/stdint.readme for more information.
+ */
+#include <stdint.h> /* READ COMMENT ABOVE. */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* Application specific configuration options. */
 #include "FreeRTOSConfig.h"
 
-/* configUSE_PORT_OPTIMISED_TASK_SELECTION must be defined before portable.h
-is included as it is used by the port layer. */
-#ifndef configUSE_PORT_OPTIMISED_TASK_SELECTION
-	#define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
-#endif
+/* Basic FreeRTOS definitions. */
+#include "projdefs.h"
 
 /* Definitions specific to the port being used. */
 #include "portable.h"
@@ -232,8 +247,8 @@ is included as it is used by the port layer. */
 	#define INCLUDE_xEventGroupSetBitFromISR 0
 #endif
 
-#ifndef INCLUDE_xTimerPendFunctionCallFromISR
-	#define INCLUDE_xTimerPendFunctionCallFromISR 0
+#ifndef INCLUDE_xTimerPendFunctionCall
+	#define INCLUDE_xTimerPendFunctionCall 0
 #endif
 
 #ifndef configASSERT
@@ -550,20 +565,20 @@ is included as it is used by the port layer. */
 	#define traceEVENT_GROUP_CREATE_FAILED()
 #endif
 
-#ifndef traceEVENT_GROUP_SYNC_START
-	#define traceEVENT_GROUP_SYNC_START( xEventGroup, uxBitsToSet )
+#ifndef traceEVENT_GROUP_SYNC_BLOCK
+	#define traceEVENT_GROUP_SYNC_BLOCK( xEventGroup, uxBitsToSet, uxBitsToWaitFor )
 #endif
 
 #ifndef traceEVENT_GROUP_SYNC_END
-	#define traceEVENT_GROUP_SYNC_END( xEventGroup, uxReturn )
+	#define traceEVENT_GROUP_SYNC_END( xEventGroup, uxBitsToSet, uxBitsToWaitFor, xTimeoutOccurred ) ( void ) xTimeoutOccurred
 #endif
 
-#ifndef traceEVENT_GROUP_WAIT_BITS_START
-	#define traceEVENT_GROUP_WAIT_BITS_START( xEventGroup, uxBitsToWaitFor )
+#ifndef traceEVENT_GROUP_WAIT_BITS_BLOCK
+	#define traceEVENT_GROUP_WAIT_BITS_BLOCK( xEventGroup, uxBitsToWaitFor )
 #endif
 
 #ifndef traceEVENT_GROUP_WAIT_BITS_END
-	#define traceEVENT_GROUP_WAIT_BITS_END( xEventGroup, uxReturn )
+	#define traceEVENT_GROUP_WAIT_BITS_END( xEventGroup, uxBitsToWaitFor, xTimeoutOccurred ) ( void ) xTimeoutOccurred
 #endif
 
 #ifndef traceEVENT_GROUP_CLEAR_BITS
@@ -578,8 +593,24 @@ is included as it is used by the port layer. */
 	#define traceEVENT_GROUP_SET_BITS( xEventGroup, uxBitsToSet )
 #endif
 
+#ifndef traceEVENT_GROUP_SET_BITS_FROM_ISR
+	#define traceEVENT_GROUP_SET_BITS_FROM_ISR( xEventGroup, uxBitsToSet )
+#endif
+
 #ifndef traceEVENT_GROUP_DELETE
 	#define traceEVENT_GROUP_DELETE( xEventGroup )
+#endif
+
+#ifndef tracePEND_FUNC_CALL
+	#define tracePEND_FUNC_CALL(xFunctionToPend, pvParameter1, ulParameter2, ret)
+#endif
+
+#ifndef tracePEND_FUNC_CALL_FROM_ISR
+	#define tracePEND_FUNC_CALL_FROM_ISR(xFunctionToPend, pvParameter1, ulParameter2, ret)
+#endif
+
+#ifndef traceQUEUE_REGISTRY_ADD
+	#define traceQUEUE_REGISTRY_ADD(xQueue, pcQueueName)
 #endif
 
 #ifndef configGENERATE_RUN_TIME_STATS
@@ -684,29 +715,77 @@ is included as it is used by the port layer. */
 	#define mtCOVERAGE_TEST_MARKER()
 #endif
 
-/* For backward compatibility. */
-#define eTaskStateGet eTaskGetState
-#define portTickType TickType_t
-#define xTaskHandle TaskHandle_t
-#define xQueueHandle QueueHandle_t
-#define xSemaphoreHandle SemaphoreHandle_t
-#define xQueueSetHandle QueueSetHandle_t
-#define xQueueSetMemberHandle QueueSetMemberHandle_t
-#define xTimeOutType TimeOut_t
-#define xMemoryRegion MemoryRegion_t
-#define xTaskParameters TaskParameters_t
-#define xTaskStatusType	TaskStatus_t
-#define xTimerHandle TimerHandle_t
-#define xCoRoutineHandle CoRoutineHandle_t
-#define pdTASK_HOOK_CODE TaskHookFunction_t
-#define portTICK_RATE_MS portTICK_PERIOD_MS
+#ifndef portASSERT_IF_IN_ISR
+	#define portASSERT_IF_IN_ISR()
+#endif
 
-/* Backward compatibility within the scheduler code only - these definitions
-are not really required but are included for completeness. */
-#define tmrTIMER_CALLBACK TimerCallbackFunction_t
-#define pdTASK_CODE TaskFunction_t
-#define xListItem ListItem_t
-#define xList List_t
+#ifndef configUSE_PORT_OPTIMISED_TASK_SELECTION
+	#define configUSE_PORT_OPTIMISED_TASK_SELECTION 0
+#endif
+
+#ifndef configAPPLICATION_ALLOCATED_HEAP
+	#define configAPPLICATION_ALLOCATED_HEAP 0
+#endif
+
+#ifndef configUSE_TASK_NOTIFICATIONS
+	#define configUSE_TASK_NOTIFICATIONS 1
+#endif
+
+#ifndef portTICK_TYPE_IS_ATOMIC
+	#define portTICK_TYPE_IS_ATOMIC 0
+#endif
+
+#if( portTICK_TYPE_IS_ATOMIC == 0 )
+	/* Either variables of tick type cannot be read atomically, or
+	portTICK_TYPE_IS_ATOMIC was not set - map the critical sections used when
+	the tick count is returned to the standard critical section macros. */
+	#define portTICK_TYPE_ENTER_CRITICAL() portENTER_CRITICAL()
+	#define portTICK_TYPE_EXIT_CRITICAL() portEXIT_CRITICAL()
+	#define portTICK_TYPE_SET_INTERRUPT_MASK_FROM_ISR() portSET_INTERRUPT_MASK_FROM_ISR()
+	#define portTICK_TYPE_CLEAR_INTERRUPT_MASK_FROM_ISR( x ) portCLEAR_INTERRUPT_MASK_FROM_ISR( ( x ) )
+#else
+	/* The tick type can be read atomically, so critical sections used when the
+	tick count is returned can be defined away. */
+	#define portTICK_TYPE_ENTER_CRITICAL()
+	#define portTICK_TYPE_EXIT_CRITICAL()
+	#define portTICK_TYPE_SET_INTERRUPT_MASK_FROM_ISR() 0
+	#define portTICK_TYPE_CLEAR_INTERRUPT_MASK_FROM_ISR( x ) ( void ) x
+#endif
+
+/* Definitions to allow backward compatibility with FreeRTOS versions prior to
+V8 if desired. */
+#ifndef configENABLE_BACKWARD_COMPATIBILITY
+	#define configENABLE_BACKWARD_COMPATIBILITY 1
+#endif
+
+#if configENABLE_BACKWARD_COMPATIBILITY == 1
+	#define eTaskStateGet eTaskGetState
+	#define portTickType TickType_t
+	#define xTaskHandle TaskHandle_t
+	#define xQueueHandle QueueHandle_t
+	#define xSemaphoreHandle SemaphoreHandle_t
+	#define xQueueSetHandle QueueSetHandle_t
+	#define xQueueSetMemberHandle QueueSetMemberHandle_t
+	#define xTimeOutType TimeOut_t
+	#define xMemoryRegion MemoryRegion_t
+	#define xTaskParameters TaskParameters_t
+	#define xTaskStatusType	TaskStatus_t
+	#define xTimerHandle TimerHandle_t
+	#define xCoRoutineHandle CoRoutineHandle_t
+	#define pdTASK_HOOK_CODE TaskHookFunction_t
+	#define portTICK_RATE_MS portTICK_PERIOD_MS
+
+	/* Backward compatibility within the scheduler code only - these definitions
+	are not really required but are included for completeness. */
+	#define tmrTIMER_CALLBACK TimerCallbackFunction_t
+	#define pdTASK_CODE TaskFunction_t
+	#define xListItem ListItem_t
+	#define xList List_t
+#endif /* configENABLE_BACKWARD_COMPATIBILITY */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* INC_FREERTOS_H */
 
