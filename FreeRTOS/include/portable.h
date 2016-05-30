@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V8.2.0 - Copyright (C) 2015 Real Time Engineers Ltd.
+    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -8,14 +8,14 @@
 
     FreeRTOS is free software; you can redistribute it and/or modify it under
     the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
+    Free Software Foundation >>>> AND MODIFIED BY <<<< the FreeRTOS exception.
 
-	***************************************************************************
+    ***************************************************************************
     >>!   NOTE: The modification to the GPL is included to allow you to     !<<
     >>!   distribute a combined work that includes FreeRTOS without being   !<<
     >>!   obliged to provide the source code for proprietary components     !<<
     >>!   outside of the FreeRTOS kernel.                                   !<<
-	***************************************************************************
+    ***************************************************************************
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -37,17 +37,17 @@
     ***************************************************************************
 
     http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-	the FAQ page "My application does not run, what could be wrong?".  Have you
-	defined configASSERT()?
+    the FAQ page "My application does not run, what could be wrong?".  Have you
+    defined configASSERT()?
 
-	http://www.FreeRTOS.org/support - In return for receiving this top quality
-	embedded software for free we request you assist our global community by
-	participating in the support forum.
+    http://www.FreeRTOS.org/support - In return for receiving this top quality
+    embedded software for free we request you assist our global community by
+    participating in the support forum.
 
-	http://www.FreeRTOS.org/training - Investing in training allows your team to
-	be as productive as possible as early as possible.  Now you can receive
-	FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-	Ltd, and the world's leading authority on the world's leading RTOS.
+    http://www.FreeRTOS.org/training - Investing in training allows your team to
+    be as productive as possible as early as possible.  Now you can receive
+    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
+    Ltd, and the world's leading authority on the world's leading RTOS.
 
     http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
     including FreeRTOS+Trace - an indispensable productivity tool, a DOS
@@ -94,8 +94,16 @@ must be set in the compiler's include path. */
 	#include "portmacro.h"
 #endif
 
+#if portBYTE_ALIGNMENT == 32
+	#define portBYTE_ALIGNMENT_MASK ( 0x001f )
+#endif
+
+#if portBYTE_ALIGNMENT == 16
+	#define portBYTE_ALIGNMENT_MASK ( 0x000f )
+#endif
+
 #if portBYTE_ALIGNMENT == 8
-	#define portBYTE_ALIGNMENT_MASK ( 0x0007U )
+	#define portBYTE_ALIGNMENT_MASK ( 0x0007 )
 #endif
 
 #if portBYTE_ALIGNMENT == 4
@@ -154,7 +162,7 @@ typedef struct HeapRegion
  * terminated by a HeapRegions_t structure that has a size of 0.  The region
  * with the lowest start address must appear first in the array.
  */
-void vPortDefineHeapRegions( const HeapRegion_t * const pxHeapRegions );
+void vPortDefineHeapRegions( const HeapRegion_t * const pxHeapRegions ) PRIVILEGED_FUNCTION;
 
 
 /*
@@ -188,7 +196,7 @@ void vPortEndScheduler( void ) PRIVILEGED_FUNCTION;
  */
 #if( portUSING_MPU_WRAPPERS == 1 )
 	struct xMEMORY_REGION;
-	void vPortStoreTaskMPUSettings( xMPU_SETTINGS *xMPUSettings, const struct xMEMORY_REGION * const xRegions, StackType_t *pxBottomOfStack, uint16_t usStackDepth ) PRIVILEGED_FUNCTION;
+	void vPortStoreTaskMPUSettings( xMPU_SETTINGS *xMPUSettings, const struct xMEMORY_REGION * const xRegions, StackType_t *pxBottomOfStack, uint32_t ulStackDepth ) PRIVILEGED_FUNCTION;
 #endif
 
 #ifdef __cplusplus

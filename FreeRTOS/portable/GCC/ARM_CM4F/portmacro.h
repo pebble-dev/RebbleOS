@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V8.2.0 - Copyright (C) 2015 Real Time Engineers Ltd.
+    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -8,14 +8,14 @@
 
     FreeRTOS is free software; you can redistribute it and/or modify it under
     the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
+    Free Software Foundation >>>> AND MODIFIED BY <<<< the FreeRTOS exception.
 
-	***************************************************************************
+    ***************************************************************************
     >>!   NOTE: The modification to the GPL is included to allow you to     !<<
     >>!   distribute a combined work that includes FreeRTOS without being   !<<
     >>!   obliged to provide the source code for proprietary components     !<<
     >>!   outside of the FreeRTOS kernel.                                   !<<
-	***************************************************************************
+    ***************************************************************************
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -37,17 +37,17 @@
     ***************************************************************************
 
     http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-	the FAQ page "My application does not run, what could be wrong?".  Have you
-	defined configASSERT()?
+    the FAQ page "My application does not run, what could be wrong?".  Have you
+    defined configASSERT()?
 
-	http://www.FreeRTOS.org/support - In return for receiving this top quality
-	embedded software for free we request you assist our global community by
-	participating in the support forum.
+    http://www.FreeRTOS.org/support - In return for receiving this top quality
+    embedded software for free we request you assist our global community by
+    participating in the support forum.
 
-	http://www.FreeRTOS.org/training - Investing in training allows your team to
-	be as productive as possible as early as possible.  Now you can receive
-	FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-	Ltd, and the world's leading authority on the world's leading RTOS.
+    http://www.FreeRTOS.org/training - Investing in training allows your team to
+    be as productive as possible as early as possible.  Now you can receive
+    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
+    Ltd, and the world's leading authority on the world's leading RTOS.
 
     http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
     including FreeRTOS+Trace - an indispensable productivity tool, a DOS
@@ -188,7 +188,7 @@ not necessary for to use this port.  They are defined so the common demo files
 
 	/*-----------------------------------------------------------*/
 
-	#define portGET_HIGHEST_PRIORITY( uxTopPriority, uxReadyPriorities ) uxTopPriority = ( 31 - ucPortCountLeadingZeros( ( uxReadyPriorities ) ) )
+	#define portGET_HIGHEST_PRIORITY( uxTopPriority, uxReadyPriorities ) uxTopPriority = ( 31UL - ( uint32_t ) ucPortCountLeadingZeros( ( uxReadyPriorities ) ) )
 
 #endif /* configUSE_PORT_OPTIMISED_TASK_SELECTION */
 
@@ -202,9 +202,31 @@ not necessary for to use this port.  They are defined so the common demo files
 /* portNOP() is not required by this port. */
 #define portNOP()
 
+#define portINLINE	__inline
+
 #ifndef portFORCE_INLINE
 	#define portFORCE_INLINE inline __attribute__(( always_inline))
 #endif
+
+portFORCE_INLINE static BaseType_t xPortIsInsideInterrupt( void )
+{
+uint32_t ulCurrentInterrupt;
+BaseType_t xReturn;
+
+	/* Obtain the number of the currently executing interrupt. */
+	__asm volatile( "mrs %0, ipsr" : "=r"( ulCurrentInterrupt ) );
+
+	if( ulCurrentInterrupt == 0 )
+	{
+		xReturn = pdFALSE;
+	}
+	else
+	{
+		xReturn = pdTRUE;
+	}
+
+	return xReturn;
+}
 
 /*-----------------------------------------------------------*/
 

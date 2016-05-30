@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V8.2.0 - Copyright (C) 2015 Real Time Engineers Ltd.
+    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -8,14 +8,14 @@
 
     FreeRTOS is free software; you can redistribute it and/or modify it under
     the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
+    Free Software Foundation >>>> AND MODIFIED BY <<<< the FreeRTOS exception.
 
-	***************************************************************************
+    ***************************************************************************
     >>!   NOTE: The modification to the GPL is included to allow you to     !<<
     >>!   distribute a combined work that includes FreeRTOS without being   !<<
     >>!   obliged to provide the source code for proprietary components     !<<
     >>!   outside of the FreeRTOS kernel.                                   !<<
-	***************************************************************************
+    ***************************************************************************
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -37,17 +37,17 @@
     ***************************************************************************
 
     http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-	the FAQ page "My application does not run, what could be wrong?".  Have you
-	defined configASSERT()?
+    the FAQ page "My application does not run, what could be wrong?".  Have you
+    defined configASSERT()?
 
-	http://www.FreeRTOS.org/support - In return for receiving this top quality
-	embedded software for free we request you assist our global community by
-	participating in the support forum.
+    http://www.FreeRTOS.org/support - In return for receiving this top quality
+    embedded software for free we request you assist our global community by
+    participating in the support forum.
 
-	http://www.FreeRTOS.org/training - Investing in training allows your team to
-	be as productive as possible as early as possible.  Now you can receive
-	FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-	Ltd, and the world's leading authority on the world's leading RTOS.
+    http://www.FreeRTOS.org/training - Investing in training allows your team to
+    be as productive as possible as early as possible.  Now you can receive
+    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
+    Ltd, and the world's leading authority on the world's leading RTOS.
 
     http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
     including FreeRTOS+Trace - an indispensable productivity tool, a DOS
@@ -88,6 +88,10 @@ task.h is included from an application file. */
 
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
+#if( configSUPPORT_DYNAMIC_ALLOCATION == 0 )
+	#error This file must not be used if configSUPPORT_DYNAMIC_ALLOCATION is 0
+#endif
+
 /* A few bytes might be lost to byte aligning the heap start address. */
 #define configADJUSTED_HEAP_SIZE	( configTOTAL_HEAP_SIZE - portBYTE_ALIGNMENT )
 
@@ -97,7 +101,14 @@ task.h is included from an application file. */
 static void prvHeapInit( void );
 
 /* Allocate the memory for the heap. */
-static uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
+#if( configAPPLICATION_ALLOCATED_HEAP == 1 )
+	/* The application writer has already defined the array used for the RTOS
+	heap - probably so it can be placed in a special segment or address. */
+	extern uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
+#else
+	static uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
+#endif /* configAPPLICATION_ALLOCATED_HEAP */
+
 
 /* Define the linked list structure.  This is used to link free blocks in order
 of their size. */
@@ -127,7 +138,7 @@ static size_t xFreeBytesRemaining = configADJUSTED_HEAP_SIZE;
  */
 #define prvInsertBlockIntoFreeList( pxBlockToInsert )								\
 {																					\
-BlockLink_t *pxIterator;																\
+BlockLink_t *pxIterator;															\
 size_t xBlockSize;																	\
 																					\
 	xBlockSize = pxBlockToInsert->xBlockSize;										\
@@ -283,7 +294,7 @@ BlockLink_t *pxFirstFreeBlock;
 uint8_t *pucAlignedHeap;
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
-	pucAlignedHeap = ( uint8_t * ) ( ( ( portPOINTER_SIZE_TYPE ) &ucHeap[ portBYTE_ALIGNMENT ] ) & ( ( portPOINTER_SIZE_TYPE ) ~portBYTE_ALIGNMENT_MASK ) );
+	pucAlignedHeap = ( uint8_t * ) ( ( ( portPOINTER_SIZE_TYPE ) &ucHeap[ portBYTE_ALIGNMENT ] ) & ( ~( ( portPOINTER_SIZE_TYPE ) portBYTE_ALIGNMENT_MASK ) ) );
 
 	/* xStart is used to hold a pointer to the first item in the list of free
 	blocks.  The void cast is used to prevent compiler warnings. */

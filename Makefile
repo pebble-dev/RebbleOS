@@ -26,8 +26,8 @@ BIN_DIR = $(CURDIR)/binary
 # vpath is used so object files are written to the current directory instead
 # of the same directory as their source files
 vpath %.c $(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/src \
-	  $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(FREERTOS) \
-	  $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
+          $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(FREERTOS) \
+          $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
 
 vpath %.s $(STARTUP)
 ASRC=startup_stm32f4xx.s
@@ -65,16 +65,18 @@ SRC+=stm32f4xx_rng.c
 
 CDEFS=-DUSE_STDPERIPH_DRIVER
 CDEFS+=-DSTM32F4XX
+CDEFS+=-DSTM32F40_41xxx
 CDEFS+=-DHSE_VALUE=8000000
 CDEFS+=-D__FPU_PRESENT=1
 CDEFS+=-D__FPU_USED=1
 CDEFS+=-DARM_MATH_CM4
 
-MCUFLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard
-COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall
+MCUFLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -finline-functions -Wdouble-promotion -std=gnu99
+COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall -ffunction-sections -fdata-sections
 CFLAGS=$(COMMONFLAGS) $(MCUFLAGS) $(INCLUDE) $(CDEFS)
-LDLIBS=$(TOOLCHAIN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libc_s.a $(TOOLCHAIN_ROOT)/arm-none-eabi/lib/armv7e-m/fpu/libm.a
-LDFLAGS=$(COMMONFLAGS) -fno-exceptions -ffunction-sections -fdata-sections -nostartfiles -Wl,--gc-sections,-T$(LINKER_SCRIPT)
+
+LDLIBS=-lm -lc -lgcc
+LDFLAGS=$(MCUFLAGS) -u _scanf_float -u _printf_float -fno-exceptions -Wl,--gc-sections,-T$(LINKER_SCRIPT)
 
 CC=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
 LD=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc

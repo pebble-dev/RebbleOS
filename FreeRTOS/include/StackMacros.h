@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V8.2.0 - Copyright (C) 2015 Real Time Engineers Ltd.
+    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -8,14 +8,14 @@
 
     FreeRTOS is free software; you can redistribute it and/or modify it under
     the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
+    Free Software Foundation >>>> AND MODIFIED BY <<<< the FreeRTOS exception.
 
-	***************************************************************************
+    ***************************************************************************
     >>!   NOTE: The modification to the GPL is included to allow you to     !<<
     >>!   distribute a combined work that includes FreeRTOS without being   !<<
     >>!   obliged to provide the source code for proprietary components     !<<
     >>!   outside of the FreeRTOS kernel.                                   !<<
-	***************************************************************************
+    ***************************************************************************
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -37,17 +37,17 @@
     ***************************************************************************
 
     http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-	the FAQ page "My application does not run, what could be wrong?".  Have you
-	defined configASSERT()?
+    the FAQ page "My application does not run, what could be wrong?".  Have you
+    defined configASSERT()?
 
-	http://www.FreeRTOS.org/support - In return for receiving this top quality
-	embedded software for free we request you assist our global community by
-	participating in the support forum.
+    http://www.FreeRTOS.org/support - In return for receiving this top quality
+    embedded software for free we request you assist our global community by
+    participating in the support forum.
 
-	http://www.FreeRTOS.org/training - Investing in training allows your team to
-	be as productive as possible as early as possible.  Now you can receive
-	FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-	Ltd, and the world's leading authority on the world's leading RTOS.
+    http://www.FreeRTOS.org/training - Investing in training allows your team to
+    be as productive as possible as early as possible.  Now you can receive
+    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
+    Ltd, and the world's leading authority on the world's leading RTOS.
 
     http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
     including FreeRTOS+Trace - an indispensable productivity tool, a DOS
@@ -86,28 +86,10 @@
 
 /*-----------------------------------------------------------*/
 
-#if( configCHECK_FOR_STACK_OVERFLOW == 0 )
-
-	/* FreeRTOSConfig.h is not set to check for stack overflows. */
-	#define taskFIRST_CHECK_FOR_STACK_OVERFLOW()
-	#define taskSECOND_CHECK_FOR_STACK_OVERFLOW()
-
-#endif /* configCHECK_FOR_STACK_OVERFLOW == 0 */
-/*-----------------------------------------------------------*/
-
-#if( configCHECK_FOR_STACK_OVERFLOW == 1 )
-
-	/* FreeRTOSConfig.h is only set to use the first method of
-	overflow checking. */
-	#define taskSECOND_CHECK_FOR_STACK_OVERFLOW()
-
-#endif
-/*-----------------------------------------------------------*/
-
-#if( ( configCHECK_FOR_STACK_OVERFLOW > 0 ) && ( portSTACK_GROWTH < 0 ) )
+#if( ( configCHECK_FOR_STACK_OVERFLOW == 1 ) && ( portSTACK_GROWTH < 0 ) )
 
 	/* Only the current stack state is to be checked. */
-	#define taskFIRST_CHECK_FOR_STACK_OVERFLOW()														\
+	#define taskCHECK_FOR_STACK_OVERFLOW()																\
 	{																									\
 		/* Is the currently saved stack pointer within the stack limit? */								\
 		if( pxCurrentTCB->pxTopOfStack <= pxCurrentTCB->pxStack )										\
@@ -116,13 +98,13 @@
 		}																								\
 	}
 
-#endif /* configCHECK_FOR_STACK_OVERFLOW > 0 */
+#endif /* configCHECK_FOR_STACK_OVERFLOW == 1 */
 /*-----------------------------------------------------------*/
 
-#if( ( configCHECK_FOR_STACK_OVERFLOW > 0 ) && ( portSTACK_GROWTH > 0 ) )
+#if( ( configCHECK_FOR_STACK_OVERFLOW == 1 ) && ( portSTACK_GROWTH > 0 ) )
 
 	/* Only the current stack state is to be checked. */
-	#define taskFIRST_CHECK_FOR_STACK_OVERFLOW()														\
+	#define taskCHECK_FOR_STACK_OVERFLOW()																\
 	{																									\
 																										\
 		/* Is the currently saved stack pointer within the stack limit? */								\
@@ -137,20 +119,18 @@
 
 #if( ( configCHECK_FOR_STACK_OVERFLOW > 1 ) && ( portSTACK_GROWTH < 0 ) )
 
-	#define taskSECOND_CHECK_FOR_STACK_OVERFLOW()																						\
-	{																																	\
-	static const uint8_t ucExpectedStackBytes[] = {	tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE,		\
-													tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE,		\
-													tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE,		\
-													tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE,		\
-													tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE };	\
-																																		\
-																																		\
-		/* Has the extremity of the task stack ever been written over? */																\
-		if( memcmp( ( void * ) pxCurrentTCB->pxStack, ( void * ) ucExpectedStackBytes, sizeof( ucExpectedStackBytes ) ) != 0 )			\
-		{																																\
-			vApplicationStackOverflowHook( ( TaskHandle_t ) pxCurrentTCB, pxCurrentTCB->pcTaskName );									\
-		}																																\
+	#define taskCHECK_FOR_STACK_OVERFLOW()																\
+	{																									\
+		const uint32_t * const pulStack = ( uint32_t * ) pxCurrentTCB->pxStack;							\
+		const uint32_t ulCheckValue = ( uint32_t ) 0xa5a5a5a5;											\
+																										\
+		if( ( pulStack[ 0 ] != ulCheckValue ) ||												\
+			( pulStack[ 1 ] != ulCheckValue ) ||												\
+			( pulStack[ 2 ] != ulCheckValue ) ||												\
+			( pulStack[ 3 ] != ulCheckValue ) )												\
+		{																								\
+			vApplicationStackOverflowHook( ( TaskHandle_t ) pxCurrentTCB, pxCurrentTCB->pcTaskName );	\
+		}																								\
 	}
 
 #endif /* #if( configCHECK_FOR_STACK_OVERFLOW > 1 ) */
@@ -158,7 +138,7 @@
 
 #if( ( configCHECK_FOR_STACK_OVERFLOW > 1 ) && ( portSTACK_GROWTH > 0 ) )
 
-	#define taskSECOND_CHECK_FOR_STACK_OVERFLOW()																						\
+	#define taskCHECK_FOR_STACK_OVERFLOW()																								\
 	{																																	\
 	int8_t *pcEndOfStack = ( int8_t * ) pxCurrentTCB->pxEndOfStack;																		\
 	static const uint8_t ucExpectedStackBytes[] = {	tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE, tskSTACK_FILL_BYTE,		\
@@ -179,6 +159,13 @@
 
 #endif /* #if( configCHECK_FOR_STACK_OVERFLOW > 1 ) */
 /*-----------------------------------------------------------*/
+
+/* Remove stack overflow macro if not being used. */
+#ifndef taskCHECK_FOR_STACK_OVERFLOW
+	#define taskCHECK_FOR_STACK_OVERFLOW()
+#endif
+
+
 
 #endif /* STACK_MACROS_H */
 

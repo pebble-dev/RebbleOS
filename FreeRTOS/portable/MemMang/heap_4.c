@@ -1,5 +1,5 @@
 /*
-    FreeRTOS V8.2.0 - Copyright (C) 2015 Real Time Engineers Ltd.
+    FreeRTOS V9.0.0 - Copyright (C) 2016 Real Time Engineers Ltd.
     All rights reserved
 
     VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
@@ -8,14 +8,14 @@
 
     FreeRTOS is free software; you can redistribute it and/or modify it under
     the terms of the GNU General Public License (version 2) as published by the
-    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
+    Free Software Foundation >>>> AND MODIFIED BY <<<< the FreeRTOS exception.
 
-	***************************************************************************
+    ***************************************************************************
     >>!   NOTE: The modification to the GPL is included to allow you to     !<<
     >>!   distribute a combined work that includes FreeRTOS without being   !<<
     >>!   obliged to provide the source code for proprietary components     !<<
     >>!   outside of the FreeRTOS kernel.                                   !<<
-	***************************************************************************
+    ***************************************************************************
 
     FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
     WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
@@ -37,17 +37,17 @@
     ***************************************************************************
 
     http://www.FreeRTOS.org/FAQHelp.html - Having a problem?  Start by reading
-	the FAQ page "My application does not run, what could be wrong?".  Have you
-	defined configASSERT()?
+    the FAQ page "My application does not run, what could be wrong?".  Have you
+    defined configASSERT()?
 
-	http://www.FreeRTOS.org/support - In return for receiving this top quality
-	embedded software for free we request you assist our global community by
-	participating in the support forum.
+    http://www.FreeRTOS.org/support - In return for receiving this top quality
+    embedded software for free we request you assist our global community by
+    participating in the support forum.
 
-	http://www.FreeRTOS.org/training - Investing in training allows your team to
-	be as productive as possible as early as possible.  Now you can receive
-	FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
-	Ltd, and the world's leading authority on the world's leading RTOS.
+    http://www.FreeRTOS.org/training - Investing in training allows your team to
+    be as productive as possible as early as possible.  Now you can receive
+    FreeRTOS training directly from Richard Barry, CEO of Real Time Engineers
+    Ltd, and the world's leading authority on the world's leading RTOS.
 
     http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
     including FreeRTOS+Trace - an indispensable productivity tool, a DOS
@@ -87,8 +87,12 @@ task.h is included from an application file. */
 
 #undef MPU_WRAPPERS_INCLUDED_FROM_API_FILE
 
+#if( configSUPPORT_DYNAMIC_ALLOCATION == 0 )
+	#error This file must not be used if configSUPPORT_DYNAMIC_ALLOCATION is 0
+#endif
+
 /* Block sizes must not get too small. */
-#define heapMINIMUM_BLOCK_SIZE	( ( size_t ) ( xHeapStructSize * 2 ) )
+#define heapMINIMUM_BLOCK_SIZE	( ( size_t ) ( xHeapStructSize << 1 ) )
 
 /* Assumes 8bit bytes! */
 #define heapBITS_PER_BYTE		( ( size_t ) 8 )
@@ -130,7 +134,7 @@ static void prvHeapInit( void );
 
 /* The size of the structure placed at the beginning of each allocated memory
 block must by correctly byte aligned. */
-static const size_t xHeapStructSize	= ( ( sizeof( BlockLink_t ) + ( portBYTE_ALIGNMENT - 1 ) ) & ~portBYTE_ALIGNMENT_MASK );
+static const size_t xHeapStructSize	= ( sizeof( BlockLink_t ) + ( ( size_t ) ( portBYTE_ALIGNMENT - 1 ) ) ) & ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
 
 /* Create a couple of list links to mark the start and end of the list. */
 static BlockLink_t xStart, *pxEnd = NULL;
@@ -229,7 +233,7 @@ void *pvReturn = NULL;
 						cast is used to prevent byte alignment warnings from the
 						compiler. */
 						pxNewBlockLink = ( void * ) ( ( ( uint8_t * ) pxBlock ) + xWantedSize );
-						configASSERT( ( ( ( uint32_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 );
+						configASSERT( ( ( ( size_t ) pxNewBlockLink ) & portBYTE_ALIGNMENT_MASK ) == 0 );
 
 						/* Calculate the sizes of two blocks split from the
 						single block. */
@@ -237,7 +241,7 @@ void *pvReturn = NULL;
 						pxBlock->xBlockSize = xWantedSize;
 
 						/* Insert the new block into the list of free blocks. */
-						prvInsertBlockIntoFreeList( ( pxNewBlockLink ) );
+						prvInsertBlockIntoFreeList( pxNewBlockLink );
 					}
 					else
 					{
@@ -293,7 +297,7 @@ void *pvReturn = NULL;
 	}
 	#endif
 
-	configASSERT( ( ( ( uint32_t ) pvReturn ) & portBYTE_ALIGNMENT_MASK ) == 0 );
+	configASSERT( ( ( ( size_t ) pvReturn ) & ( size_t ) portBYTE_ALIGNMENT_MASK ) == 0 );
 	return pvReturn;
 }
 /*-----------------------------------------------------------*/
@@ -368,20 +372,20 @@ static void prvHeapInit( void )
 {
 BlockLink_t *pxFirstFreeBlock;
 uint8_t *pucAlignedHeap;
-uint32_t ulAddress;
+size_t uxAddress;
 size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
 	/* Ensure the heap starts on a correctly aligned boundary. */
-	ulAddress = ( uint32_t ) ucHeap;
+	uxAddress = ( size_t ) ucHeap;
 
-	if( ( ulAddress & portBYTE_ALIGNMENT_MASK ) != 0 )
+	if( ( uxAddress & portBYTE_ALIGNMENT_MASK ) != 0 )
 	{
-		ulAddress += ( portBYTE_ALIGNMENT - 1 );
-		ulAddress &= ~portBYTE_ALIGNMENT_MASK;
-		xTotalHeapSize -= ulAddress - ( uint32_t ) ucHeap;
+		uxAddress += ( portBYTE_ALIGNMENT - 1 );
+		uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
+		xTotalHeapSize -= uxAddress - ( size_t ) ucHeap;
 	}
 
-	pucAlignedHeap = ( uint8_t * ) ulAddress;
+	pucAlignedHeap = ( uint8_t * ) uxAddress;
 
 	/* xStart is used to hold a pointer to the first item in the list of free
 	blocks.  The void cast is used to prevent compiler warnings. */
@@ -390,17 +394,17 @@ size_t xTotalHeapSize = configTOTAL_HEAP_SIZE;
 
 	/* pxEnd is used to mark the end of the list of free blocks and is inserted
 	at the end of the heap space. */
-	ulAddress = ( ( uint32_t ) pucAlignedHeap ) + xTotalHeapSize;
-	ulAddress -= xHeapStructSize;
-	ulAddress &= ~portBYTE_ALIGNMENT_MASK;
-	pxEnd = ( void * ) ulAddress;
+	uxAddress = ( ( size_t ) pucAlignedHeap ) + xTotalHeapSize;
+	uxAddress -= xHeapStructSize;
+	uxAddress &= ~( ( size_t ) portBYTE_ALIGNMENT_MASK );
+	pxEnd = ( void * ) uxAddress;
 	pxEnd->xBlockSize = 0;
 	pxEnd->pxNextFreeBlock = NULL;
 
 	/* To start with there is a single free block that is sized to take up the
 	entire heap space, minus the space taken by pxEnd. */
 	pxFirstFreeBlock = ( void * ) pucAlignedHeap;
-	pxFirstFreeBlock->xBlockSize = ulAddress - ( uint32_t ) pxFirstFreeBlock;
+	pxFirstFreeBlock->xBlockSize = uxAddress - ( size_t ) pxFirstFreeBlock;
 	pxFirstFreeBlock->pxNextFreeBlock = pxEnd;
 
 	/* Only one block exists - and it covers the entire usable heap space. */
