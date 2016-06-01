@@ -5,27 +5,30 @@
 #include "stdio.h"
 #include "stm32f4xx_usart.h"
 
+// Macro to use CCM (Core Coupled Memory) in STM32F4
+#define CCM_RAM __attribute__((section(".ccmram")))
+
+#define FPU_TASK_STACK_SIZE 256
+
+StackType_t fpuTaskStack[FPU_TASK_STACK_SIZE] CCM_RAM;  // Put task stack in CCM
+StaticTask_t fpuTaskBuffer CCM_RAM;  // Put TCB in CCM
+
 void init_USART3(void);
 
 void test_FPU_test(void* p);
 
 int main(void) {
-  uint8_t ret;
-
   SystemInit();
   NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
   init_USART3();
 
   // Create a task
-  ret = xTaskCreate(test_FPU_test, "FPU", configMINIMAL_STACK_SIZE, NULL, 1, NULL);
+  // Stack and TCB are placed in CCM of STM32F4
+  // The CCM block is connected directly to the core, which leads to zero wait states
+  xTaskCreateStatic(test_FPU_test, "FPU", FPU_TASK_STACK_SIZE, NULL, 1, fpuTaskStack, &fpuTaskBuffer);
 
-  if (ret == pdTRUE) {
-    printf("System Started!\n");
-    vTaskStartScheduler();  // should never return
-  } else {
-    printf("System Error!\n");
-    // --TODO blink some LEDs to indicate fatal system error
-  }
+  printf("System Started!\n");
+  vTaskStartScheduler();  // should never return
 
   for (;;);
 }
@@ -70,6 +73,38 @@ void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName) 
   for(;;);
 }
 
+StaticTask_t xIdleTaskTCB CCM_RAM;
+StackType_t uxIdleTaskStack[configMINIMAL_STACK_SIZE] CCM_RAM;
+
+/* configUSE_STATIC_ALLOCATION is set to 1, so the application must provide an
+implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
+used by the Idle task. */
+void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) {
+  /* Pass out a pointer to the StaticTask_t structure in which the Idle task's
+  state will be stored. */
+  *ppxIdleTaskTCBBuffer = &xIdleTaskTCB;
+
+  /* Pass out the array that will be used as the Idle task's stack. */
+  *ppxIdleTaskStackBuffer = uxIdleTaskStack;
+
+  /* Pass out the size of the array pointed to by *ppxIdleTaskStackBuffer.
+  Note that, as the array is necessarily of type StackType_t,
+  configMINIMAL_STACK_SIZE is specified in words, not bytes. */
+  *pulIdleTaskStackSize = configMINIMAL_STACK_SIZE;
+}
+
+static StaticTask_t xTimerTaskTCB CCM_RAM;
+static StackType_t uxTimerTaskStack[configTIMER_TASK_STACK_DEPTH] CCM_RAM;
+
+/* configUSE_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
+application must provide an implementation of vApplicationGetTimerTaskMemory()
+to provide the memory that is used by the Timer service task. */
+void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize) {
+  *ppxTimerTaskTCBBuffer = &xTimerTaskTCB;
+  *ppxTimerTaskStackBuffer = uxTimerTaskStack;
+  *pulTimerTaskStackSize = configTIMER_TASK_STACK_DEPTH;
+}
+
 void test_FPU_test(void* p) {
   float ff = 1.0f;
   printf("Start FPU test task.\n");
@@ -77,8 +112,10 @@ void test_FPU_test(void* p) {
     float s = sinf(ff);
     ff += s;
     // TODO some other test
+
     vTaskDelay(1000);
   }
+
   vTaskDelete(NULL);
 }
 
@@ -111,4 +148,3 @@ void init_USART3(void) {
   USART_Init(USART3, &USART_InitStruct);
   USART_Cmd(USART3, ENABLE);
 }
-

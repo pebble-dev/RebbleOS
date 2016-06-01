@@ -48,19 +48,47 @@ SRC+=timers.c
 SRC+=heap_4.c
 
 # Standard Peripheral Source Files
-SRC+=stm32f4xx_syscfg.c
 SRC+=misc.c
+SRC+=stm32f4xx_dcmi.c
+#SRC+=stm32f4xx_hash.c
+SRC+=stm32f4xx_rtc.c
 SRC+=stm32f4xx_adc.c
-SRC+=stm32f4xx_dac.c
 SRC+=stm32f4xx_dma.c
-SRC+=stm32f4xx_exti.c
-SRC+=stm32f4xx_flash.c
-SRC+=stm32f4xx_gpio.c
+#SRC+=stm32f4xx_hash_md5.c
+SRC+=stm32f4xx_sai.c
+SRC+=stm32f4xx_can.c
+SRC+=stm32f4xx_dma2d.c
+#SRC+=stm32f4xx_hash_sha1.c
+SRC+=stm32f4xx_sdio.c
+SRC+=stm32f4xx_cec.c
+SRC+=stm32f4xx_dsi.c
 SRC+=stm32f4xx_i2c.c
-SRC+=stm32f4xx_rcc.c
+SRC+=stm32f4xx_spdifrx.c
+SRC+=stm32f4xx_crc.c
+SRC+=stm32f4xx_exti.c
+SRC+=stm32f4xx_iwdg.c
 SRC+=stm32f4xx_spi.c
+#SRC+=stm32f4xx_cryp.c
+SRC+=stm32f4xx_flash.c
+SRC+=stm32f4xx_lptim.c
+SRC+=stm32f4xx_syscfg.c
+#SRC+=stm32f4xx_cryp_aes.c
+SRC+=stm32f4xx_flash_ramfunc.c
+SRC+=stm32f4xx_ltdc.c
 SRC+=stm32f4xx_tim.c
+#SRC+=stm32f4xx_cryp_des.c
+#SRC+=stm32f4xx_fmc.c
+SRC+=stm32f4xx_pwr.c
 SRC+=stm32f4xx_usart.c
+#SRC+=stm32f4xx_cryp_tdes.c
+SRC+=stm32f4xx_fmpi2c.c
+SRC+=stm32f4xx_qspi.c
+SRC+=stm32f4xx_wwdg.c
+SRC+=stm32f4xx_dac.c
+SRC+=stm32f4xx_fsmc.c
+SRC+=stm32f4xx_rcc.c
+SRC+=stm32f4xx_dbgmcu.c
+SRC+=stm32f4xx_gpio.c
 SRC+=stm32f4xx_rng.c
 
 CDEFS=-DUSE_STDPERIPH_DRIVER
@@ -76,7 +104,7 @@ COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall -ffunction-sections -fdata-sections
 CFLAGS=$(COMMONFLAGS) $(MCUFLAGS) $(INCLUDE) $(CDEFS)
 
 LDLIBS=-lm -lc -lgcc
-LDFLAGS=$(MCUFLAGS) -u _scanf_float -u _printf_float -fno-exceptions -Wl,--gc-sections,-T$(LINKER_SCRIPT)
+LDFLAGS=$(MCUFLAGS) -u _scanf_float -u _printf_float -fno-exceptions -Wl,--gc-sections,-T$(LINKER_SCRIPT),-Map,$(BIN_DIR)/$(TARGET).map
 
 CC=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
 LD=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
@@ -96,9 +124,9 @@ all: $(OBJ)
 	@$(AS) -o $(ASRC:%.s=$(BUILD_DIR)/%.o) $(STARTUP)/$(ASRC)
 	@echo [LD] $(TARGET).elf
 	@$(CC) -o $(BIN_DIR)/$(TARGET).elf $(LDFLAGS) $(OBJ) $(ASRC:%.s=$(BUILD_DIR)/%.o) $(LDLIBS)
-	@echo [OBJCOPY] $(TARGET).hex
+	@echo [HEX] $(TARGET).hex
 	@$(OBJCOPY) -O ihex $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).hex
-	@echo [OBJCOPY] $(TARGET).bin
+	@echo [BIN] $(TARGET).bin
 	@$(OBJCOPY) -O binary $(BIN_DIR)/$(TARGET).elf $(BIN_DIR)/$(TARGET).bin
 
 .PHONY: clean
