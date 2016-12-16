@@ -10,6 +10,14 @@ PATH=$PATH:/home/baz/Pebble/SDK/pebble-sdk-4.5-linux64/bin;$PATH
 
 run makeit.sh to build (or run make)
 
+Working:
+* CPU core / peripherals.
+* Interruts
+* Buttons on PT
+not much more :/
+
+
+It will come
 
 Barry Carter
 <barry.carter@gmail.com>
