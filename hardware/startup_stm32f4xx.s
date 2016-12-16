@@ -99,10 +99,10 @@ LoopFillZerobss:
   cmp  r2, r3
   bcc  FillZerobss
 
-ldr r2, = _sccmram
-  b LoopFillZeroCcm
+/*ldr r2, = _sccmram
+  b LoopFillZeroCcm*/
 /* Zero fill the CCM segment */
-FillZeroCcm:
+/*FillZeroCcm:
   movs r3, #0
   str  r3, [r2]
   adds r2, r2, #4
@@ -111,7 +111,7 @@ LoopFillZeroCcm:
   ldr r3, = _eccmram
   cmp r2, r3
   bcc FillZeroCcm
-
+*/
 /* Call the clock system intitialization function.*/
   bl  SystemInit
 /* Call static constructors */
@@ -153,7 +153,7 @@ g_pfnVectors:
   .word  MemManage_Handler
   .word  BusFault_Handler
   .word  UsageFault_Handler
-  .word  0
+  .word  0x4e65576f /* Pebble magic */
   .word  0
   .word  0
   .word  0
@@ -161,7 +161,7 @@ g_pfnVectors:
   .word  DebugMon_Handler
   .word  0
   .word  PendSV_Handler
-  .word  SysTick_Handler
+  .word  SysTick_Handler    
 
   /* External Interrupts */
   .word     WWDG_IRQHandler                   /* Window WatchDog              */

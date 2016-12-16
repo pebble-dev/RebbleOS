@@ -32,6 +32,7 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include "stm32f4xx.h"
 #include "stm32f4xx_fsmc.h"
 #include "stm32f4xx_rcc.h"
 

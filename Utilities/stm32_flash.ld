@@ -33,22 +33,27 @@
 ENTRY(Reset_Handler)
 
 /* Highest address of the user mode stack */
-_estack = 0x2001FFFF;    /* end of RAM */
+_estack = 0x20012600;    /* end of RAM */
+/*_estack = 0x20001000;*/    /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0x200;;      /* required amount of heap  */
+_Min_Heap_Size = 0x000;;      /* required amount of heap  */
 _Min_Stack_Size = 0x400;; /* required amount of stack */
 
 /* Specify the memory areas */
 MEMORY
 {
-  FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 1024K
-  RAM (xrw)       : ORIGIN = 0x20000000, LENGTH = 128K
-  CCMRAM (rw)     : ORIGIN = 0x10000000, LENGTH = 64K
+
+  FLASH (rx)      : ORIGIN = 0x08004000, LENGTH = 1024K - 0x4000
+  RAM (xrw)       : ORIGIN = 0x20001000, LENGTH = 128K - 0x1000
+  MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K
+
+  CCMRAM (rw)     : ORIGIN = 0x10000000, LENGTH = 8K
 }
 
 /* Define output sections */
 SECTIONS
 {
+  
   /* The startup code goes first into FLASH */
   .isr_vector :
   {
@@ -57,12 +62,15 @@ SECTIONS
     . = ALIGN(4);
   } >FLASH
 
+  /*_crt_start = . + 1;*/
   /* The program code and other data goes into FLASH */
   .text :
   {
     . = ALIGN(4);
     *(.text)           /* .text sections (code) */
     *(.text*)          /* .text* sections (code) */
+    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
+    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
     *(.glue_7)         /* glue arm to thumb code */
     *(.glue_7t)        /* glue thumb to arm code */
     *(.eh_frame)
@@ -75,14 +83,13 @@ SECTIONS
   } >FLASH
 
   /* Constant data goes into FLASH */
-  .rodata :
-  {
+/*  .rodata :  {
     . = ALIGN(4);
-    *(.rodata)         /* .rodata sections (constants, strings, etc.) */
-    *(.rodata*)        /* .rodata* sections (constants, strings, etc.) */
-    . = ALIGN(4);
+    *(.rodata)  */       /* .rodata sections (constants, strings, etc.) */
+/*    *(.rodata*)   */     /* .rodata* sections (constants, strings, etc.) */
+  /*  . = ALIGN(4);
   } >FLASH
-
+*/
   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
   .ARM : {
     __exidx_start = .;
@@ -126,7 +133,7 @@ SECTIONS
     _edata = .;        /* define a global symbol at data end */
   } >RAM AT> FLASH
 
-  _siccmram = LOADADDR(.ccmram);
+/*  _siccmram = LOADADDR(.ccmram);*/
 
   /* CCM-RAM section
   *
@@ -135,16 +142,7 @@ SECTIONS
   * the startup code needs to be modified to copy the init-values.
   * Currently the startup code zero fills whole CCM block
   */
-  .ccmram :
-  {
-    . = ALIGN(4);
-    _sccmram = .;       /* create a global symbol at ccmram start */
-    *(.ccmram)
-    *(.ccmram*)
-
-    . = ALIGN(4);
-    _eccmram = .;       /* create a global symbol at ccmram end */
-  } >CCMRAM AT> FLASH
+  
 
 
   /* Uninitialized data section */

@@ -1,7 +1,7 @@
 TARGET:=FreeRTOS
 # TODO change to your ARM gcc toolchain path
-TOOLCHAIN_ROOT:=~/gcc-arm-none-eabi
-TOOLCHAIN_PATH:=$(TOOLCHAIN_ROOT)/bin
+TOOLCHAIN_ROOT:=
+TOOLCHAIN_PATH:=
 TOOLCHAIN_PREFIX:=arm-none-eabi
 
 # Optimization level, can be [0, 1, 2, 3, s].
@@ -13,6 +13,7 @@ STARTUP:=$(CURDIR)/hardware
 LINKER_SCRIPT:=$(CURDIR)/Utilities/stm32_flash.ld
 
 INCLUDE=-I$(CURDIR)/hardware
+INCLUDE=-I$(CURDIR)/hardware/Pebble_Snowy
 INCLUDE+=-I$(FREERTOS)/include
 INCLUDE+=-I$(FREERTOS)/portable/GCC/ARM_CM4F
 INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
@@ -26,7 +27,7 @@ BIN_DIR = $(CURDIR)/binary
 # vpath is used so object files are written to the current directory instead
 # of the same directory as their source files
 vpath %.c $(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/src \
-          $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(FREERTOS) \
+          $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(CURDIR)/hardware/Pebble_Snowy $(FREERTOS) \
           $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
 
 vpath %.s $(STARTUP)
@@ -85,33 +86,40 @@ SRC+=stm32f4xx_fmpi2c.c
 SRC+=stm32f4xx_qspi.c
 SRC+=stm32f4xx_wwdg.c
 SRC+=stm32f4xx_dac.c
-SRC+=stm32f4xx_fsmc.c
+#SRC+=stm32f4xx_fsmc.c
 SRC+=stm32f4xx_rcc.c
 SRC+=stm32f4xx_dbgmcu.c
 SRC+=stm32f4xx_gpio.c
 SRC+=stm32f4xx_rng.c
 
+# Pebble hardware
+SRC+=buttons.c
+SRC+=display.c
+
 CDEFS=-DUSE_STDPERIPH_DRIVER
-CDEFS+=-DSTM32F4XX
-CDEFS+=-DSTM32F40_41xxx
+#CDEFS+=-DSTM32F4XX
+#CDEFS+=-DSTM32F40_41xxx
+CDEFS+=-DSTM32F429_439xx
 CDEFS+=-DHSE_VALUE=8000000
 CDEFS+=-D__FPU_PRESENT=1
 CDEFS+=-D__FPU_USED=1
 CDEFS+=-DARM_MATH_CM4
 
-MCUFLAGS=-mcpu=cortex-m4 -mthumb -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -finline-functions -Wdouble-promotion -std=gnu99
+MCUFLAGS=-mcpu=cortex-m4 -mthumb -mlittle-endian -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
+-fsingle-precision-constant -finline-functions -Wdouble-promotion -mthumb-interwork -std=gnu99
 COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall -ffunction-sections -fdata-sections
 CFLAGS=$(COMMONFLAGS) $(MCUFLAGS) $(INCLUDE) $(CDEFS)
 
 LDLIBS=-lm -lc -lgcc
 LDFLAGS=$(MCUFLAGS) -u _scanf_float -u _printf_float -fno-exceptions -Wl,--gc-sections,-T$(LINKER_SCRIPT),-Map,$(BIN_DIR)/$(TARGET).map
+#LDFLAGS=$(MCUFLAGS) -T$(LINKER_SCRIPT) -specs=nosys.specs
 
-CC=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
-LD=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gcc
-OBJCOPY=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-objcopy
-AS=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-as
-AR=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-ar
-GDB=$(TOOLCHAIN_PATH)/$(TOOLCHAIN_PREFIX)-gdb
+CC=$(TOOLCHAIN_PREFIX)-gcc
+LD=/$(TOOLCHAIN_PREFIX)-gcc
+OBJCOPY=$(TOOLCHAIN_PREFIX)-objcopy
+AS=$(TOOLCHAIN_PREFIX)-as
+AR=$(TOOLCHAIN_PREFIX)-ar
+GDB=$(TOOLCHAIN_PREFIX)-gdb
 
 OBJ = $(SRC:%.c=$(BUILD_DIR)/%.o)
 

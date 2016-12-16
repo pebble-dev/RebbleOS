@@ -1,3 +1,25 @@
+A FreeRTOS implementation for the Pebb Time board (STM32F439)
+
+Also comes with a bootloader ripped from quemu images.
+
+
+Scripts attached to rip a bootloader for the device used
+
+ you must have the path in the PATH variable that includes the pebble sdk
+PATH=$PATH:/home/baz/Pebble/SDK/pebble-sdk-4.5-linux64/bin;$PATH
+
+run makeit.sh to build (or run make)
+
+
+Barry Carter
+<barry.carter@gmail.com>
+
+
+
+
+original prject readme below
+
+
 # STM32F4-FreeRTOS
 
 A demo project of FreeRTOS running on a STM32F4 Discovery board.

@@ -431,11 +431,11 @@
   */
 
 #if defined(STM32F40_41xxx)
-  uint32_t SystemCoreClock = 168000000;
+  uint32_t SystemCoreClock = 100000000;
 #endif /* STM32F40_41xxx */
 
 #if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F446xx) || defined(STM32F469_479xx)
-  uint32_t SystemCoreClock = 180000000;
+  uint32_t SystemCoreClock = 100000000;
 #endif /* STM32F427_437x || STM32F429_439xx || STM32F446xx || STM32F469_479xx */
 
 #if defined(STM32F401xx)
@@ -512,9 +512,9 @@ void SystemInit(void)
 
   /* Configure the Vector Table location add offset address ------------------*/
 #ifdef VECT_TAB_SRAM
-  SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
+//  SCB->VTOR = SRAM_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal SRAM */
 #else
-  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
+//  SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
 #endif
 }
 
@@ -722,14 +722,14 @@ static void SetSysClock(void)
 
 #if defined(STM32F427_437xx) || defined(STM32F429_439xx) || defined(STM32F446xx) || defined(STM32F469_479xx)
     /* Enable the Over-drive to extend the clock frequency to 180 Mhz */
-    PWR->CR |= PWR_CR_ODEN;
+    /*PWR->CR |= PWR_CR_ODEN;
     while((PWR->CSR & PWR_CSR_ODRDY) == 0)
     {
     }
     PWR->CR |= PWR_CR_ODSWEN;
     while((PWR->CSR & PWR_CSR_ODSWRDY) == 0)
     {
-    }
+    }*/
     /* Configure Flash prefetch, Instruction cache, Data cache and wait state */
     FLASH->ACR = FLASH_ACR_PRFTEN | FLASH_ACR_ICEN |FLASH_ACR_DCEN |FLASH_ACR_LATENCY_5WS;
 #endif /* STM32F427_437x || STM32F429_439xx || STM32F446xx || STM32F469_479xx */
