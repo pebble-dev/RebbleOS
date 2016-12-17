@@ -13,12 +13,22 @@ display_sclk: G13 (out)
 
 typedef struct {
 //    SPI *spi;  // SPI6
+    GPIO_TypeDef *PortDisplay;
     uint16_t PinReset;
-    uint32_t PinPower;
-    uint32_t PinBacklight;
+    uint16_t PinPower;
+    uint16_t PinCs;
+    uint16_t PinBacklight;
     GPIO_TypeDef *PortBacklight;
-    uint32_t PinVibrate;
+    uint16_t PinVibrate;
     GPIO_TypeDef *PortVibrate;
+    
+    uint16_t PinMiso;
+    uint16_t PinMosi;
+    uint16_t PinSck;
+    
+    // inputs
+    uint16_t PinDone;
+    uint16_t PinIntn;
     
     
     // stuff from qemu
@@ -43,6 +53,6 @@ void display_init(void);
 void display_backlight(uint8_t enabled);
 void display_vibrate(uint8_t enabled);
 
-
+void display_test(uint8_t scene);
 
 #endif

@@ -14,6 +14,8 @@ void init_hardware(void);
 
 void CheckButton_Timer(void*); // probably move to an interrupt at some point
 
+
+
 int main(void) {
     SystemInit();
 
@@ -88,6 +90,8 @@ void CheckButton_Timer(void *pvParameters){
             printf("Down Up!\n");    //back GPIO_Pin_4
         else
             printf("Down Down!\n");    //back GPIO_Pin_4
+            
+        display_test(2);
     }
     lastdown = btn;
     
@@ -97,6 +101,8 @@ void CheckButton_Timer(void *pvParameters){
             printf("Select Up!\n");    //back GPIO_Pin_4
         else
             printf("Select Down!\n");    //back GPIO_Pin_4
+            
+        display_test(1);
     }
     lastsel = btn;
         
