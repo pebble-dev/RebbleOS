@@ -1,16 +1,27 @@
+#ifndef __DISPLAY_H
+#define __DISPLAY_H
+
 #include "stm32f4xx.h"
 #include "FreeRTOS.h"
 
-#define DISPLAY_RESET     x;
-#define DISPLAY SCLK      x;
-#define DISPLAY_BL_EN     1; // backlight enable
-#define DISPLAY_BL_LVL    2; // backlight level
-#define DISPLAY_VIBE_CTL  x;
-#define DISPLAY_POWER_CTL x;
+/*display_done: G9 (in)
+display_intn: G10 (in)
+display_reset: G15 (out)
+display_sclk: G13 (out)
+
+*/
 
 typedef struct {
-//    SPI *spi;
+//    SPI *spi;  // SPI6
+    uint16_t PinReset;
+    uint32_t PinPower;
+    uint32_t PinBacklight;
+    GPIO_TypeDef *PortBacklight;
+    uint32_t PinVibrate;
+    GPIO_TypeDef *PortVibrate;
     
+    
+    // stuff from qemu
     uint32_t num_rows;
     uint32_t num_cols;
     int32_t num_border_rows;
@@ -19,7 +30,19 @@ typedef struct {
     uint8_t row_inverted;
     uint8_t col_inverted;
     
-    uint8_t          backlight_enabled;
-    float         brightness;
-    uint8_t power_on;
-} display;
+    
+    //state
+    uint8_t BacklightEnabled;
+    float   Brightness;
+    uint8_t PowerOn;
+} display_t;
+
+
+
+void display_init(void);
+void display_backlight(uint8_t enabled);
+void display_vibrate(uint8_t enabled);
+
+
+
+#endif

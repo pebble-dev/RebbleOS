@@ -5,9 +5,12 @@
 #include "stdio.h"
 #include "stm32f4xx_usart.h"
 #include "buttons.h"
+#include "display.h"
 
 void init_USART3(void);
 void init_GPIO(void);
+void init_hardware(void);
+
 
 void CheckButton_Timer(void*); // probably move to an interrupt at some point
 
@@ -19,12 +22,9 @@ int main(void) {
     NVIC_SetVectorTable(0x08004000, 0);
 
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
-    init_USART3();
-    printf("USART3 init\n");
+    init_hardware();
+
     printf("Relocating NVIC to 0x08004000\n");
-  
-    init_GPIO();
-    printf("GPIOs init\n");
 
     xTaskCreate(
         CheckButton_Timer,                 /* Function pointer */
@@ -36,9 +36,6 @@ int main(void) {
 
     printf("Task Created!\n");
     
-    printf("Turn on the display!\n");
-    //display_init();
-
     printf("FreeRTOS Ginge v0.0.0.1 Codename 'Piddle'\n");
     vTaskStartScheduler();  // should never return
     for (;;);
@@ -51,37 +48,41 @@ int main(void) {
  */
 void CheckButton_Timer(void *pvParameters){
   printf("Task ctor\n");
-  int lastback = GPIO_ReadInputDataBit(BUTTON_GPIO, buttons.Back);
-  int lastup = GPIO_ReadInputDataBit(BUTTON_GPIO, buttons.Up);
-  int lastdown = GPIO_ReadInputDataBit(BUTTON_GPIO, buttons.Down);
-  int lastsel = GPIO_ReadInputDataBit(BUTTON_GPIO, buttons.Select);
+  int lastback = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Back);
+  int lastup = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Up);
+  int lastdown = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Down);
+  int lastsel = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Select);
   
   while (1) {
-    GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
-
     // Hacky button testing in a polling loop
     // TODO move to buttons.c
     // TODO really crappy code. sort it
     // uses totally crapy debounce. its slow and glitchy. sort.
-    int btn = GPIO_ReadInputDataBit(BUTTON_GPIO, buttons.Back);
+    int btn = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Back);
     if (btn != lastback) {
         if (btn)
             printf("Back Up!\n");    //back GPIO_Pin_4
         else
             printf("Back Down!\n");    //back GPIO_Pin_4
+        
+        display_vibrate(1);
+        display_backlight(1);
     }
     lastback = btn;
 
-    btn = GPIO_ReadInputDataBit(BUTTON_GPIO, buttons.Up);
+    btn = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Up);
     if (btn != lastup) {
         if (btn)
             printf("Up Up!\n");    //back GPIO_Pin_4
         else
             printf("Up Down!\n");    //back GPIO_Pin_4
+            
+        display_vibrate(0);    
+        display_backlight(0);
     }
     lastup = btn;
     
-    btn = GPIO_ReadInputDataBit(BUTTON_GPIO, buttons.Down);
+    btn = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Down);
     if (btn != lastdown) {
         if (btn)
             printf("Down Up!\n");    //back GPIO_Pin_4
@@ -90,7 +91,7 @@ void CheckButton_Timer(void *pvParameters){
     }
     lastdown = btn;
     
-    btn = GPIO_ReadInputDataBit(BUTTON_GPIO, buttons.Select);
+    btn = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Select);
     if (btn != lastsel) {
         if (btn)
             printf("Select Up!\n");    //back GPIO_Pin_4
@@ -162,6 +163,16 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackT
 
 }
 
+void init_hardware(void) {
+    init_USART3();
+    printf("USART3 init\n");
+    init_GPIO();
+    printf("GPIOs init\n");
+    printf("Turn on the display!\n");
+    display_init();
+    printf("Hmm\n");
+    //buttons_init();
+    }
 /*
  * Configure USART3(PB10, PB11) to redirect printf data to host PC.
  */
@@ -200,18 +211,14 @@ void init_USART3(void) {
  */
 void init_GPIO()
 {
-  GPIO_InitTypeDef GPIO_InitStructure;
   GPIO_InitTypeDef GPIO_InitStructure2;
   
   // Init Vibro? nah, no idea yet.
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_Pin = GPIO_Pin_1;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_Init(GPIOD, &GPIO_InitStructure);
-    
+  
+  // Init PortB
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+      
   // Init Buttons
   // TODO move this to buttons.c
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
@@ -221,4 +228,7 @@ void init_GPIO()
   GPIO_InitStructure2.GPIO_Speed = GPIO_Speed_100MHz;
   GPIO_InitStructure2.GPIO_OType = GPIO_OType_PP;
   GPIO_Init(GPIOG, &GPIO_InitStructure2);
+  
+  // for vibrate
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOF, ENABLE);
 }
