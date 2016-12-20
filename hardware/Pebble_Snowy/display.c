@@ -13,6 +13,7 @@ void display_init_intn(void);
 uint8_t display_SPI6_send(uint8_t data);
 uint8_t display_SPI6_send_word(uint16_t data);
 void display_done_ISR(uint8_t cmd);
+uint16_t display_checkerboard(char *frameData, uint8_t invert);
 
 static TaskHandle_t xDisplayTask;
 static xQueueHandle xQueue;
@@ -23,7 +24,16 @@ void display_power(uint8_t enabled);
 void display_reset(uint8_t enabled);
 void display_init_FPGA(uint8_t drawMode);
 void display_drawscene(uint8_t scene);
-void display_start_frame(char *frameData);
+void display_start_frame(char *frameData, uint16_t length);
+
+/*
+  00000000 l    d  .data  00000000 .data
+00000000 g       .data  00000000 _binary_PebbleImages_FPGA_4_3_snowy_bin_start
+00007e2a g       .data  00000000 _binary_PebbleImages_FPGA_4_3_snowy_bin_end
+00007e2a g       *ABS*  00000000 _binary_PebbleImages_FPGA_4_3_snowy_bin_size
+*/
+extern unsigned char _binary_PebbleImages_FPGA_4_3_snowy_bin_start;
+extern unsigned char _binary_PebbleImages_FPGA_4_3_snowy_bin_size;
 
 display_t display = {
     .PortDisplay = GPIOG,
@@ -41,8 +51,8 @@ display_t display = {
     .PinDone = GPIO_Pin_9,
     .PinIntn = GPIO_Pin_10,
     
-    .num_rows = 172,
-    .num_cols = 148,
+    .NumRows = 168,
+    .NumCols = 144,
     .num_border_rows = 2,
     .num_border_cols = 2,
     .row_major = 0,
@@ -51,7 +61,7 @@ display_t display = {
 };
 
 void display_init(void)
-{
+{   
     // init display variables
     
     display.BacklightEnabled = 0;
@@ -103,6 +113,8 @@ void display_init(void)
     // start SPI
     display_init_SPI6();
     //display_test(1);
+    
+    
     
     xTaskCreate(vDisplayTask, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1UL, &xDisplayTask); 
     
@@ -381,7 +393,7 @@ void display_drawscene(uint8_t scene)
 {
     printf("Select Scene\n");
     display_cs(1);
-    display_SPI6_send(0x04); // set cmdset (select scene)
+    display_SPI6_send(DISPLAY_CTYPE_SCENE); // set cmdset (select scene)
     display_SPI6_send(scene); // scene 1
 
     display_cs(0);
@@ -392,67 +404,84 @@ void display_drawscene(uint8_t scene)
 void display_on()
 {
     display_cs(1);
-    display_SPI6_send(0x03); // Power on
+    display_SPI6_send(DISPLAY_CTYPE_DISPLAY_ON); // Power on
     printf("Power On\n");
     display_cs(0);
 }
 
-void display_start_frame(char *frameData)
+#define BLACK 0x0
+#define BLUE   0x03
+#define GREEN 0x0C
+#define RED  0x30
+
+void display_start_frame(char *frameData, uint16_t length)
 {
     display_cs(1);
-    display_SPI6_send(0x05); // Frame Begin
+    display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
     printf("Frame\n");
-//display_SPI6_send(0x3F);
-    int count = 0;
+
+    for(uint16_t i = 0; i < length; i++)
+    {
+        display_SPI6_send(frameData[i]);
+    }
+    printf("End Frame\n");
+
+    display_cs(0);
+}
+
+uint16_t display_checkerboard(char *frameData, uint8_t invert)
+{
     int gridx = 0;
     int gridy = 0;
+    int count = 0;
+
+    uint8_t forCol = RED;
+    uint8_t backCol = GREEN;
     
-    for (int x = 0; x < 144; x++) {
+    if (invert)
+    {
+        forCol = GREEN;
+        backCol = RED;
+    }
+    
+    for (int x = 0; x < display.NumCols; x++) {
         gridy = 0;
         if ((x % 21) == 0)
             gridx++;
-        for (int y = 0; y < 168; y++) {
+        
+        for (int y = 0; y < display.NumRows; y++) {
             if ((y % 21) == 0)
                 gridy++;
             
             if (gridy%2 == 0)
             {
-                if (gridx%2 == 0)    
-                    display_SPI6_send(4);
+                if (gridx%2 == 0)
+                    frameData[count] = forCol;
+                    //display_SPI6_send(RED);
                 else
-                    display_SPI6_send(0);
+                    frameData[count] = backCol;
+                    //display_SPI6_send(GREEN);
             }
             else
             {
                 if (gridx%2 == 0)    
-                    display_SPI6_send(0);
+                    frameData[count] = backCol;
+                    //display_SPI6_send(GREEN);
                 else
-                    display_SPI6_send(4);
+                    //display_SPI6_send(RED);
+                    frameData[count] = forCol;
             }
+            
+            
+            count++;
         }
     }
-    //display_SPI6_send(0x3F);
-/*
-    int j = 0;
-    for(int i = 0; i < 24193; i++)
-    {
-      
-        if (j < 50)
-        {
-            display_SPI6_send(0x30);
-            j++;
-        }
-        else if (
-        {
-            display_SPI6_send(0xFC);
-            j = 0;
-        }
-    }*/
-    printf("End Frame\n");
-    display_cs(0);
+    return count;
 }
 
 
+// request a command from the display driver. this will queue up your request and
+// process it in order
 void display_cmd(uint8_t cmd, char *data)
 {
     xQueueSendToBack(xQueue, &cmd, 0);
@@ -460,34 +489,30 @@ void display_cmd(uint8_t cmd, char *data)
 
 void display_program_FPGA(void)
 {
-    printf("Sending FPGA dump\n");
+    unsigned char *fpgaBlob = &_binary_PebbleImages_FPGA_4_3_snowy_bin_start;
     
-    // OMG no
-    static const char fakedump[32200] = {
-  0xFF, 0x00, 0x4C, 0x61, 0x74, 0x74, 0x69, 0x63, 0x65, 0x00, 0x69, 0x43, 0x45, 0x63,      //pG..Lattice.iCEc
-  0x75, 0x62, 0x65, 0x32, 0x20, 0x32, 0x30, 0x31, 0x34, 0x2E, 0x30, 0x38, 0x2E, 0x32, 0x36, 0x37,      //ube2 2014.08.267
-  0x32, 0x33, 0x00, 0x50, 0x61, 0x72, 0x74, 0x3A, 0x20, 0x69, 0x43, 0x45, 0x34, 0x30, 0x4C, 0x50,      //23.Part: iCE40LP
-  0x31, 0x4B, 0x2D, 0x43, 0x4D, 0x33, 0x36, 0x00, 0x44, 0x61, 0x74, 0x65, 0x3A, 0x20, 0x44, 0x65,      //1K-CM36.Date: De
-  0x63, 0x20, 0x31, 0x30, 0x20, 0x32, 0x30, 0x31, 0x34, 0x20, 0x30, 0x38, 0x3A, 0x33, 0x30, 0x3A,      //c 10 2014 08:30:
-  0x00, 0xFF, 0x31, 0x38, 0x00, 0x7E, 0xAA, 0x99, 0x7E, 0x51, 0x00, 0x01, 0x05, 0x92, 0x00, 0x20,      //..18.~..~Q.....
-  0x62, 0x01, 0x4B, 0x72, 0x00, 0x90, 0x82, 0x00, 0x00, 0x11, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00 };
-
+    printf("Sending FPGA dump...\n");
+           
     // enter programming mode
     display_cs(1);
     
-    int len = strlen(fakedump);
-    for (uint32_t i = 0; i < len; i++)
+    for (uint32_t i = 0; i < (uint32_t)&_binary_PebbleImages_FPGA_4_3_snowy_bin_size; i++)
     {
-        display_SPI6_send(fakedump[i]);
+        display_SPI6_send(*(fpgaBlob + i));
     }
     display_cs(0);
+    
+    printf("Sent FPGA dump\n");
 }
+
 
 void vDisplayTask(void *pvParameters)
 {
     uint8_t data;
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
     display.DisplayState = DISPLAY_CMD_IDLE;
+    uint8_t invert = 0;
+    int len = 0;
     
     while(1)
     {
@@ -524,7 +549,8 @@ void vDisplayTask(void *pvParameters)
                     //display_on();
                     break;
                 case DISPLAY_CMD_DRAW:
-                    display_start_frame(NULL);
+                    len = display_checkerboard(display.DisplayBuffer, 0);
+                    display_start_frame(display.DisplayBuffer, len);
                     break;
             }
             
@@ -548,7 +574,6 @@ void vDisplayTask(void *pvParameters)
                     display_cmd(DISPLAY_CMD_INITF, NULL);                   
                     display_cmd(DISPLAY_CMD_FLASH, NULL);
                     display_cmd(DISPLAY_CMD_DRAW, NULL);
-                    //display_cmd(DISPLAY_CMD_DRAW, NULL);
                 }
                 printf("ISR Idled\n");
                 
@@ -566,6 +591,9 @@ void vDisplayTask(void *pvParameters)
             // nothing emerged from the buffer
             printf("Display heartbeat\n");
             // do one second(ish) maint tasks
+            invert = !invert;
+            len = display_checkerboard(display.DisplayBuffer, invert);
+            display_start_frame(display.DisplayBuffer, len);
             
         }        
     }

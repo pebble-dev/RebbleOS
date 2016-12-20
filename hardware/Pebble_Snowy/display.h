@@ -22,9 +22,17 @@ display_sclk: G13 (out)
 #define DISPLAY_CMD_BEGIN      4
 #define DISPLAY_CMD_DRAW       5
 #define DISPLAY_CMD_FLASH      6
-#define DISPLAY_CMD_INITF     7
-#define DISPLAY_CMD_DONE       32
+#define DISPLAY_CMD_INITF      7
 
+// display command types
+#define DISPLAY_CTYPE_NULL        0x00
+#define DISPLAY_CTYPE_PARAM       0x01
+#define DISPLAY_CTYPE_DISPLAY_OFF 0x02
+#define DISPLAY_CTYPE_DISPLAY_ON  0x03
+#define DISPLAY_CTYPE_SCENE       0x04
+
+// in full fat mode
+#define DISPLAY_CTYPE_FRAME       0x05
 
 typedef struct {
 //    SPI *spi;  // SPI6
@@ -47,8 +55,8 @@ typedef struct {
     
     
     // stuff from qemu
-    uint32_t num_rows;
-    uint32_t num_cols;
+    uint32_t NumRows;
+    uint32_t NumCols;
     int32_t num_border_rows;
     int32_t num_border_cols;
     uint8_t row_major;
@@ -62,6 +70,8 @@ typedef struct {
     uint8_t PowerOn;
     uint8_t DisplayState; // busy etc
     uint8_t DisplayMode; // bootloader or full
+    
+    char DisplayBuffer[24192];
 } display_t;
 
 

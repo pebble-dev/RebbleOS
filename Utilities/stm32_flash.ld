@@ -83,13 +83,13 @@ SECTIONS
   } >FLASH
 
   /* Constant data goes into FLASH */
-/*  .rodata :  {
+  .rodata :  {
     . = ALIGN(4);
     *(.rodata)  */       /* .rodata sections (constants, strings, etc.) */
-/*    *(.rodata*)   */     /* .rodata* sections (constants, strings, etc.) */
-  /*  . = ALIGN(4);
+    *(.rodata*)   */     /* .rodata* sections (constants, strings, etc.) */
+    . = ALIGN(4);
   } >FLASH
-*/
+
   .ARM.extab   : { *(.ARM.extab* .gnu.linkonce.armextab.*) } >FLASH
   .ARM : {
     __exidx_start = .;
@@ -118,6 +118,7 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
+  
   /* used by the startup to initialize data */
   _sidata = LOADADDR(.data);
 
