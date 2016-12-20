@@ -11,6 +11,7 @@ void vDisplayTask(void *pvParameters);
 void display_init_SPI6(void);
 void display_init_intn(void);
 uint8_t display_SPI6_send(uint8_t data);
+uint8_t display_SPI6_send_word(uint16_t data);
 void display_done_ISR(uint8_t cmd);
 
 static TaskHandle_t xDisplayTask;
@@ -328,6 +329,17 @@ uint8_t display_SPI6_send(uint8_t data)
     return SPI6->DR; // return received data from SPI data register
 }
 
+uint8_t display_SPI6_send_word(uint16_t data)
+{
+    uint8_t high = (data >> 4) & 0x0F;
+    uint8_t low = data & 0x0F;
+
+    display_SPI6_send(low);
+    display_SPI6_send(high);
+    
+    return SPI6->DR;
+}
+
 // display state machine based stuff
 void display_init_FPGA(uint8_t drawMode)
 {
@@ -390,7 +402,37 @@ void display_start_frame(char *frameData)
     display_cs(1);
     display_SPI6_send(0x05); // Frame Begin
     printf("Frame\n");
-
+//display_SPI6_send(0x3F);
+    int count = 0;
+    int gridx = 0;
+    int gridy = 0;
+    
+    for (int x = 0; x < 144; x++) {
+        gridy = 0;
+        if ((x % 21) == 0)
+            gridx++;
+        for (int y = 0; y < 168; y++) {
+            if ((y % 21) == 0)
+                gridy++;
+            
+            if (gridy%2 == 0)
+            {
+                if (gridx%2 == 0)    
+                    display_SPI6_send(4);
+                else
+                    display_SPI6_send(0);
+            }
+            else
+            {
+                if (gridx%2 == 0)    
+                    display_SPI6_send(0);
+                else
+                    display_SPI6_send(4);
+            }
+        }
+    }
+    //display_SPI6_send(0x3F);
+/*
     int j = 0;
     for(int i = 0; i < 24193; i++)
     {
@@ -400,12 +442,12 @@ void display_start_frame(char *frameData)
             display_SPI6_send(0x30);
             j++;
         }
-        else
+        else if (
         {
             display_SPI6_send(0xFC);
             j = 0;
         }
-    }
+    }*/
     printf("End Frame\n");
     display_cs(0);
 }
