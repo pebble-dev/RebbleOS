@@ -1,18 +1,34 @@
 #include "stm32f4xx.h"
 #include "FreeRTOS.h"
 #include "stdio.h"
+#include "string.h"
 #include "display.h"
+#include "task.h"
+#include "semphr.h"
 #include <stm32f4xx_spi.h>
 
+void vDisplayTask(void *pvParameters);
 void display_init_SPI6(void);
+void display_init_intn(void);
 uint8_t display_SPI6_send(uint8_t data);
+void display_done_ISR(uint8_t cmd);
 
+static TaskHandle_t xDisplayTask;
+static xQueueHandle xQueue;
+static xQueueHandle xIntQueue;
+
+void display_on();
+void display_power(uint8_t enabled);
+void display_reset(uint8_t enabled);
+void display_init_FPGA(uint8_t drawMode);
+void display_drawscene(uint8_t scene);
+void display_start_frame(char *frameData);
 
 display_t display = {
     .PortDisplay = GPIOG,
     .PinReset = GPIO_Pin_15,
-    .PinPower = GPIO_Pin_8, //??
-    .PinCs = GPIO_Pin_8, //??
+    .PinPower = GPIO_Pin_8, // cs and power? I don't think this one is used tbh
+    .PinCs = GPIO_Pin_8, 
     .PinBacklight = GPIO_Pin_14,
     .PortBacklight = GPIOB,
     .PinVibrate = GPIO_Pin_4,
@@ -31,13 +47,17 @@ display_t display = {
     .row_major = 0,
     .row_inverted = 0,
     .col_inverted = 0,
-    
-    .BacklightEnabled = 0,
-    .Brightness = 0,
-    .PowerOn = 0,
 };
 
-void display_init(void) {
+void display_init(void)
+{
+    // init display variables
+    
+    display.BacklightEnabled = 0;
+    display.Brightness = 0;
+    display.PowerOn = 0;
+    display.DisplayState = 0;
+    
     printf("Display Init\n");
     GPIO_InitTypeDef GPIO_InitStructure;
     GPIO_InitTypeDef GPIO_InitStructure_Vibr;
@@ -81,17 +101,146 @@ void display_init(void) {
     
     // start SPI
     display_init_SPI6();
-    display_test(1);
+    //display_test(1);
+    
+    xTaskCreate(vDisplayTask, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1UL, &xDisplayTask); 
+    
+    xQueue = xQueueCreate( 10, sizeof(uint8_t) );
+    xIntQueue = xQueueCreate( 4, sizeof(uint8_t) );
+    
+    printf("Display Task Created!\n");
+    display_init_intn();
+    
+    // turn on the LCD draw
+    display.DisplayMode = DISPLAY_MODE_BOOTLOADER;
+    display_cmd(DISPLAY_CMD_INIT, NULL);
+
 }
 
-void display_backlight(uint8_t enabled) {
+
+void display_init_intn(void)
+{
+    // Snowy uses two interrupts for the display
+    // Done (G9) signals the drawing is done
+    // INTn (G10) I suspect is for device readyness after flash
+    //
+    // PinSource9 uses IRQ (EXTI9_5_IRQn) and 10 uses (EXTI15_10_IRQn)
+    EXTI_InitTypeDef EXTI_InitStruct;
+    NVIC_InitTypeDef NVIC_InitStruct;
+    
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+    
+    SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOG, EXTI_PinSource9);
+    
+    /* Button is connected to EXTI_Linen */
+    EXTI_InitStruct.EXTI_Line = EXTI_Line9;
+    /* Enable interrupt */
+    EXTI_InitStruct.EXTI_LineCmd = ENABLE;
+    /* Interrupt mode */
+    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+    /* Triggers on rising and falling edge */
+    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
+    /* Add to EXTI */
+    EXTI_Init(&EXTI_InitStruct);
+ 
+    /* Add IRQ vector to NVIC */
+    /* PD0 is connected to EXTI_Line0, which has EXTI0_IRQn vector */
+    NVIC_InitStruct.NVIC_IRQChannel = EXTI9_5_IRQn;
+    /* Set priority */
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 13;
+    /* Set sub priority */
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
+    /* Enable interrupt */
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    /* Add to NVIC */
+    NVIC_Init(&NVIC_InitStruct);
+    
+    
+    // now do INTn
+    SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOG, EXTI_PinSource10);
+    
+    /* Button is connected to EXTI_Linen */
+    EXTI_InitStruct.EXTI_Line = EXTI_Line10;
+    /* Enable interrupt */
+    EXTI_InitStruct.EXTI_LineCmd = ENABLE;
+    /* Interrupt mode */
+    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+    /* Triggers on rising and falling edge */
+    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
+    /* Add to EXTI */
+    EXTI_Init(&EXTI_InitStruct);
+ 
+    /* Add IRQ vector to NVIC */
+    /* PD0 is connected to EXTI_Line0, which has EXTI0_IRQn vector */
+    NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;
+    /* Set priority */
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 13;
+    /* Set sub priority */
+    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
+    /* Enable interrupt */
+    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
+    /* Add to NVIC */
+    NVIC_Init(&NVIC_InitStruct);
+}
+
+/* Set interrupt handlers */
+void EXTI9_5_IRQHandler(void)
+{
+printf("Reset Complete\n");
+    /* Make sure that interrupt flag is set */
+    if (EXTI_GetITStatus(EXTI_Line9) != RESET)
+    {       
+        uint8_t cmd = display.DisplayState;
+        display_done_ISR(cmd);
+       
+        /* Clear interrupt flag */
+        EXTI_ClearITPendingBit(EXTI_Line9);
+    }
+}
+
+
+/* Set interrupt handlers */
+void EXTI15_10_IRQHandler(void)
+{
+    /* Make sure that interrupt flag is set */
+    if (EXTI_GetITStatus(EXTI_Line10) != RESET)
+    {   
+        uint8_t cmd = display.DisplayState;
+        display_done_ISR(cmd);
+       
+        /* Clear interrupt flag */
+        EXTI_ClearITPendingBit(EXTI_Line10);
+    }
+}
+
+void display_done_ISR(uint8_t cmd) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+printf("Done ISR\n");
+    /* Notify the task that the transmission is complete. */
+    //vTaskNotifyGiveFromISR( xDisplayTask, &xHigherPriorityTaskWoken );
+
+    xQueueSendToBackFromISR(xIntQueue, &cmd, 0);
+
+    /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context switch
+    should be performed to ensure the interrupt returns directly to the highest
+    priority task.  The macro used for this purpose is dependent on the port in
+    use and may be called portEND_SWITCHING_ISR(). */
+    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+}
+
+
+
+
+void display_backlight(uint8_t enabled)
+{
     if (enabled)
         GPIO_SetBits(display.PortBacklight, display.PinBacklight);
     else
         GPIO_ResetBits(display.PortBacklight, display.PinBacklight);
 }
 
-void display_vibrate(uint8_t enabled) {
+void display_vibrate(uint8_t enabled)
+{
     if (enabled)
         GPIO_SetBits(display.PortVibrate, display.PinVibrate);
     else
@@ -156,30 +305,21 @@ void display_init_SPI6(void){
     SPI_Cmd(SPI6, ENABLE); // enable SPI1
 }
 
-void display_power(uint8_t enabled) {
-    if (enabled)
-        GPIO_SetBits(display.PortDisplay, display.PinPower);
-    else
-        GPIO_ResetBits(display.PortDisplay, display.PinPower);
-}
-
-
-void display_reset(uint8_t enabled) {
-    if (enabled)
-        GPIO_SetBits(display.PortDisplay, display.PinReset);
-    else
-        GPIO_ResetBits(display.PortDisplay, display.PinReset);
-}
-
-void display_cs(uint8_t enabled) {
-    if (enabled)
+// When reset goes high, sample the CS input to see what state we should be in
+// if CS is low, expect new FPGA programming to arrive
+// if CS is high, assume we will be using the bootloader configuration
+void display_cs(uint8_t enabled)
+{
+    // CS bit is inverted
+    if (!enabled)
         GPIO_SetBits(display.PortDisplay, display.PinCs);
     else
         GPIO_ResetBits(display.PortDisplay, display.PinCs);
 }
 
 
-uint8_t display_SPI6_send(uint8_t data) {
+uint8_t display_SPI6_send(uint8_t data)
+{
     // TODO likely DMA would be better :)
     SPI6->DR = data; // write data to be transmitted to the SPI data register
     while( !(SPI6->SR & SPI_I2S_FLAG_TXE) ); // wait until transmit complete
@@ -188,51 +328,203 @@ uint8_t display_SPI6_send(uint8_t data) {
     return SPI6->DR; // return received data from SPI data register
 }
 
-
-
-void display_test(uint8_t scene) {
-    // Recovery screen mode (no FPGA Firmware loaded)
-    //PEBBLE_SNOWY_DISPLAY: state change from 0 (PSDISPLAYSTATE_PROGRAMMING) to 1 (PSDISPLAYSTATE_ACCEPTING_CMD)    //frame: 0 - bytes: 0
-    //PEBBLE_SNOWY_DISPLAY: DISPLAY POWER CTL changed to 1
+// display state machine based stuff
+void display_init_FPGA(uint8_t drawMode)
+{
+    printf("Init FPGA\n");
+    display.DisplayMode = drawMode;
+    // Enable power to the FPGA
     display_power(1);
-    //PEBBLE_SNOWY_DISPLAY: CS changed to 1
-    display_cs(1);
-    //PEBBLE_SNOWY_DISPLAY: RESET changed to 1
-    display_reset(1);
-    //PEBBLE_SNOWY_DISPLAY: Asserting done interrupt
-    //display_sleep(100); // cheat for now until IRQ is kooed up
-    //PEBBLE_SNOWY_DISPLAY: Resetting state to accept command
-    //PEBBLE_SNOWY_DISPLAY: state change from 1 (PSDISPLAYSTATE_ACCEPTING_CMD) to 1 (PSDISPLAYSTATE_ACCEPTING_CMD) frame: 0 - bytes: 0
-    //PEBBLE_SNOWY_DISPLAY: BACKLIGHT ENABLE changed to 0
-    //PEBBLE_SNOWY_DISPLAY: CS changed to 0
-    display_cs(0);
-    /*PEBBLE_SNOWY_DISPLAY: received command 4, deasserting done interrupt
-    PEBBLE_SNOWY_DISPLAY: ps_display_execute_current_cmd_set0: cmd: 4 -- cs: CS
-    PEBBLE_SNOWY_DISPLAY: state change from 1 (PSDISPLAYSTATE_ACCEPTING_CMD) to 3 (PSDISPLAYSTATE_ACCEPTING_SCENE_BYTE) frame: 0 - bytes: 1
-    PEBBLE_SNOWY_DISPLAY: received scene ID: 1
-    PEBBLE_SNOWY_DISPLAY: ps_display_execute_current_cmd_set0: cmd: 4 -- cs: CS
-    PEBBLE_SNOWY_DISPLAY: Executing command: DRAW_SCENE: 1
-    PEBBLE_SNOWY_DISPLAY: Asserting done interrupt
-    PEBBLE_SNOWY_DISPLAY: Resetting state to accept command
-    PEBBLE_SNOWY_DISPLAY: state change from 3 (PSDISPLAYSTATE_ACCEPTING_SCENE_BYTE) to 1 (PSDISPLAYSTATE_ACCEPTING_CMD) frame: 0 - bytes: 2
-    */
-    display_SPI6_send(0x04); // set cmdset
-    display_SPI6_send(scene); // scene 1
-    printf("Setting SPI\n");
-    display_cs(1);
-    display_cs(0); // actually it looks to be doing a read here.
-    //PEBBLE_SNOWY_DISPLAY: CS changed to 1
-    //PEBBLE_SNOWY_DISPLAY: CS changed to 0
-    //PEBBLE_SNOWY_DISPLAY: received command 3, deasserting done interrupt
-    //PEBBLE_SNOWY_DISPLAY: ps_display_execute_current_cmd_set0: cmd: 3 -- cs: CS
-    //PEBBLE_SNOWY_DISPLAY: Executing command: DISPLAY_ON
-    //PEBBLE_SNOWY_DISPLAY: Asserting done interrupt
-    //PEBBLE_SNOWY_DISPLAY: Resetting state to accept command
-    //PEBBLE_SNOWY_DISPLAY: state change from 1 (PSDISPLAYSTATE_ACCEPTING_CMD) to 1 (PSDISPLAYSTATE_ACCEPTING_CMD) frame: 0 - bytes: 3
+    // Turn on SPI Chip Select
+    // if drawmode is 0 then it is bootloader
+    // 1 is real display
+    display_cs(drawMode);
 
-    //PEBBLE_SNOWY_DISPLAY: CS changed to 1
-    //PEBBLE_SNOWY_DISPLAY: Backlight level changed to 0
-    //PEBBLE_SNOWY_DISPLAY: Backlight level changed to 0
+    // Reset the current command set
+    display_reset(0);
+    display_reset(1);
+
+    // now we wait for the done IRQ
+}
+
+// Enable the power pin
+void display_power(uint8_t enabled)
+{
+    if (enabled)
+        GPIO_SetBits(display.PortDisplay, display.PinPower);
+    else
+        GPIO_ResetBits(display.PortDisplay, display.PinPower);
+}
+
+// Pull the reset pin
+void display_reset(uint8_t enabled)
+{
+    if (enabled)
+        GPIO_SetBits(display.PortDisplay, display.PinReset);
+    else
+        GPIO_ResetBits(display.PortDisplay, display.PinReset);
+}
+
+void display_drawscene(uint8_t scene)
+{
+    printf("Select Scene\n");
     display_cs(1);
-    display_SPI6_send(0x03); // power on
+    display_SPI6_send(0x04); // set cmdset (select scene)
+    display_SPI6_send(scene); // scene 1
+
+    display_cs(0);
+}
+
+
+// command the screen on
+void display_on()
+{
+    display_cs(1);
+    display_SPI6_send(0x03); // Power on
+    printf("Power On\n");
+    display_cs(0);
+}
+
+void display_start_frame(char *frameData)
+{
+    display_cs(1);
+    display_SPI6_send(0x05); // Frame Begin
+    printf("Frame\n");
+
+    int j = 0;
+    for(int i = 0; i < 24193; i++)
+    {
+      
+        if (j < 50)
+        {
+            display_SPI6_send(0x30);
+            j++;
+        }
+        else
+        {
+            display_SPI6_send(0xFC);
+            j = 0;
+        }
+    }
+    printf("End Frame\n");
+    display_cs(0);
+}
+
+
+void display_cmd(uint8_t cmd, char *data)
+{
+    xQueueSendToBack(xQueue, &cmd, 0);
+}
+
+void display_program_FPGA(void)
+{
+    printf("Sending FPGA dump\n");
+    
+    // OMG no
+    static const char fakedump[32200] = {
+  0xFF, 0x00, 0x4C, 0x61, 0x74, 0x74, 0x69, 0x63, 0x65, 0x00, 0x69, 0x43, 0x45, 0x63,      //pG..Lattice.iCEc
+  0x75, 0x62, 0x65, 0x32, 0x20, 0x32, 0x30, 0x31, 0x34, 0x2E, 0x30, 0x38, 0x2E, 0x32, 0x36, 0x37,      //ube2 2014.08.267
+  0x32, 0x33, 0x00, 0x50, 0x61, 0x72, 0x74, 0x3A, 0x20, 0x69, 0x43, 0x45, 0x34, 0x30, 0x4C, 0x50,      //23.Part: iCE40LP
+  0x31, 0x4B, 0x2D, 0x43, 0x4D, 0x33, 0x36, 0x00, 0x44, 0x61, 0x74, 0x65, 0x3A, 0x20, 0x44, 0x65,      //1K-CM36.Date: De
+  0x63, 0x20, 0x31, 0x30, 0x20, 0x32, 0x30, 0x31, 0x34, 0x20, 0x30, 0x38, 0x3A, 0x33, 0x30, 0x3A,      //c 10 2014 08:30:
+  0x00, 0xFF, 0x31, 0x38, 0x00, 0x7E, 0xAA, 0x99, 0x7E, 0x51, 0x00, 0x01, 0x05, 0x92, 0x00, 0x20,      //..18.~..~Q.....
+  0x62, 0x01, 0x4B, 0x72, 0x00, 0x90, 0x82, 0x00, 0x00, 0x11, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00 };
+
+    // enter programming mode
+    display_cs(1);
+    
+    int len = strlen(fakedump);
+    for (uint32_t i = 0; i < len; i++)
+    {
+        display_SPI6_send(fakedump[i]);
+    }
+    display_cs(0);
+}
+
+void vDisplayTask(void *pvParameters)
+{
+    uint8_t data;
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
+    display.DisplayState = DISPLAY_CMD_IDLE;
+    
+    while(1)
+    {
+        // commands to be exectuted are send to this queue and processed
+        // one at a time
+        if (xQueueReceive(xQueue, &data, xMaxBlockTime))
+        {
+            printf("CMD\n");
+            display.DisplayState = data;
+            switch(data)
+            {
+                case DISPLAY_CMD_DISPLAY_ON:
+                    display_on();
+                    break;
+                case DISPLAY_CMD_RESET:
+                    display_reset(1);                    
+                    break;
+                case DISPLAY_CMD_IDLE:
+                    display.DisplayState = DISPLAY_CMD_IDLE;
+                    break;
+                case DISPLAY_CMD_INIT:
+                     display_init_FPGA(display.DisplayMode);
+                    break;
+                case DISPLAY_CMD_INITF:
+                     display.DisplayMode = DISPLAY_MODE_FULLFAT;
+                     display_init_FPGA(DISPLAY_MODE_FULLFAT);
+                    break;
+                case DISPLAY_CMD_FLASH:
+                    printf("Programming FPGA...\n");
+                    display_program_FPGA();
+                    break;
+                case DISPLAY_CMD_BEGIN:
+                    display_drawscene(2);
+                    //display_on();
+                    break;
+                case DISPLAY_CMD_DRAW:
+                    display_start_frame(NULL);
+                    break;
+            }
+            
+            // once in full fat mode, we dont get asserts
+            if (display.DisplayMode == DISPLAY_MODE_FULLFAT && 
+                display.DisplayMode != DISPLAY_CMD_DRAW)
+                continue;
+            
+            // This is prett terrible as far as usage goes, but in order to satisfy qemu
+            // acking the "done" interrupt is another queue. The ints then stuff the queue on completion
+            // in order to syncronise the commands
+            // Don't know about the real hardware, but the int is triggering before we can 
+            // set the semaphore. Setting up NVIC priorities could solve that later
+            if (xQueueReceive(xIntQueue, &data, xMaxBlockTime))
+            {           
+                if (display.DisplayState == DISPLAY_CMD_INIT)
+                {
+                    // as a bonus followup of the init, we are turning on the full fat interface
+                    display_cmd(DISPLAY_CMD_BEGIN, NULL);
+                    display_cmd(DISPLAY_CMD_DISPLAY_ON, NULL);
+                    display_cmd(DISPLAY_CMD_INITF, NULL);                   
+                    display_cmd(DISPLAY_CMD_FLASH, NULL);
+                    display_cmd(DISPLAY_CMD_DRAW, NULL);
+                    //display_cmd(DISPLAY_CMD_DRAW, NULL);
+                }
+                printf("ISR Idled\n");
+                
+                display.DisplayState = DISPLAY_CMD_IDLE;
+            }
+            else
+            {
+                // The call to ulTaskNotifyTake() timed out
+                printf("no ISR Responses\n");
+                display.DisplayState = DISPLAY_CMD_IDLE;
+            }
+        }
+        else
+        {
+            // nothing emerged from the buffer
+            printf("Display heartbeat\n");
+            // do one second(ish) maint tasks
+            
+        }        
+    }
 }

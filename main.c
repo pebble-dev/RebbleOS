@@ -11,6 +11,7 @@ void init_USART3(void);
 void init_GPIO(void);
 void init_hardware(void);
 
+extern buttons_t buttons;
 
 void CheckButton_Timer(void*); // probably move to an interrupt at some point
 
@@ -50,17 +51,17 @@ int main(void) {
  */
 void CheckButton_Timer(void *pvParameters){
   printf("Task ctor\n");
-  int lastback = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Back);
-  int lastup = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Up);
-  int lastdown = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Down);
-  int lastsel = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Select);
+  int lastback = button_is_pressed(&buttons.Back);
+  int lastup = button_is_pressed(&buttons.Up);
+  int lastdown = button_is_pressed(&buttons.Down);
+  int lastsel = button_is_pressed(&buttons.Select);
   
   while (1) {
     // Hacky button testing in a polling loop
     // TODO move to buttons.c
     // TODO really crappy code. sort it
     // uses totally crapy debounce. its slow and glitchy. sort.
-    int btn = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Back);
+    int btn; /* = button_is_pressed(&buttons.Back);
     if (btn != lastback) {
         if (btn)
             printf("Back Up!\n");    //back GPIO_Pin_4
@@ -71,8 +72,8 @@ void CheckButton_Timer(void *pvParameters){
         display_backlight(1);
     }
     lastback = btn;
-
-    btn = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Up);
+    */
+    btn = button_is_pressed(&buttons.Up);
     if (btn != lastup) {
         if (btn)
             printf("Up Up!\n");    //back GPIO_Pin_4
@@ -84,25 +85,23 @@ void CheckButton_Timer(void *pvParameters){
     }
     lastup = btn;
     
-    btn = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Down);
+    btn = button_is_pressed(&buttons.Down);
     if (btn != lastdown) {
         if (btn)
             printf("Down Up!\n");    //back GPIO_Pin_4
         else
             printf("Down Down!\n");    //back GPIO_Pin_4
             
-        display_test(2);
+        //display_test(2);
     }
     lastdown = btn;
     
-    btn = GPIO_ReadInputDataBit(buttons.ButtonPort, buttons.Select);
+    btn = button_is_pressed(&buttons.Select);
     if (btn != lastsel) {
         if (btn)
             printf("Select Up!\n");    //back GPIO_Pin_4
         else
             printf("Select Down!\n");    //back GPIO_Pin_4
-            
-        display_test(1);
     }
     lastsel = btn;
         
@@ -162,6 +161,7 @@ used by the Idle task. */
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) {
 
 }
+
 /* configUSE_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
 application must provide an implementation of vApplicationGetTimerTaskMemory()
 to provide the memory that is used by the Timer service task. */
@@ -177,8 +177,10 @@ void init_hardware(void) {
     printf("Turn on the display!\n");
     display_init();
     printf("Hmm\n");
-    //buttons_init();
-    }
+    buttons_init();
+    printf("Buttons init\n");
+}
+
 /*
  * Configure USART3(PB10, PB11) to redirect printf data to host PC.
  */
@@ -186,7 +188,6 @@ void init_USART3(void) {
   GPIO_InitTypeDef GPIO_InitStruct;
   USART_InitTypeDef USART_InitStruct;
 
-  //RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
 
@@ -216,24 +217,14 @@ void init_USART3(void) {
  * Init HW
  */
 void init_GPIO()
-{
-  GPIO_InitTypeDef GPIO_InitStructure2;
-  
-  // Init Vibro? nah, no idea yet.
+{ 
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
   
   // Init PortB
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
       
-  // Init Buttons
-  // TODO move this to buttons.c
+  // Init Buttons and display bank
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
-  GPIO_InitStructure2.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure2.GPIO_Pin =  GPIO_Pin_1 | GPIO_Pin_2 | GPIO_Pin_3 | GPIO_Pin_4;
-  GPIO_InitStructure2.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_InitStructure2.GPIO_Speed = GPIO_Speed_100MHz;
-  GPIO_InitStructure2.GPIO_OType = GPIO_OType_PP;
-  GPIO_Init(GPIOG, &GPIO_InitStructure2);
   
   // for vibrate
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOF, ENABLE);

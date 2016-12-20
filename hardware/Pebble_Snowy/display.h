@@ -11,6 +11,21 @@ display_sclk: G13 (out)
 
 */
 
+#define DISPLAY_MODE_BOOTLOADER      0
+#define DISPLAY_MODE_FULLFAT         1
+
+// todo TYPEDEF ENUM
+#define DISPLAY_CMD_IDLE       0
+#define DISPLAY_CMD_INIT       1
+#define DISPLAY_CMD_RESET      2
+#define DISPLAY_CMD_DISPLAY_ON 3
+#define DISPLAY_CMD_BEGIN      4
+#define DISPLAY_CMD_DRAW       5
+#define DISPLAY_CMD_FLASH      6
+#define DISPLAY_CMD_INITF     7
+#define DISPLAY_CMD_DONE       32
+
+
 typedef struct {
 //    SPI *spi;  // SPI6
     GPIO_TypeDef *PortDisplay;
@@ -45,6 +60,8 @@ typedef struct {
     uint8_t BacklightEnabled;
     float   Brightness;
     uint8_t PowerOn;
+    uint8_t DisplayState; // busy etc
+    uint8_t DisplayMode; // bootloader or full
 } display_t;
 
 
@@ -54,5 +71,7 @@ void display_backlight(uint8_t enabled);
 void display_vibrate(uint8_t enabled);
 
 void display_test(uint8_t scene);
+
+void display_cmd(uint8_t cmd, char *data);
 
 #endif

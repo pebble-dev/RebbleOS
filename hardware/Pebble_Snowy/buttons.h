@@ -5,21 +5,18 @@
 #include "FreeRTOS.h"
 
 typedef struct {
-    GPIO_TypeDef *ButtonPort;
-    
-    uint16_t Back;
-    uint16_t Up;
-    uint16_t Select;
-    uint16_t Down;
+    uint16_t Pin;
+    GPIO_TypeDef *Port;    
+} button_t;
+
+typedef struct {
+    button_t Back;
+    button_t Up;
+    button_t Select;
+    button_t Down;
 } buttons_t;
 
-buttons_t buttons = {
-    .ButtonPort = GPIOG,
-    .Back   = GPIO_Pin_4,
-    .Up     = GPIO_Pin_3,
-    .Select = GPIO_Pin_1,
-    .Down   = GPIO_Pin_2,
-};
-
-
+void buttons_init(void);
+uint8_t button_is_pressed(button_t *button);
+void vButtonTask(void *pvParameters);
 #endif
