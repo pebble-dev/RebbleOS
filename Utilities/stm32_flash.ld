@@ -37,7 +37,7 @@ _estack = 0x20012600;    /* end of RAM */
 /*_estack = 0x20001000;*/    /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
 _Min_Heap_Size = 0x000;;      /* required amount of heap  */
-_Min_Stack_Size = 0x400;; /* required amount of stack */
+_Min_Stack_Size = 0x3000;; /* required amount of stack */
 
 /* Specify the memory areas */
 MEMORY
@@ -45,7 +45,7 @@ MEMORY
 
   FLASH (rx)      : ORIGIN = 0x08004000, LENGTH = 1024K - 0x4000
   RAM (xrw)       : ORIGIN = 0x20001000, LENGTH = 128K - 0x1000
-  MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0K
+  MEMORY_B1 (rx)  : ORIGIN = 0x60000000, LENGTH = 0
 
   CCMRAM (rw)     : ORIGIN = 0x10000000, LENGTH = 8K
 }

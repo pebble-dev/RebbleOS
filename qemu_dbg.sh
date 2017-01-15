@@ -1,0 +1,1 @@
+qemu-pebble -rtc base=localtime -serial null -serial null -serial stdio -gdb tcp::63770,server -machine pebble-snowy-bb -cpu cortex-m4 -pflash fw.qemu_flash.bin -pflash PebbleImages/qemu_spi_flash.bin

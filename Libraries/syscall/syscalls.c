@@ -43,6 +43,9 @@
 #include "stdio.h"
 #include "stm32f4xx_usart.h"
 
+#define DEBUG_USART1 USART3
+#define DEBUG_USART2 USART1
+
 /***************************************************************************/
 
 int _open(const char *name, int flags, int mode){
@@ -73,8 +76,13 @@ int _write(int file, char * ptr, int len) {
     return 0;
   }
   for (index = 0; index < len; index++) {
-    while (!(USART3->SR & 0x00000040));
-    USART_SendData(USART3, ptr[index]);
+    while (!(DEBUG_USART1->SR & 0x00000040));
+    USART_SendData(DEBUG_USART1, ptr[index]);
+    
+#if defined(DEBUG_USART2)
+    while (!(DEBUG_USART2->SR & 0x00000040));
+    USART_SendData(DEBUG_USART2, ptr[index]);
+#endif
   }
   return len;
 }
@@ -109,6 +117,7 @@ caddr_t _sbrk(int incr) {
     return (caddr_t) -1;
 #endif
   }
+  
   heap_end += incr;
   return (caddr_t) prev_heap_end;
 }

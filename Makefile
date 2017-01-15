@@ -27,7 +27,7 @@ BIN_DIR = $(CURDIR)/binary
 # vpath is used so object files are written to the current directory instead
 # of the same directory as their source files
 vpath %.c $(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/src \
-          $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(CURDIR)/hardware/Pebble_Snowy $(FREERTOS) \
+          $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(CURDIR)/RebbleOS $(CURDIR)/hardware/Pebble_Snowy $(FREERTOS) \
           $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
 
 vpath %.s $(STARTUP)
@@ -94,20 +94,27 @@ SRC+=stm32f4xx_rng.c
 SRC+=PebbleImages/FPGA_4.3_snowy.o
 
 # Pebble hardware
+SRC+=vibrate.c
 SRC+=buttons.c
 SRC+=display.c
+SRC+=rtc.c
+SRC+=power.c
+
+SRC+=stdarg.c
+
+SRC+=snowy_display.c
 
 CDEFS=-DUSE_STDPERIPH_DRIVER
-#CDEFS+=-DSTM32F4XX
+CDEFS+=-DSTM32F4XX
 #CDEFS+=-DSTM32F40_41xxx
 CDEFS+=-DSTM32F429_439xx
-CDEFS+=-DHSE_VALUE=8000000
+CDEFS+=-DHSI_VALUE=16000000
 CDEFS+=-D__FPU_PRESENT=1
 CDEFS+=-D__FPU_USED=1
 CDEFS+=-DARM_MATH_CM4
 
-MCUFLAGS=-mcpu=cortex-m4 -mthumb -mlittle-endian -mfloat-abi=hard -mfpu=fpv4-sp-d16 \
--fsingle-precision-constant -finline-functions -Wdouble-promotion -mthumb-interwork -std=gnu99
+MCUFLAGS=-mcpu=cortex-m4 -mthumb -mlittle-endian -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -finline-functions -std=gnu99
+#-Wdouble-promotion -mthumb-interwork
 COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall -ffunction-sections -fdata-sections
 CFLAGS=$(COMMONFLAGS) $(MCUFLAGS) $(INCLUDE) $(CDEFS)
 
@@ -128,7 +135,7 @@ $(BUILD_DIR)/%.o: %.c
 	@echo [CC] $(notdir $<)
 	@$(CC) $(CFLAGS) $< -c -o $@
 
-all: $(OBJ)
+all: $(OBJ) fpga
 	@echo [AS] $(ASRC)
 	@$(AS) -o $(ASRC:%.s=$(BUILD_DIR)/%.o) $(STARTUP)/$(ASRC)
 	@echo [LD] $(TARGET).elf
@@ -151,3 +158,8 @@ clean:
 
 flash:
 	@st-flash write $(BIN_DIR)/$(TARGET).bin 0x8000000
+
+fpga:
+	@echo [FPGA] Building...
+	@$(OBJCOPY) --rename-section .data=.rodata,contents,alloc,load,readonly,data -I binary -O elf32-littlearm -B arm7 PebbleImages/FPGA_4.3_snowy_dumped.bin PebbleImages/FPGA_4.3_snowy.o
+

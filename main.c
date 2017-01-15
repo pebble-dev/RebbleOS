@@ -6,114 +6,78 @@
 #include "stm32f4xx_usart.h"
 #include "buttons.h"
 #include "display.h"
+#include "vibrate.h"
+#include "rtc.h"
+
+
+//#define printf(fmt, ...) (0)
+
 
 void init_USART3(void);
+void init_USART2(void);
+void init_USART7(void);
+void init_USART1(void);
 void init_GPIO(void);
 void init_hardware(void);
 
 extern buttons_t buttons;
 
+
 void CheckButton_Timer(void*); // probably move to an interrupt at some point
+void CheckTaskWatchDog (void *pvParameters);
 
-
-
-int main(void) {
+int main(void)
+{
     SystemInit();
 
     // not done in SystemInit, it did something weird.
     SCB->VTOR = 0x08004000;
     NVIC_SetVectorTable(0x08004000, 0);
 
+    // set the default pri groups for the interrupts
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
     init_hardware();
+    // it needs a gentle reminder
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 
+    // ginge: the below may only apply to non-snowy
+    // joshua - Yesterday at 8:42 PM
+    // I recommend setting RTCbackup[0] 0x20000 every time you boot
+    // that'll force kick you into PRF on teh next time you enter the bootloader
+
+    // Dump clocks
+    RCC_ClocksTypeDef RCC_Clocks;
+    RCC_GetClocksFreq(&RCC_Clocks);
+    printf("c     : %d", SystemCoreClock);
+    printf("SYSCLK: %d\n", RCC_Clocks.SYSCLK_Frequency);
+    printf("CFGR  : %x\n", RCC->PLLCFGR);
     printf("Relocating NVIC to 0x08004000\n");
 
     xTaskCreate(
-        CheckButton_Timer,                 /* Function pointer */
-        "Task1",                          /* Task name - for debugging only*/
+        CheckTaskWatchDog,                 /* Function pointer */
+        "WWDGTask",                          /* Task name - for debugging only*/
         configMINIMAL_STACK_SIZE,         /* Stack depth in words */
         (void*) NULL,                     /* Pointer to tasks arguments (parameter) */
         tskIDLE_PRIORITY + 2UL,           /* Task priority*/
         NULL);
 
-    printf("Task Created!\n");
+    printf("Tasks Created!\n");
     
-    printf("FreeRTOS Ginge v0.0.0.1 Codename 'Piddle'\n");
+    printf("FreeRTOS Ginge v0.0.0.2 Codename 'Piddle'\n");
     vTaskStartScheduler();  // should never return
     for (;;);
 }
 
-
-
-/**
- 
- */
-void CheckButton_Timer(void *pvParameters){
-  printf("Task ctor\n");
-  int lastback = button_is_pressed(&buttons.Back);
-  int lastup = button_is_pressed(&buttons.Up);
-  int lastdown = button_is_pressed(&buttons.Down);
-  int lastsel = button_is_pressed(&buttons.Select);
-  
-  while (1) {
-    // Hacky button testing in a polling loop
-    // TODO move to buttons.c
-    // TODO really crappy code. sort it
-    // uses totally crapy debounce. its slow and glitchy. sort.
-    int btn; /* = button_is_pressed(&buttons.Back);
-    if (btn != lastback) {
-        if (btn)
-            printf("Back Up!\n");    //back GPIO_Pin_4
-        else
-            printf("Back Down!\n");    //back GPIO_Pin_4
-        
-        display_vibrate(1);
-        display_backlight(1);
+void CheckTaskWatchDog (void *pvParameters)
+{
+    while(1)
+    {
+        IWDG_ReloadCounter();
+        vTaskDelay(50 / portTICK_RATE_MS);
     }
-    lastback = btn;
-    */
-    btn = button_is_pressed(&buttons.Up);
-    if (btn != lastup) {
-        if (btn)
-            printf("Up Up!\n");    //back GPIO_Pin_4
-        else
-            printf("Up Down!\n");    //back GPIO_Pin_4
-            
-        display_vibrate(0);    
-        display_backlight(0);
-    }
-    lastup = btn;
-    
-    btn = button_is_pressed(&buttons.Down);
-    if (btn != lastdown) {
-        if (btn)
-            printf("Down Up!\n");    //back GPIO_Pin_4
-        else
-            printf("Down Down!\n");    //back GPIO_Pin_4
-            
-        //display_test(2);
-    }
-    lastdown = btn;
-    
-    btn = button_is_pressed(&buttons.Select);
-    if (btn != lastsel) {
-        if (btn)
-            printf("Select Up!\n");    //back GPIO_Pin_4
-        else
-            printf("Select Down!\n");    //back GPIO_Pin_4
-    }
-    lastsel = btn;
-        
-    /*
-    Delay for a period of time. vTaskDelay() places the task into
-    the Blocked state until the period has expired.
-    The delay period is spacified in 'ticks'. We can convert
-    yhis in milisecond with the constant portTICK_RATE_MS.
-    */
-    vTaskDelay(80 / portTICK_RATE_MS);
-  }
 }
+
+
 
 void vApplicationTickHook(void) {
 }
@@ -169,37 +133,40 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackT
 
 }
 
-void init_hardware(void) {
+void init_hardware(void)
+{
+    init_USART1();
     init_USART3();
     printf("USART3 init\n");
     init_GPIO();
     printf("GPIOs init\n");
-    printf("Turn on the display!\n");
+    power_init();
+    vibrate_init();
     display_init();
-    printf("Hmm\n");
     buttons_init();
-    printf("Buttons init\n");
+//     rtc_init();
 }
 
 /*
  * Configure USART3(PB10, PB11) to redirect printf data to host PC.
  */
-void init_USART3(void) {
+void init_USART3(void)
+{
   GPIO_InitTypeDef GPIO_InitStruct;
   USART_InitTypeDef USART_InitStruct;
 
   RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
 
   GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
   GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
   GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(GPIOB, &GPIO_InitStruct);
+  GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  GPIO_PinAFConfig(GPIOB, GPIO_PinSource10, GPIO_AF_USART3);
-  GPIO_PinAFConfig(GPIOB, GPIO_PinSource11, GPIO_AF_USART3);
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_USART3);
+  GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_USART3);
 
   USART_InitStruct.USART_BaudRate = 115200;
   USART_InitStruct.USART_WordLength = USART_WordLength_8b;
@@ -211,21 +178,136 @@ void init_USART3(void) {
   USART_Cmd(USART3, ENABLE);
 }
 
+// lazy
+void init_USART2a(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct;
+  USART_InitTypeDef USART_InitStruct;
 
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2);
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_USART2);
+
+  USART_InitStruct.USART_BaudRate = 115200;
+  USART_InitStruct.USART_WordLength = USART_WordLength_8b;
+  USART_InitStruct.USART_StopBits = USART_StopBits_1;
+  USART_InitStruct.USART_Parity = USART_Parity_No;
+  USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+  USART_Init(USART2, &USART_InitStruct);
+  USART_Cmd(USART2, ENABLE);
+}
+
+void init_USART2(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct;
+  USART_InitTypeDef USART_InitStruct;
+
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6;
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(GPIOD, &GPIO_InitStruct);
+
+  GPIO_PinAFConfig(GPIOD, GPIO_PinSource5, GPIO_AF_USART2);
+  GPIO_PinAFConfig(GPIOD, GPIO_PinSource6, GPIO_AF_USART2);
+
+  USART_InitStruct.USART_BaudRate = 115200;
+  USART_InitStruct.USART_WordLength = USART_WordLength_8b;
+  USART_InitStruct.USART_StopBits = USART_StopBits_1;
+  USART_InitStruct.USART_Parity = USART_Parity_No;
+  USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+  USART_Init(USART2, &USART_InitStruct);
+  USART_Cmd(USART2, ENABLE);
+}
+
+
+void init_USART7(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct;
+  USART_InitTypeDef USART_InitStruct;
+
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART7, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_8;
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  GPIO_PinAFConfig(GPIOE, GPIO_PinSource7, GPIO_AF_UART7);
+  GPIO_PinAFConfig(GPIOE, GPIO_PinSource8, GPIO_AF_UART7);
+
+  USART_InitStruct.USART_BaudRate = 115200;
+  USART_InitStruct.USART_WordLength = USART_WordLength_8b;
+  USART_InitStruct.USART_StopBits = USART_StopBits_1;
+  USART_InitStruct.USART_Parity = USART_Parity_No;
+  USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+  USART_Init(UART7, &USART_InitStruct);
+  USART_Cmd(UART7, ENABLE);
+}
+
+void init_USART1(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct;
+  USART_InitTypeDef USART_InitStruct;
+
+  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
+  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_10;
+  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
+  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
+  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
+  GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
+  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
+
+  USART_InitStruct.USART_BaudRate = 115200;
+  USART_InitStruct.USART_WordLength = USART_WordLength_8b;
+  USART_InitStruct.USART_StopBits = USART_StopBits_1;
+  USART_InitStruct.USART_Parity = USART_Parity_No;
+  USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
+  USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+  USART_Init(USART1, &USART_InitStruct);
+  USART_Cmd(USART1, ENABLE);
+}
 
 /**
  * Init HW
  */
 void init_GPIO()
-{ 
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-  
-  // Init PortB
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-      
-  // Init Buttons and display bank
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
-  
-  // for vibrate
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOF, ENABLE);
+{
+    // USART1
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+    
+    // Init PortB
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+        
+    // Init Buttons and display bank
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
+    
+    // for vibrate
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOF, ENABLE);
 }
