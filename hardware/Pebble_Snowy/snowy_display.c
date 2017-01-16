@@ -398,8 +398,9 @@ void snowy_display_drawscene(uint8_t scene)
 void snowy_display_start_frame(void)
 {
     snowy_display_cs(1);
+    delay_us(100);
     snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
-    snowy_display_cs(0);
+    //snowy_display_cs(0);
 }
 
 void snowy_display_send_frame()
@@ -407,7 +408,8 @@ void snowy_display_send_frame()
     // pull CS low here becuase we are ususally called from an interrupt and we don't
     // like race conditions
 
-    delay_us(100);
+    snowy_display_cs(0);
+    delay_us(10);
     snowy_display_cs(1);
     delay_us(100);
     for(uint16_t i = 0; i < 24192; i++)
@@ -415,7 +417,7 @@ void snowy_display_send_frame()
         snowy_display_SPI6_send(display.DisplayBuffer[i]);
     }
     printf("End Frame\n");
-    delay_us(100);
+    
     snowy_display_cs(0);
 }
 

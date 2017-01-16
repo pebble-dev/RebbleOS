@@ -108,14 +108,14 @@ uint16_t display_checkerboard(char *frameData, uint8_t invert)
     uint8_t forCol = RED;
     uint8_t backCol = GREEN;
     
-//     if (invert)
-//     {
-//         for(uint16_t i = 0; i < 24192; i++)
-//         {
-//             frameData[i] = rebbleOS[i];
-//         }
-//         return;
-//     }
+    if (invert)
+    {
+        for(uint16_t i = 0; i < 24192; i++)
+        {
+            frameData[i] = rebbleOS[i];
+        }
+        return;
+    }
     
     
     if (invert)
@@ -203,10 +203,10 @@ void vDisplayCommandTask(void *pvParameters)
     uint8_t data;
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
     display.State = DISPLAY_STATE_IDLE;
-    uint8_t invert = 0;
+    uint8_t invert = 1;
     //int len = 0;
     uint32_t ulNotificationValue;
-        
+        //int test = 0;
     while(1)
     {
 //         printf("astate %d\n", display.State);
@@ -236,7 +236,7 @@ void vDisplayCommandTask(void *pvParameters)
             switch(data)
             {
                 case DISPLAY_CMD_DRAW:
-                    display_checkerboard(display.DisplayBuffer, 0);
+                    display_checkerboard(display.DisplayBuffer, 1);
                     display_start_frame();
                     break;
             }
@@ -246,11 +246,12 @@ void vDisplayCommandTask(void *pvParameters)
             // nothing emerged from the buffer
             printf("Display heartbeat\n");
             // do one second(ish) maint tasks
-            invert = !invert;
-            vibrate_enable(invert);
+/*            invert = !invert;
+            //vibrate_enable(invert);
             display_checkerboard(display.DisplayBuffer, invert);
 
             display_start_frame();
+            */
         }        
     }
 }
