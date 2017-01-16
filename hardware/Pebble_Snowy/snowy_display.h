@@ -20,7 +20,7 @@ void snowy_display_SPI_start(void);
 void snowy_display_SPI_end(void);
 void snowy_display_drawscene(uint8_t scene);
 void hw_display_on();
-
+void hw_display_start_frame(void);
 void hw_display_send_frame(void);
 void snowy_display_start_frame(void);
 void snowy_display_send_frame();

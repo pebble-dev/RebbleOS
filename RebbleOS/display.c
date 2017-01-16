@@ -28,18 +28,19 @@ void display_init(void)
     hw_backlight_init();
         
     // set up the RTOS tasks
-    //xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1UL, &xDisplayCommandTask);    
-    //xTaskCreate(vDisplayISRProcessor, "DispISR", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xDisplayISRTask); 
+    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xDisplayCommandTask);    
+    xTaskCreate(vDisplayISRProcessor, "DispISR", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xDisplayISRTask); 
     
-    //xQueue = xQueueCreate( 10, sizeof(uint8_t) );
-    //xIntQueue = xQueueCreate( 4, sizeof(uint8_t) );
-    
+    xQueue = xQueueCreate( 10, sizeof(uint8_t) );
+        
     printf("Display Tasks Created!\n");
     
     // turn on the LCD draw
     display.DisplayMode = DISPLAY_MODE_BOOTLOADER;
     
     hw_display_start();
+    
+    display_cmd(DISPLAY_CMD_DRAW, NULL);
     
 //     if (hw_display_start() == 0)
 //     {
@@ -54,7 +55,7 @@ void display_done_ISR(uint8_t cmd)
 
     /* Notify the task that the transmission is complete. */
     vTaskNotifyGiveFromISR(xDisplayISRTask, &xHigherPriorityTaskWoken);
-
+printf("ISR!\n");
     /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context switch
     should be performed to ensure the interrupt returns directly to the highest
     priority task.  The macro used for this purpose is dependent on the port in
@@ -74,11 +75,20 @@ void display_on()
     display.State = DISPLAY_STATE_TURNING_ON;
 }
 
+
+void display_start_frame()
+{
+    display.State = DISPLAY_STATE_FRAME_INIT;
+    
+    hw_display_start_frame();
+}
+
 void display_send_frame()
 {
     display.State = DISPLAY_STATE_FRAME;
     
     hw_display_send_frame();
+    display.State = DISPLAY_STATE_IDLE;
 }
 
 void backlight_set(uint16_t brightness)
@@ -97,6 +107,16 @@ uint16_t display_checkerboard(char *frameData, uint8_t invert)
 
     uint8_t forCol = RED;
     uint8_t backCol = GREEN;
+    
+//     if (invert)
+//     {
+//         for(uint16_t i = 0; i < 24192; i++)
+//         {
+//             frameData[i] = rebbleOS[i];
+//         }
+//         return;
+//     }
+    
     
     if (invert)
     {
@@ -154,37 +174,21 @@ void vDisplayISRProcessor(void *pvParameters)
     while(1)
     {
         ulNotificationValue = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(30));
+
         if (ulNotificationValue == 1)
         {
+            printf("asasdasdasdasd state %d\n", display.State);
             switch(display.State)
             {
-                case DISPLAY_STATE_INITING:
-                    display.State = DISPLAY_STATE_IDLE;
-//                     display_cs(1);
-//                     display_SPI6_send(1);
-//                     display_SPI6_send(1);
-//                     display_SPI6_send(0);
-//                     display_SPI6_send(0);
-//                     display_SPI6_send(0);
-//                     display_cs(0);
-                    // we got an ISR command
-                    //display_reset(0);
-                    // as a bonus followup of the init, we are turning on the full fat interface
-                    display_cmd(DISPLAY_CMD_BEGIN, NULL);
-                    display_cmd(DISPLAY_CMD_DISPLAY_ON, NULL);
-//                     display_cmd(DISPLAY_CMD_INITF, NULL);                   
-//                     display_cmd(DISPLAY_CMD_FLASH, NULL);
-//                     display_cmd(DISPLAY_CMD_DRAW, NULL);
-                    break;
                 case DISPLAY_STATE_FRAME_INIT:
                     display_send_frame();
                     // DO NOT yield to the task scheduler, go back around the loop and 
                     // wait until the frame is away
                     continue;
             }
-            printf("ISR Handler Idle\n");
+//            printf("ISR Handler Idle\n");
             //display.State = DISPLAY_STATE_IDLE;
-            xTaskNotifyGive(xDisplayCommandTask);
+//            xTaskNotifyGive(xDisplayCommandTask);
         }
     }
 }
@@ -194,80 +198,59 @@ void vDisplayISRProcessor(void *pvParameters)
 
 // state machine thread for the display
 // keeps track of init, flash and frame management
-// void vDisplayCommandTask(void *pvParameters)
-// {
-//     uint8_t data;
-//     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
-//     display.State = DISPLAY_STATE_IDLE;
-//     uint8_t invert = 0;
-//     int len = 0;
-//     uint32_t ulNotificationValue;
-//     
-//     
-//     display_reset(0);
-//     
-//     while(1)
-//     {
+void vDisplayCommandTask(void *pvParameters)
+{
+    uint8_t data;
+    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
+    display.State = DISPLAY_STATE_IDLE;
+    uint8_t invert = 0;
+    //int len = 0;
+    uint32_t ulNotificationValue;
+        
+    while(1)
+    {
+//         printf("astate %d\n", display.State);
 //         // add a semaphore here to block the irq acks
-//         if (display.State != DISPLAY_STATE_IDLE && // we are processing and awaiting an unblock
-//             (display.State != DISPLAY_STATE_INITING && display.DisplayMode == DISPLAY_MODE_FULLFAT) && // fullfat doesn't ack on reset, it waits for the firmware
-//             display.State != DISPLAY_STATE_FLASHING) // exclusion list: these states won't ack              
-//         {   
+//         if (display.State != DISPLAY_STATE_IDLE)
+//         {
 //             ulNotificationValue = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(30));
-//             if( ulNotificationValue == 0 )
+//             if(ulNotificationValue == 0)
 //             {
 //                 printf("ERROR: No ISR Responses in 30ms\n");
 //                 display.State = DISPLAY_STATE_IDLE;
 //                 continue;
 //             }
 //             else
+//             {
 //                 printf(":) GOT ISR\n");
+//             }
+//             
 //             display.State = DISPLAY_STATE_IDLE;
 //         }
-//         
-//         // commands to be exectuted are send to this queue and processed
-//         // one at a time
-//         if (xQueueReceive(xQueue, &data, xMaxBlockTime))
-//         {
-//             printf("CMD\n");
-//             //display.State = data;
-//             switch(data)
-//             {
-//                 case DISPLAY_CMD_DISPLAY_ON:
-//                     display_on();
-//                     break;
-//                 case DISPLAY_CMD_RESET:
-//                     display_reset(1);                    
-//                     break;
-//                 case DISPLAY_CMD_INIT:
-//                      display_set_mode(DISPLAY_MODE_BOOTLOADER);
-//                     break;
-//                 case DISPLAY_CMD_INITF:
-//                      display_set_mode(DISPLAY_MODE_FULLFAT);
-//                     break;
-//                 case DISPLAY_CMD_FLASH:
-//                     printf("Programming FPGA...\n");
-//                     display_program_FPGA();
-//                     break;
-//                 case DISPLAY_CMD_BEGIN:
-//                     display_drawscene(2);
-//                     display_backlight(1);
-//                     break;
-//                 case DISPLAY_CMD_DRAW:
-//                     len = display_checkerboard(display.DisplayBuffer, 0);
-//                     display_start_frame();
-//                     break;
-//             }
-//         }
-//         else
-//         {
-//             // nothing emerged from the buffer
-//             printf("Display heartbeat\n");
-//             // do one second(ish) maint tasks
-//             invert = !invert;
-//             //len = display_checkerboard(display.DisplayBuffer, invert);
-//             //display_start_frame();
-//             //display_drawscene(invert + 1);
-//         }        
-//     }
-// }
+        // commands to be exectuted are send to this queue and processed
+        // one at a time
+        if (xQueueReceive(xQueue, &data, xMaxBlockTime))
+        {
+            printf("CMD\n");
+            //display.State = data;
+            switch(data)
+            {
+                case DISPLAY_CMD_DRAW:
+                    display_checkerboard(display.DisplayBuffer, 0);
+                    display_start_frame();
+                    break;
+            }
+        }
+        else
+        {
+            // nothing emerged from the buffer
+            printf("Display heartbeat\n");
+            // do one second(ish) maint tasks
+            invert = !invert;
+            vibrate_enable(invert);
+            display_checkerboard(display.DisplayBuffer, invert);
+
+            display_start_frame();
+        }        
+    }
+}

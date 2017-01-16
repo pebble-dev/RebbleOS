@@ -285,8 +285,7 @@ void EXTI15_10_IRQHandler(void)
 {
     if (EXTI_GetITStatus(EXTI_Line10) != RESET)
     {   
-        uint8_t cmd = display.State;
-        display_done_ISR(cmd);
+        display_done_ISR(1);
        
         EXTI_ClearITPendingBit(EXTI_Line10);
     }
@@ -328,13 +327,17 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
 {
     uint16_t k = 0;
     uint8_t g9 = 0;
-        
+    
+
     snowy_display_cs(mode);
+//    snowy_display_cs(1);
     snowy_display_reset(0);
     delay_ns(1);
     snowy_display_reset(1);
     
-    if (mode == 1)
+    // don't wait when we are not in bootloader mode
+    // qemu doesn't like this
+//    if (mode == 1)
         return 1;
     
     while(1)
@@ -401,12 +404,18 @@ void snowy_display_start_frame(void)
 
 void snowy_display_send_frame()
 {
+    // pull CS low here becuase we are ususally called from an interrupt and we don't
+    // like race conditions
+
+    delay_us(100);
     snowy_display_cs(1);
+    delay_us(100);
     for(uint16_t i = 0; i < 24192; i++)
     {
         snowy_display_SPI6_send(display.DisplayBuffer[i]);
     }
     printf("End Frame\n");
+    delay_us(100);
     snowy_display_cs(0);
 }
 
@@ -422,7 +431,7 @@ uint8_t snowy_display_wait_FPGA_ready(void)
             printf("timed out waiting for ready\n");
             return 0;
         }        
-        delay_us(100);            
+        delay_us(100);
     }
     printf("FPGA Ready\n");
     
@@ -503,6 +512,10 @@ void snowy_display_full_init(void)
     delay_us(10);
     snowy_display_send_frame();
     
+    IWDG_ReloadCounter();
+    
+    // enable interrupts now we have the splash up
+    snowy_display_init_intn();
     return;
 }
 
@@ -534,9 +547,13 @@ void hw_display_on()
     snowy_display_SPI_end();
 }
 
-void hw_display_send_frame(void)
+void hw_display_start_frame(void)
 {
     snowy_display_start_frame();
+}
+
+void hw_display_send_frame(void)
+{
     snowy_display_send_frame();
 }
 
@@ -553,4 +570,19 @@ void hw_backlight_set(uint16_t val)
     // timer with the new param, but it seems like pebble
     // hardware does this already
     snowy_display_init_timer(val);
+}
+
+
+
+// Util
+
+void delay_us(uint16_t us)
+{
+    for(int i = 0; i < 22 * us; i++)
+            ;;
+}
+
+void delay_ns(uint16_t ns)
+{
+    delay_us(1000 * ns);
 }
