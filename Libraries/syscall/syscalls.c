@@ -41,10 +41,11 @@
 #include <sys/types.h>
 
 #include "stdio.h"
+#include "stm32f4xx.h"
 #include "stm32f4xx_usart.h"
 
-#define DEBUG_USART1 USART3
-#define DEBUG_USART2 USART1
+#define DEBUG_USART3 USART3
+//#define DEBUG_USART8 UART8
 
 /***************************************************************************/
 
@@ -76,12 +77,12 @@ int _write(int file, char * ptr, int len) {
     return 0;
   }
   for (index = 0; index < len; index++) {
-    while (!(DEBUG_USART1->SR & 0x00000040));
-    USART_SendData(DEBUG_USART1, ptr[index]);
+    while (!(DEBUG_USART3->SR & 0x00000040));
+    USART_SendData(DEBUG_USART3, ptr[index]);
     
-#if defined(DEBUG_USART2)
-    while (!(DEBUG_USART2->SR & 0x00000040));
-    USART_SendData(DEBUG_USART2, ptr[index]);
+#if defined(DEBUG_USART8)
+    while (!(DEBUG_USART8->SR & 0x00000040));
+    USART_SendData(DEBUG_USART8, ptr[index]);
 #endif
   }
   return len;

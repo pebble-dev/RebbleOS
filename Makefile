@@ -19,6 +19,7 @@ INCLUDE+=-I$(FREERTOS)/portable/GCC/ARM_CM4F
 INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
 INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Include
 INCLUDE+=-I$(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
+INCLUDE+=-I$(CURDIR)/Libraries/UGUI
 INCLUDE+=-I$(CURDIR)/config
 INCLUDE+=-I$(CURDIR)/RebbleOS
 
@@ -28,7 +29,9 @@ BIN_DIR = $(CURDIR)/binary
 # vpath is used so object files are written to the current directory instead
 # of the same directory as their source files
 vpath %.c $(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/src \
-          $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(CURDIR)/RebbleOS $(CURDIR)/hardware/Pebble_Snowy $(FREERTOS) \
+          $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(CURDIR)/RebbleOS \
+          $(CURDIR)/hardware/Pebble_Snowy $(FREERTOS) \
+          $(CURDIR)/Libraries/UGUI \
           $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
 
 vpath %.s $(STARTUP)
@@ -93,6 +96,9 @@ SRC+=stm32f4xx_dbgmcu.c
 SRC+=stm32f4xx_gpio.c
 SRC+=stm32f4xx_rng.c
 SRC+=PebbleImages/FPGA_4.3_snowy.o
+
+# uGUI
+SRC+=ugui.c
 
 # Pebble hardware
 SRC+=vibrate.c
@@ -164,3 +170,9 @@ fpga:
 	@echo [FPGA] Building...
 	@$(OBJCOPY) --rename-section .data=.rodata,contents,alloc,load,readonly,data -I binary -O elf32-littlearm -B arm7 PebbleImages/FPGA_4.3_snowy_dumped.bin PebbleImages/FPGA_4.3_snowy.o
 
+qemu:
+	@sh ./create_image.sh
+
+upload:
+	@echo Building and uploading...
+	@sh ./buildfw.sh

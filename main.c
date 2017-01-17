@@ -14,9 +14,7 @@
 
 
 void init_USART3(void);
-void init_USART2(void);
-void init_USART7(void);
-void init_USART1(void);
+void init_USART8(void);
 void init_GPIO(void);
 void init_hardware(void);
 
@@ -135,8 +133,8 @@ void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackT
 
 void init_hardware(void)
 {
-    init_USART1();
-    init_USART3();
+    init_USART8(); // smartstrap debugging
+    init_USART3(); // general debugging
     printf("USART3 init\n");
     init_GPIO();
     printf("GPIOs init\n");
@@ -178,81 +176,23 @@ void init_USART3(void)
   USART_Cmd(USART3, ENABLE);
 }
 
-// lazy
-void init_USART2a(void)
+void init_USART8(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct;
   USART_InitTypeDef USART_InitStruct;
 
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_2 | GPIO_Pin_3;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource2, GPIO_AF_USART2);
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource3, GPIO_AF_USART2);
-
-  USART_InitStruct.USART_BaudRate = 115200;
-  USART_InitStruct.USART_WordLength = USART_WordLength_8b;
-  USART_InitStruct.USART_StopBits = USART_StopBits_1;
-  USART_InitStruct.USART_Parity = USART_Parity_No;
-  USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
-  USART_Init(USART2, &USART_InitStruct);
-  USART_Cmd(USART2, ENABLE);
-}
-
-void init_USART2(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct;
-  USART_InitTypeDef USART_InitStruct;
-
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_5 | GPIO_Pin_6;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  GPIO_PinAFConfig(GPIOD, GPIO_PinSource5, GPIO_AF_USART2);
-  GPIO_PinAFConfig(GPIOD, GPIO_PinSource6, GPIO_AF_USART2);
-
-  USART_InitStruct.USART_BaudRate = 115200;
-  USART_InitStruct.USART_WordLength = USART_WordLength_8b;
-  USART_InitStruct.USART_StopBits = USART_StopBits_1;
-  USART_InitStruct.USART_Parity = USART_Parity_No;
-  USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
-  USART_Init(USART2, &USART_InitStruct);
-  USART_Cmd(USART2, ENABLE);
-}
-
-
-void init_USART7(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct;
-  USART_InitTypeDef USART_InitStruct;
-
-  RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART7, ENABLE);
+  RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
   RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
 
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_7 | GPIO_Pin_8;
+  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
   GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
   GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
   GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
   GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
   GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-  GPIO_PinAFConfig(GPIOE, GPIO_PinSource7, GPIO_AF_UART7);
-  GPIO_PinAFConfig(GPIOE, GPIO_PinSource8, GPIO_AF_UART7);
+  GPIO_PinAFConfig(GPIOE, GPIO_PinSource0, GPIO_AF_UART8);
+  GPIO_PinAFConfig(GPIOE, GPIO_PinSource1, GPIO_AF_UART8);
 
   USART_InitStruct.USART_BaudRate = 115200;
   USART_InitStruct.USART_WordLength = USART_WordLength_8b;
@@ -260,37 +200,10 @@ void init_USART7(void)
   USART_InitStruct.USART_Parity = USART_Parity_No;
   USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
   USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
-  USART_Init(UART7, &USART_InitStruct);
-  USART_Cmd(UART7, ENABLE);
+  USART_Init(UART8, &USART_InitStruct);
+  USART_Cmd(UART8, ENABLE);
 }
 
-void init_USART1(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct;
-  USART_InitTypeDef USART_InitStruct;
-
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_USART1, ENABLE);
-  RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-  GPIO_InitStruct.GPIO_Pin = GPIO_Pin_9 | GPIO_Pin_10;
-  GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-  GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-  GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource9, GPIO_AF_USART1);
-  GPIO_PinAFConfig(GPIOA, GPIO_PinSource10, GPIO_AF_USART1);
-
-  USART_InitStruct.USART_BaudRate = 115200;
-  USART_InitStruct.USART_WordLength = USART_WordLength_8b;
-  USART_InitStruct.USART_StopBits = USART_StopBits_1;
-  USART_InitStruct.USART_Parity = USART_Parity_No;
-  USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-  USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
-  USART_Init(USART1, &USART_InitStruct);
-  USART_Cmd(USART1, ENABLE);
-}
 
 /**
  * Init HW

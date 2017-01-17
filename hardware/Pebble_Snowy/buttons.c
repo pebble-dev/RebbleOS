@@ -5,6 +5,7 @@
 #include "buttons.h"
 #include "vibrate.h"
 #include "semphr.h"
+#include "display.h"
 
 void buttons_init_intn(uint32_t EXTIport, uint32_t EXTIline, uint32_t pinSource, uint32_t EXTI_irq);
 void EXTI4_IRQHandler_isr(void);
@@ -213,7 +214,8 @@ void vButtonTask(void *pvParameters)
                 {
                     //vibrate_enable(0);
                     //display_drawscene(2);
-                    snowy_display_full_init();
+                    //snowy_display_full_init();
+                    display_cmd(DISPLAY_CMD_DRAW, 0);
                 }
             }
             if (lastPress == &buttons.Select)
