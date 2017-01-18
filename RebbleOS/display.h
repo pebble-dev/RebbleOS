@@ -3,6 +3,7 @@
 
 #include "stm32f4xx.h"
 #include "FreeRTOS.h"
+#include "ugui.h"
 
 /*display_done: G9 (in)
 display_intn: G10 (in)
@@ -15,33 +16,13 @@ display_sclk: G13 (out)
 #define DISPLAY_MODE_FULLFAT         1
 
 // todo TYPEDEF ENUM
-#define DISPLAY_CMD_INIT       1
-#define DISPLAY_CMD_RESET      2
-#define DISPLAY_CMD_DISPLAY_ON 3
-#define DISPLAY_CMD_BEGIN      4
-#define DISPLAY_CMD_DRAW       5
-#define DISPLAY_CMD_FLASH      6
-#define DISPLAY_CMD_INITF      7
+#define DISPLAY_CMD_DRAW             1
+#define DISPLAY_CMD_RESET            2
 
-// display command types
-#define DISPLAY_CTYPE_NULL        0x00
-#define DISPLAY_CTYPE_PARAM       0x01
-#define DISPLAY_CTYPE_DISPLAY_OFF 0x02
-#define DISPLAY_CTYPE_DISPLAY_ON  0x03
-#define DISPLAY_CTYPE_SCENE       0x04
-// in full fat mode
-#define DISPLAY_CTYPE_FRAME       0x05
-
-
-#define DISPLAY_STATE_IDLE       0
-#define DISPLAY_STATE_INITING    1
-#define DISPLAY_STATE_SCENE      2
-#define DISPLAY_STATE_TURNING_ON 3
-#define DISPLAY_STATE_RESETTING  4
-#define DISPLAY_STATE_DOING_CMD  5
-#define DISPLAY_STATE_FRAME_INIT 6
-#define DISPLAY_STATE_FRAME      7
-#define DISPLAY_STATE_FLASHING   8
+#define DISPLAY_STATE_BOOTING        0
+#define DISPLAY_STATE_FRAME_INIT     1
+#define DISPLAY_STATE_FRAME          2
+#define DISPLAY_STATE_IDLE           3
 
 
 #define BLACK 0x0
@@ -92,9 +73,14 @@ void display_reset(uint8_t enabled);
 void display_on();
 void display_send_frame();
 void backlight_set(uint16_t brightness);
+void display_logo(char *frameData);
 uint16_t display_checkerboard(char *frameData, uint8_t invert);
 void display_cmd(uint8_t cmd, char *data);
 void vDisplayISRProcessor(void *pvParameters);
 void vDisplayCommandTask(void *pvParameters);
+
+// move to scanline
+void scanline_convert_buffer(void);
+void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
 
 #endif

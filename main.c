@@ -56,7 +56,7 @@ int main(void)
         "WWDGTask",                          /* Task name - for debugging only*/
         configMINIMAL_STACK_SIZE,         /* Stack depth in words */
         (void*) NULL,                     /* Pointer to tasks arguments (parameter) */
-        tskIDLE_PRIORITY + 2UL,           /* Task priority*/
+        tskIDLE_PRIORITY + 1UL,           /* Task priority*/
         NULL);
 
     printf("Tasks Created!\n");
@@ -70,8 +70,9 @@ void CheckTaskWatchDog (void *pvParameters)
 {
     while(1)
     {
+        printf("Reset Watchdog!\n");
         IWDG_ReloadCounter();
-        vTaskDelay(50 / portTICK_RATE_MS);
+        vTaskDelay(500 / portTICK_RATE_MS);
     }
 }
 
@@ -142,7 +143,7 @@ void init_hardware(void)
     vibrate_init();
     display_init();
     buttons_init();
-//     rtc_init();
+    rtc_init();
 }
 
 /*

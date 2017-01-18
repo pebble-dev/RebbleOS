@@ -110,6 +110,7 @@ SRC+=power.c
 SRC+=stdarg.c
 
 SRC+=snowy_display.c
+SRC+=snowy_scanlines.c
 
 CDEFS=-DUSE_STDPERIPH_DRIVER
 CDEFS+=-DSTM32F4XX

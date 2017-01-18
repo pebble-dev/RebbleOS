@@ -2,6 +2,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "display.h"
+#include "vibrate.h"
 #include "snowy_display.h"
 #include <stm32f4xx_spi.h>
 #include <stm32f4xx_tim.h>
@@ -9,6 +10,8 @@
 // pointer to the place in flash where the FPGA image resides
 extern unsigned char _binary_PebbleImages_FPGA_4_3_snowy_dumped_bin_start;
 extern unsigned char _binary_PebbleImages_FPGA_4_3_snowy_dumped_bin_size;
+
+void snowy_display_init_dma(void);
 
 display_t display = {
     .PortDisplay    = GPIOG,
@@ -113,7 +116,7 @@ void hw_display_init(void)
     // start SPI
     snowy_display_init_SPI6();
     
-    
+    snowy_display_init_dma();
 //     // bootloader does this too. Why??
 //     GPIO_SetBits(GPIOD, GPIO_Pin_2);
 //     GPIO_SetBits(GPIOD, GPIO_Pin_4);
@@ -121,19 +124,6 @@ void hw_display_init(void)
 //     GPIO_SetBits(GPIOF, GPIO_Pin_3);
 //     GPIO_SetBits(GPIOF, GPIO_Pin_2);
 
-}
-
-void hw_display_reset(void)
-{
-    hw_display_start();
-}
-
-void hw_display_start(void)
-{
-    // begin the init
-    snowy_display_splash(2);
-    delay_us(100);
-    snowy_display_full_init();
 }
 
 void snowy_display_init_intn(void)
@@ -147,24 +137,8 @@ void snowy_display_init_intn(void)
     NVIC_InitTypeDef NVIC_InitStruct;
     
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-    
-    // actually, I don't much care about this. It's polled on init now anyway
-//     SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOG, EXTI_PinSource9);
-//     
-//     EXTI_InitStruct.EXTI_Line = EXTI_Line9;
-//     EXTI_InitStruct.EXTI_LineCmd = ENABLE;
-//     EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
-//     EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Falling;
-//     EXTI_Init(&EXTI_InitStruct);
-//  
-//     NVIC_InitStruct.NVIC_IRQChannel = EXTI9_5_IRQn;
-//     NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 7;
-//     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
-//     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
-//     NVIC_Init(&NVIC_InitStruct);
-//        
-    
-    // now do INTn
+        
+    // Wait for external interrupts when the FPGA is done with a command
     SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOG, EXTI_PinSource10);
     
     EXTI_InitStruct.EXTI_Line = EXTI_Line10;
@@ -175,13 +149,14 @@ void snowy_display_init_intn(void)
 
     // display used PinSource10 which is connected to EXTI15_10
     NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;
-    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 7;  // must be > 5
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 8;  // must be > 5
     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);
 }
 
-
+///
+/// Initialise the timer for the backlight display
 void snowy_display_init_timer(uint16_t pwmValue)
 {
     TIM_TimeBaseInitTypeDef TIM_BaseStruct;
@@ -279,6 +254,73 @@ void snowy_display_init_SPI6(void)
     SPI_Cmd(SPI6, ENABLE); // enable SPI
 }
 
+// initialise DMA for sending frames.
+// DMA is only used for doing a full frame transfer
+// once frame mode select is sent
+void snowy_display_init_dma(void)
+{
+    NVIC_InitTypeDef NVIC_InitStructure;
+    DMA_InitTypeDef DMA_InitStructure;
+    DMA_Cmd(DMA2_Stream6, DISABLE);
+    // spi6 dma config:
+    // SPI6 	DMA2 	DMA Stream 5 	DMA Channel 1 	DMA Stream 6 	DMA Channel 0
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
+    // De-init DMA configuration just to be sure. No Boom
+    DMA_DeInit(DMA2_Stream6);
+    // Configure DMA controller to manage TX DMA requests
+
+    DMA_StructInit(&DMA_InitStructure);
+    // set the pointer to the SPI6 DR register
+    DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) & (SPI6->DR);
+    DMA_InitStructure.DMA_Channel = DMA_Channel_0;
+    DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
+    DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
+    DMA_InitStructure.DMA_Memory0BaseAddr = 0; // set this to bypass assert
+    DMA_InitStructure.DMA_BufferSize = 1;
+    DMA_Init(DMA2_Stream6, &DMA_InitStructure);
+    
+    // enable the tx interrupt.
+    DMA_ITConfig(DMA2_Stream6, DMA_IT_TC, ENABLE);
+    
+    // tell the NVIC to party
+    NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream6_IRQn;
+    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 9;
+    NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0;
+    NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&NVIC_InitStructure);
+    
+    // Enable dma
+    SPI_I2S_DMACmd(SPI6, SPI_I2S_DMAReq_Tx, ENABLE);
+}
+
+void DMA2_Stream6_IRQHandler()
+{
+    // Test if DMA Stream Transfer Complete interrupt
+    // NOTE: doesn't get set??? We get an error from Qemu.
+    // NOTE: 2: Pebble hardware works ok. Weird.
+    //if (DMA_GetITStatus(DMA2_Stream6, DMA_IT_TCIF6))
+    {
+        DMA_ClearITPendingBit(DMA2_Stream6, DMA_IT_TCIF6);
+
+        // check the tx finished
+        while (SPI_I2S_GetFlagStatus(SPI6, SPI_I2S_FLAG_TXE) == RESET)
+        {
+        };
+        
+        // make sure we are not busy
+        while (SPI_I2S_GetFlagStatus(SPI6, SPI_I2S_FLAG_BSY) == SET)
+        {
+        };
+
+        // done. We are still in control of the SPI select, so lets let go       
+        snowy_display_cs(0);
+        
+        // if we are booting the display, we can't release the task becuase...
+        // it doesn't exist yet!
+        if (display.State != DISPLAY_STATE_BOOTING)
+            display_done_ISR(1);
+    }
+}
 
 // Interrupt handler for Command Complete from the FPGA
 void EXTI15_10_IRQHandler(void)
@@ -323,21 +365,31 @@ uint8_t snowy_display_SPI6_send(uint8_t data)
     return SPI6->DR; // return received data from SPI data register
 }
 
+uint8_t snowy_display_dma_send(char *data, uint32_t length)
+{
+    // re-initialise the DMA controller. prep for send
+    snowy_display_init_dma();
+    DMA2_Stream6->NDTR = (uint32_t)length;
+    DMA2_Stream6->M0AR = (uint32_t)data;
+    DMA_Cmd(DMA2_Stream6, ENABLE);
+    
+    return 0;
+}
+
 uint8_t snowy_display_FPGA_reset(uint8_t mode)
 {
     uint16_t k = 0;
-    uint8_t g9 = 0;
-    
+    uint8_t g9 = 0;    
 
     snowy_display_cs(mode);
-//    snowy_display_cs(1);
+    //snowy_display_cs(1);
     snowy_display_reset(0);
     delay_ns(1);
     snowy_display_reset(1);
     
     // don't wait when we are not in bootloader mode
-    // qemu doesn't like this
-//    if (mode == 1)
+    // qemu doesn't like this, real pebble behaves
+    //if (mode == 1)
         return 1;
     
     while(1)
@@ -400,25 +452,32 @@ void snowy_display_start_frame(void)
     snowy_display_cs(1);
     delay_us(100);
     snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
-    //snowy_display_cs(0);
+    snowy_display_cs(0);
 }
 
 void snowy_display_send_frame()
 {
     // pull CS low here becuase we are ususally called from an interrupt and we don't
     // like race conditions
-
-    snowy_display_cs(0);
-    delay_us(10);
-    snowy_display_cs(1);
     delay_us(100);
-    for(uint16_t i = 0; i < 24192; i++)
+
+    snowy_display_cs(1);
+    delay_us(50);
+    
+    // send over DMA
+    snowy_display_dma_send(display.DisplayBuffer, MAX_FRAMEBUFFER_SIZE);
+    
+#if 0
+    // send via standard SPI
+    for(uint16_t i = 0; i < MAX_FRAMEBUFFER_SIZE; i++)
     {
         snowy_display_SPI6_send(display.DisplayBuffer[i]);
     }
+
     printf("End Frame\n");
     
     snowy_display_cs(0);
+#endif
 }
 
 
@@ -443,8 +502,6 @@ uint8_t snowy_display_wait_FPGA_ready(void)
 
 void snowy_display_splash(uint8_t scene)
 {  
-    int g10 = 0;
-    int g9 = 0;
     
     if (!snowy_display_FPGA_reset(0)) // mode bootloader
     {
@@ -471,7 +528,7 @@ void snowy_display_splash(uint8_t scene)
         delay_ns(1);
         snowy_display_cs(1);
         delay_us(100);
-        snowy_display_SPI6_send(4); // Scene select
+        snowy_display_SPI6_send(DISPLAY_CTYPE_SCENE); // Scene select
         snowy_display_SPI6_send(scene); // Select scene
         snowy_display_cs(0);
         
@@ -482,7 +539,7 @@ void snowy_display_splash(uint8_t scene)
         {
             snowy_display_cs(1);
             delay_us(100);
-            snowy_display_SPI6_send(3); // power on
+            snowy_display_SPI6_send(DISPLAY_CTYPE_DISPLAY_ON); // power on
             snowy_display_cs(0);
 
             printf("Display Init Complete\n");
@@ -506,7 +563,7 @@ void snowy_display_full_init(void)
         return;
     }
     
-    display_checkerboard(display.DisplayBuffer, 0);
+    display_logo(display.DisplayBuffer);
     
     snowy_display_program_FPGA();
     delay_us(100);
@@ -572,6 +629,22 @@ void hw_backlight_set(uint16_t val)
     // timer with the new param, but it seems like pebble
     // hardware does this already
     snowy_display_init_timer(val);
+}
+
+void hw_display_reset(void)
+{
+    // disable interrupts
+    // TODO
+    // go for it
+    hw_display_start();
+}
+
+void hw_display_start(void)
+{
+    // begin the init
+    snowy_display_splash(2);
+    delay_us(100);
+    snowy_display_full_init();
 }
 
 

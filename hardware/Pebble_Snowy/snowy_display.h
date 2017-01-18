@@ -3,6 +3,18 @@
 
 #include "stm32f4xx.h"
 
+#define MAX_FRAMEBUFFER_SIZE 24192
+
+// display command types
+#define DISPLAY_CTYPE_NULL        0x00
+#define DISPLAY_CTYPE_PARAM       0x01
+#define DISPLAY_CTYPE_DISPLAY_OFF 0x02
+#define DISPLAY_CTYPE_DISPLAY_ON  0x03
+#define DISPLAY_CTYPE_SCENE       0x04
+// in full fat mode
+#define DISPLAY_CTYPE_FRAME       0x05
+
+
 void hw_display_init(void);
 void hw_display_reset(void);
 void hw_display_start(void);

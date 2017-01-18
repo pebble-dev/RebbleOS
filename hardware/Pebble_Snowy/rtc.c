@@ -102,19 +102,19 @@ void rtc_config(void)
   RTC_Init(&RTC_InitStructure);
   
   // Set the alarm 01h:02min:03s
-  RTC_AlarmStructure.RTC_AlarmTime.RTC_H12     = RTC_H12_AM;
-  RTC_AlarmStructure.RTC_AlarmTime.RTC_Hours   = 0x01;
-  RTC_AlarmStructure.RTC_AlarmTime.RTC_Minutes = 0x02;
-  RTC_AlarmStructure.RTC_AlarmTime.RTC_Seconds = 0x03;
-  RTC_AlarmStructure.RTC_AlarmDateWeekDay = 0x01;
-  RTC_AlarmStructure.RTC_AlarmDateWeekDaySel = RTC_AlarmDateWeekDaySel_Date;
-  RTC_AlarmStructure.RTC_AlarmMask = RTC_AlarmMask_DateWeekDay;
-  
-  RTC_SetAlarm(RTC_Format_BCD, RTC_Alarm_A, &RTC_AlarmStructure);
-  
-  RTC_ITConfig(RTC_IT_ALRA, ENABLE);
-  RTC_AlarmCmd(RTC_Alarm_A, ENABLE);
-  RTC_ClearFlag(RTC_FLAG_ALRAF);
+//   RTC_AlarmStructure.RTC_AlarmTime.RTC_H12     = RTC_H12_AM;
+//   RTC_AlarmStructure.RTC_AlarmTime.RTC_Hours   = 0x01;
+//   RTC_AlarmStructure.RTC_AlarmTime.RTC_Minutes = 0x02;
+//   RTC_AlarmStructure.RTC_AlarmTime.RTC_Seconds = 0x03;
+//   RTC_AlarmStructure.RTC_AlarmDateWeekDay = 0x01;
+//   RTC_AlarmStructure.RTC_AlarmDateWeekDaySel = RTC_AlarmDateWeekDaySel_Date;
+//   RTC_AlarmStructure.RTC_AlarmMask = RTC_AlarmMask_DateWeekDay;
+//   
+//   RTC_SetAlarm(RTC_Format_BCD, RTC_Alarm_A, &RTC_AlarmStructure);
+//   
+//   RTC_ITConfig(RTC_IT_ALRA, ENABLE);
+//   RTC_AlarmCmd(RTC_Alarm_A, ENABLE);
+//   RTC_ClearFlag(RTC_FLAG_ALRAF);
   
   /* Set the date: Friday January 11th 2013 */
   /*RTC_DateStructure.RTC_Year = 0x13;
@@ -134,4 +134,12 @@ void rtc_config(void)
   
   // RTC Confirmed
   RTC_WriteBackupRegister(RTC_BKP_DR0, 0x32F2);
+}
+
+void hw_get_time_str(char *buf)
+{
+    RTC_TimeTypeDef  RTC_TimeStructure;
+
+    RTC_GetTime(RTC_Format_BIN, &RTC_TimeStructure);
+    sprintf(buf, "%02d:%02d:%02d\n",RTC_TimeStructure.RTC_Hours, RTC_TimeStructure.RTC_Minutes, RTC_TimeStructure.RTC_Seconds);
 }
