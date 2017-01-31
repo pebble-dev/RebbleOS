@@ -1,3 +1,0 @@
-#qemu-pebble-p -gdb tcp::63771,server -rtc base=localtime -serial null -serial null -serial tcp::12345,server,nowait -machine pebble-snowy-bb -cpu cortex-m4 -pflash /home/baz/.pebble-sdk/SDKs/current/sdk-core/pebble/basalt/qemu/qemu_micro_flash.bin -pflash /home/baz/.pebble-sdk/SDKs/current/sdk-core/pebble/basalt/qemu/qemu_spi_flash.bin
-qemu-system-arm -gdb tcp::63771,server -rtc base=localtime -serial null -serial null -serial stdio -machine pebble-snowy-bb -cpu cortex-m4 -pflash /home/baz/.pebble-sdk/SDKs/current/sdk-core/pebble/basalt/qemu/qemu_micro_flash.bin -pflash /home/baz/.pebble-sdk/SDKs/current/sdk-core/pebble/basalt/qemu/qemu_spi_flash.bin
-

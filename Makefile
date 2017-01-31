@@ -1,4 +1,4 @@
-TARGET:=FreeRTOS
+TARGET:=RebbleOS
 # TODO change to your ARM gcc toolchain path
 TOOLCHAIN_ROOT:=
 TOOLCHAIN_PATH:=
@@ -9,28 +9,35 @@ OPTLVL:=0
 DBG:=-g
 
 FREERTOS:=$(CURDIR)/FreeRTOS
-STARTUP:=$(CURDIR)/hardware
+STARTUP:=$(CURDIR)/Hardware
 LINKER_SCRIPT:=$(CURDIR)/Utilities/stm32_flash.ld
 
-INCLUDE=-I$(CURDIR)/hardware
-INCLUDE=-I$(CURDIR)/hardware/Pebble_Snowy
+INCLUDE=-I$(CURDIR)/Hardware
+INCLUDE=-I$(CURDIR)/Hardware/Pebble_Snowy
 INCLUDE+=-I$(FREERTOS)/include
 INCLUDE+=-I$(FREERTOS)/portable/GCC/ARM_CM4F
-INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Device/ST/STM32F4xx/Include
-INCLUDE+=-I$(CURDIR)/Libraries/CMSIS/Include
-INCLUDE+=-I$(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/inc
+INCLUDE+=-I$(CURDIR)/Platform/CMSIS/Device/ST/STM32F4xx/Include
+INCLUDE+=-I$(CURDIR)/Platform/CMSIS/Include
+INCLUDE+=-I$(CURDIR)/Platform/STM32F4xx_StdPeriph_Driver/inc
 INCLUDE+=-I$(CURDIR)/Libraries/UGUI
-INCLUDE+=-I$(CURDIR)/config
+INCLUDE+=-I$(CURDIR)/Config
 INCLUDE+=-I$(CURDIR)/RebbleOS
+INCLUDE+=-I$(CURDIR)/RebbleOS/Gui
 
 BUILD_DIR = $(CURDIR)/build
 BIN_DIR = $(CURDIR)/binary
 
 # vpath is used so object files are written to the current directory instead
 # of the same directory as their source files
-vpath %.c $(CURDIR)/Libraries/STM32F4xx_StdPeriph_Driver/src \
-          $(CURDIR)/Libraries/syscall $(CURDIR)/hardware $(CURDIR)/RebbleOS \
-          $(CURDIR)/hardware/Pebble_Snowy $(FREERTOS) \
+vpath %.c $(CURDIR)/Platform/STM32F4xx_StdPeriph_Driver/src \
+          $(CURDIR)/Libraries/syscall \
+          $(CURDIR)/Hardware \
+          $(CURDIR)/Hardware/Pebble_Snowy \
+          $(CURDIR)/RebbleOS \
+          $(CURDIR)/RebbleOS/Gui \
+          $(CURDIR)/libRebbleOS \
+          $(CURDIR)/libRebbleOS \
+          $(FREERTOS) \
           $(CURDIR)/Libraries/UGUI \
           $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
 
@@ -40,7 +47,6 @@ ASRC=startup_stm32f4xx.s
 # Project Source Files
 SRC+=stm32f4xx_it.c
 SRC+=system_stm32f4xx.c
-SRC+=main.c
 SRC+=syscalls.c
 
 # FreeRTOS Source Files
@@ -95,22 +101,38 @@ SRC+=stm32f4xx_rcc.c
 SRC+=stm32f4xx_dbgmcu.c
 SRC+=stm32f4xx_gpio.c
 SRC+=stm32f4xx_rng.c
-SRC+=PebbleImages/FPGA_4.3_snowy.o
+
+# std Libraries
+SRC+=stdarg.c
 
 # uGUI
 SRC+=ugui.c
 
 # Pebble hardware
-SRC+=vibrate.c
+SRC+=Resources/FPGA_4.3_snowy.o
+SRC+=snowy_display.c
+SRC+=snowy_backlight.c
+SRC+=snowy_buttons.c
+SRC+=snowy_power.c
+SRC+=snowy_rtc.c
+SRC+=snowy_scanlines.c
+SRC+=snowy_vibrate.c
+SRC+=snowy.c
+
+# RebbleOS
+SRC+=ambient.c
+SRC+=backlight.c
 SRC+=buttons.c
 SRC+=display.c
-SRC+=rtc.c
+SRC+=gyro.c
+SRC+=main.c
 SRC+=power.c
+SRC+=smartstrap.c
+SRC+=time.c
+SRC+=vibrate.c
 
-SRC+=stdarg.c
-
-SRC+=snowy_display.c
-SRC+=snowy_scanlines.c
+#RebbleOS Gui
+SRC+=menu.c
 
 CDEFS=-DUSE_STDPERIPH_DRIVER
 CDEFS+=-DSTM32F4XX
@@ -169,7 +191,7 @@ flash:
 
 fpga:
 	@echo [FPGA] Building...
-	@$(OBJCOPY) --rename-section .data=.rodata,contents,alloc,load,readonly,data -I binary -O elf32-littlearm -B arm7 PebbleImages/FPGA_4.3_snowy_dumped.bin PebbleImages/FPGA_4.3_snowy.o
+	@$(OBJCOPY) --rename-section .data=.rodata,contents,alloc,load,readonly,data -I binary -O elf32-littlearm -B arm7 Resources/FPGA_4.3_snowy_dumped.bin Resources/FPGA_4.3_snowy.o
 
 qemu:
 	@sh ./create_image.sh

@@ -1,16 +1,24 @@
 #ifndef __DISPLAY_H
 #define __DISPLAY_H
-
-#include "stm32f4xx.h"
+/* 
+ * This file is part of the RebbleOS distribution.
+ *   (https://github.com/pebble-dev)
+ * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
+ * 
+ * RebbleOS is free software: you can redistribute it and/or modify  
+ * it under the terms of the GNU Lesser General Public License as   
+ * published by the Free Software Foundation, version 3.
+ *
+ * RebbleOS is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 #include "FreeRTOS.h"
 #include "ugui.h"
-
-/*display_done: G9 (in)
-display_intn: G10 (in)
-display_reset: G15 (out)
-display_sclk: G13 (out)
-
-*/
 
 #define DISPLAY_MODE_BOOTLOADER      0
 #define DISPLAY_MODE_FULLFAT         1
@@ -82,5 +90,7 @@ void vDisplayCommandTask(void *pvParameters);
 // move to scanline
 void scanline_convert_buffer(void);
 void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
+
+int init_gui(void);
 
 #endif

@@ -1,3 +1,3 @@
 #!/bin/sh
-cat PebbleImages/snowy_boot.bin binary/FreeRTOS.bin > fw.qemu_flash.bin
+cat Resources/snowy_boot.bin binary/RebbleOS.bin > fw.qemu_flash.bin
 

@@ -45,7 +45,7 @@
 #include "stm32f4xx_usart.h"
 
 #define DEBUG_USART3 USART3
-//#define DEBUG_USART8 UART8
+#define DEBUG_USART8 UART8
 
 /***************************************************************************/
 
@@ -77,10 +77,12 @@ int _write(int file, char * ptr, int len) {
     return 0;
   }
   for (index = 0; index < len; index++) {
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
     while (!(DEBUG_USART3->SR & 0x00000040));
     USART_SendData(DEBUG_USART3, ptr[index]);
     
 #if defined(DEBUG_USART8)
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
     while (!(DEBUG_USART8->SR & 0x00000040));
     USART_SendData(DEBUG_USART8, ptr[index]);
 #endif

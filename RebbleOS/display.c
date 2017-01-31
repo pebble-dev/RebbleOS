@@ -1,6 +1,24 @@
+/* 
+ * This file is part of the RebbleOS distribution.
+ *   (https://github.com/pebble-dev)
+ * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
+ * 
+ * RebbleOS is free software: you can redistribute it and/or modify  
+ * it under the terms of the GNU Lesser General Public License as   
+ * published by the Free Software Foundation, version 3.
+ *
+ * RebbleOS is distributed in the hope that it will be useful, but 
+ * WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 #include "FreeRTOS.h"
 #include "stdio.h"
 #include "string.h"
+#include "platform.h"
 #include "display.h"
 #include "snowy_display.h"
 #include "task.h"
@@ -8,15 +26,15 @@
 #include "logo.h"
 
 static TaskHandle_t xDisplayCommandTask;
-static TaskHandle_t xDisplayISRTask;
 static xQueueHandle xQueue;
 
 static UG_GUI gui;
 
 extern display_t display;
 
-int init_gui(void);
-
+/*
+ * Start the display driver and tasks. Show splash
+ */
 void display_init(void)
 {   
     // init variables
@@ -35,7 +53,6 @@ void display_init(void)
         
     // set up the RTOS tasks
     xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 2UL, &xDisplayCommandTask);    
-    //xTaskCreate(vDisplayISRProcessor, "DispISR", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xDisplayISRTask); 
     
     xQueue = xQueueCreate( 10, sizeof(uint8_t) );
         
@@ -47,14 +64,14 @@ void display_init(void)
     init_gui();
     
     display_cmd(DISPLAY_CMD_DRAW, NULL);
-    
-//     if (hw_display_start() == 0)
-//     {
-//         printf("Display Failed!\n");
-//     }
 }
 
-
+/*
+ * When the display driver has responded to something
+ * 1) frame frame accepted
+ * 2) frame completed
+ * We get notified here. We can now let the prcessing complete or continue
+ */
 void display_done_ISR(uint8_t cmd)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -71,18 +88,27 @@ void display_done_ISR(uint8_t cmd)
 }
 
 
-// Pull the reset pin
+/*
+ * Brutally and forcefully reset the display. This will
+ * reset, but it will leave you dead in the water. Make sure to init.
+ * or, instead, use init
+ */
 void display_reset(uint8_t enabled)
 {
     hw_display_reset();
 }
 
-// command the screen on
+/*
+ * We can command the screen on and off. but only in bootloader mode. hrmph
+ */
 void display_on()
 {    
 //    display.State = DISPLAY_STATE_TURNING_ON;
 }
 
+/*
+ * Begin rendering a frame from the framebuffer into the display
+ */
 void display_start_frame()
 {
     display.State = DISPLAY_STATE_FRAME_INIT;
@@ -90,13 +116,9 @@ void display_start_frame()
     hw_display_start_frame();
 }
 
-void display_send_frame()
-{
-    display.State = DISPLAY_STATE_FRAME;
-    
-    hw_display_send_frame();
-}
-
+/*
+ * Set the backlight. At the moment this is scaled to be 4000 - mid brightness
+ */
 void backlight_set(uint16_t brightness)
 {
     display.Brightness = brightness;
@@ -105,6 +127,9 @@ void backlight_set(uint16_t brightness)
     hw_backlight_set(brightness);
 }
 
+/*
+ * Given a frame of data, convert it and draw it to the display
+ */
 void display_logo(char *frameData)
 {
     for(uint16_t i = 0; i < 24192; i++)
@@ -115,6 +140,9 @@ void display_logo(char *frameData)
     return;
 }
 
+/*
+ * Display a checkerboard picture for testing
+ */
 uint16_t display_checkerboard(char *frameData, uint8_t invert)
 {
     int gridx = 0;
@@ -166,15 +194,20 @@ uint16_t display_checkerboard(char *frameData, uint8_t invert)
     return count;
 }
 
-// request a command from the display driver. this will queue up your request and
-// process it in order
+
+/*
+ * Request a command from the display driver. 
+ * Such as DISPLAY_CMD_DRAW
+ */
 void display_cmd(uint8_t cmd, char *data)
 {
     xQueueSendToBack(xQueue, &cmd, 0);
 }
 
-// state machine thread for the display
-// keeps track of init, flash and frame management
+/*
+ * Main task processing for the display. Manages locking
+ * state machine control and command management
+ */
 void vDisplayCommandTask(void *pvParameters)
 {
     uint8_t data;
@@ -185,36 +218,11 @@ void vDisplayCommandTask(void *pvParameters)
     
     while(1)
     {
-        // When we are processing a frame, we won't accept any more draw commands
-        // until it either completes or times out.
         if (display.State != DISPLAY_STATE_IDLE &&
-            display.State != DISPLAY_STATE_BOOTING
-        )
+            display.State != DISPLAY_STATE_BOOTING)
         {
-            ulNotificationValue = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(30));
-            if(ulNotificationValue == 0)
-            {
-                printf("ERROR: No ISR Responses in 30ms\n");
-                // should probably reset the display here
-                display.State = DISPLAY_STATE_IDLE;
-                continue;
-            }
-            else
-            {
-                // we might have been released for sevel states
-                switch(display.State)
-                {
-                    case DISPLAY_STATE_FRAME_INIT:
-                        display_send_frame();
-                        break;
-                    case DISPLAY_STATE_FRAME:
-                        // the fame was drawn. idle now
-                        display.State = DISPLAY_STATE_IDLE;
-                        break;
-                }
-            }
-            
-            display.State = DISPLAY_STATE_IDLE;
+            vTaskDelay(5 / portTICK_RATE_MS);
+            continue;
         }
         
         // commands to be exectuted are send to this queue and processed
@@ -234,7 +242,7 @@ void vDisplayCommandTask(void *pvParameters)
             // nothing emerged from the buffer
             hw_get_time_str(buf);
             UG_ConsolePutString(buf);
-            
+
             //UG_Update();
             display_start_frame();
             //display_cmd(DISPLAY_CMD_DRAW, 0);
@@ -243,8 +251,11 @@ void vDisplayCommandTask(void *pvParameters)
 }
 
 
-// GUI related tests
+// GUI related
 
+/*
+ * Initialise the uGUI component and start the draw
+ */
 int init_gui(void)
 {   
     /* Configure uGUI */
@@ -262,5 +273,6 @@ int init_gui(void)
     UG_ConsolePutString("Condition: Mauve\n");
     UG_ConsoleSetForecolor(C_RED);
 
+    //menu_draw_list();
     return 0;
 }
