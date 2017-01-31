@@ -39,15 +39,7 @@ typedef struct {
 } max14690_t;
 
 void hw_power_init(void);
-
-
-void power_i2c_init(void);
 void max14690_init(void);
 
-// will be useful for gyro later
-void I2C_start(I2C_TypeDef* I2Cx, uint8_t address, uint8_t direction);
-void I2C_write(I2C_TypeDef* I2Cx, uint8_t data);
-void I2C_stop(I2C_TypeDef* I2Cx);
-uint8_t I2C_read_ack(I2C_TypeDef* I2Cx);
 
 #endif
