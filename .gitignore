@@ -21,3 +21,6 @@
 *.map
 
 .DS_Store
+
+# Dolphin file manager
+.directory
