@@ -1,3 +1,5 @@
+#ifndef __GUI_H
+#define __GUI_H
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -15,35 +17,20 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "librebble.h"
-#include "snowy_rtc.h"  // <-- todo switch to using rebbleo time.c
 #include "ugui.h"
 
-void rbl_get_time(char *buf)
-{
-    hw_get_time_str(buf);
-}
+#define ANIM_STOP        0
+#define ANIM_RTL         1
 
-void rbl_draw_fill_screen(uint8_t colour)
-{
-    if (colour == RBL_BLACK)
-        UG_FillScreen(C_BLACK);
-}
 
-void rbl_draw_text(uint8_t x, uint8_t y, char *text)
-{
-    UG_SetBackcolor(C_BLACK);
-    UG_SetForecolor(C_WHITE);
-    
-    UG_PutString(x, y, text);
-}
+#define BTN_SELECT_PRESS 1
+#define BTN_BACK_PRESS   2
+#define BTN_UP_PRESS     3
+#define BTN_DOWN_PRESS   4
 
-void rbl_set_font_size()
-{
-    UG_FontSelect(&FONT_10X16);
-}
+void gui_command(uint8_t command);
 
-void rbl_draw(void)
-{
-    display_draw();
-}
+static UG_GUI gui;
+static xQueueHandle xGuiQueue;
+
+#endif

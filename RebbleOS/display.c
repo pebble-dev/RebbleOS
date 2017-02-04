@@ -25,10 +25,10 @@
 #include "semphr.h"
 #include "logo.h"
 
+#include "menu.h"
+
 static TaskHandle_t xDisplayCommandTask;
 static xQueueHandle xQueue;
-
-static UG_GUI gui;
 
 extern display_t display;
 
@@ -52,7 +52,7 @@ void display_init(void)
     hw_display_start();
         
     // set up the RTOS tasks
-    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 2UL, &xDisplayCommandTask);    
+    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 5UL, &xDisplayCommandTask);    
     
     xQueue = xQueueCreate( 10, sizeof(uint8_t) );
         
@@ -60,8 +60,6 @@ void display_init(void)
     
     // turn on the LCD draw
     display.DisplayMode = DISPLAY_MODE_BOOTLOADER;   
-    
-    init_gui();
     
     display_cmd(DISPLAY_CMD_DRAW, NULL);
 }
@@ -109,11 +107,11 @@ void display_on()
 /*
  * Begin rendering a frame from the framebuffer into the display
  */
-void display_start_frame()
+void display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
     display.State = DISPLAY_STATE_FRAME_INIT;
     
-    hw_display_start_frame();
+    hw_display_start_frame(xoffset, yoffset);
 }
 
 /*
@@ -136,7 +134,7 @@ void display_logo(char *frameData)
     {
         frameData[i] = rebbleOS[i];
     }
-    scanline_convert_buffer();
+
     return;
 }
 
@@ -204,6 +202,11 @@ void display_cmd(uint8_t cmd, char *data)
     xQueueSendToBack(xQueue, &cmd, 0);
 }
 
+void display_draw(void)
+{
+    display_cmd(DISPLAY_CMD_DRAW, 0);
+}
+
 /*
  * Main task processing for the display. Manages locking
  * state machine control and command management
@@ -214,7 +217,6 @@ void vDisplayCommandTask(void *pvParameters)
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
     display.State = DISPLAY_STATE_BOOTING;
     uint32_t ulNotificationValue;
-    char buf[30];
     
     while(1)
     {
@@ -233,46 +235,19 @@ void vDisplayCommandTask(void *pvParameters)
             {
                 case DISPLAY_CMD_DRAW:
                     // all we are responsible for is starting a frame draw
-                    display_start_frame();
+                    display_start_frame(0, 0);
                     break;
             }
         }
         else
         {
             // nothing emerged from the buffer
-            hw_get_time_str(buf);
-            UG_ConsolePutString(buf);
+            //hw_get_time_str(buf);
+            //UG_ConsolePutString(buf);
 
-            //UG_Update();
-            display_start_frame();
             //display_cmd(DISPLAY_CMD_DRAW, 0);
+            
         }        
     }
 }
 
-
-// GUI related
-
-/*
- * Initialise the uGUI component and start the draw
- */
-int init_gui(void)
-{   
-    /* Configure uGUI */
-    UG_Init(&gui, scanline_rgb888pixel_to_frambuffer, display.NumCols, display.NumRows);
-
-    /* Draw text with uGUI */
-    UG_FontSelect(&FONT_8X14);
-    UG_ConsoleSetArea(0, 0, display.NumCols-1, display.NumRows-1);
-    UG_ConsoleSetBackcolor(C_BLACK);
-    UG_ConsoleSetForecolor(C_GREEN);
-    UG_ConsolePutString("RebbleOS...\n");
-    UG_ConsoleSetForecolor(C_GREEN);
-    UG_ConsolePutString("Version 0.00001\n");
-    UG_ConsoleSetForecolor(C_BLUE);
-    UG_ConsolePutString("Condition: Mauve\n");
-    UG_ConsoleSetForecolor(C_RED);
-
-    //menu_draw_list();
-    return 0;
-}

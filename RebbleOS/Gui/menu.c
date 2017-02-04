@@ -19,6 +19,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "ugui.h"
+#include "menu.h"
 /*
 // menu
 
@@ -49,41 +50,83 @@ receive events
         notify app
 */
 
-void menu_draw_list(void)
+static uint8_t menu_index = 0;
+
+void menu_init(void)
 {
-    // has list items
-    // render them
-    menu_draw_list_item(0, 0, "Settings");
-    menu_draw_list_item(40, 0, "Console");
-    menu_draw_list_item(80, 0, "Info");
-    menu_draw_list_item(120, 0, "Info");
+    printf("menu init\n");
+    main_menu[0].text = "Settings";
+    main_menu[1].text = "Console";
+    main_menu[2].text = "Info";
+    main_menu[3].text = "Toys";
 }
 
-void menu_draw_list_item(UG_S16 x, UG_S16 y, char* text)
+void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety)
 {
-    // list item is a box
-    // might have a type (has subtext etc)
-    UG_DrawFrame(x, y, x + 40, y + 144, C_RED);
-    // and an icon
-    // and text
-    UG_PutString(x, y, text);
-    // and subtext
-}
-/*
-void appTask()
-{
-
-    while(1)
+    UG_FontSelect(&FONT_8X14);
+    
+    for (uint8_t i = 0; i < 4; i++)
     {
-        // dequeue
-        if (button_press)
-        {
-            // we are in the menu, so draw menu-y things
-            if (APP_STATUS_MENU)
-            {
-                if (menu.scrollup)
-            }
-        }
+        printf("asdasd %d\n", menu_index);
+        menu_draw_list_item(0, i * 43, offsetx, offsety, menu[i].text, (menu_index == i ? 1 : 0));
     }
 }
-*/
+
+void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, char* text, uint8_t selected)
+{
+    UG_COLOR c;
+    // list item is a box
+    // might have a type (has subtext etc)
+    
+    // could be selected item eh
+    if (selected)
+    {
+        c = C_BLUE;
+        UG_SetBackcolor(C_BLUE);
+        UG_SetForecolor(C_WHITE);
+    }
+    else
+    {
+        c = C_WHITE;
+        UG_SetBackcolor(C_WHITE);
+        UG_SetForecolor(C_BLACK);
+    }
+    
+//     x += offsetx;
+//     y += offsety;
+    
+    UG_FillFrame(x, y, x + 144, y + 43, c);
+    // and an icon
+    // and text
+    UG_PutString(x + 30, y + 5, text);
+    // and subtext
+}
+
+void menu_show(uint8_t offsetx, uint8_t offsety)
+{
+    menu_draw_list(main_menu, offsetx, offsety);
+}
+
+void menu_up()
+{
+    if (menu_index > 0)
+       menu_index--;
+}
+
+void menu_down()
+{
+    if (menu_index < 3)
+        menu_index++;
+}
+
+void menu_select()
+{
+    
+}
+
+void menu_back()
+{
+    
+}
+
+

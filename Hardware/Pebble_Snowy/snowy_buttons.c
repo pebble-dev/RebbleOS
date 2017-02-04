@@ -70,7 +70,7 @@ void buttons_init_intn(uint32_t EXTIport, uint32_t EXTIline, uint32_t pinSource,
  
     // Add IRQ vector to NVIC
     NVIC_InitStruct.NVIC_IRQChannel = EXTI_irq;
-    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 9;
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 5;
     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);

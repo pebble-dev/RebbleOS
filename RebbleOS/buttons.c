@@ -23,6 +23,7 @@
 #include "vibrate.h"
 #include "semphr.h"
 #include "display.h"
+#include "gui.h"
 
 static TaskHandle_t xButtonTask;
 button_t *lastPress;
@@ -36,7 +37,7 @@ void buttons_init(void)
 {
     hw_buttons_init();
     
-    xTaskCreate(vButtonTask, "Button", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 3UL, &xButtonTask);
+    xTaskCreate(vButtonTask, "Button", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, &xButtonTask);
     printf("Button Task Created!\n");
 }
 
@@ -77,8 +78,9 @@ void vButtonTask(void *pvParameters)
     {
         ulNotificationValue = ulTaskNotifyTake(pdTRUE, xMaxBlockTime);
         uint8_t dir = 0;
+        uint8_t mode = BTN_SELECT_PRESS;
         
-        if( ulNotificationValue == 1 )
+        if(ulNotificationValue == 1)
         {
             if (button_pressed(lastPress))
             {
@@ -97,7 +99,7 @@ void vButtonTask(void *pvParameters)
                 printf("UP\n");
                 if (dir == 1)
                 {
-
+                    mode = BTN_UP_PRESS;
                 }
             }
             if (lastPress == &buttons.Down)
@@ -105,15 +107,17 @@ void vButtonTask(void *pvParameters)
                 printf("DN\n");
                 if (dir == 1)
                 {
-                    backlight_set(0);
+//                     backlight_set(0);
+                    mode = BTN_DOWN_PRESS;
                 }
+
             }
             if (lastPress == &buttons.Select)
             {
                 printf("SL\n");
                 if (dir == 1)
                 {
-                    
+                    mode = BTN_SELECT_PRESS;
                 }
             }
             if (lastPress == &buttons.Back)
@@ -123,8 +127,11 @@ void vButtonTask(void *pvParameters)
                 {
                     backlight_set(9999);
                 }
+                mode = BTN_BACK_PRESS;
             }
             
+            gui_command(mode);
+                    
             vTaskDelay(butDEBOUNCE_DELAY);
         }
         else

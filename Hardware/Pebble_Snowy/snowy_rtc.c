@@ -16,12 +16,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "stm32f4xx.h"
-#include "FreeRTOS.h"
+#include "stm32f4xx_rtc.h"
 #include "stdio.h"
 #include "string.h"
 #include "snowy_rtc.h"
-#include "task.h"
-#include "semphr.h"
+#include <stdlib.h>
+#include <time.h>
 
 void rtc_init(void)
 {
@@ -159,3 +159,24 @@ void hw_get_time_str(char *buf)
     RTC_GetTime(RTC_Format_BIN, &RTC_TimeStructure);
     sprintf(buf, "%02d:%02d:%02d\n",RTC_TimeStructure.RTC_Hours, RTC_TimeStructure.RTC_Minutes, RTC_TimeStructure.RTC_Seconds);
 }
+
+// void hw_get_time(time_t *time)
+// {
+//     RTC_TimeTypeDef RTC_TimeStructure;
+//     RTC_DateTypeDef RTC_DateStructure;
+//     struct tm timetmp;
+// //    time = (time_t *)args;
+// 
+//     RTC_GetTime(RTC_Format_BIN, &RTC_TimeStructure);
+//     RTC_GetDate(RTC_Format_BIN, &RTC_DateStructure);
+//     timetmp.tm_year = RTC_DateStructure.RTC_Year + 2000 - 1900; // since year 1990
+//     timetmp.tm_mon = RTC_DateStructure.RTC_Month - 1;
+//     timetmp.tm_mday = RTC_DateStructure.RTC_Date;
+//     timetmp.tm_hour = RTC_TimeStructure.RTC_Hours;
+//     timetmp.tm_min = RTC_TimeStructure.RTC_Minutes;
+//     timetmp.tm_sec = RTC_TimeStructure.RTC_Seconds;
+// 
+//     time = mktime(&timetmp);
+//     
+//     return;
+// }

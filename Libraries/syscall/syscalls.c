@@ -45,7 +45,7 @@
 #include "stm32f4xx_usart.h"
 
 #define DEBUG_USART3 USART3
-#define DEBUG_USART8 UART8
+//#define DEBUG_USART8 UART8
 
 /***************************************************************************/
 

@@ -13,16 +13,18 @@ STARTUP:=$(CURDIR)/Hardware
 LINKER_SCRIPT:=$(CURDIR)/Utilities/stm32_flash.ld
 
 INCLUDE=-I$(CURDIR)/Hardware
-INCLUDE=-I$(CURDIR)/Hardware/Pebble_Snowy
+INCLUDE+=-I$(CURDIR)/Hardware/Pebble_Snowy
 INCLUDE+=-I$(FREERTOS)/include
 INCLUDE+=-I$(FREERTOS)/portable/GCC/ARM_CM4F
 INCLUDE+=-I$(CURDIR)/Platform/CMSIS/Device/ST/STM32F4xx/Include
 INCLUDE+=-I$(CURDIR)/Platform/CMSIS/Include
 INCLUDE+=-I$(CURDIR)/Platform/STM32F4xx_StdPeriph_Driver/inc
 INCLUDE+=-I$(CURDIR)/Libraries/UGUI
+INCLUDE+=-I$(CURDIR)/Watchfaces
 INCLUDE+=-I$(CURDIR)/Config
 INCLUDE+=-I$(CURDIR)/RebbleOS
 INCLUDE+=-I$(CURDIR)/RebbleOS/Gui
+INCLUDE+=-I$(CURDIR)/libRebbleOS
 
 BUILD_DIR = $(CURDIR)/build
 BIN_DIR = $(CURDIR)/binary
@@ -37,6 +39,7 @@ vpath %.c $(CURDIR)/Platform/STM32F4xx_StdPeriph_Driver/src \
           $(CURDIR)/RebbleOS/Gui \
           $(CURDIR)/libRebbleOS \
           $(CURDIR)/libRebbleOS \
+          $(CURDIR)/Watchfaces \
           $(FREERTOS) \
           $(CURDIR)/Libraries/UGUI \
           $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
@@ -108,6 +111,9 @@ SRC+=stdarg.c
 # uGUI
 SRC+=ugui.c
 
+# drivers etc
+SRC+=stm32f4x_i2c.c
+
 # Pebble hardware
 SRC+=Resources/FPGA_4.3_snowy.o
 SRC+=snowy_display.c
@@ -120,6 +126,8 @@ SRC+=snowy_vibrate.c
 SRC+=snowy.c
 
 # RebbleOS
+SRC+=appmanager.c
+SRC+=rebbleos.c
 SRC+=ambient.c
 SRC+=backlight.c
 SRC+=buttons.c
@@ -131,7 +139,14 @@ SRC+=smartstrap.c
 SRC+=time.c
 SRC+=vibrate.c
 
+# libRebbleOS
+SRC+=librebble.c
+
+# watchface test
+SRC+=simple.c
+
 #RebbleOS Gui
+SRC+=gui.c
 SRC+=menu.c
 
 CDEFS=-DUSE_STDPERIPH_DRIVER

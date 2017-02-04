@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
+#include "appmanager.h"
 // Public API functions as exposed through the various layers
 
 // Reset the watchdog timer manually
@@ -34,12 +34,16 @@ typedef struct {
 } system_status_t;
 
 
-
+// move into backlight
 typedef struct {
     uint8_t backlight_intensity;
     uint8_t backlight_on_time;
     uint8_t vibrate_intensity;
     uint8_t vibrate_pattern;
 } system_settings_t;
+
+system_status_t system_status;
+
+void rebbleos_init(void);
 
 #endif

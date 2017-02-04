@@ -59,6 +59,8 @@ int main(void)
         tskIDLE_PRIORITY + 5UL,           /* Task priority*/
         NULL);
 
+    rebbleos_init();
+    
     printf("RebbleOS (Ginge) v0.0.0.0\n");
     
     vTaskStartScheduler();  // should never return

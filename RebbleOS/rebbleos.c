@@ -15,35 +15,22 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "librebble.h"
-#include "snowy_rtc.h"  // <-- todo switch to using rebbleo time.c
-#include "ugui.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "stdio.h"
+#include "rebbleos.h"
+#include "menu.h"
 
-void rbl_get_time(char *buf)
-{
-    hw_get_time_str(buf);
-}
 
-void rbl_draw_fill_screen(uint8_t colour)
+void rebbleos_init(void)
 {
-    if (colour == RBL_BLACK)
-        UG_FillScreen(C_BLACK);
-}
-
-void rbl_draw_text(uint8_t x, uint8_t y, char *text)
-{
-    UG_SetBackcolor(C_BLACK);
-    UG_SetForecolor(C_WHITE);
+    system_status.booted = 0;
+    system_status.app_mode = SYSTEM_RUNNING_APP;
     
-    UG_PutString(x, y, text);
-}
+    appmanager_init();
+    gui_init();
 
-void rbl_set_font_size()
-{
-    UG_FontSelect(&FONT_10X16);
-}
-
-void rbl_draw(void)
-{
-    display_draw();
+    // set up main rebble task thread
+    
+    // this will be the main coordinator
 }

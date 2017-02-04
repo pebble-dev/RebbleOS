@@ -518,8 +518,10 @@ void snowy_display_drawscene(uint8_t scene)
  * Start to send a frame to the display driver
  * If it says yes, then we can then tell someone to fill the buffer
  */
-void snowy_display_start_frame(void)
+void snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
+    scanline_convert_buffer(xoffset, yoffset);
+    
     snowy_display_cs(1);
     delay_us(80);
     snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
@@ -627,11 +629,7 @@ void snowy_display_splash(uint8_t scene)
         
         if (snowy_display_wait_FPGA_ready())
         {
-            snowy_display_cs(1);
-            delay_us(100);
-            snowy_display_SPI6_send(DISPLAY_CTYPE_DISPLAY_ON); // power on
-            snowy_display_cs(0);
-
+            hw_display_on();
             printf("Display Init Complete\n");
             
             break;
@@ -655,12 +653,15 @@ void snowy_display_full_init(void)
     {
         return;
     }
-    
-    display_logo(display.DisplayBuffer);
+    display_logo(display.BackBuffer);
     
     snowy_display_program_FPGA();
+    
     delay_us(100);
-    snowy_display_start_frame();
+    hw_display_on();
+
+    delay_us(100);
+    snowy_display_start_frame(0, 0);
     delay_us(10);
     //snowy_display_send_frame();
     
@@ -708,9 +709,9 @@ void hw_display_on()
 /*
  * Start a frame render
  */
-void hw_display_start_frame(void)
+void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
-    snowy_display_start_frame();
+    snowy_display_start_frame(xoffset, yoffset);
 }
 
 /*

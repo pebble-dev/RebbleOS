@@ -23,16 +23,16 @@
 
 extern display_t display;
 
-void scanline_convert_buffer(void)
+void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
 {
     char colBuffer[display.NumRows + 1];
     
-    for (int x = 0; x < display.NumCols; x++)
+    for (int x = xoffset; x < display.NumCols; x++)
     {
         // backup the column
         for (int i = 0; i < display.NumRows; i++)
         {
-            colBuffer[i] = display.DisplayBuffer[(x * display.NumRows) + i];
+            colBuffer[i] = display.BackBuffer[(( x - xoffset) * display.NumRows) + i];
         }
         
         for (int y = 0; y < display.NumRows; y += 2)
@@ -40,7 +40,6 @@ void scanline_convert_buffer(void)
             uint16_t pos_half_lsb = (x * display.NumRows) + (y / 2);
             uint16_t pos_half_msb = (x * display.NumRows) + (display.NumRows / 2) + (y / 2);
     
-            // this works better in qemu
             // for every column
             // get the first byte of each msb and msb
             uint8_t lsb0 = (colBuffer[y] & (0b00101010)) >> 1;
@@ -51,16 +50,6 @@ void scanline_convert_buffer(void)
             
             display.DisplayBuffer[pos_half_lsb] = lsb0 << 1 | lsb1;
             display.DisplayBuffer[pos_half_msb] = msb0 << 1 | msb1;
-            
-            // this works better on the device :/
-//             uint8_t lsb0 = (colBuffer[y] & (0b0010101));
-//             uint8_t msb0 = (colBuffer[y] & (0b000101010)) >> 1;
-//             
-//             uint8_t lsb1 = (colBuffer[y + 1] & (0b0010101));
-//             uint8_t msb1 = (colBuffer[y + 1] & (0b000101010)) >> 1;
-//             
-//             display.DisplayBuffer[pos_half_lsb] = lsb1 << 1 | lsb0;
-//             display.DisplayBuffer[pos_half_msb] = msb1 << 1 | msb0;
         }
     }
 }
@@ -73,7 +62,11 @@ void scanline_convert_buffer(void)
 // we will convert the pixel into its lsb and msb, and or it into the existing buffer
 void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c)
 {
+    if (x > display.NumCols || y > display.NumRows)
+        return;
+    
     y = 167 - y; // invert the y as it renders upside down
+    uint16_t pos = (x * display.NumRows) + y;
     uint16_t pos_half_lsb = (x * display.NumRows) + (y / 2);
     uint16_t pos_half_msb = (x * display.NumRows) + (display.NumRows / 2) + (y / 2);
     
@@ -87,6 +80,13 @@ void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c)
     green = green / (255 / 3);
     blue = blue / (255 / 3);
 
+    // for now write to the pixel buffer in raw format
+    display.BackBuffer[pos] = red << 4 | green << 2 | blue;
+
+    return;
+    
+    // below sets to native display format
+    
     uint8_t odd = !(y % 2);
     uint16_t fullbyte = 0;
     

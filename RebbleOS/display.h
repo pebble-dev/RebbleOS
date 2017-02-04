@@ -72,6 +72,7 @@ typedef struct {
     uint8_t DisplayMode; // bootloader or full
     
     char DisplayBuffer[24192];
+    char BackBuffer[24192];
 } display_t;
 
 
@@ -88,7 +89,7 @@ void vDisplayISRProcessor(void *pvParameters);
 void vDisplayCommandTask(void *pvParameters);
 
 // move to scanline
-void scanline_convert_buffer(void);
+void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset);
 void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
 
 int init_gui(void);
