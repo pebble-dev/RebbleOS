@@ -16,6 +16,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "librebble.h"
+#include "stdio.h"
+#include "string.h"
 
 const char *app_name = "Simple";
 
@@ -52,11 +54,16 @@ void app_resumed(void)
 void draw_atime(void)
 {
     char time[20];
+    uint16_t val;
+    rbl_draw_fill_screen(RBL_BLACK);
     rbl_get_time(time);
     printf("WF: Hello %s.\n", time);
     rbl_set_font_size();
     rbl_draw_text(40, 75, time);
     
+    val = ambient_get();
+    sprintf(time, "Light %d", val);
+    rbl_draw_text(30, 120, time);
     rbl_draw();
 }
 

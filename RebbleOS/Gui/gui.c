@@ -95,6 +95,9 @@ void GuiTask(void *pvParameters)
         if (xQueueReceive(xGuiQueue, &data, 1000 / portTICK_RATE_MS))  // wait forever for a command
         {
             printf("rcv %d!\n", data);
+            
+            // for now, just set the backlight on as an assumption
+            backlight_on(100);
             switch (data)
             {
                 case BTN_SELECT_PRESS:

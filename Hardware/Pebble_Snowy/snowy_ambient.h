@@ -1,5 +1,5 @@
-#ifndef __BACKLIGHT_H
-#define __BACKLIGHT_H
+#ifndef __SNOWY_AMBIENT_H
+#define __SNOWY_AMBIENT_H
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -17,15 +17,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "FreeRTOS.h"
 
-#define BACKLIGHT_OFF  0
-#define BACKLIGHT_ON   1
-#define BACKLIGHT_FADE 2
+void hw_ambient_init(void);
+uint16_t hw_ambient_get(void);
 
-void backlight_init(void);
-void backlight_set_raw(uint16_t brightness);
-void backlight_set(uint16_t brightness_pct);
-void backlight_on(uint16_t brightness_pct, uint16_t time);
-void backlight_set_from_ambient(void);
 #endif

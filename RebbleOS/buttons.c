@@ -27,6 +27,7 @@
 
 static TaskHandle_t xButtonTask;
 button_t *lastPress;
+void vButtonTask(void *pvParameters);
 
 extern buttons_t buttons;
 
@@ -49,13 +50,17 @@ void button_isr(button_t *button)
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
     lastPress = button;
+    printf("Button ISR\n");
+    printf("Button ISR %d\n", GPIO_ReadInputDataBit(button->Port, button->Pin));
+
+
     vTaskNotifyGiveFromISR(xButtonTask, &xHigherPriorityTaskWoken);   
 
     /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context switch
     should be performed to ensure the interrupt returns directly to the highest
     priority task.  The macro used for this purpose is dependent on the port in
     use and may be called portEND_SWITCHING_ISR(). */
-    portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 /*
@@ -72,22 +77,22 @@ uint8_t button_pressed(button_t *button)
 void vButtonTask(void *pvParameters)
 {
     uint32_t ulNotificationValue;
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
     
     for( ;; )
     {
-        ulNotificationValue = ulTaskNotifyTake(pdTRUE, xMaxBlockTime);
         uint8_t dir = 0;
         uint8_t mode = BTN_SELECT_PRESS;
         
-        if(ulNotificationValue == 1)
-        {
+        ulNotificationValue = ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        
+        //if(ulNotificationValue == 1)
+        {           
             if (button_pressed(lastPress))
             {
                 printf("Button Released\n");
                 dir = 0;
             }
-            else 
+            else
             {
                 printf("Button Pressed\n");
                 dir = 1;
@@ -107,7 +112,6 @@ void vButtonTask(void *pvParameters)
                 printf("DN\n");
                 if (dir == 1)
                 {
-//                     backlight_set(0);
                     mode = BTN_DOWN_PRESS;
                 }
 
@@ -125,18 +129,20 @@ void vButtonTask(void *pvParameters)
                 printf("BK\n");
                 if (dir == 1)
                 {
-                    backlight_set(9999);
+                    mode = BTN_BACK_PRESS;
                 }
-                mode = BTN_BACK_PRESS;
+               
             }
             
-            gui_command(mode);
+            if (dir == 1)
+                gui_command(mode);
                     
             vTaskDelay(butDEBOUNCE_DELAY);
+            ulTaskNotifyTake(pdTRUE, 0);
         }
-        else
-        {
-            //printf("Timeout!\n");
-        }
+//         else
+//         {
+//             printf("Timeout!\n");
+//         }
     }
 }

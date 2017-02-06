@@ -29,6 +29,7 @@
 
 static TaskHandle_t xDisplayCommandTask;
 static xQueueHandle xQueue;
+static SemaphoreHandle_t xMutex;
 
 extern display_t display;
 
@@ -47,12 +48,11 @@ void display_init(void)
     
     // initialise device specific display
     hw_display_init();
-    hw_backlight_init();
     
     hw_display_start();
         
     // set up the RTOS tasks
-    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 5UL, &xDisplayCommandTask);    
+    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 5UL, &xDisplayCommandTask);
     
     xQueue = xQueueCreate( 10, sizeof(uint8_t) );
         
@@ -62,6 +62,8 @@ void display_init(void)
     display.DisplayMode = DISPLAY_MODE_BOOTLOADER;   
     
     display_cmd(DISPLAY_CMD_DRAW, NULL);
+    
+    xMutex = xSemaphoreCreateMutex();
 }
 
 /*
@@ -110,19 +112,11 @@ void display_on()
 void display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
     display.State = DISPLAY_STATE_FRAME_INIT;
-    
+    printf("Mtake\n");
+    xSemaphoreTake(xMutex, portMAX_DELAY);
+    printf("Mgrant\n");
     hw_display_start_frame(xoffset, yoffset);
-}
-
-/*
- * Set the backlight. At the moment this is scaled to be 4000 - mid brightness
- */
-void backlight_set(uint16_t brightness)
-{
-    display.Brightness = brightness;
-    
-    // set the display pwm value
-    hw_backlight_set(brightness);
+    xSemaphoreGive(xMutex);
 }
 
 /*
@@ -216,12 +210,11 @@ void vDisplayCommandTask(void *pvParameters)
     uint8_t data;
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
     display.State = DISPLAY_STATE_BOOTING;
-    uint32_t ulNotificationValue;
-    
+
     while(1)
     {
-        if (display.State != DISPLAY_STATE_IDLE &&
-            display.State != DISPLAY_STATE_BOOTING)
+        if (/*display.State != DISPLAY_STATE_IDLE &&*/
+            display.State == DISPLAY_STATE_BOOTING)
         {
             vTaskDelay(5 / portTICK_RATE_MS);
             continue;
@@ -233,6 +226,9 @@ void vDisplayCommandTask(void *pvParameters)
         {
             switch(data)
             {
+                // in the case of draw, we are going to leave locking to
+                // the outer laters. If someone calls an overlapping draw into here
+                // it's just going to fail
                 case DISPLAY_CMD_DRAW:
                     // all we are responsible for is starting a frame draw
                     display_start_frame(0, 0);

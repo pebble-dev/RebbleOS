@@ -117,6 +117,10 @@ void hardware_init(void)
     buttons_init();
     printf("buttons init\n");
     rtc_init();
+    ambient_init();
+    printf("ambiance init\n");
+    backlight_init();
+    printf("bl init\n");
 }
 
 /*

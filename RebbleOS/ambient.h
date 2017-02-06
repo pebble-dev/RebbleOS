@@ -1,3 +1,6 @@
+#ifndef __AMBIENT_H
+#define __AMBIENT_H
+
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -15,3 +18,9 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */ 
+
+void ambient_init(void);
+uint16_t ambient_get(void);
+
+
+#endif

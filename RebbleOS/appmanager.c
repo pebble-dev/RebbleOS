@@ -58,6 +58,6 @@ void vAppTask(void *pvParameters)
     for( ;; )
     {
         app_main();
-        vTaskDelay(1000 / portTICK_RATE_MS);
+        vTaskDelay(100 / portTICK_RATE_MS);
     }
 }

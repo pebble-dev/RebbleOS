@@ -15,7 +15,6 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "stm32f4xx.h"
 #include "stdio.h"
 #include "string.h"
 #include "ugui.h"
@@ -55,24 +54,34 @@ static uint8_t menu_index = 0;
 void menu_init(void)
 {
     printf("menu init\n");
-    main_menu[0].text = "Settings";
-    main_menu[1].text = "Console";
-    main_menu[2].text = "Info";
-    main_menu[3].text = "Toys";
+    main_menu[0].text       = "Settings";
+    main_menu[0].sub_text   = "";
+    main_menu[1].text       = "Console";
+    main_menu[1].sub_text   = ": Sys booted";
+    main_menu[2].text       = "Info";
+    main_menu[2].sub_text   = ": ";
+    main_menu[3].text       = "Toys";
+    main_menu[3].sub_text   = "/toys/";
 }
 
 void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety)
 {
-    UG_FontSelect(&FONT_8X14);
+    char buf[25];
     
     for (uint8_t i = 0; i < 4; i++)
     {
-        printf("asdasd %d\n", menu_index);
-        menu_draw_list_item(0, i * 43, offsetx, offsety, menu[i].text, (menu_index == i ? 1 : 0));
+        // build the sub text
+        if (i == 2) // its the info menu, prob need to get cleverer here for auto magic
+        {
+            sprintf(buf, ": %d", ambient_get());
+            menu[i].sub_text = buf;
+        }
+
+        menu_draw_list_item(0, i * 42, offsetx, offsety, &menu[i], (menu_index == i ? 1 : 0));
     }
 }
 
-void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, char* text, uint8_t selected)
+void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, menu_item_t* menu, uint8_t selected)
 {
     UG_COLOR c;
     // list item is a box
@@ -95,11 +104,14 @@ void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, c
 //     x += offsetx;
 //     y += offsety;
     
-    UG_FillFrame(x, y, x + 144, y + 43, c);
+    UG_FillFrame(x, y, x + 144, y + 42, c);
     // and an icon
     // and text
-    UG_PutString(x + 30, y + 5, text);
+    UG_FontSelect(&FONT_8X14);
+    UG_PutString(x + 30, y + 5, menu->text);
     // and subtext
+    UG_FontSelect(&FONT_6X8);
+    UG_PutString(x + 40, y + 25, menu->sub_text);
 }
 
 void menu_show(uint8_t offsetx, uint8_t offsety)

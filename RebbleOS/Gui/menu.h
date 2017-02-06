@@ -20,7 +20,7 @@
 
 typedef struct {
     const char *text;
-
+    const char *sub_text;
     
 } menu_item_t;
 

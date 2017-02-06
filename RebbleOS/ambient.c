@@ -14,4 +14,25 @@
  *
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */ 
+ */
+#include "FreeRTOS.h"
+#include "stdio.h"
+#include "string.h"
+#include "ugui.h"
+#include "platform.h"
+#include "task.h"
+#include "semphr.h"
+#include "ambient.h"
+
+
+void ambient_init(void)
+{
+    hw_ambient_init();
+}
+
+uint16_t ambient_get(void)
+{
+    // take multiple samples
+    // use a simple moving average filter to get the settle
+    hw_ambient_get();
+}

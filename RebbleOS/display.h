@@ -66,7 +66,7 @@ typedef struct {
     
     //state
     uint8_t BacklightEnabled;
-    uint8_t Brightness;
+    uint16_t Brightness;
     uint8_t PowerOn;
     uint8_t State; // busy etc
     uint8_t DisplayMode; // bootloader or full

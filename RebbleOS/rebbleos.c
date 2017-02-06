@@ -27,8 +27,8 @@ void rebbleos_init(void)
     system_status.booted = 0;
     system_status.app_mode = SYSTEM_RUNNING_APP;
     
-    appmanager_init();
     gui_init();
+    appmanager_init();
 
     // set up main rebble task thread
     

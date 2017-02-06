@@ -35,12 +35,14 @@ void hw_buttons_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure2;
     
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE); 
+
     // For snowy we can shortcut the port init. For other boards each bank port will need a declaration for each unique bank
     GPIO_InitStructure2.GPIO_Mode = GPIO_Mode_IN;
     GPIO_InitStructure2.GPIO_Pin =  buttons.Back.Pin | buttons.Select.Pin | buttons.Up.Pin | buttons.Down.Pin;
     GPIO_InitStructure2.GPIO_PuPd = GPIO_PuPd_UP;
     GPIO_InitStructure2.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStructure2.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitStructure2.GPIO_OType = GPIO_OType_OD;
     GPIO_Init(buttons.Back.Port, &GPIO_InitStructure2);
         
     // setup the pin interrupts
@@ -94,61 +96,28 @@ void buttons_handle_ISR(uint32_t line, button_t *button)
 
 void EXTI4_IRQHandler(void)
 {
-    //buttons_handle_ISR(EXTI_Line4, &buttons.Back);
-    
-    /* Make sure that interrupt flag is set */
-    if (EXTI_GetITStatus(EXTI_Line4) != RESET)
-    {       
-        button_isr(&buttons.Back);
-       
-        /* Clear interrupt flag */
-        EXTI_ClearITPendingBit(EXTI_Line4);
-    }
+    buttons_handle_ISR(EXTI_Line4, &buttons.Back);
 }
 
 void EXTI3_IRQHandler(void)
 {
-    
-    /* Make sure that interrupt flag is set */
-    if (EXTI_GetITStatus(EXTI_Line3) != RESET)
-    {       
-        button_isr(&buttons.Up);
-       
-        /* Clear interrupt flag */
-        EXTI_ClearITPendingBit(EXTI_Line3);
-    }
+    buttons_handle_ISR(EXTI_Line3, &buttons.Up);
 }
 
 void EXTI2_IRQHandler(void)
 {
-    
-    /* Make sure that interrupt flag is set */
-    if (EXTI_GetITStatus(EXTI_Line2) != RESET)
-    {       
-        button_isr(&buttons.Down);
-       
-        /* Clear interrupt flag */
-        EXTI_ClearITPendingBit(EXTI_Line2);
-    }
+    buttons_handle_ISR(EXTI_Line2, &buttons.Down);
 }
 
 void EXTI1_IRQHandler(void)
 {
-    
-    /* Make sure that interrupt flag is set */
-    if (EXTI_GetITStatus(EXTI_Line1) != RESET)
-    {       
-        button_isr(&buttons.Select);
-       
-        /* Clear interrupt flag */
-        EXTI_ClearITPendingBit(EXTI_Line1);
-    }
+    buttons_handle_ISR(EXTI_Line1, &buttons.Select);
 }
 
 uint8_t hw_button_pressed(button_t *button)
 {
     int btn = GPIO_ReadInputDataBit(button->Port, button->Pin);
-    
+    printf("BTN %d\n", btn);
     return btn;
 }
 

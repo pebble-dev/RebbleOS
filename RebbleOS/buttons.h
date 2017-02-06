@@ -19,12 +19,10 @@
  */
 #include "FreeRTOS.h"
 
-#define butDEBOUNCE_DELAY	( 10 / portTICK_RATE_MS )
+#define butDEBOUNCE_DELAY	( 200 / portTICK_RATE_MS )
 
 uint8_t button_pressed(button_t *button);
 void button_isr(button_t *button);
 void buttons_init(void);
 
-
-void vButtonTask(void *pvParameters);
 #endif

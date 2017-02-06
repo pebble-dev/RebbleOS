@@ -123,6 +123,7 @@ SRC+=snowy_power.c
 SRC+=snowy_rtc.c
 SRC+=snowy_scanlines.c
 SRC+=snowy_vibrate.c
+SRC+=snowy_ambient.c
 SRC+=snowy.c
 
 # RebbleOS
