@@ -34,7 +34,14 @@ Working:
   - Shows a Rebble OS splash (Thanks for the convert @XDJackieXD)
   - Base support for text and graphics output using uGUI
   - Display almost fully functional
-  - 
+  - Non overlapped draw mode
+  - backbuffer for animations and transitions
+* Menu system for status/console and reboot etc
+* Simple animations
+* A basic gui
+* Basic API for watchfaces
+* A "simple.c" watchface using the API
+
 
 
 It will come
@@ -46,6 +53,12 @@ Hardware TODO:
 * Flash memory
 * Microphone
 * Find the gpio for smart strap power
+
+OS TODO:
+* More API handles and drivers for specific functions (such as vibrate)
+* librebble/OS to have more APIs
+* loadable apps into a vTask
+* Fuller menu
 
 Instructions to compile:
 
