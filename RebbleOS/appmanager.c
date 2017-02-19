@@ -15,14 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "FreeRTOS.h"
-#include "platform.h"
-#include "stdio.h"
-#include "task.h"
-#include "buttons.h"
-#include "vibrate.h"
-#include "semphr.h"
-#include "display.h"
+
 #include "rebbleos.h"
 
 static TaskHandle_t xAppTask;
@@ -30,7 +23,7 @@ void vAppTask(void *pvParameters);
 
 void appmanager_init(void)
 {
-    xTaskCreate(vAppTask, "App", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xAppTask);
+    xTaskCreate(vAppTask, "App", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 2UL, &xAppTask);
     printf("App Task Created!\n");
 }
 
@@ -54,6 +47,8 @@ void vAppTask(void *pvParameters)
 {   
     //start the app
     app_init();
+    
+    rbl_window_load_proc();
     
     for( ;; )
     {

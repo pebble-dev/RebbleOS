@@ -23,19 +23,17 @@
 #include <stdlib.h>
 #include <time.h>
 
+// a buffer for the last captured time to avoid malloc
+static struct tm time_now;
+
 void rtc_init(void)
 {
     EXTI_InitTypeDef EXTI_InitStruct;
     NVIC_InitTypeDef NVIC_InitStruct;
-    RTC_TimeTypeDef  RTC_TimeStructure;
     
     if (RTC_ReadBackupRegister(RTC_BKP_DR0) != 0x32F2)
     {  
         rtc_config();
-        //RTC_TimeShow();
-        //RTC_AlarmShow();
-        RTC_GetTime(RTC_Format_BIN, &RTC_TimeStructure);
-        printf("%02d:%02d:%02d\n",RTC_TimeStructure.RTC_Hours, RTC_TimeStructure.RTC_Minutes, RTC_TimeStructure.RTC_Seconds);
     }
     else
     {       
@@ -46,9 +44,6 @@ void rtc_init(void)
         // clear the alarm and int
         RTC_ClearFlag(RTC_FLAG_ALRAF);
         EXTI_ClearITPendingBit(EXTI_Line17);
-
-        //RTC_TimeShow();
-        //RTC_AlarmShow();
     }
 
     // setup alarm
@@ -117,37 +112,6 @@ void rtc_config(void)
   RTC_InitStructure.RTC_HourFormat = RTC_HourFormat_24;
   RTC_Init(&RTC_InitStructure);
   
-  // Set the alarm 01h:02min:03s
-//   RTC_AlarmStructure.RTC_AlarmTime.RTC_H12     = RTC_H12_AM;
-//   RTC_AlarmStructure.RTC_AlarmTime.RTC_Hours   = 0x01;
-//   RTC_AlarmStructure.RTC_AlarmTime.RTC_Minutes = 0x02;
-//   RTC_AlarmStructure.RTC_AlarmTime.RTC_Seconds = 0x03;
-//   RTC_AlarmStructure.RTC_AlarmDateWeekDay = 0x01;
-//   RTC_AlarmStructure.RTC_AlarmDateWeekDaySel = RTC_AlarmDateWeekDaySel_Date;
-//   RTC_AlarmStructure.RTC_AlarmMask = RTC_AlarmMask_DateWeekDay;
-//   
-//   RTC_SetAlarm(RTC_Format_BCD, RTC_Alarm_A, &RTC_AlarmStructure);
-//   
-//   RTC_ITConfig(RTC_IT_ALRA, ENABLE);
-//   RTC_AlarmCmd(RTC_Alarm_A, ENABLE);
-//   RTC_ClearFlag(RTC_FLAG_ALRAF);
-  
-  /* Set the date: Friday January 11th 2013 */
-  /*RTC_DateStructure.RTC_Year = 0x13;
-  RTC_DateStructure.RTC_Month = RTC_Month_January;
-  RTC_DateStructure.RTC_Date = 0x11;
-  RTC_DateStructure.RTC_WeekDay = RTC_Weekday_Saturday;
-  RTC_SetDate(RTC_Format_BCD, &RTC_DateStructure);
-  */
-  /* Set the time to 05h 20mn 00s AM */
-  /*RTC_TimeStructure.RTC_H12     = RTC_H12_AM;
-  RTC_TimeStructure.RTC_Hours   = 0x05;
-  RTC_TimeStructure.RTC_Minutes = 0x20;
-  RTC_TimeStructure.RTC_Seconds = 0x00; 
-  
-  RTC_SetTime(RTC_Format_BCD, &RTC_TimeStructure);   
-  */
-  
   // RTC Confirmed
   RTC_WriteBackupRegister(RTC_BKP_DR0, 0x32F2);
 }
@@ -160,23 +124,52 @@ void hw_get_time_str(char *buf)
     sprintf(buf, "%02d:%02d:%02d\n",RTC_TimeStructure.RTC_Hours, RTC_TimeStructure.RTC_Minutes, RTC_TimeStructure.RTC_Seconds);
 }
 
-// void hw_get_time(time_t *time)
-// {
-//     RTC_TimeTypeDef RTC_TimeStructure;
-//     RTC_DateTypeDef RTC_DateStructure;
-//     struct tm timetmp;
-// //    time = (time_t *)args;
-// 
-//     RTC_GetTime(RTC_Format_BIN, &RTC_TimeStructure);
-//     RTC_GetDate(RTC_Format_BIN, &RTC_DateStructure);
-//     timetmp.tm_year = RTC_DateStructure.RTC_Year + 2000 - 1900; // since year 1990
-//     timetmp.tm_mon = RTC_DateStructure.RTC_Month - 1;
-//     timetmp.tm_mday = RTC_DateStructure.RTC_Date;
-//     timetmp.tm_hour = RTC_TimeStructure.RTC_Hours;
-//     timetmp.tm_min = RTC_TimeStructure.RTC_Minutes;
-//     timetmp.tm_sec = RTC_TimeStructure.RTC_Seconds;
-// 
-//     time = mktime(&timetmp);
+struct tm *hw_get_time(void)
+{
+    RTC_TimeTypeDef RTC_TimeStructure;
+    RTC_DateTypeDef RTC_DateStructure;
+
+    RTC_GetTime(RTC_Format_BIN, &RTC_TimeStructure);
+    RTC_GetDate(RTC_Format_BIN, &RTC_DateStructure);
+    time_now.tm_year = RTC_DateStructure.RTC_Year + 2000 - 1900; // since year 1990
+    time_now.tm_mon = RTC_DateStructure.RTC_Month - 1;
+    time_now.tm_mday = RTC_DateStructure.RTC_Date;
+    time_now.tm_hour = RTC_TimeStructure.RTC_Hours;
+    time_now.tm_min = RTC_TimeStructure.RTC_Minutes;
+    time_now.tm_sec = RTC_TimeStructure.RTC_Seconds;
+    
+    return &time_now;
+}
+
+void hw_set_alarm(struct tm alarm)
+{
+//     RTC_AlarmStructure.RTC_AlarmTime.RTC_H12     = RTC_H12_AM;
+//     RTC_AlarmStructure.RTC_AlarmTime.RTC_Hours   = 0x01;
+//     RTC_AlarmStructure.RTC_AlarmTime.RTC_Minutes = 0x02;
+//     RTC_AlarmStructure.RTC_AlarmTime.RTC_Seconds = 0x03;
+//     RTC_AlarmStructure.RTC_AlarmDateWeekDay = 0x01;
+//     RTC_AlarmStructure.RTC_AlarmDateWeekDaySel = RTC_AlarmDateWeekDaySel_Date;
+//     RTC_AlarmStructure.RTC_AlarmMask = RTC_AlarmMask_DateWeekDay;
 //     
-//     return;
-// }
+//     RTC_SetAlarm(RTC_Format_BCD, RTC_Alarm_A, &RTC_AlarmStructure);
+//     
+//     RTC_ITConfig(RTC_IT_ALRA, ENABLE);
+//     RTC_AlarmCmd(RTC_Alarm_A, ENABLE);
+//     RTC_ClearFlag(RTC_FLAG_ALRAF);
+} 
+
+void hw_set_date_time(struct tm date_time)
+{
+//     RTC_DateStructure.RTC_Year = 0x13;
+//     RTC_DateStructure.RTC_Month = RTC_Month_January;
+//     RTC_DateStructure.RTC_Date = 0x11;
+//     RTC_DateStructure.RTC_WeekDay = RTC_Weekday_Saturday;
+//     RTC_SetDate(RTC_Format_BCD, &RTC_DateStructure);
+// 
+//     RTC_TimeStructure.RTC_H12     = RTC_H12_AM;
+//     RTC_TimeStructure.RTC_Hours   = 0x05;
+//     RTC_TimeStructure.RTC_Minutes = 0x20;
+//     RTC_TimeStructure.RTC_Seconds = 0x00;
+// 
+//     RTC_SetTime(RTC_Format_BCD, &RTC_TimeStructure);
+}

@@ -15,15 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "FreeRTOS.h"
-#include "platform.h"
-#include "stdio.h"
-#include "task.h"
-#include "buttons.h"
-#include "vibrate.h"
-#include "semphr.h"
-#include "display.h"
-#include "gui.h"
+#include "rebbleos.h"
 
 static TaskHandle_t xButtonTask;
 button_t *lastPress;

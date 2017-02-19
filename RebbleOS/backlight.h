@@ -1,5 +1,4 @@
-#ifndef __BACKLIGHT_H
-#define __BACKLIGHT_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -28,4 +27,3 @@ void backlight_set_raw(uint16_t brightness);
 void backlight_set(uint16_t brightness_pct);
 void backlight_on(uint16_t brightness_pct, uint16_t time);
 void backlight_set_from_ambient(void);
-#endif

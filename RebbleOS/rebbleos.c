@@ -20,7 +20,12 @@
 #include "stdio.h"
 #include "rebbleos.h"
 #include "menu.h"
+#include "gui.h"
 
+
+// current status of te system
+SystemStatus system_status;
+SystemSettings system_settings;
 
 void rebbleos_init(void)
 {
@@ -33,4 +38,9 @@ void rebbleos_init(void)
     // set up main rebble task thread
     
     // this will be the main coordinator
+}
+
+void rebbleos_set_system_status(uint8_t status)
+{
+    
 }

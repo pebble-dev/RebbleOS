@@ -54,6 +54,7 @@ uint8_t snowy_display_wait_FPGA_ready(void);
 void snowy_display_splash(uint8_t scene);
 void snowy_display_full_init(void);
 void snowy_display_program_FPGA(void);
+void snowy_display_send_frame(void);
 
 void delay_us(uint16_t us);
 void delay_ns(uint16_t ns);

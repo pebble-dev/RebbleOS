@@ -112,6 +112,7 @@
 #define configUSE_COUNTING_SEMAPHORES 1
 #define configGENERATE_RUN_TIME_STATS 0
 #define configUSE_TASK_NOTIFICATIONS            1
+//#define portBYTE_ALIGNMENT 4
 
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES   0

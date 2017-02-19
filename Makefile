@@ -20,6 +20,13 @@ INCLUDE+=-I$(CURDIR)/Platform/CMSIS/Device/ST/STM32F4xx/Include
 INCLUDE+=-I$(CURDIR)/Platform/CMSIS/Include
 INCLUDE+=-I$(CURDIR)/Platform/STM32F4xx_StdPeriph_Driver/inc
 INCLUDE+=-I$(CURDIR)/Libraries/UGUI
+INCLUDE+=-I$(CURDIR)/Libraries/neographics/src/
+INCLUDE+=-I$(CURDIR)/Libraries/neographics/src/draw_command
+INCLUDE+=-I$(CURDIR)/Libraries/neographics/src/path
+INCLUDE+=-I$(CURDIR)/Libraries/neographics/src/primitives
+INCLUDE+=-I$(CURDIR)/Libraries/neographics/src/types
+INCLUDE+=-I$(CURDIR)/Libraries/neographics/src/fonts
+INCLUDE+=-I$(CURDIR)/Libraries/neographics/src/text
 INCLUDE+=-I$(CURDIR)/Watchfaces
 INCLUDE+=-I$(CURDIR)/Config
 INCLUDE+=-I$(CURDIR)/RebbleOS
@@ -42,6 +49,12 @@ vpath %.c $(CURDIR)/Platform/STM32F4xx_StdPeriph_Driver/src \
           $(CURDIR)/Watchfaces \
           $(FREERTOS) \
           $(CURDIR)/Libraries/UGUI \
+          $(CURDIR)/Libraries/neographics/src \
+          $(CURDIR)/Libraries/neographics/src/draw_command \
+          $(CURDIR)/Libraries/neographics/src/path \
+          $(CURDIR)/Libraries/neographics/src/primitives \
+          $(CURDIR)/Libraries/neographics/src/fonts \
+          $(CURDIR)/Libraries/neographics/src/text \
           $(FREERTOS)/portable/MemMang $(FREERTOS)/portable/GCC/ARM_CM4F 
 
 vpath %.s $(STARTUP)
@@ -111,6 +124,20 @@ SRC+=stdarg.c
 # uGUI
 SRC+=ugui.c
 
+# NeoGraphics
+SRC+=common.c
+SRC+=context.c
+SRC+=draw_command.c
+SRC+=path.c
+SRC+=circle.c
+SRC+=line.c
+SRC+=rect.c
+SRC+=text.c
+SRC+=fonts.c
+
+# neographics / RebbleOS
+SRC+=neographics.c
+
 # drivers etc
 SRC+=stm32f4x_i2c.c
 
@@ -137,11 +164,16 @@ SRC+=gyro.c
 SRC+=main.c
 SRC+=power.c
 SRC+=smartstrap.c
-SRC+=time.c
+SRC+=rebble_time.c
 SRC+=vibrate.c
+SRC+=rebble_memory.c
 
 # libRebbleOS
 SRC+=librebble.c
+SRC+=window.c
+SRC+=layer.c
+SRC+=text_layer.c
+SRC+=math_sin.c
 
 # watchface test
 SRC+=simple.c
@@ -159,8 +191,7 @@ CDEFS+=-D__FPU_PRESENT=1
 CDEFS+=-D__FPU_USED=1
 CDEFS+=-DARM_MATH_CM4
 
-MCUFLAGS=-mcpu=cortex-m4 -mthumb -mlittle-endian -mfloat-abi=hard -mfpu=fpv4-sp-d16 -fsingle-precision-constant -finline-functions -std=gnu99
-#-Wdouble-promotion -mthumb-interwork
+MCUFLAGS=-mcpu=cortex-m4 -mthumb -mlittle-endian -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fsingle-precision-constant -finline-functions -std=gnu99 -fomit-frame-pointer -falign-functions=16
 COMMONFLAGS=-O$(OPTLVL) $(DBG) -Wall -ffunction-sections -fdata-sections
 CFLAGS=$(COMMONFLAGS) $(MCUFLAGS) $(INCLUDE) $(CDEFS)
 

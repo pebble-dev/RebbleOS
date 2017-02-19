@@ -15,17 +15,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "FreeRTOS.h"
-#include "stdio.h"
-#include "string.h"
-#include "platform.h"
-#include "display.h"
-#include "snowy_display.h"
-#include "task.h"
-#include "semphr.h"
+#include "rebbleos.h"
 #include "logo.h"
-
-#include "menu.h"
 
 static TaskHandle_t xDisplayCommandTask;
 static xQueueHandle xQueue;
@@ -52,7 +43,7 @@ void display_init(void)
     hw_display_start();
         
     // set up the RTOS tasks
-    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 5UL, &xDisplayCommandTask);
+    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, &xDisplayCommandTask);
     
     xQueue = xQueueCreate( 10, sizeof(uint8_t) );
         
@@ -122,7 +113,7 @@ void display_start_frame(uint8_t xoffset, uint8_t yoffset)
 /*
  * Given a frame of data, convert it and draw it to the display
  */
-void display_logo(char *frameData)
+void display_logo(uint8_t *frameData)
 {
     for(uint16_t i = 0; i < 24192; i++)
     {
@@ -133,59 +124,12 @@ void display_logo(char *frameData)
 }
 
 /*
- * Display a checkerboard picture for testing
+ * Get the pointer t the back buffer
  */
-uint16_t display_checkerboard(char *frameData, uint8_t invert)
+uint8_t *display_get_buffer(void)
 {
-    int gridx = 0;
-    int gridy = 0;
-    int count = 0;
-
-    uint8_t forCol = RED;
-    uint8_t backCol = GREEN;
-    
-    // display a checkboard    
-    if (invert)
-    {
-        forCol = GREEN;
-        backCol = RED;
-    }
-    
-    for (int x = 0; x < display.NumCols; x++) {
-        gridy = 0;
-        if ((x % 21) == 0)
-            gridx++;
-        
-        for (int y = 0; y < display.NumRows; y++) {
-            if ((y % 21) == 0)
-                gridy++;
-            
-            if (gridy%2 == 0)
-            {
-                if (gridx%2 == 0)
-                    frameData[count] = forCol;
-                    //display_SPI6_send(RED);
-                else
-                    frameData[count] = backCol;
-                    //display_SPI6_send(GREEN);
-            }
-            else
-            {
-                if (gridx%2 == 0)    
-                    frameData[count] = backCol;
-                    //display_SPI6_send(GREEN);
-                else
-                    //display_SPI6_send(RED);
-                    frameData[count] = forCol;
-            }
-            
-            
-            count++;
-        }
-    }
-    return count;
+    return display.BackBuffer;
 }
-
 
 /*
  * Request a command from the display driver. 
@@ -196,6 +140,9 @@ void display_cmd(uint8_t cmd, char *data)
     xQueueSendToBack(xQueue, &cmd, 0);
 }
 
+/*
+ * Queue a draw when available
+ */
 void display_draw(void)
 {
     display_cmd(DISPLAY_CMD_DRAW, 0);
@@ -238,11 +185,6 @@ void vDisplayCommandTask(void *pvParameters)
         else
         {
             // nothing emerged from the buffer
-            //hw_get_time_str(buf);
-            //UG_ConsolePutString(buf);
-
-            //display_cmd(DISPLAY_CMD_DRAW, 0);
-            
         }        
     }
 }

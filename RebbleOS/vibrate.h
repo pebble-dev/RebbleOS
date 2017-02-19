@@ -1,5 +1,4 @@
-#ifndef __VIBRATE_H
-#define __VIBRATE_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -28,7 +27,7 @@ void vibrate_init(void);
 // Main task thread
 void vVibratePatternTask(void *pvParameters);
 
-static const uint16_t VIBRO_SHORT[] = { 255, 1000 };
-static const uint16_t VIBRO_TAP_TAP[] = { 255, 750, 0, 750, 255, 750 };
+static uint16_t VIBRO_SHORT[] = { 255, 1000 };
+static uint16_t VIBRO_TAP_TAP[] = { 255, 750, 0, 750, 255, 750 };
 
 #endif

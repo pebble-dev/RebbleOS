@@ -1,5 +1,4 @@
-#ifndef __POWER_H
-#define __POWER_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -22,5 +21,3 @@
 void power_init();
 void power_off();
 uint16_t power_get_battery_level(void);
-
-#endif

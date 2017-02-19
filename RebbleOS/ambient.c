@@ -15,15 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "FreeRTOS.h"
-#include "stdio.h"
-#include "string.h"
-#include "ugui.h"
-#include "platform.h"
-#include "task.h"
-#include "semphr.h"
-#include "ambient.h"
-
+#include "rebbleos.h"
 
 void ambient_init(void)
 {
@@ -34,5 +26,9 @@ uint16_t ambient_get(void)
 {
     // take multiple samples
     // use a simple moving average filter to get the settle
-    hw_ambient_get();
+    
+    // disable the backlight biefly to get a good clean samples
+    // of the real world
+    
+    return hw_ambient_get();
 }

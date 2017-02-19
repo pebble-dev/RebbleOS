@@ -1,5 +1,4 @@
-#ifndef __BUTTONS_H
-#define __BUTTONS_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -24,5 +23,3 @@
 uint8_t button_pressed(button_t *button);
 void button_isr(button_t *button);
 void buttons_init(void);
-
-#endif

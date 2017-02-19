@@ -1,5 +1,4 @@
-#ifndef __GUI_H
-#define __GUI_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -17,7 +16,11 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "ugui.h"
+
+#include "display.h"
+#include "backlight.h"
+#include "menu.h"
+#include "ambient.h"
 
 #define ANIM_STOP        0
 #define ANIM_RTL         1
@@ -28,9 +31,5 @@
 #define BTN_UP_PRESS     3
 #define BTN_DOWN_PRESS   4
 
+uint8_t gui_init(void);
 void gui_command(uint8_t command);
-
-static UG_GUI gui;
-static xQueueHandle xGuiQueue;
-
-#endif

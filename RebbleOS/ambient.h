@@ -1,6 +1,4 @@
-#ifndef __AMBIENT_H
-#define __AMBIENT_H
-
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -22,5 +20,3 @@
 void ambient_init(void);
 uint16_t ambient_get(void);
 
-
-#endif

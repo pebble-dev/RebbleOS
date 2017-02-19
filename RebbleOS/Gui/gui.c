@@ -15,25 +15,24 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "semphr.h"
-#include "stdio.h"
+
 #include "rebbleos.h"
-#include "gui.h"
-#include "display.h"
-#include "menu.h"
 
 extern display_t display;
+extern SystemStatus system_status;
+extern SystemSettings system_settings;
 
+static UG_GUI gui;
 void GuiTask (void *pvParameters);
 void AnimateTask(void *pvParameters);
 static xQueueHandle xAnimQueue;
+static xQueueHandle xGuiQueue;
+
 
 /*
  * Initialise the uGUI component and start the draw
  */
-int gui_init(void)
+uint8_t gui_init(void)
 {   
     /* Configure uGUI */
     UG_Init(&gui, scanline_rgb888pixel_to_frambuffer, display.NumCols, display.NumRows);
@@ -51,6 +50,7 @@ int gui_init(void)
 //     UG_ConsoleSetForecolor(C_RED);
 
     menu_init();
+    neographics_init(display.BackBuffer);
     
     xAnimQueue = xQueueCreate(3, sizeof(uint8_t));
     xGuiQueue = xQueueCreate(10, sizeof(uint8_t));
@@ -73,7 +73,6 @@ int gui_init(void)
         
     printf("Gui tasks init\n");
     
-
     return 0;
 }
 
@@ -90,6 +89,9 @@ void GuiTask(void *pvParameters)
 {
     uint8_t data;
     
+    appmanager_resume();
+    display_start_frame(0, 0);
+    
     while(1)
     {
         if (xQueueReceive(xGuiQueue, &data, 1000 / portTICK_RATE_MS))  // wait forever for a command
@@ -97,7 +99,7 @@ void GuiTask(void *pvParameters)
             printf("rcv %d!\n", data);
             
             // for now, just set the backlight on as an assumption
-            backlight_on(100);
+            backlight_on(100, system_settings.backlight_on_time);
             switch (data)
             {
                 case BTN_SELECT_PRESS:

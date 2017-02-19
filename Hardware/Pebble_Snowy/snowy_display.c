@@ -291,7 +291,6 @@ void snowy_display_init_dma(void)
  */
 void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
 {
-    NVIC_InitTypeDef NVIC_InitStructure;
     DMA_InitTypeDef DMA_InitStructure;
     
     // Configure DMA controller to manage TX DMA requests
@@ -409,7 +408,7 @@ uint8_t snowy_display_SPI6_send(uint8_t data)
  * Send n bytes over SPI using the DMA engine.
  * This will async run and call the ISR when complete
  */
-uint8_t snowy_display_dma_send(char *data, uint32_t length)
+uint8_t snowy_display_dma_send(uint8_t *data, uint32_t length)
 {
     // re-initialise the DMA controller. prep for send
     snowy_display_reinit_dma((uint32_t *)data, length);
@@ -737,7 +736,6 @@ void hw_display_start(void)
     delay_us(100);
     snowy_display_full_init();
 }
-
 
 
 // Util

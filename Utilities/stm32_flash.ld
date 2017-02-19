@@ -36,7 +36,7 @@ ENTRY(Reset_Handler)
 _estack = 0x20012600;    /* end of RAM */
 /*_estack = 0x20001000;*/    /* end of RAM */
 /* Generate a link error if heap and stack don't fit into RAM */
-_Min_Heap_Size = 0x000;;      /* required amount of heap  */
+_Min_Heap_Size = 0x2000;;      /* required amount of heap  */
 _Min_Stack_Size = 0x3000;; /* required amount of stack */
 
 /* Specify the memory areas */

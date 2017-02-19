@@ -1,5 +1,4 @@
-#ifndef __MENU_H
-#define __MENU_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -17,13 +16,20 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
+#include "ugui.h"
 typedef struct {
-    const char *text;
-    const char *sub_text;
+    char *text;
+    char *sub_text;
     
 } menu_item_t;
 
 menu_item_t main_menu[4];
 
-#endif
+void menu_init(void);
+void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety);
+void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, menu_item_t* menu, uint8_t selected);
+void menu_show(uint8_t offsetx, uint8_t offsety);
+void menu_up(void);
+void menu_down(void);
+void menu_back(void);
+void menu_select(void);

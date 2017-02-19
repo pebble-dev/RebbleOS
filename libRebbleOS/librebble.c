@@ -24,6 +24,11 @@ void rbl_get_time(char *buf)
     hw_get_time_str(buf);
 }
 
+struct tm *rbl_get_tm(void)
+{
+    return hw_get_time();
+}
+
 void rbl_draw_fill_screen(uint8_t colour)
 {
     if (colour == RBL_BLACK)

@@ -15,14 +15,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "FreeRTOS.h"
-#include "stdio.h"
-#include "string.h"
-#include "snowy_display.h"
-#include "display.h"
-#include "task.h"
-#include "semphr.h"
-#include "backlight.h"
+#include "rebbleos.h"
 
 static TaskHandle_t xBacklightTask;
 static xQueueHandle xBacklightQueue;
@@ -119,7 +112,7 @@ void backlight_set_from_ambient(void)
 void vBacklightTask(void *pvParameters)
 {
     struct backlight_message_t *message;
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
+//     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
     uint8_t wait = 0;
     TickType_t xTimeBefore, time_now;
     uint8_t backlight_status;

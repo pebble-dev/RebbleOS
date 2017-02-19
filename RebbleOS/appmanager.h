@@ -1,5 +1,4 @@
-#ifndef __APPMANAGER_H
-#define __APPMANAGER_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -18,8 +17,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "gui.h"
+
 void appmanager_init(void);
 void appmanager_begin_suspend(void);
 void appmanager_resume(void);
 
-#endif
+void app_resumed(void);
+void app_init(void);
+void rbl_window_load_proc(void);
+void app_main(void);

@@ -24,5 +24,6 @@
 #include "snowy_display.h"
 #include "snowy_buttons.h"
 #include "snowy_rtc.h"
+#include "snowy_ambient.h"
 
 #endif

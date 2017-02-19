@@ -1,5 +1,4 @@
-#ifndef __MAIN_H
-#define __MAIN_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -28,5 +27,3 @@
 void watchdog_init();
 void watchdog_reset(void);
 void hardware_init(void);
-
-#endif

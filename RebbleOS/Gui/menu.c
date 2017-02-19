@@ -15,10 +15,9 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "stdio.h"
-#include "string.h"
-#include "ugui.h"
-#include "menu.h"
+#include "rebbleos.h"
+#include "librebble.h"
+
 /*
 // menu
 
@@ -83,20 +82,22 @@ void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety)
 
 void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, menu_item_t* menu, uint8_t selected)
 {
-    UG_COLOR c;
+    GColor bg;
     // list item is a box
     // might have a type (has subtext etc)
     
+    n_GContext *nGContext = neographics_get_global_context();
+   
     // could be selected item eh
     if (selected)
     {
-        c = C_BLUE;
+        bg = GColorBlue;
         UG_SetBackcolor(C_BLUE);
         UG_SetForecolor(C_WHITE);
     }
     else
     {
-        c = C_WHITE;
+        bg = GColorWhite;
         UG_SetBackcolor(C_WHITE);
         UG_SetForecolor(C_BLACK);
     }
@@ -104,7 +105,10 @@ void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, m
 //     x += offsetx;
 //     y += offsety;
     
-    UG_FillFrame(x, y, x + 144, y + 42, c);
+
+    graphics_context_set_fill_color(nGContext, bg);
+    graphics_fill_rect(nGContext, GRect(x, y, x + 144, y + 42), 0, GCornerNone);
+    
     // and an icon
     // and text
     UG_FontSelect(&FONT_8X14);
