@@ -1,0 +1,3 @@
+[submodule "Libraries/neographics"]
+	path = Libraries/neographics
+	url = https://github.com/pebble-dev/neographics
