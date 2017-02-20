@@ -66,13 +66,82 @@ Layer *window_get_root_layer(Window *window)
     return window->root_layer;
 }
 
+void window_set_click_config_provider(Window *window, ClickConfigProvider click_config_provider)
+{
+    window->click_config_provider = click_config_provider;
+}
+
+void window_set_click_config_provider_with_context(Window *window, ClickConfigProvider click_config_provider, void *context)
+{
+    window->click_config_provider = click_config_provider;
+    window->click_config_context = context;
+}
+
+ClickConfigProvider window_get_click_config_provider(const Window *window)
+{
+    return window->click_config_provider;
+}
+
+void *window_get_click_config_context(Window *window)
+{
+    return window->click_config_context;
+}
+
+void window_set_background_color(Window *window, GColor background_color)
+{
+    window->background_color = background_color;
+}
+
+bool window_is_loaded(Window *window)
+{
+    return window->is_loaded;
+}
+
+void window_set_user_data(Window *window, void *data)
+{
+    window->user_data = data;
+}
+
+void * window_get_user_data(const Window *window)
+{
+    return window->user_data;
+}
+
+void window_single_click_subscribe(ButtonId button_id, ClickHandler handler)
+{
+}
+
+void window_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat_interval_ms, ClickHandler handler)
+{
+}
+
+void window_multi_click_subscribe(ButtonId button_id, uint8_t min_clicks, uint8_t max_clicks, uint16_t timeout, bool last_click_only, ClickHandler handler)
+{
+}
+
+void window_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHandler down_handler, ClickHandler up_handler)
+{
+}
+
+void window_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, ClickHandler up_handler, void * context)
+{
+}
+
+void window_set_click_context(ButtonId button_id, void *context)
+{
+}
+
+
 void window_dirty(bool is_dirty)
 {
-    top_window->dirty = is_dirty;
+    top_window->is_render_scheduled = is_dirty;
     walk_layers(top_window->root_layer);
     rbl_draw();
-    top_window->dirty = false;
+    top_window->is_render_scheduled = false;
 }
+
+
+
 
 // call the load callback
 void rbl_window_load_proc(void)

@@ -32,6 +32,11 @@ INCLUDE+=-I$(CURDIR)/Config
 INCLUDE+=-I$(CURDIR)/RebbleOS
 INCLUDE+=-I$(CURDIR)/RebbleOS/Gui
 INCLUDE+=-I$(CURDIR)/libRebbleOS
+INCLUDE+=-I$(CURDIR)/libRebbleOS/ui
+INCLUDE+=-I$(CURDIR)/libRebbleOS/ui/layer
+INCLUDE+=-I$(CURDIR)/libRebbleOS/ui/animation
+INCLUDE+=-I$(CURDIR)/libRebbleOS/input
+INCLUDE+=-I$(CURDIR)/libRebbleOS/graphics
 
 BUILD_DIR = $(CURDIR)/build
 BIN_DIR = $(CURDIR)/binary
@@ -45,7 +50,11 @@ vpath %.c $(CURDIR)/Platform/STM32F4xx_StdPeriph_Driver/src \
           $(CURDIR)/RebbleOS \
           $(CURDIR)/RebbleOS/Gui \
           $(CURDIR)/libRebbleOS \
-          $(CURDIR)/libRebbleOS \
+          $(CURDIR)/libRebbleOS/ui \
+          $(CURDIR)/libRebbleOS/ui/layer \
+          $(CURDIR)/libRebbleOS/ui/animation \
+          $(CURDIR)/libRebbleOS/input \
+          $(CURDIR)/libRebbleOS/graphics \
           $(CURDIR)/Watchfaces \
           $(FREERTOS) \
           $(CURDIR)/Libraries/UGUI \
@@ -173,6 +182,7 @@ SRC+=librebble.c
 SRC+=window.c
 SRC+=layer.c
 SRC+=text_layer.c
+SRC+=scroll_layer.c
 SRC+=math_sin.c
 
 # watchface test

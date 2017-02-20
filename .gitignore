@@ -24,3 +24,6 @@
 
 # Dolphin file manager
 .directory
+
+#Kate
+.kate-swp

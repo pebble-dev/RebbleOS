@@ -83,10 +83,14 @@
 #include "graphics_bitmap.h"
 #include "graphics_context.h"
 #include "graphics_resource.h"
+#include "click_config.h"
 #include "layer.h"
 #include "text_layer.h"
+#include "scroll_layer.h"
 #include "window.h"
 #include "display.h"
+#include "animation.h"
 #include "neographics.h"
+
 
 void rbl_draw(void);

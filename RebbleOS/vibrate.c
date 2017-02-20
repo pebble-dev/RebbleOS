@@ -24,6 +24,9 @@
 #include "semphr.h"
 
 
+static uint16_t VIBRO_SHORT[] = { 255, 1000 };
+static uint16_t VIBRO_TAP_TAP[] = { 255, 750, 0, 750, 255, 750 };
+
 static TaskHandle_t xVibratePatternTask;
 static xQueueHandle xQueue;
 
