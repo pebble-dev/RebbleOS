@@ -47,8 +47,15 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   }
 
-  .rodata : { *(.rodata); *(.rodata*) }
-  
+  .rodata : {
+    *(.rodata);
+    *(.rodata*);
+    *(.jcr);
+    *(.tm_clone_table);
+    *(.igot.plt);
+  }
+  _erodata = .;  
+
   . = 0x20000000;
   _data_vma = .;
   _data_lma = ADDR(.rodata) + SIZEOF(.rodata);
@@ -57,6 +64,9 @@ SECTIONS
   .data : AT (ADDR(.rodata) + SIZEOF(.rodata)) {
     *(.data);
     *(.data*);
+    *(.jcr);
+    *(.tm_clone_table);
+    *(.igot.plt);
     . = ALIGN(4);
   }
   _edata = .;
@@ -78,4 +88,12 @@ SECTIONS
   _estack = .;
   _end = .;
   _ram_top = 0x20000000 + 256*1024;
+  _flash_top = 0x08000000 + 1*1024*1024;
+
+  /DISCARD/ :
+  {
+    libc.a ( * )
+    libm.a ( * )
+    libgcc.a ( * )
+  }
 }
