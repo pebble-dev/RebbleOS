@@ -34,6 +34,9 @@ all: $(PLATFORMS)
 define PLATFORM_template
 
 $(eval OBJS_$(1) = $(addprefix $(BUILD)/$(1)/,$(addsuffix .o,$(basename $(SRCS_$(1))))) )
+$(eval DEPS_$(1) = $(addprefix $(BUILD)/$(1)/,$(addsuffix .d,$(basename $(SRCS_$(1))))) )
+
+-include $(DEPS_$(1))
 
 $(1): $(BUILD)/$(1)/tintin_fw.bin
 
@@ -49,11 +52,10 @@ $(BUILD)/$(1)/tintin_fw.elf: $(OBJS_$(1))
 	$(QUIET)$(CC) $(CFLAGS_$(1)) $(LDFLAGS_$(1)) -Wl,-Map,$(BUILD)/$(1)/tintin_fw.map -o $$@ $(OBJS_$(1))
 	$(QUIET)Utilities/space.sh $(BUILD)/$(1)/tintin_fw.map
 
-# XXX: still need to do dependency tracking here
 $(BUILD)/$(1)/%.o: %.c
 	$(call SAY,[$(1)] CC $$<)
 	@mkdir -p $$(dir $$@)
-	$(QUIET)$(CC) $(CFLAGS_$(1)) -c -o $$@ $$< 
+	$(QUIET)$(CC) $(CFLAGS_$(1)) -MMD -MP -MT $$@ -MF $$(addsuffix .d,$$(basename $$@)) -c -o $$@ $$< 
 
 $(BUILD)/$(1)/%.o: %.s
 	$(call SAY,[$(1)] AS $$<)
