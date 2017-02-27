@@ -98,17 +98,15 @@ int _close(int file) {
 
 /***************************************************************************/
 
-/* Register name faking - works in collusion with the linker.  */
-register char * stack_ptr asm ("sp");
-
 caddr_t _sbrk(int incr) {
-  extern char   end asm ("end"); // Defined by the linker.
-  static char * heap_end;
-  char *        prev_heap_end;
+  extern char   _end; // Defined by the linker.
+  extern char _ram_top;
+  static void *heap_end;
+  void *prev_heap_end;
   if (heap_end == NULL)
-    heap_end = & end;
+    heap_end = &_end;
   prev_heap_end = heap_end;
-  if (heap_end + incr > stack_ptr) {
+  if (heap_end + incr > &_ram_top) {
     // Some of the libstdc++-v3 tests rely upon detecting
     // out of memory errors, so do not abort here.
 #if 0
