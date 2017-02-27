@@ -82,4 +82,9 @@ $(foreach platform,$(PLATFORMS),$(eval $(call PLATFORM_template,$(platform))))
 	$(call SAY,OBJCOPY $@)
 	$(QUIET)$(PFX)objcopy $< -O binary $@
 
+clean:
+	rm -rf $(BUILD)
+
+.PHONY: clean
+
 # XXX: still need to add rules to build a .pbz
