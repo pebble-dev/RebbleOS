@@ -75,9 +75,13 @@ SECTIONS
   _bss = .;
   _sbss = .;
   .bss : {
+    _sbss = .;         /* define a global symbol at bss start */
+    __bss_start__ = _sbss;
     *(.bss);
     *(.bss*);
     . = ALIGN(4);
+    _ebss = .;         /* define a global symbol at bss end */
+    __bss_end__ = _ebss;
   }
   _bss_size = SIZEOF(.bss);
   _bssend = .;
