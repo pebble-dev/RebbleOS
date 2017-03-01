@@ -120,6 +120,32 @@ void init_USART8(void)
 void platform_init()
 {
     // for stuff that needs special init for the platform
+    // not done in SystemInit, it did something weird.
+    SCB->VTOR = 0x08004000;
+    NVIC_SetVectorTable(0x08004000, 0);
+
+    // set the default pri groups for the interrupts
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+}
+
+void platform_init_late()
+{
+    // it needs a gentle reminder
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+
+    // ginge: the below may only apply to non-snowy
+    // joshua - Yesterday at 8:42 PM
+    // I recommend setting RTCbackup[0] 0x20000 every time you boot
+    // that'll force kick you into PRF on teh next time you enter the bootloader
+
+    // Dump clocks
+    RCC_ClocksTypeDef RCC_Clocks;
+    RCC_GetClocksFreq(&RCC_Clocks);
+    printf("c     : %lu", SystemCoreClock);
+    printf("SYSCLK: %lu\n", RCC_Clocks.SYSCLK_Frequency);
+    printf("CFGR  : %lx\n", RCC->PLLCFGR);
+    printf("Relocating NVIC to 0x08004000\n");
+
 }
 
 /*

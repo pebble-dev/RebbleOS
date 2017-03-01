@@ -46,8 +46,8 @@ struct n_GRect;
 struct ResHandle;
 
 /*
-size_t resource_size(ResHandle handle);
-void resource_load(n_GDrawCommandImage *image, ResHandle handle, size_t image_size);*/
+size_t resource_size(ResHandle handle); */
+/*static */void resource_load(void *image, ResHandle handle, size_t image_size)/* {} */;
 
 
 int32_t sin_lookup(int32_t angle);

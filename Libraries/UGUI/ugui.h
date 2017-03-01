@@ -17,7 +17,7 @@
 #ifndef __UGUI_H
 #define __UGUI_H
 
-#include "stm32f4xx.h"
+#include <stdint.h>
 #include "ugui_config.h"
 
 

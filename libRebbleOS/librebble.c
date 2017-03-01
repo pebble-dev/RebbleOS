@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "librebble.h"
-#include "snowy_rtc.h"  // <-- todo switch to using rebbleo time.c
+#include "platform.h"  // <-- todo switch to using rebbleo time.c
 #include "ugui.h"
 
 void rbl_get_time(char *buf)
@@ -52,3 +52,5 @@ void rbl_draw(void)
 {
     display_draw();
 }
+
+void resource_load(void *image, ResHandle handle, size_t image_size) {}

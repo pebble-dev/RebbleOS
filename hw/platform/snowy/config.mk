@@ -1,6 +1,6 @@
 CFLAGS_snowy = $(CFLAGS_stm32f4xx)
 CFLAGS_snowy += -Ihw/platform/snowy
-CFLAGS_snowy += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=snowy
+CFLAGS_snowy += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=snowy -DREBBLE_PLATFORM_SNOWY
 
 SRCS_snowy = $(SRCS_stm32f4xx)
 SRCS_snowy += hw/platform/snowy/snowy_display.c

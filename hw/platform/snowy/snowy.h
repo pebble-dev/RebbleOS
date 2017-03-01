@@ -27,6 +27,7 @@
 void debug_init(void);
 void debug_write(const unsigned char *p, size_t len);
 void platform_init(void);
+void platform_init_late(void);
 
 // internal
 void init_USART3(void);
