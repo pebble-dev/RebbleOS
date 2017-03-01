@@ -39,6 +39,18 @@ void debug_init()
     printf("USART3/8 init\n");
 }
 
+/* note that locking needs to be handled by external entity here */
+void debug_write(const unsigned char *p, size_t len) {
+    int i;
+    /* XXX: better power management */
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+    
+    for (i = 0; i < len; i++) {
+        while (!(USART3->SR & USART_SR_TC));
+        USART3->DR = p[i];
+    }
+}
+
 /*
  * Configure USART3(PB10, PB11) to redirect printf data to host PC.
  */

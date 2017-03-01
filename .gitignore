@@ -28,6 +28,8 @@
 #Kate
 .kate-swp
 
+*~
+
 build/*
 
 localconfig.mk

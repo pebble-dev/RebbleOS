@@ -49,5 +49,7 @@ SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_tim.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_usart.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_wwdg.c
 
-LDFLAGS_stm32f4xx = $(LDFLAGS_all) -specs=nosys.specs
+LDFLAGS_stm32f4xx = $(LDFLAGS_all)
 LDFLAGS_stm32f4xx += -Wl,-Thw/chip/stm32f4xx/stm32f4xx.lds
+
+LIBS_stm32f4xx = $(LIBS_all)

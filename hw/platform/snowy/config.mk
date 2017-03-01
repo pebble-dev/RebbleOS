@@ -15,6 +15,7 @@ SRCS_snowy += hw/platform/snowy/snowy.c
 SRCS_snowy += Resources/FPGA_4.3_snowy_dumped.bin
 
 LDFLAGS_snowy = $(LDFLAGS_stm32f4xx)
+LIBS_snowy = $(LIBS_stm32f4xx)
 
 QEMUFLAGS_snowy = -machine pebble-snowy-bb -cpu cortex-m4
 
