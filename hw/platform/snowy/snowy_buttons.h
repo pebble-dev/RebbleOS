@@ -20,6 +20,7 @@
 #include "stm32f4xx.h"
 
 typedef struct {
+    uint8_t button_id;
     uint16_t Pin;
     GPIO_TypeDef *Port;    
 } button_t;
@@ -32,9 +33,9 @@ typedef struct {
 } buttons_t;
 
 // API
-uint8_t hw_button_pressed(button_t *button);
+uint8_t hw_button_pressed(uint8_t button_id);
 void hw_buttons_init(void);
-
+button_t *snowy_buttons_get_button(uint8_t button_id);
 
 void buttons_init_intn(uint32_t EXTIport, uint32_t EXTIline, uint32_t pinSource, uint32_t EXTI_irq);
 

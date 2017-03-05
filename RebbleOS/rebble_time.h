@@ -17,7 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */ 
 
-
+struct tm *rebble_time_get_tm(void);
 
 typedef enum {
     SECOND_UNIT = 1 << 0, 

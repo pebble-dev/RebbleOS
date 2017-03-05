@@ -42,12 +42,7 @@
 
 struct GBitmap;
 struct n_GRect;
-// struct n_GDrawCommandImage;
 struct ResHandle;
-
-/*
-size_t resource_size(ResHandle handle); */
-/*static */void resource_load(void *image, ResHandle handle, size_t image_size)/* {} */;
 
 
 int32_t sin_lookup(int32_t angle);

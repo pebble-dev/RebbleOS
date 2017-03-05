@@ -13,6 +13,8 @@ CFLAGS_all += -ILibraries/neographics/src/fonts
 CFLAGS_all += -ILibraries/neographics/src/text
 CFLAGS_all += -Ilib/minilib/inc
 CFLAGS_all += -IWatchfaces
+CFLAGS_all += -IApps
+CFLAGS_all += -IApps/System
 CFLAGS_all += -IConfig
 CFLAGS_all += -IRebbleOS
 CFLAGS_all += -IRebbleOS/Gui
@@ -79,9 +81,12 @@ SRCS_all += libRebbleOS/ui/layer/text_layer.c
 SRCS_all += libRebbleOS/ui/window.c
 
 SRCS_all += Watchfaces/simple.c
+SRCS_all += Watchfaces/nivz.c
+
+SRCS_all += Apps/System/systemapp.c
+SRCS_all += Apps/System/menu.c
 
 SRCS_all += RebbleOS/Gui/gui.c
-SRCS_all += RebbleOS/Gui/menu.c
 SRCS_all += RebbleOS/Gui/neographics.c
 
 include hw/chip/stm32f4xx/config.mk

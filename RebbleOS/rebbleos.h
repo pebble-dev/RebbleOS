@@ -30,7 +30,6 @@
 #include "semphr.h"
 #include "gui.h"
 #include "display.h"
-#include "menu.h"
 #include "neographics.h"
 #include "ugui.h"
 #include "main.h"

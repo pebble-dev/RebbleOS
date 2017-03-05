@@ -15,3 +15,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */ 
+#include "librebble.h"
+#include "platform.h"
+
+struct tm *rebble_time_get_tm(void)
+{
+    return hw_get_time();
+}

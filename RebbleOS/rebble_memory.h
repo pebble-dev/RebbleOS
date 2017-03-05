@@ -23,3 +23,5 @@
 #define malloc pvPortMalloc
 #define calloc pvPortCalloc
 #define free vPortFree
+
+void *pvPortCalloc(size_t count, size_t size);

@@ -50,7 +50,7 @@ typedef struct Window
     const GBitmap *status_bar_icon;
     //WindowInputHandlers input_handlers;
     WindowHandlers window_handlers;
-    ClickConfigProvider click_config_provider;
+    ClickConfigProvider click_config_provider; // callback to the provider function
     void *click_config_context;
     void *user_data;
     GColor background_color;
@@ -85,3 +85,7 @@ void window_set_click_context(ButtonId button_id, void *context);
 
 void window_stack_push(Window *window, bool something);
 void window_dirty(bool is_dirty);
+
+
+void rbl_window_load_proc(void);
+void rbl_window_load_click_config(void);

@@ -1,3 +1,4 @@
+
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -16,17 +17,17 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "librebble.h"
-#include "stdint.h"
 #include "stdio.h"
 #include "string.h"
 #include "math.h"
 
 
-const char *app_name = "Simple";
+// const char *app_name = "Simple";
 
-static void update_proc(Layer *layer, GContext *ctx);
-void app_main(void);
-void app_init(void);
+static void simple_update_proc(Layer *layer, GContext *nGContext);
+void simple_main(void);
+void simple_init(void);
+void simple_deinit(void);
 
 static Window *s_main_window;
 static Layer *s_canvas_layer;
@@ -41,14 +42,14 @@ typedef struct {
 
 static Time s_last_time;
 
-static void window_load(Window *window)
+static void simple_window_load(Window *window)
 {
     printf("WF load\n");
     Layer *window_layer = window_get_root_layer(s_main_window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
     s_canvas_layer = layer_create(bounds);
-    layer_set_update_proc(s_canvas_layer, update_proc);
+    layer_set_update_proc(s_canvas_layer, simple_update_proc);
     layer_add_child(window_layer, s_canvas_layer);
 
     s_text_layer = text_layer_create(bounds);
@@ -61,25 +62,39 @@ static void window_load(Window *window)
 }
 
 
-static void window_unload(Window *window)
+static void simple_window_unload(Window *window)
 {
     layer_destroy(s_canvas_layer);
 }
 
-void app_init(void)
+void simple_init(void)
 {
     printf("init\n");
     s_main_window = window_create();
     
     window_set_window_handlers(s_main_window, (WindowHandlers) {
-        .load = window_load,
-        .unload = window_unload,
+        .load = simple_window_load,
+        .unload = simple_window_unload,
     });
     
     window_stack_push(s_main_window, true);
 }
 
-void app_main(void)
+void simple_main(void)
+{
+    simple_init();
+    app_event_loop();
+    simple_deinit();
+}
+
+
+void simple_deinit(void)
+{
+    window_destroy(s_main_window);
+}
+
+
+void simple_tick(void)
 {
     struct tm *tick_time = rbl_get_tm();
     
@@ -101,24 +116,9 @@ void app_main(void)
     }
 }
 
-const char *app_getname()
-{
-    return app_name;
-}
-
-void app_suspending()
-{
-    printf("WF: Going to sleep\n");
-}
-
-void app_resumed(void)
-{
-    printf("WF: Wakeup\n");
-}
-
 #define HAND_MARGIN 10
 
-static void update_proc(Layer *layer, GContext *nGContext)
+static void simple_update_proc(Layer *layer, GContext *nGContext)
 {   
     GRect full_bounds = layer_get_bounds(layer);
     //graphics_context_set_fill_color(nGContext, GColorWhite);
@@ -160,3 +160,4 @@ static void update_proc(Layer *layer, GContext *nGContext)
         graphics_draw_line(nGContext, s_center, minute_hand);
     }    
 }
+

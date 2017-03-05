@@ -91,6 +91,10 @@
 #include "display.h"
 #include "animation.h"
 #include "neographics.h"
+#include "buttons.h"
+#include "rebble_time.h"
+#include "appmanager.h"
 
 
 void rbl_draw(void);
+struct tm *rbl_get_tm(void);

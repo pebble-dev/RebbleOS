@@ -18,8 +18,6 @@ Stage 2 Goals (long ways off)
 * i8n
 
 
-run makeit.sh to build (or run make)
-
 Working:
 * CPU core / peripherals.
 * Interrupts
@@ -63,7 +61,7 @@ OS TODO:
 Instructions to compile:
 
 you must have the path in the PATH variable that includes the pebble sdk
-PATH=$PATH:/home/baz/Pebble/SDK/pebble-sdk-4.5-linux64/bin;$PATH
+PATH=$PATH:/home/baz/Pebble/SDK/pebble-sdk-4.5-linux64/bin
 
 You will need to get the following packages:
 
@@ -75,23 +73,15 @@ You will need to get the following packages:
  
  run:
  
- make fpga
- 
  make
  
- make upload
- 
- To push the firmware, I used an FTP server on my phone, and pushed the firmware to it. 
- 
- You can manually copy the pebble.pbz to the phone your way, in which case comment out the curl lines
- 
- if you 
- 
- make qemu
- 
- Then you get a firmware that will work with the Pebble emulator
+ make {platform}_qemu   (i.e. snowy_qemu)
+
+
  
 
 Barry Carter
 <barry.carter@gmail.com>
 
+Contributors:
+Joshua Wise <>

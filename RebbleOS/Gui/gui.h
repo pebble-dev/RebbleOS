@@ -18,18 +18,7 @@
  */
 
 #include "display.h"
-#include "backlight.h"
-#include "menu.h"
-#include "ambient.h"
-
-#define ANIM_STOP        0
-#define ANIM_RTL         1
 
 
-#define BTN_SELECT_PRESS 1
-#define BTN_BACK_PRESS   2
-#define BTN_UP_PRESS     3
-#define BTN_DOWN_PRESS   4
+void gui_init(void);
 
-uint8_t gui_init(void);
-void gui_command(uint8_t command);

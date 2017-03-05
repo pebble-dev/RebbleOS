@@ -519,8 +519,9 @@ void snowy_display_drawscene(uint8_t scene)
  */
 void snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
+    printf("C Frame\n");
     scanline_convert_buffer(xoffset, yoffset);
-    
+    printf("eC Frame\n");
     snowy_display_cs(1);
     delay_us(80);
     snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin

@@ -20,7 +20,6 @@
 #include "graphics_common.h"
 #include "gui.h"
 #include "display.h"
-#include "menu.h"
 #include "graphics.h"
 
 void neographics_init(uint8_t *fb);

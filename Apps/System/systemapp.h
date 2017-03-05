@@ -1,3 +1,4 @@
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -15,31 +16,20 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#include "FreeRTOS.h"
-#include "task.h"
-#include "stdio.h"
-#include "rebbleos.h"
-#include "gui.h"
+
+#include "display.h"
+#include "backlight.h"
+#include "menu.h"
+#include "ambient.h"
+
+#define ANIM_STOP        0
+#define ANIM_RTL         1
 
 
-// current status of te system
-SystemStatus system_status;
-SystemSettings system_settings;
+#define BTN_SELECT_PRESS 1
+#define BTN_BACK_PRESS   2
+#define BTN_UP_PRESS     3
+#define BTN_DOWN_PRESS   4
 
-void rebbleos_init(void)
-{
-    system_status.booted = 0;
-    system_status.app_mode = SYSTEM_RUNNING_APP;
-    
-    gui_init();
-    appmanager_init();
 
-    // set up main rebble task thread
-    
-    // this will be the main coordinator
-}
-
-void rebbleos_set_system_status(uint8_t status)
-{
-    
-}
+void systemapp_main(void);

@@ -43,14 +43,14 @@ void display_init(void)
     hw_display_start();
         
     // set up the RTOS tasks
-    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, &xDisplayCommandTask);
+    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xDisplayCommandTask);
     
     xQueue = xQueueCreate( 10, sizeof(uint8_t) );
         
     printf("Display Tasks Created!\n");
     
-    // turn on the LCD draw
-    display.DisplayMode = DISPLAY_MODE_BOOTLOADER;   
+    // turn on the LCD draw   
+    display.State = DISPLAY_STATE_IDLE;
     
     display_cmd(DISPLAY_CMD_DRAW, NULL);
     
@@ -103,9 +103,7 @@ void display_on()
 void display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
     display.State = DISPLAY_STATE_FRAME_INIT;
-    printf("Mtake\n");
     xSemaphoreTake(xMutex, portMAX_DELAY);
-    printf("Mgrant\n");
     hw_display_start_frame(xoffset, yoffset);
     xSemaphoreGive(xMutex);
 }
@@ -156,7 +154,6 @@ void vDisplayCommandTask(void *pvParameters)
 {
     uint8_t data;
     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
-    display.State = DISPLAY_STATE_BOOTING;
 
     while(1)
     {
@@ -166,7 +163,7 @@ void vDisplayCommandTask(void *pvParameters)
             vTaskDelay(5 / portTICK_RATE_MS);
             continue;
         }
-        
+
         // commands to be exectuted are send to this queue and processed
         // one at a time
         if (xQueueReceive(xQueue, &data, xMaxBlockTime))
@@ -177,6 +174,7 @@ void vDisplayCommandTask(void *pvParameters)
                 // the outer laters. If someone calls an overlapping draw into here
                 // it's just going to fail
                 case DISPLAY_CMD_DRAW:
+                        printf("draaw\n");
                     // all we are responsible for is starting a frame draw
                     display_start_frame(0, 0);
                     break;

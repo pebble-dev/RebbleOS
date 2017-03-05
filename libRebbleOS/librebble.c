@@ -16,7 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "librebble.h"
-#include "platform.h"  // <-- todo switch to using rebbleo time.c
+#include "platform.h"
 #include "ugui.h"
 
 void rbl_get_time(char *buf)
@@ -26,26 +26,7 @@ void rbl_get_time(char *buf)
 
 struct tm *rbl_get_tm(void)
 {
-    return hw_get_time();
-}
-
-void rbl_draw_fill_screen(uint8_t colour)
-{
-    if (colour == RBL_BLACK)
-        UG_FillScreen(C_BLACK);
-}
-
-void rbl_draw_text(uint8_t x, uint8_t y, char *text)
-{
-    UG_SetBackcolor(C_BLACK);
-    UG_SetForecolor(C_WHITE);
-    
-    UG_PutString(x, y, text);
-}
-
-void rbl_set_font_size()
-{
-    UG_FontSelect(&FONT_10X16);
+    return rebble_time_get_tm();
 }
 
 void rbl_draw(void)
@@ -53,4 +34,4 @@ void rbl_draw(void)
     display_draw();
 }
 
-void resource_load(void *image, ResHandle handle, size_t image_size) {}
+// void resource_load(void *image, ResHandle handle, size_t image_size) {}

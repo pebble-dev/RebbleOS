@@ -61,7 +61,7 @@ void scroll_layer_set_callbacks(ScrollLayer *scroll_layer, ScrollLayerCallbacks 
 
 void scroll_layer_set_context(ScrollLayer *scroll_layer, void *context)
 {
-    //TODO layer_set_context(scroll_layer->layer, context);
+//    layer_set_context(scroll_layer->layer, context);
 }
 
 void scroll_layer_set_content_offset(ScrollLayer *scroll_layer, GPoint offset, bool animated)

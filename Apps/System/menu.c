@@ -17,6 +17,7 @@
  */
 #include "rebbleos.h"
 #include "librebble.h"
+#include "menu.h"
 
 /*
 // menu
@@ -48,7 +49,7 @@ receive events
         notify app
 */
 
-static uint8_t menu_index = 0;
+static int8_t menu_index = 0;
 
 void menu_init(void)
 {
@@ -85,9 +86,9 @@ void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, m
     GColor bg;
     // list item is a box
     // might have a type (has subtext etc)
-    
+
     n_GContext *nGContext = neographics_get_global_context();
-   
+
     // could be selected item eh
     if (selected)
     {
@@ -101,18 +102,17 @@ void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, m
         UG_SetBackcolor(C_WHITE);
         UG_SetForecolor(C_BLACK);
     }
-    
+
 //     x += offsetx;
 //     y += offsety;
     
 
     graphics_context_set_fill_color(nGContext, bg);
     graphics_fill_rect(nGContext, GRect(x, y, x + 144, y + 42), 0, GCornerNone);
-    
     // and an icon
     // and text
     UG_FontSelect(&FONT_8X14);
-    UG_PutString(x + 30, y + 5, menu->text);
+    UG_PutString(x + 20, y + 5, menu->text);
     // and subtext
     UG_FontSelect(&FONT_6X8);
     UG_PutString(x + 40, y + 25, menu->sub_text);

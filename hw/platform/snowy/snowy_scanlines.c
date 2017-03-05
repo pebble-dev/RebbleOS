@@ -23,45 +23,55 @@
 
 extern display_t display;
 
+/*
+ * Bulk convert the buffer from its native format
+ * (y0: xxxxxxx
+ *  y1: xxxxxxx)
+ * to
+ * (x0: yyyyyyy
+ *  x1: yyyyyyy)
+ */
 void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
 {
     int i = 0;
+    uint16_t pos_half_lsb = 0;
+    uint16_t pos_half_msb = 0;
+    
+    uint16_t y;
+    uint8_t r0_fullbyte, r1_fullbyte, lsb, msb;
+    uint16_t halfrows = display.NumRows / 2;
     // go through each x and remap it to the new y
     
     // from    (Backbuffer)
-    // x0: [y0,1,2,3,4..]. x1: [y1,2,3,4..]..
-    // to    (nativebuffer)
-    // y0: [x0,1,2,3,4..]. y1: [x1,2,3,4..]..    
-    for (uint16_t yi = 0; yi < display.NumRows; yi++)
+    // y0: [x0,x1,x2,x3,x4..]. y1: [x1,x2,x3,x4..]..
+    // to    (nativebuffer, stored in columns order)
+    // x0: [y0,y1,y2,y3,y4..]. x1: [y1,y2,y3,y4..]..    
+    for (uint16_t yi = 0; yi < display.NumRows; yi+=2)
     {
-        uint16_t y = 167 - yi;
-        for (int x = 0; x < display.NumCols; x++)    
+        y = display.NumRows - 1 - yi;
+        uint16_t px = 0;
+        uint16_t halfy = y / 2;
+        for (int x = 0; x < display.NumCols; x++)
         {
-            // non destructively convert a single pixel in the buffer
-            uint16_t pos_half_lsb = (x * display.NumRows) + (y / 2);
-            uint16_t pos_half_msb = (x * display.NumRows) + (display.NumRows / 2) + (y / 2);
-                    
-            // below sets to native display format
+            // we store the actual buffer in columns order
+            // where the columns buffer is split with lsb/msb encoding
+            pos_half_lsb = px + halfy;
+            pos_half_msb = px + halfrows + halfy;
             
-            uint8_t odd = !(y % 2);
-            uint8_t fullbyte = display.BackBuffer[i];
-                        
-            uint8_t lsb = (fullbyte & (0b00010101));
-            uint8_t msb = (fullbyte & (0b00101010)) >> 1;
+            r0_fullbyte = display.BackBuffer[i];
+            r1_fullbyte = display.BackBuffer[i + display.NumCols];
             
-            // or the new pixel into the existing framebuffer value so we don't smash it
-            uint8_t olsb = display.DisplayBuffer[pos_half_lsb] & (0b000101010 >> odd);
-            uint8_t omsb = display.DisplayBuffer[pos_half_msb] & (0b000101010 >> odd);
+            lsb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
+            msb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
             
-            // there are two bytes in each msb/lsb pair. We shift the incoming value
-            // by "odd" bytes. Odd is 0 or 1 based on the y value being an odd/even
-            // odd values  (1,3,5...) occupy the left-most bits of the byte: & 101010
-            // even values (0,2,4...) occupy the right-most bits of the byte: & 010101
-            display.DisplayBuffer[pos_half_lsb] = olsb | lsb << odd;
-            display.DisplayBuffer[pos_half_msb] = omsb | msb << odd;
+            display.DisplayBuffer[pos_half_lsb] = lsb;
+            display.DisplayBuffer[pos_half_msb] = msb;
             
+            px += display.NumRows;
             i++;
         }
+        // skip the next y column as we processed it already
+        i += display.NumCols;
     }
 }
 

@@ -18,9 +18,12 @@
 
 #include "librebble.h"
 
+// TODO uh, oh. Maybe we need a linked list of windows. Check the api and infer
 Window *top_window;
 
-// window stuff
+/*
+ * Create a new top level window and all of the contents therein
+ */
 Window *window_create()
 {
     Window *window = calloc(1, sizeof(Window));
@@ -37,6 +40,9 @@ Window *window_create()
     return window;
 }
 
+/*
+ * Set the pointers to the functions to call when the window is shown
+ */
 void window_set_window_handlers(Window *window, WindowHandlers handlers)
 {
     if (window == NULL)
@@ -45,11 +51,20 @@ void window_set_window_handlers(Window *window, WindowHandlers handlers)
     window->window_handlers = handlers;
 }
 
+/*
+ * Push a window onto the main window window_stack_push
+ * TODO
+ * At the moment it is just a fakeout. It actually sets the top level
+ * window. This kinda means apps can't have multiple windows yet. I think?.
+ */
 void window_stack_push(Window *window, bool something)
 {
     top_window = window;
 }
 
+/*
+ * Kill a window. Clean up references and memory
+ */
 void window_destroy(Window *window)
 {
     // free all of the layers
@@ -58,6 +73,9 @@ void window_destroy(Window *window)
     free(window);
 }
 
+/*
+ * Get the top level window's layer
+ */
 Layer *window_get_root_layer(Window *window)
 {
     if (window == NULL)
@@ -65,6 +83,25 @@ Layer *window_get_root_layer(Window *window)
     
     return window->root_layer;
 }
+
+
+/* 
+ * Invalidate the window so it is scheduled for a redraw
+ */
+void window_dirty(bool is_dirty)
+{
+    top_window->is_render_scheduled = is_dirty;
+    walk_layers(top_window->root_layer);
+    
+    // TODO: shortcut, for now just draw directly
+    rbl_draw();
+    top_window->is_render_scheduled = false;
+}
+
+/*
+ * Window click config provider registration implementation.
+ * For the most part, these will just defer to the button recogniser
+ */
 
 void window_set_click_config_provider(Window *window, ClickConfigProvider click_config_provider)
 {
@@ -109,22 +146,27 @@ void * window_get_user_data(const Window *window)
 
 void window_single_click_subscribe(ButtonId button_id, ClickHandler handler)
 {
+    button_single_click_subscribe(button_id, handler);
 }
 
 void window_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat_interval_ms, ClickHandler handler)
 {
+    button_single_repeating_click_subscribe(button_id, repeat_interval_ms, handler);
 }
 
 void window_multi_click_subscribe(ButtonId button_id, uint8_t min_clicks, uint8_t max_clicks, uint16_t timeout, bool last_click_only, ClickHandler handler)
 {
+    button_multi_click_subscribe(button_id, min_clicks, max_clicks, timeout, last_click_only, handler);
 }
 
 void window_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHandler down_handler, ClickHandler up_handler)
 {
+    button_long_click_subscribe(button_id, delay_ms, down_handler, up_handler);
 }
 
 void window_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, ClickHandler up_handler, void * context)
 {
+    button_raw_click_subscribe(button_id, down_handler, up_handler, context);
 }
 
 void window_set_click_context(ButtonId button_id, void *context)
@@ -132,22 +174,21 @@ void window_set_click_context(ButtonId button_id, void *context)
 }
 
 
-void window_dirty(bool is_dirty)
-{
-    top_window->is_render_scheduled = is_dirty;
-    walk_layers(top_window->root_layer);
-    rbl_draw();
-    top_window->is_render_scheduled = false;
-}
-
-
-
-
-// call the load callback
+/*
+ * Deal with window level callbacks when a window is created.
+ * These will call through to the pointers to the functions in 
+ * the user supplied window
+ */
 void rbl_window_load_proc(void)
 {
     // TODO
     // we are not tracking app root windows yet, just share out the top_window for now
     if (top_window->window_handlers.load)
         top_window->window_handlers.load(top_window);
+}
+
+void rbl_window_load_click_config(void)
+{
+    if (top_window->click_config_provider)
+        top_window->click_config_provider(top_window);
 }

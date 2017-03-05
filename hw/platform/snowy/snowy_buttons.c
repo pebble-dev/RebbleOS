@@ -21,10 +21,10 @@
 #include "buttons.h"
 
 buttons_t buttons = {
-    .Back   = { GPIO_Pin_4, GPIOG },
-    .Up     = { GPIO_Pin_3, GPIOG },
-    .Select = { GPIO_Pin_1, GPIOG },
-    .Down   = { GPIO_Pin_2, GPIOG }
+    .Back   = { 0, GPIO_Pin_4, GPIOG },
+    .Up     = { 1, GPIO_Pin_3, GPIOG },
+    .Select = { 2, GPIO_Pin_1, GPIOG },
+    .Down   = { 3, GPIO_Pin_2, GPIOG }
 };
 
 /*
@@ -87,7 +87,7 @@ void buttons_handle_ISR(uint32_t line, button_t *button)
     /* Make sure that interrupt flag is set */
     if (EXTI_GetITStatus(line) != RESET)
     {       
-        button_isr(button);
+        button_isr(button->button_id);
        
         /* Clear interrupt flag */
         EXTI_ClearITPendingBit(line);
@@ -114,10 +114,35 @@ void EXTI1_IRQHandler(void)
     buttons_handle_ISR(EXTI_Line1, &buttons.Select);
 }
 
-uint8_t hw_button_pressed(button_t *button)
+uint8_t hw_button_pressed_x(button_t *button)
 {
     int btn = GPIO_ReadInputDataBit(button->Port, button->Pin);
-    printf("BTN %d\n", btn);
-    return btn;
+    return !btn;
 }
 
+uint8_t hw_button_pressed(uint8_t button_id)
+{
+    button_t *button = snowy_buttons_get_button(button_id);
+    int btn = GPIO_ReadInputDataBit(button->Port, button->Pin);
+    return !btn;
+}
+
+
+// setup out buttons for this platform
+button_t *snowy_buttons_get_button(uint8_t button_id)
+{
+     switch (button_id)
+    {
+        case 0:
+            return &buttons.Back;
+        case 1:
+            return &buttons.Up;
+        case 2:
+            return &buttons.Select;
+        case 3:
+            return &buttons.Down;
+    }
+    
+    // um, sure, why not. You asked for an invalid button afterall
+    return &buttons.Down;
+}

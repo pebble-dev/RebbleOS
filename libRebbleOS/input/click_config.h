@@ -20,6 +20,7 @@
 #include "layer.h"
 
 struct Layer;
+struct GRect;
 
 typedef void *ClickRecognizerRef;
 typedef void (*ClickHandler)(ClickRecognizerRef recognizer, void *context);
@@ -54,7 +55,7 @@ typedef struct ClickConfig
     } raw;
 } ClickConfig;
 
-typedef void (*ClickConfigProvider)(ClickConfig **array_of_ptrs_to_click_configs_to_setup, void *context);
+typedef void (*ClickConfigProvider)(void *context);
 
 typedef enum ButtonId
 {
