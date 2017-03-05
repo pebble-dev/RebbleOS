@@ -18,13 +18,16 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "stm32f4xx.h"
+#include <sys/types.h>
 
 // How often are we resetting the watchdog timer (ms)
 #define WATCHDOG_RESET_MS 500
 
 // main hooks
 void debug_init(void);
+void debug_write(const unsigned char *p, size_t len);
 void platform_init(void);
+void platform_init_late(void);
 
 // internal
 void init_USART3(void);

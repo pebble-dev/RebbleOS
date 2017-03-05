@@ -39,6 +39,18 @@ void debug_init()
     printf("USART3/8 init\n");
 }
 
+/* note that locking needs to be handled by external entity here */
+void debug_write(const unsigned char *p, size_t len) {
+    int i;
+    /* XXX: better power management */
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+    
+    for (i = 0; i < len; i++) {
+        while (!(USART3->SR & USART_SR_TC));
+        USART3->DR = p[i];
+    }
+}
+
 /*
  * Configure USART3(PB10, PB11) to redirect printf data to host PC.
  */
@@ -108,6 +120,32 @@ void init_USART8(void)
 void platform_init()
 {
     // for stuff that needs special init for the platform
+    // not done in SystemInit, it did something weird.
+    SCB->VTOR = 0x08004000;
+    NVIC_SetVectorTable(0x08004000, 0);
+
+    // set the default pri groups for the interrupts
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+}
+
+void platform_init_late()
+{
+    // it needs a gentle reminder
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+
+    // ginge: the below may only apply to non-snowy
+    // joshua - Yesterday at 8:42 PM
+    // I recommend setting RTCbackup[0] 0x20000 every time you boot
+    // that'll force kick you into PRF on teh next time you enter the bootloader
+
+    // Dump clocks
+    RCC_ClocksTypeDef RCC_Clocks;
+    RCC_GetClocksFreq(&RCC_Clocks);
+    printf("c     : %lu", SystemCoreClock);
+    printf("SYSCLK: %lu\n", RCC_Clocks.SYSCLK_Frequency);
+    printf("CFGR  : %lx\n", RCC->PLLCFGR);
+    printf("Relocating NVIC to 0x08004000\n");
+
 }
 
 /*

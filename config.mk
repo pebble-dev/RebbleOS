@@ -11,6 +11,7 @@ CFLAGS_all += -ILibraries/neographics/src/primitives
 CFLAGS_all += -ILibraries/neographics/src/types
 CFLAGS_all += -ILibraries/neographics/src/fonts
 CFLAGS_all += -ILibraries/neographics/src/text
+CFLAGS_all += -Ilib/minilib/inc
 CFLAGS_all += -IWatchfaces
 CFLAGS_all += -IConfig
 CFLAGS_all += -IRebbleOS
@@ -22,9 +23,11 @@ CFLAGS_all += -IlibRebbleOS/ui/animation
 CFLAGS_all += -IlibRebbleOS/input
 CFLAGS_all += -IlibRebbleOS/graphics
 
+# XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
 
-LDFLAGS_all +=
+LDFLAGS_all += -nostartfiles -nostdlib
+LIBS_all += -lgcc
 
 SRCS_all += FreeRTOS/croutine.c
 SRCS_all += FreeRTOS/event_groups.c
@@ -35,7 +38,10 @@ SRCS_all += FreeRTOS/timers.c
 SRCS_all += FreeRTOS/portable/GCC/ARM_CM4F/port.c
 SRCS_all += FreeRTOS/portable/MemMang/heap_4.c
 
-SRCS_all += Libraries/syscall/syscalls.c
+SRCS_all += lib/minilib/minilib.c
+SRCS_all += lib/minilib/sbrk.c
+SRCS_all += lib/minilib/dprint.c
+SRCS_all += lib/minilib/rand.c
 
 SRCS_all += Hardware/stdarg.c
 
@@ -79,4 +85,6 @@ SRCS_all += RebbleOS/Gui/menu.c
 SRCS_all += RebbleOS/Gui/neographics.c
 
 include hw/chip/stm32f4xx/config.mk
+include hw/chip/stm32f2xx/config.mk
 include hw/platform/snowy/config.mk
+include hw/platform/tintin/config.mk

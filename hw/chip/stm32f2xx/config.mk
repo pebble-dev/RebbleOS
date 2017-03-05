@@ -1,0 +1,55 @@
+CFLAGS_stm32f2xx = $(CFLAGS_all)
+CFLAGS_stm32f2xx += -Ihw/chip/stm32f2xx/inc
+CFLAGS_stm32f2xx += -DUSE_STDPERIPH_DRIVER -DSTM32F2XX -mcpu=cortex-m3 -fsingle-precision-constant
+
+SRCS_stm32f2xx = $(SRCS_all)
+SRCS_stm32f2xx += hw/chip/stm32f2xx/startup_stm32f2xx.s
+SRCS_stm32f2xx += hw/chip/stm32f2xx/system_stm32f2xx.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2x_i2c.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/misc.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_adc.c
+#SRCS_stm32f2xx += hw/chip/stm32f4xx/stm32f2xx_can.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_cec.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_crc.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_cryp.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_cryp_aes.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_cryp_des.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_cryp_tdes.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_dac.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_dbgmcu.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_dcmi.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_dma.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_dma2d.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_dsi.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_exti.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_flash.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_flash_ramfunc.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_fmc.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_fmpi2c.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_fsmc.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_gpio.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_hash.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_hash_md5.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_hash_sha1.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_i2c.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_iwdg.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_lptim.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_ltdc.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_pwr.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_qspi.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_rcc.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_rng.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_rtc.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_sai.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_sdio.c
+#SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_spdifrx.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_spi.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_syscfg.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_tim.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_usart.c
+SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_wwdg.c
+
+LDFLAGS_stm32f2xx = $(LDFLAGS_all)
+LDFLAGS_stm32f2xx += -Wl,-Thw/chip/stm32f2xx/stm32f2xx.lds
+
+LIBS_stm32f2xx = $(LIBS_all)

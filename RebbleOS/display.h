@@ -38,6 +38,12 @@
 #define RED  0x30
 
 
+/* XXX this is not portable yet, and really needs to get split into hw/ */
+#ifdef STM32F2XX
+#include "stm32f2xx.h"
+#else
+#include "stm32f4xx.h"
+#endif
 typedef struct {
 //    SPI *spi;  // SPI6
     GPIO_TypeDef *PortDisplay;

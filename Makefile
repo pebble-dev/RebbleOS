@@ -49,7 +49,7 @@ $(1)_gdb:
 $(BUILD)/$(1)/tintin_fw.elf: $(OBJS_$(1))
 	$(call SAY,[$(1)] LD $$@)
 	@mkdir -p $$(dir $$@)
-	$(QUIET)$(CC) $(CFLAGS_$(1)) $(LDFLAGS_$(1)) -Wl,-Map,$(BUILD)/$(1)/tintin_fw.map -o $$@ $(OBJS_$(1))
+	$(QUIET)$(CC) $(CFLAGS_$(1)) $(LDFLAGS_$(1)) -Wl,-Map,$(BUILD)/$(1)/tintin_fw.map -o $$@ $(OBJS_$(1)) $(LIBS_$(1))
 	$(QUIET)Utilities/space.sh $(BUILD)/$(1)/tintin_fw.map
 
 $(BUILD)/$(1)/%.o: %.c

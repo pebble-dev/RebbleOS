@@ -1,0 +1,4 @@
+The libc in RebbleOS is a variant of https://github.com/jwise/minilib/ ,
+which is a collection of routines designed to be used as a replacement for a
+full-weight libc.  It has been augmented on RebbleOS with debug output
+and memory management routines.

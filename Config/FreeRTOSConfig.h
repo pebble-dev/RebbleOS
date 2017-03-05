@@ -87,7 +87,7 @@
 #include <stdint.h>
 #endif
 
-#include "system_stm32f4xx.h"
+#include "platform_freertos.h"
 
 #define configSUPPORT_STATIC_ALLOCATION 0
 
