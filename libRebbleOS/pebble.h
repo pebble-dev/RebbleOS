@@ -32,6 +32,9 @@
 // This is for neographics so it can set the screen size properly
 // TODO cange this to automatic variables
 #define PBL_RECT
+// tell neographics we are using it as our core
+#define NGFX_IS_CORE
+
 #define TRIG_MAX_RATIO 0xffff
 #define TRIG_MAX_ANGLE 0x10000
 
