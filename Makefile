@@ -1,8 +1,21 @@
 include config.mk
 -include localconfig.mk
 
-# No user serviceable parts below.  You probably want to be editing
-# config.mk or localconfig.mk.
+###########################################################################
+#
+#    #####          #######         #######         ######            ###
+#   #     #            #            #     #         #     #           ###
+#   #                  #            #     #         #     #           ###
+#    #####             #            #     #         ######             #
+#         #            #            #     #         #
+#   #     #            #            #     #         #                 ###
+#    #####             #            #######         #                 ###
+#
+#
+# You should not have to change anything below unless you are working on
+# build infrastructure.  You probably want to be editing config.mk or
+# localconfig.mk.
+#
 
 GREEN=\033[32;01m
 RED=\033[31;01m
@@ -16,9 +29,14 @@ QUIET =
 SAY =
 endif
 
-PEBBLE_TOOLCHAIN_PATH ?=/usr/bin
-#/usr/local/Cellar/pebble-toolchain/2.0/arm-cs-tools/bin
+# Do not override this here!  Override this in localconfig.mk.
+ifeq ($(shell uname -s),Darwin)
+PEBBLE_TOOLCHAIN_PATH ?= /usr/local/Cellar/pebble-toolchain/2.0/arm-cs-tools/bin
+else
+PEBBLE_TOOLCHAIN_PATH ?= /usr/bin
+endif
 
+# Do not override this here!  Override this in localconfig.mk.
 PFX ?= $(PEBBLE_TOOLCHAIN_PATH)/arm-none-eabi-
 
 CC = $(PFX)gcc
@@ -26,8 +44,8 @@ LD = $(PFX)ld
 GDB = $(PFX)gdb
 OBJCOPY = $(PFX)objcopy
 
-#QEMU = qemu-pebble
-QEMU = qemu-system-arm
+# Do not override this here!  Override this in localconfig.mk.
+QEMU ?= qemu-pebble
 
 # output directory
 BUILD = build
