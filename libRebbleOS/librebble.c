@@ -17,7 +17,7 @@
  */
 #include "librebble.h"
 #include "platform.h"
-#include "ugui.h"
+// #include "ugui.h"
 
 void rbl_get_time(char *buf)
 {

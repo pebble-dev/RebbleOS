@@ -1,3 +1,4 @@
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -15,26 +16,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#include "stm32f4xx.h"
 
-#include "rebbleos.h"
-
-extern SystemStatus system_status;
-extern SystemSettings system_settings;
-
-// static UG_GUI gui;
-
-
-/*
- * Initialise the uGUI component and start the draw
- */
-void gui_init(void)
-{   
-    /* Configure uGUI */
-//     UG_Init(&gui, scanline_rgb888pixel_to_frambuffer, display.NumCols, display.NumRows);
-
-    /* Draw text with uGUI */
-//     UG_FontSelect(&FONT_8X14);
-
-    neographics_init(display_get_buffer());
-}
+#define DISPLAY_ROWS 144
+#define DISPLAY_COLS 168
 

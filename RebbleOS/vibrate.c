@@ -56,7 +56,8 @@ void vibrate_enable(uint8_t enabled)
 void vibrate_pattern(uint16_t *pattern, uint8_t pattern_length)
 {
     // set the timer 12 CH2 to pwm to vibrate
-    
+    // TODO FIX
+    return;
     // low rumble
     // touble tap
     // medium

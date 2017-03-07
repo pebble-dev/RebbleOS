@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+#include "platform_config.h"
 #include "snowy.h"
 #include "snowy_backlight.h"
 #include "snowy_power.h"

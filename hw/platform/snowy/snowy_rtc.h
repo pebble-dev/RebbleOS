@@ -22,6 +22,6 @@ void rtc_config(void);
 void hw_get_time_str(char *buf);
 struct tm *hw_get_time(void);
 
-#define RTC_CLOCK_SOURCE_LSI
+#define RTC_CLOCK_SOURCE_LSE
 
 #endif

@@ -31,7 +31,7 @@
 #include "gui.h"
 #include "display.h"
 #include "neographics.h"
-#include "ugui.h"
+// #include "ugui.h"
 #include "main.h"
 
 // Public API functions as exposed through the various layers

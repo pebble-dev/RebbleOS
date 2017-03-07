@@ -24,6 +24,7 @@ CFLAGS_all += -IlibRebbleOS/ui/layer
 CFLAGS_all += -IlibRebbleOS/ui/animation
 CFLAGS_all += -IlibRebbleOS/input
 CFLAGS_all += -IlibRebbleOS/graphics
+CFLAGS_all += -IlibRebbleOS/event
 
 # XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
@@ -79,6 +80,7 @@ SRCS_all += libRebbleOS/ui/layer/layer.c
 SRCS_all += libRebbleOS/ui/layer/scroll_layer.c
 SRCS_all += libRebbleOS/ui/layer/text_layer.c
 SRCS_all += libRebbleOS/ui/window.c
+SRCS_all += libRebbleOS/event/tick_timer_service.c
 
 SRCS_all += Watchfaces/simple.c
 SRCS_all += Watchfaces/nivz.c

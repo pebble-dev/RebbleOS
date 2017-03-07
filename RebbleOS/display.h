@@ -17,7 +17,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "FreeRTOS.h"
-#include "ugui.h"
+// #include "ugui.h"
 
 #define DISPLAY_MODE_BOOTLOADER      0
 #define DISPLAY_MODE_FULLFAT         1
@@ -44,41 +44,6 @@
 #else
 #include "stm32f4xx.h"
 #endif
-typedef struct {
-//    SPI *spi;  // SPI6
-    GPIO_TypeDef *PortDisplay;
-    uint16_t PinReset;
-    uint16_t PinPower;
-    uint16_t PinCs;
-    uint16_t PinBacklight;
-    GPIO_TypeDef *PortBacklight;
-    
-    uint16_t PinMiso;
-    uint16_t PinMosi;
-    uint16_t PinSck;
-    
-    // inputs
-    uint16_t PinResetDone;
-    uint16_t PinIntn;
-    
-    
-    // stuff from qemu
-    uint16_t NumRows;
-    uint16_t NumCols;
-    uint8_t NumBorderRows;
-    uint8_t NumBorderCols;
-    
-    
-    //state
-    uint8_t BacklightEnabled;
-    uint16_t Brightness;
-    uint8_t PowerOn;
-    uint8_t State; // busy etc
-    uint8_t DisplayMode; // bootloader or full
-    
-    uint8_t DisplayBuffer[24192];
-    uint8_t BackBuffer[24192];
-} display_t;
 
 
 void display_init(void);
@@ -94,9 +59,10 @@ void display_cmd(uint8_t cmd, char *data);
 void vDisplayISRProcessor(void *pvParameters);
 void vDisplayCommandTask(void *pvParameters);
 void display_draw(void);
+uint8_t *display_get_buffer(void);
 
 // TODO: move to scanline
 void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset);
-void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
+// void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
 
 int init_gui(void);

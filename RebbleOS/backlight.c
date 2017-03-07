@@ -28,7 +28,8 @@ struct backlight_message_t
     uint16_t val2;
 } backlight_message;
 
-extern display_t display;
+uint16_t backlight_brightness;
+uint8_t backlight_is_on;
 
 /*
  * Backlight is a go
@@ -42,6 +43,9 @@ void backlight_init(void)
     xBacklightQueue = xQueueCreate( 2, sizeof(struct backlight_message_t *));
         
     printf("Backlight Tasks Created!\n");
+    backlight_is_on = 0;
+    backlight_brightness = 0;
+
 }
 
 // In here goes the functions to dim the backlight
@@ -66,7 +70,7 @@ void backlight_set(uint16_t brightness_pct)
     uint16_t brightness;
     
     brightness = 8499 / (100 / brightness_pct);
-                    printf("BRIGHTNESS %d\n", brightness); // display.Brightness);            
+    printf("BRIGHTNESS %d\n", brightness); // display.Brightness);            
 
     backlight_set_raw(brightness);
 }
@@ -76,7 +80,7 @@ void backlight_set(uint16_t brightness_pct)
  */
 void backlight_set_raw(uint16_t brightness)
 {
-    display.Brightness = brightness;
+    backlight_brightness = brightness;
 
     // set the display pwm value
     hw_backlight_set(brightness);
@@ -85,7 +89,7 @@ void backlight_set_raw(uint16_t brightness)
 void backlight_set_from_ambient(void)
 {
     uint16_t amb, bri;
-    bri = display.Brightness;
+    bri = backlight_brightness;
     
     backlight_set_raw(0);
     // give the led in the backlight time to de-energise
@@ -123,7 +127,7 @@ void vBacklightTask(void *pvParameters)
     {
         if (backlight_status == BACKLIGHT_FADE)
         {
-            uint16_t newbri = (display.Brightness - bri_scale);
+            uint16_t newbri = (backlight_brightness - bri_scale);
             wait = 10;
             backlight_set_raw(newbri);
 
@@ -147,7 +151,7 @@ void vBacklightTask(void *pvParameters)
             if (time_now > (portTICK_RATE_MS * 400))
             {
                 backlight_status = BACKLIGHT_FADE;
-                bri_scale = display.Brightness / 50;
+                bri_scale = backlight_brightness / 50;
                 bri_it = 50; // number of steps
             }
         }

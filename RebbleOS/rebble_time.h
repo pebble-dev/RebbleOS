@@ -19,6 +19,7 @@
 
 struct tm *rebble_time_get_tm(void);
 
+// a bit mask of the time units
 typedef enum {
     SECOND_UNIT = 1 << 0, 
     MINUTE_UNIT = 1 << 1, 

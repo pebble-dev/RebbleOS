@@ -22,18 +22,12 @@ static TaskHandle_t xDisplayCommandTask;
 static xQueueHandle xQueue;
 static SemaphoreHandle_t xMutex;
 
-extern display_t display;
-
 /*
  * Start the display driver and tasks. Show splash
  */
 void display_init(void)
 {   
     // init variables
-    display.BacklightEnabled = 0;
-    display.Brightness = 0;
-    display.PowerOn = 0;
-    display.State = DISPLAY_STATE_BOOTING;
     
     printf("Display Init\n");
     
@@ -50,7 +44,7 @@ void display_init(void)
     printf("Display Tasks Created!\n");
     
     // turn on the LCD draw   
-    display.State = DISPLAY_STATE_IDLE;
+//     display.State = DISPLAY_STATE_IDLE;
     
     display_cmd(DISPLAY_CMD_DRAW, NULL);
     
@@ -102,7 +96,6 @@ void display_on()
  */
 void display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
-    display.State = DISPLAY_STATE_FRAME_INIT;
     xSemaphoreTake(xMutex, portMAX_DELAY);
     hw_display_start_frame(xoffset, yoffset);
     xSemaphoreGive(xMutex);
@@ -126,7 +119,7 @@ void display_logo(uint8_t *frameData)
  */
 uint8_t *display_get_buffer(void)
 {
-    return display.BackBuffer;
+    return hw_display_get_buffer();
 }
 
 /*
@@ -157,8 +150,7 @@ void vDisplayCommandTask(void *pvParameters)
 
     while(1)
     {
-        if (/*display.State != DISPLAY_STATE_IDLE &&*/
-            display.State == DISPLAY_STATE_BOOTING)
+        if (hw_display_get_state() == DISPLAY_STATE_BOOTING)
         {
             vTaskDelay(5 / portTICK_RATE_MS);
             continue;

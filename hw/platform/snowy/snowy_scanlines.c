@@ -20,6 +20,7 @@
 #include "string.h"
 #include "display.h"
 #include "snowy_display.h"
+#include "ugui.h"
 
 extern display_t display;
 
@@ -39,19 +40,19 @@ void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
     
     uint16_t y;
     uint8_t r0_fullbyte, r1_fullbyte, lsb, msb;
-    uint16_t halfrows = display.NumRows / 2;
+    uint16_t halfrows = DISPLAY_ROWS / 2;
     // go through each x and remap it to the new y
     
     // from    (Backbuffer)
     // y0: [x0,x1,x2,x3,x4..]. y1: [x1,x2,x3,x4..]..
     // to    (nativebuffer, stored in columns order)
     // x0: [y0,y1,y2,y3,y4..]. x1: [y1,y2,y3,y4..]..    
-    for (uint16_t yi = 0; yi < display.NumRows; yi+=2)
+    for (uint16_t yi = 0; yi < DISPLAY_ROWS; yi+=2)
     {
-        y = display.NumRows - 1 - yi;
+        y = DISPLAY_ROWS - 1 - yi;
         uint16_t px = 0;
         uint16_t halfy = y / 2;
-        for (int x = 0; x < display.NumCols; x++)
+        for (int x = 0; x < DISPLAY_COLS; x++)
         {
             // we store the actual buffer in columns order
             // where the columns buffer is split with lsb/msb encoding
@@ -59,7 +60,7 @@ void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
             pos_half_msb = px + halfrows + halfy;
             
             r0_fullbyte = display.BackBuffer[i];
-            r1_fullbyte = display.BackBuffer[i + display.NumCols];
+            r1_fullbyte = display.BackBuffer[i + DISPLAY_COLS];
             
             lsb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
             msb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
@@ -67,11 +68,11 @@ void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
             display.DisplayBuffer[pos_half_lsb] = lsb;
             display.DisplayBuffer[pos_half_msb] = msb;
             
-            px += display.NumRows;
+            px += DISPLAY_ROWS;
             i++;
         }
         // skip the next y column as we processed it already
-        i += display.NumCols;
+        i += DISPLAY_COLS;
     }
 }
 
@@ -84,11 +85,11 @@ void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
 // we will convert the pixel into its lsb and msb, and or it into the existing buffer
 void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c)
 {
-    if (x > display.NumCols || y > display.NumRows)
+    if (x > DISPLAY_COLS || y > DISPLAY_ROWS)
         return;
     
     // write to the pixel buffer in y0 [x0, 1, 3], y1 [x1, 1 2 3]
-    uint16_t pos = (y * display.NumCols) + x;
+    uint16_t pos = (y * DISPLAY_COLS) + x;
         
     // take the rgb888 and turn it into something the display can use
     uint16_t red = c >> 16;

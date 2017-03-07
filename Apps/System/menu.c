@@ -81,7 +81,7 @@ void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety)
     }
 }
 
-void menu_draw_list_item(UG_S16 x, UG_S16 y, uint8_t offsetx, uint8_t offsety, menu_item_t* menu, uint8_t selected)
+void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offsety, menu_item_t* menu, uint8_t selected)
 {
     GColor bg;
     // list item is a box

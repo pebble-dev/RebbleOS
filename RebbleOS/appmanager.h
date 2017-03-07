@@ -40,11 +40,9 @@ typedef struct ButtonMessage
 
 
 void appmanager_init(void);
-// void appmanager_begin_suspend(void);
-// void appmanager_resume(void);
 void appmanager_post_button_message(ButtonMessage *bmessage);
 
-// void app_resumed(void);
-// void app_init(void);
+
 void rbl_window_load_proc(void);
-// void app_main(void);
+void app_event_loop(void);
+

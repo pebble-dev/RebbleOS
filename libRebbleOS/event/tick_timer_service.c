@@ -16,25 +16,37 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "rebbleos.h"
+#include "librebble.h"
 
-extern SystemStatus system_status;
-extern SystemSettings system_settings;
+typedef void(*TickHandler)(struct tm *tick_time, TimeUnits units_changed);
+void tick_timer_service_subscribe(TimeUnits tick_units, TickHandler handler);
+void tick_timer_service_unsubscribe(void);
 
-// static UG_GUI gui;
+
+TimeUnits time_units;
+TickHandler tick_handler;
 
 
-/*
- * Initialise the uGUI component and start the draw
- */
-void gui_init(void)
-{   
-    /* Configure uGUI */
-//     UG_Init(&gui, scanline_rgb888pixel_to_frambuffer, display.NumCols, display.NumRows);
-
-    /* Draw text with uGUI */
-//     UG_FontSelect(&FONT_8X14);
-
-    neographics_init(display_get_buffer());
+void tick_timer_service_subscribe(TimeUnits tick_units, TickHandler handler)
+{
+    time_units = tick_units;
+    tick_handler = handler;
 }
 
+void tick_timer_service_unsubscribe(void)
+{
+    tick_handler = NULL;
+    time_units = 0;
+}
+
+/*
+ * trigger the tick callback
+ */
+void tick_timer_callback_trigger(struct tm *tick_time, TimeUnits tick_units)
+{
+    if (tick_handler != NULL &&
+        (time_units & tick_units))
+    {
+        ((TickHandler)(tick_handler))(tick_time, tick_units);
+    }
+}
