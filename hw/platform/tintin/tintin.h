@@ -33,7 +33,7 @@ void hw_backlight_set(uint16_t pwm);
 void delay_us(uint32_t us);
 
 void hw_buttons_init();
-uint8_t hw_button_pressed(button_t *button);
+uint8_t hw_button_pressed(uint_t button_id);
 
 void hw_display_init();
 void hw_display_reset();

@@ -116,7 +116,7 @@ void hw_backlight_set(uint16_t val) {
 void hw_buttons_init() {
 }
 
-uint8_t hw_button_pressed(button_t *button) {
+uint8_t hw_button_pressed(uint_t button_id) {
 	return 0;
 }
 
