@@ -3,9 +3,10 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-
+#include "rebble_time.h"
 #include "stm32f2xx.h"
 
+#include "ugui.h"
 void debug_init();
 void debug_write(const unsigned char *p, size_t len);
 void platform_init();
@@ -39,6 +40,8 @@ void hw_display_init();
 void hw_display_reset();
 void hw_display_start();
 void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset);
+uint8_t hw_display_get_state();
+uint8_t *hw_display_get_buffer(void);
 
 #define WATCHDOG_RESET_MS 500
 void hw_watchdog_init();
@@ -47,8 +50,12 @@ void hw_watchdog_reset();
 void rtc_init();
 void rtc_config();
 void hw_get_time_str(char *buf);
+struct tm *hw_get_time(void);
+void rtc_set_timer_interval(TimeUnits tick_units);
+void rtc_disable_timer_interval(void);
 
 void hw_vibrate_init();
 void hw_vibrate_enable(uint8_t enabled);
+void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
 
 #endif

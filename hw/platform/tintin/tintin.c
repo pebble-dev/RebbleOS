@@ -141,11 +141,12 @@ uint8_t *hw_display_get_buffer(void) {
 }
 
 uint8_t hw_display_get_state() {
+    return 1;
 }
 
 
-// void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c) {
-// }
+void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c) {
+}
 
 /* rtc */
 
@@ -165,6 +166,13 @@ struct tm *hw_get_time() {
 	return &_tm;
 }
 
+void rtc_set_timer_interval(TimeUnits tick_units)
+{
+}
+
+void rtc_disable_timer_interval(void)
+{
+}
 /* vibrate */
 
 void hw_vibrate_init() {
