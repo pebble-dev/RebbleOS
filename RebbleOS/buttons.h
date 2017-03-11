@@ -47,6 +47,6 @@ void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat
 void button_multi_click_subscribe(ButtonId button_id, uint8_t min_clicks, uint8_t max_clicks, uint16_t timeout, bool last_click_only, ClickHandler handler);
 void button_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHandler down_handler, ClickHandler up_handler);
 void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, ClickHandler up_handler, void * context);
-
+void button_unsubscribe_all(void);
 
 ButtonHolder *button_add_click_config(ButtonId button_id, ClickConfig click_config);

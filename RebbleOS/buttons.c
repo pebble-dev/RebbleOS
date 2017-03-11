@@ -28,6 +28,7 @@
 
 static TaskHandle_t xButtonDebounceTask;
 static xQueueHandle xButtonQueue;
+ButtonMessage button_message;
 
 uint8_t last_press; // ugh
 
@@ -298,13 +299,13 @@ void button_send_app_click(void *callback, void *recognizer, void *context)
 {
     // we need to malloc this as it will be passed as a pointer to the queue
     // Once the work has been done it will need to be freed
-    ButtonMessage *bmessage = pvPortCalloc(1, sizeof(ButtonMessage));
+    //ButtonMessage *bmessage = pvPortCalloc(1, sizeof(ButtonMessage));
     
-    bmessage->callback = callback;
-    bmessage->clickref = recognizer; // TODO
-    bmessage->context  = context;
+    button_message.callback = callback;
+    button_message.clickref = recognizer; // TODO
+    button_message.context  = context;
 
-    appmanager_post_button_message(bmessage);
+    appmanager_post_button_message(&button_message);
 }
 
 
@@ -368,4 +369,13 @@ void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
     ButtonHolder *holder = button_holders[button_id]; // get the button
     holder->click_config.raw.up_handler = up_handler;
     holder->click_config.raw.down_handler = down_handler;
+}
+
+void button_unsubscribe_all(void)
+{
+    for(uint8_t i = 0; i < NUM_BUTTONS; i++)
+    {
+        ButtonHolder *holder = button_holders[i]; // get the button
+        memset(holder, 0, sizeof(ClickConfig));
+    }
 }

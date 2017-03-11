@@ -101,8 +101,6 @@ void appmanager_app_start(char *name)
 
 void appmanager_app_quit(void)
 {
-    // remove all of the clck handlers
-    // TODO
     AppMessage am = (AppMessage) {
         .message_type_id = APP_QUIT,
         .payload = NULL
@@ -173,6 +171,10 @@ void app_event_loop(void)
             }
             else if (data.message_type_id == APP_QUIT)
             {
+                // remove all of the clck handlers
+                button_unsubscribe_all();
+                // remove the ticktimer service handler and stop it
+                rebble_time_service_unsubscribe();
                 printf("ev quit\n");
                 // app was quit, break out of this loop into the main handler
                 break;
