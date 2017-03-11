@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <stdlib.h>
 #include "rebbleos.h"
 #include "appmanager.h"
 #include "systemapp.h"
@@ -71,23 +72,6 @@ void appmanager_init(void)
     printf("App Task Created!\n");
 }
 
-/*
-void appmanager_app_suspend(TaskHandle_t task)
-{
-    // send a signal to the app thread and tell the app to sleep
-    vTaskSuspend(task);
-    
-    // remove the clck handlers
-    // TODO
-}
-
-void appmanager_app_resume(void)
-{
-    // app must give us a frame here
-    app_resumed();
-    vTaskResume(xAppTask);
-}*/
-
 void appmanager_app_start(char *name)
 {
     // kill the current app
@@ -135,11 +119,20 @@ void appmanager_post_button_message(ButtonMessage *bmessage)
     xQueueSendToBack(xAppMessageQueue, &am, (TickType_t)10);
 }
 
+void appmanager_post_tick_message(TickMessage *tmessage, BaseType_t *pxHigherPri)
+{
+    AppMessage am = (AppMessage) {
+        .message_type_id = APP_TICK,
+        .payload = (void *)tmessage
+    };
+    // Note the from ISR. The tic comes direct to the app event handler
+    xQueueSendToBackFromISR(xAppMessageQueue, &am, pxHigherPri);
+}
+
 void app_event_loop(void)
 {
     uint32_t xMaxBlockTime = 1000 / portTICK_RATE_MS;
     AppMessage data;
-    uint8_t app_running = 1;
     
     // we assume they are configured now
     rbl_window_load_proc();
@@ -163,27 +156,27 @@ void app_event_loop(void)
         // we are inside the apps main loop event handler now
         if (xQueueReceive(xAppMessageQueue, &data, xMaxBlockTime))
         {
-            ButtonMessage *message;
-            switch(data.message_type_id)
+            if (data.message_type_id == APP_BUTTON)
             {
-                case APP_BUTTON:
-                    // execute the button's callback
-                    message = (ButtonMessage *)data.payload;
-                    ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
-                    // clean up
-                    free(message);
-                    break;
-                case APP_QUIT:
-                    app_running = 0;
-                    break;
+                // execute the button's callback
+                ButtonMessage *message = (ButtonMessage *)data.payload;
+                ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
+                // clean up
+                free(message);
             }
-        }
-        
-        if (!app_running)
-        {
-            printf("ev quit\n");
-            // app was quit, break out of this loop into the main handler
-            break;
+            else if (data.message_type_id == APP_TICK)
+            {
+                // execute the timers's callback
+                TickMessage *message = (TickMessage *)data.payload;
+                
+                ((TickHandler)(message->callback))(message->tick_time, (TimeUnits)message->tick_units);
+            }
+            else if (data.message_type_id == APP_QUIT)
+            {
+                printf("ev quit\n");
+                // app was quit, break out of this loop into the main handler
+                break;
+            }
         }
     }
     // the app itself will quit now

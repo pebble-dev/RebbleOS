@@ -18,35 +18,16 @@
 
 #include "librebble.h"
 
-typedef void(*TickHandler)(struct tm *tick_time, TimeUnits units_changed);
-void tick_timer_service_subscribe(TimeUnits tick_units, TickHandler handler);
-void tick_timer_service_unsubscribe(void);
-
-
-TimeUnits time_units;
-TickHandler tick_handler;
 
 
 void tick_timer_service_subscribe(TimeUnits tick_units, TickHandler handler)
 {
-    time_units = tick_units;
-    tick_handler = handler;
+    rebble_time_service_subscribe(tick_units, handler);
 }
 
 void tick_timer_service_unsubscribe(void)
 {
-    tick_handler = NULL;
-    time_units = 0;
+    rebble_time_service_unsubscribe();
 }
 
-/*
- * trigger the tick callback
- */
-void tick_timer_callback_trigger(struct tm *tick_time, TimeUnits tick_units)
-{
-    if (tick_handler != NULL &&
-        (time_units & tick_units))
-    {
-        ((TickHandler)(tick_handler))(tick_time, tick_units);
-    }
-}
+

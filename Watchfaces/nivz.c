@@ -28,6 +28,7 @@ static void nivz_update_proc(Layer *layer, GContext *ctx);
 void nivz_main(void);
 void nivz_init(void);
 void nivz_deinit(void);
+void nivz_tick(struct tm *tick_time, TimeUnits tick_units);
 
 static Window *s_main_window;
 static Layer *s_canvas_layer;
@@ -56,7 +57,7 @@ static void nivz_window_load(Window *window)
     //layer_add_child(window_layer, s_text_layer);
     //text_layer_set_text(s_text_layer, "Hello\n");
 
-    //tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_handler);
+    tick_timer_service_subscribe(MINUTE_UNIT, nivz_tick);
 }
 
 
@@ -66,10 +67,8 @@ static void nivz_window_unload(Window *window)
 }
 
 // tick
-void nivz_tick(void)
-{
-    struct tm *tick_time = rbl_get_tm();
-    
+void nivz_tick(struct tm *tick_time, TimeUnits tick_units)
+{   
     printf("appmain\n");
     // Store time
     s_last_time.hours = tick_time->tm_hour;

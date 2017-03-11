@@ -28,6 +28,7 @@ static void simple_update_proc(Layer *layer, GContext *nGContext);
 void simple_main(void);
 void simple_init(void);
 void simple_deinit(void);
+void simple_tick(struct tm *tick_time, TimeUnits tick_units);
 
 static Window *s_main_window;
 static Layer *s_canvas_layer;
@@ -58,7 +59,7 @@ static void simple_window_load(Window *window)
     //layer_add_child(window_layer, s_text_layer);
     //text_layer_set_text(s_text_layer, "Hello\n");
 
-    //tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_handler);
+    tick_timer_service_subscribe(SECOND_UNIT, simple_tick);
 }
 
 
@@ -94,11 +95,10 @@ void simple_deinit(void)
 }
 
 
-void simple_tick(void)
-{
-    struct tm *tick_time = rbl_get_tm();
-    
-    printf("appmain\n");
+void simple_tick(struct tm *tick_time, TimeUnits tick_units)
+{   
+    printf("Simple\n");
+    printf("Simple: Tick %d\n", tick_time->tm_hour);
     // Store time
     s_last_time.hours = tick_time->tm_hour;
     s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;
@@ -112,6 +112,7 @@ void simple_tick(void)
     // Redraw
     if (s_canvas_layer)
     {
+        printf("Dirty\n");
         layer_mark_dirty(s_canvas_layer);
     }
 }

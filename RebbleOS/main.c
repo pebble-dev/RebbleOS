@@ -49,7 +49,6 @@ void watchdog_init()
 {
     hw_watchdog_init();
     watchdog_reset();
-    //printf("Watchdog Initialised\n");
 }
 
 /*

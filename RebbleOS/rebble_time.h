@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */ 
-
-struct tm *rebble_time_get_tm(void);
+#include "FreeRTOS.h"
+#include <time.h>
 
 // a bit mask of the time units
 typedef enum {
@@ -28,3 +28,13 @@ typedef enum {
     MONTH_UNIT  = 1 << 4, 
     YEAR_UNIT   = 1 << 5
 } TimeUnits;
+
+typedef void(*TickHandler)(struct tm *tick_time, TimeUnits units_changed);
+void rebble_time_service_subscribe(TimeUnits tick_units, TickHandler handler);
+void rebble_time_service_unsubscribe(void);
+void rebble_time_callback_trigger(struct tm *tick_time, TimeUnits tick_units, BaseType_t *xHigherPriorityTaskWoken);
+
+
+// private
+void rebble_time_rtc_isr(void);
+struct tm *rebble_time_get_tm(void);

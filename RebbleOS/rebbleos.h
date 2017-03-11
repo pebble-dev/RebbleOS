@@ -21,17 +21,18 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include "FreeRTOS.h"
 #include "rebble_memory.h"
 #include "platform.h"
 #include "appmanager.h"
 #include "ambient.h"
-#include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 #include "gui.h"
 #include "display.h"
 #include "neographics.h"
 // #include "ugui.h"
+#include "rebble_time.h"
 #include "main.h"
 
 // Public API functions as exposed through the various layers

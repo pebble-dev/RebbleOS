@@ -93,6 +93,7 @@
 #include "neographics.h"
 #include "buttons.h"
 #include "rebble_time.h"
+#include "tick_timer_service.h"
 #include "appmanager.h"
 
 

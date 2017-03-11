@@ -300,9 +300,9 @@ void button_send_app_click(void *callback, void *recognizer, void *context)
     // Once the work has been done it will need to be freed
     ButtonMessage *bmessage = pvPortCalloc(1, sizeof(ButtonMessage));
     
-    bmessage->callback = callback,
-    bmessage->clickref = recognizer, // TODO
-    bmessage->context  = context,
+    bmessage->callback = callback;
+    bmessage->clickref = recognizer; // TODO
+    bmessage->context  = context;
 
     appmanager_post_button_message(bmessage);
 }

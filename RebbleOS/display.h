@@ -17,7 +17,6 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "FreeRTOS.h"
-// #include "ugui.h"
 
 #define DISPLAY_MODE_BOOTLOADER      0
 #define DISPLAY_MODE_FULLFAT         1
