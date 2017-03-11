@@ -18,6 +18,6 @@
  */
 #include "stm32f4xx.h"
 
-#define DISPLAY_ROWS 144
-#define DISPLAY_COLS 168
+#define DISPLAY_ROWS 168
+#define DISPLAY_COLS 144
 

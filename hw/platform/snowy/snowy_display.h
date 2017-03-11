@@ -19,6 +19,7 @@
  */
 #include "stm32f4xx.h"
 #include "platform.h"
+#include "ugui.h"
 
 #define MAX_FRAMEBUFFER_SIZE DISPLAY_ROWS * DISPLAY_COLS
 
@@ -69,5 +70,9 @@ uint8_t *hw_display_get_buffer(void);
 
 void hw_display_on();
 void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset);
+
+// TODO: move to scanline
+void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset);
+void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
 
 #endif

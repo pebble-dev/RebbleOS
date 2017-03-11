@@ -61,8 +61,4 @@ void vDisplayCommandTask(void *pvParameters);
 void display_draw(void);
 uint8_t *display_get_buffer(void);
 
-// TODO: move to scanline
-void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset);
-// void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
-
 int init_gui(void);

@@ -324,7 +324,7 @@ void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
     DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
     DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
     DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)display.DisplayBuffer; // set this to bypass assert
-    DMA_InitStructure.DMA_BufferSize = 24192;
+    DMA_InitStructure.DMA_BufferSize = MAX_FRAMEBUFFER_SIZE;
     DMA_InitStructure.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
     DMA_InitStructure.DMA_FIFOMode  = DMA_FIFOMode_Disable;
     DMA_InitStructure.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;

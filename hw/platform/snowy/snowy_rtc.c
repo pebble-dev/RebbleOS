@@ -47,20 +47,14 @@ void rtc_init(void)
     EXTI_InitStruct.EXTI_LineCmd = ENABLE;
     EXTI_Init(&EXTI_InitStruct);
 
+
+
+    /* Enable the RTC Wakeup Interrupt */
     NVIC_InitStruct.NVIC_IRQChannel = RTC_WKUP_IRQn;
     NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 7;
     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);
-    
-    
-
-    /* Enable the RTC Wakeup Interrupt */
-//     NVIC_InitStruct.NVIC_IRQChannel = RTC_WKUP_IRQn;
-//     NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 7;
-//     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
-//     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
-//     NVIC_Init(&NVIC_InitStruct);
 
     /* Configure the RTC WakeUp Clock source: CK_SPRE (1Hz) */
     RTC_WakeUpClockConfig(RTC_WakeUpClock_CK_SPRE_16bits);
