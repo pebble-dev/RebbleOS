@@ -84,7 +84,7 @@ void vVibratePatternTask(void *pvParameters)
 
     while(1)
     {       
-        if (xQueueReceive(xQueue, &data, 0))
+        if (xQueueReceive(xQueue, &data, portMAX_DELAY))
         {
             uint8_t len;
             uint16_t *pattern;
