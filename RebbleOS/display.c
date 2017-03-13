@@ -150,6 +150,8 @@ void vDisplayCommandTask(void *pvParameters)
 
     while(1)
     {
+        // really this task should be started only after we are running
+        // have a post init for each piece of hardware or soemthing
         if (hw_display_get_state() == DISPLAY_STATE_BOOTING)
         {
             vTaskDelay(5 / portTICK_RATE_MS);

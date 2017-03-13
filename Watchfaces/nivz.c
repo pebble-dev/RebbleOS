@@ -57,7 +57,8 @@ static void nivz_window_load(Window *window)
     //layer_add_child(window_layer, s_text_layer);
     //text_layer_set_text(s_text_layer, "Hello\n");
 
-    tick_timer_service_subscribe(MINUTE_UNIT, nivz_tick);
+    tick_timer_service_subscribe(SECOND_UNIT, nivz_tick);
+    layer_mark_dirty(s_canvas_layer);
 }
 
 

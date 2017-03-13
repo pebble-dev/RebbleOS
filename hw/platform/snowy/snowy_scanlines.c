@@ -24,15 +24,17 @@
 
 extern display_t display;
 
+
+
 /*
- * Bulk convert the buffer from its native format
+ * Bulk convert the buffer from its native format for a sigle column
  * (y0: xxxxxxx
  *  y1: xxxxxxx)
  * to
  * (x0: yyyyyyy
  *  x1: yyyyyyy)
  */
-void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
+void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t column_index)
 {
     int i = 0;
     uint16_t pos_half_lsb = 0;
@@ -41,7 +43,6 @@ void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
     uint16_t y;
     uint8_t r0_fullbyte, r1_fullbyte, lsb, msb;
     uint16_t halfrows = DISPLAY_ROWS / 2;
-    // go through each x and remap it to the new y
     
     // from    (Backbuffer)
     // y0: [x0,x1,x2,x3,x4..]. y1: [x1,x2,x3,x4..]..
@@ -50,32 +51,26 @@ void scanline_convert_buffer(uint8_t xoffset, uint8_t yoffset)
     for (uint16_t yi = 0; yi < DISPLAY_ROWS; yi+=2)
     {
         y = DISPLAY_ROWS - 1 - yi;
-        uint16_t px = 0;
         uint16_t halfy = y / 2;
-        for (int x = 0; x < DISPLAY_COLS; x++)
-        {
-            // we store the actual buffer in columns order
-            // where the columns buffer is split with lsb/msb encoding
-            pos_half_lsb = px + halfy;
-            pos_half_msb = px + halfrows + halfy;
-            
-            r0_fullbyte = display.BackBuffer[i];
-            r1_fullbyte = display.BackBuffer[i + DISPLAY_COLS];
-            
-            lsb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
-            msb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
-            
-            display.DisplayBuffer[pos_half_lsb] = lsb;
-            display.DisplayBuffer[pos_half_msb] = msb;
-            
-            px += DISPLAY_ROWS;
-            i++;
-        }
+
+        // we store the actual buffer in columns order
+        // where the columns buffer is split with lsb/msb encoding
+        pos_half_lsb = halfy;
+        pos_half_msb = halfrows + halfy;
+        
+        r0_fullbyte = frame_buffer[column_index + i];
+        r1_fullbyte = frame_buffer[column_index + i + DISPLAY_COLS];
+        
+        lsb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
+        msb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
+        
+        out_buffer[pos_half_lsb] = lsb;
+        out_buffer[pos_half_msb] = msb;
+
         // skip the next y column as we processed it already
-        i += DISPLAY_COLS;
+        i += 2 * DISPLAY_COLS;
     }
 }
-
 
 
 // uGUI gives us a single pixel and color c in RGB888
@@ -102,7 +97,7 @@ void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c)
     blue = blue / (255 / 3);
 
     // for now write to the pixel buffer in raw format
-    display.BackBuffer[pos] = red << 4 | green << 2 | blue;
+    display.FrameBuffer[pos] = red << 4 | green << 2 | blue;
 
     return;
 }

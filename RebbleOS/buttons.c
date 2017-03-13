@@ -296,11 +296,7 @@ void vButtonDebounceTask(void *pvParameters)
  * Convenience function to send a button click to the main application processor
  */
 void button_send_app_click(void *callback, void *recognizer, void *context)
-{
-    // we need to malloc this as it will be passed as a pointer to the queue
-    // Once the work has been done it will need to be freed
-    //ButtonMessage *bmessage = pvPortCalloc(1, sizeof(ButtonMessage));
-    
+{   
     button_message.callback = callback;
     button_message.clickref = recognizer; // TODO
     button_message.context  = context;

@@ -39,7 +39,7 @@ void vibrate_init(void)
     
     xTaskCreate(vVibratePatternTask, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xVibratePatternTask);    
     
-    xQueue = xQueueCreate( 10, sizeof(uint8_t) );
+    xQueue = xQueueCreate(1, sizeof(uint8_t));
 }
 
 /*
@@ -84,7 +84,7 @@ void vVibratePatternTask(void *pvParameters)
 
     while(1)
     {       
-        if (xQueueReceive(xQueue, &data, 0))
+        if (xQueueReceive(xQueue, &data, portMAX_DELAY))
         {
             uint8_t len;
             uint16_t *pattern;

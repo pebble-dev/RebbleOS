@@ -60,6 +60,7 @@ static void simple_window_load(Window *window)
     //text_layer_set_text(s_text_layer, "Hello\n");
 
     tick_timer_service_subscribe(SECOND_UNIT, simple_tick);
+    layer_mark_dirty(s_canvas_layer);
 }
 
 
