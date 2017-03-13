@@ -20,9 +20,4 @@
 #define VIBRATE_CMD_PATTERN_2 2
 #define VIBRATE_CMD_STOP      3
 
-void vibrate_pattern(uint16_t *pattern, uint8_t patternLength);
-void vibrate_enable(uint8_t enabled);
 void vibrate_init(void);
-
-// Main task thread
-void vVibratePatternTask(void *pvParameters);

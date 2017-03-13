@@ -65,6 +65,7 @@ SRCS_all += RebbleOS/appmanager.c
 SRCS_all += RebbleOS/backlight.c
 SRCS_all += RebbleOS/buttons.c
 SRCS_all += RebbleOS/display.c
+SRCS_all += RebbleOS/debug.c
 SRCS_all += RebbleOS/gyro.c
 SRCS_all += RebbleOS/main.c
 SRCS_all += RebbleOS/power.c

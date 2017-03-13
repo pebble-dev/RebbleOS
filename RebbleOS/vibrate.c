@@ -16,6 +16,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include "FreeRTOS.h"
+#include "debug.h"
 #include "stdio.h"
 #include "string.h"
 #include "platform.h"
@@ -27,25 +28,30 @@
 static uint16_t VIBRO_SHORT[] = { 255, 1000 };
 static uint16_t VIBRO_TAP_TAP[] = { 255, 750, 0, 750, 255, 750 };
 
-static TaskHandle_t xVibratePatternTask;
-static xQueueHandle xQueue;
+static TaskHandle_t _vibrate_task;
+static xQueueHandle _vibrate_queue;
+
+static void _vibrate_thread(void *pvParameters);
 
 /*
  * Initialise the vibration controller and tasks
  */
 void vibrate_init(void)
 {
+    int rv;
+    
     hw_vibrate_init();
     
-    xTaskCreate(vVibratePatternTask, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xVibratePatternTask);    
+    rv = xTaskCreate(_vibrate_thread, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_vibrate_task); /* XXX: allocate statically later */
+    assert(rv == pdPASS);
     
-    xQueue = xQueueCreate( 10, sizeof(uint8_t) );
+    _vibrate_queue = xQueueCreate(10, sizeof(uint8_t));
 }
 
 /*
  * Start vibratin
  */
-void vibrate_enable(uint8_t enabled)
+static void _enable(uint8_t enabled)
 {
     hw_vibrate_enable(enabled);
 }
@@ -53,7 +59,7 @@ void vibrate_enable(uint8_t enabled)
 /*
  * Quickly and dirtily pop out a pattern on the motor
  */
-void vibrate_pattern(uint16_t *pattern, uint8_t pattern_length)
+static void _play_pattern(uint16_t *pattern, uint8_t pattern_length)
 {
     // set the timer 12 CH2 to pwm to vibrate
     // TODO FIX
@@ -69,47 +75,43 @@ void vibrate_pattern(uint16_t *pattern, uint8_t pattern_length)
         // vibrate for x time
         // until this is variable...
         if (pattern[i] > 0)
-            vibrate_enable(1);
+            _enable(1);
         vTaskDelay(pattern[i+1] / portTICK_RATE_MS);
-        vibrate_enable(0);
+        _enable(0);
     }
 }
 
 /*
  * The main task for driving patterns out of the motor
  */
-void vVibratePatternTask(void *pvParameters)
+static void _vibrate_thread(void *pvParameters)
 {
     uint8_t data;
 
     while(1)
     {       
-        if (xQueueReceive(xQueue, &data, portMAX_DELAY))
+        if (!xQueueReceive(_vibrate_queue, &data, portMAX_DELAY))
+            continue;
+
+        uint8_t len;
+        uint16_t *pattern;
+        
+        switch(data)
         {
-            uint8_t len;
-            uint16_t *pattern;
-            
-            switch(data)
-            {
-                case VIBRATE_CMD_STOP:
-                    // slam the brakes on somehow
-                    break;
-                case VIBRATE_CMD_PATTERN_1:
-                    // big vibrate
-                    pattern = VIBRO_SHORT;
-                    len = 1;
-                    break;
-                case VIBRATE_CMD_PATTERN_2:
-                    // tap tap
-                    pattern = VIBRO_TAP_TAP;
-                    len = 3;
-                    break;
-            }
-            vibrate_pattern(pattern, len);
+            case VIBRATE_CMD_STOP:
+                // slam the brakes on somehow
+                break;
+            case VIBRATE_CMD_PATTERN_1:
+                // big vibrate
+                pattern = VIBRO_SHORT;
+                len = 1;
+                break;
+            case VIBRATE_CMD_PATTERN_2:
+                // tap tap
+                pattern = VIBRO_TAP_TAP;
+                len = 3;
+                break;
         }
-        else
-        {
-            // shouldn't happen
-        }        
+        _play_pattern(pattern, len);
     }
 }
