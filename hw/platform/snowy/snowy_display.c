@@ -806,5 +806,5 @@ void delay_ns(uint16_t ns)
 
 void delay_us(uint16_t us)
 {
-    delay_us(1000 * us);
+    delay_ns(1000 * us);
 }
