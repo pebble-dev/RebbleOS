@@ -1,6 +1,6 @@
 CFLAGS_tintin = $(CFLAGS_stm32f2xx)
 CFLAGS_tintin += -Ihw/platform/tintin
-CFLAGS_tintin += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=tintin -DREBBLE_PLATFORM_TINTIN
+CFLAGS_tintin += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=tintin -DREBBLE_PLATFORM_TINTIN -DPBL_BW
 
 SRCS_tintin = $(SRCS_stm32f2xx)
 SRCS_tintin += hw/platform/tintin/tintin.c

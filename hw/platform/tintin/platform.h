@@ -3,8 +3,8 @@
 
 #include "tintin.h"
 
-#define DISPLAY_ROWS 1
-#define DISPLAY_COLS 1
+#define DISPLAY_ROWS 168
+#define DISPLAY_COLS 144
 
 
 #endif
