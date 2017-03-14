@@ -65,6 +65,7 @@ SRCS_all += RebbleOS/appmanager.c
 SRCS_all += RebbleOS/backlight.c
 SRCS_all += RebbleOS/buttons.c
 SRCS_all += RebbleOS/display.c
+SRCS_all += RebbleOS/debug.c
 SRCS_all += RebbleOS/gyro.c
 SRCS_all += RebbleOS/main.c
 SRCS_all += RebbleOS/power.c
@@ -93,5 +94,6 @@ SRCS_all += RebbleOS/Gui/neographics.c
 
 include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk
+include hw/drivers/stm32_buttons/config.mk
 include hw/platform/snowy/config.mk
 include hw/platform/tintin/config.mk

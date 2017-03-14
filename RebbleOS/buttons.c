@@ -42,12 +42,14 @@ void button_send_app_click(void *callback, void *recognizer, void *context);
 
 ButtonHolder *button_holders[NUM_BUTTONS];
 
+static void button_isr(hw_button_t button_id);
+
 /*
  * Start the button processor
  */
 void buttons_init(void)
 {
-    hw_buttons_init();
+    hw_button_init();
     
     xTaskCreate(vButtonTask, "Button", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, NULL);
     xTaskCreate(vButtonDebounceTask, "Debounce", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, &xButtonDebounceTask);
@@ -55,7 +57,8 @@ void buttons_init(void)
     xButtonQueue = xQueueCreate(5, sizeof(uint8_t));
     
     printf("Button Task Created!\n");
-    
+    hw_button_set_isr(button_isr);
+        
     // Initialise the button click configs
     for (uint8_t i = 0; i < NUM_BUTTONS; i++)
     {
@@ -66,7 +69,7 @@ void buttons_init(void)
 /*
  * Callback function for the button ISR in hardware.
  */
-void button_isr(ButtonId button_id)
+void button_isr(hw_button_t /* which is definitionally the same as a ButtonID */ button_id)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     

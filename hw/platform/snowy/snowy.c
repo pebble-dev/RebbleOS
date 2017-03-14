@@ -21,6 +21,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "snowy.h"
+#include "stm32_buttons_platform.h"
 
 /*
  * Printf support. Uncommet to disable output
@@ -162,3 +163,16 @@ void hw_watchdog_reset(void)
 {
     IWDG_ReloadCounter();
 }
+
+/* Snowy platform button definitions */
+stm32_button_t platform_buttons[HW_BUTTON_MAX] = {
+    [HW_BUTTON_BACK]   = { GPIO_Pin_4, GPIOG, EXTI_PortSourceGPIOG, EXTI_PinSource4, RCC_AHB1Periph_GPIOG, EXTI4_IRQn },
+    [HW_BUTTON_UP]     = { GPIO_Pin_3, GPIOG, EXTI_PortSourceGPIOG, EXTI_PinSource3, RCC_AHB1Periph_GPIOG, EXTI3_IRQn },
+    [HW_BUTTON_SELECT] = { GPIO_Pin_1, GPIOG, EXTI_PortSourceGPIOG, EXTI_PinSource1, RCC_AHB1Periph_GPIOG, EXTI1_IRQn },
+    [HW_BUTTON_DOWN]   = { GPIO_Pin_2, GPIOG, EXTI_PortSourceGPIOG, EXTI_PinSource2, RCC_AHB1Periph_GPIOG, EXTI2_IRQn }
+};
+
+STM32_BUTTONS_MK_IRQ_HANDLER(1)
+STM32_BUTTONS_MK_IRQ_HANDLER(2)
+STM32_BUTTONS_MK_IRQ_HANDLER(3)
+STM32_BUTTONS_MK_IRQ_HANDLER(4)

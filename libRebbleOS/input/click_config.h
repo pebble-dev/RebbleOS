@@ -18,6 +18,18 @@
  */
 #include "neographics.h"
 #include "layer.h"
+#include "platform.h"
+
+/* XXX: move this to buttons.h so we don't have to depend on platform.h (ick) here */
+typedef enum ButtonId
+{
+    BUTTON_ID_BACK   = HW_BUTTON_BACK,
+    BUTTON_ID_UP     = HW_BUTTON_UP,
+    BUTTON_ID_SELECT = HW_BUTTON_SELECT,
+    BUTTON_ID_DOWN   = HW_BUTTON_DOWN,
+    NUM_BUTTONS      = HW_BUTTON_MAX
+} ButtonId;
+
 
 struct Layer;
 struct GRect;
@@ -56,15 +68,6 @@ typedef struct ClickConfig
 } ClickConfig;
 
 typedef void (*ClickConfigProvider)(void *context);
-
-typedef enum ButtonId
-{
-    BUTTON_ID_BACK,
-    BUTTON_ID_UP,
-    BUTTON_ID_SELECT,
-    BUTTON_ID_DOWN,
-    NUM_BUTTONS
-} ButtonId;
 
 uint8_t click_number_of_clicks_counted(ClickRecognizerRef recognizer);
 ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer);
