@@ -210,7 +210,7 @@ void hw_display_start_frame(uint8_t x, uint8_t y) {
     for (int i = 0; i < 168; i++) {
         _display_write(__RBIT(__REV(167-i)));
         for (int j = 0; j < 18; j++)
-            _display_write(_display_fb[i][j]);
+            _display_write(__RBIT(__REV(_display_fb[i][j])));
         _display_write(0);
     }
     _display_write(0);
@@ -229,9 +229,9 @@ uint8_t hw_display_get_state() {
 
 void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c) {
     if (c)
-        _display_fb[y][17 - (x / 8)] |= (1 << (x % 8));
+        _display_fb[y][17 - (x / 8)] |= (0x80 >> (x % 8));
     else
-        _display_fb[y][17 - (x / 8)] &= ~(1 << (x % 8));
+        _display_fb[y][17 - (x / 8)] &= ~(0x80 >> (x % 8));
 }
 
 /* rtc */
