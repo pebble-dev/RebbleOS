@@ -28,28 +28,16 @@ void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context);
 
-typedef void (*AppMainHandler)(void);
-
-typedef struct App {
-    //TaskHandle_t *task;
-    uint8_t type;
-    char name[10];
-    AppMainHandler main;
-} App;
-
 App *running_app;
 
-App apps[3];
+// TODO cheesy
+#define APP_COUNT 3
+App apps[APP_COUNT];
 
 // simple doesn't have an include, so cheekily forward declare here
 void simple_main(void);
 void nivz_main(void);
 
-
-
-// decs
-void appmanager_app_start(char *name);
-void appmanager_app_quit(void);
 
 void appmanager_init(void)
 {
@@ -84,7 +72,7 @@ void appmanager_app_start(char *name)
     
     // load the next app by name
     // TODO do some fancy loader
-    for (uint8_t i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < APP_COUNT; i++)
     {
         if (!strcmp(name, apps[i].name))
         {
@@ -101,8 +89,6 @@ void appmanager_app_start(char *name)
 
 void appmanager_app_quit(void)
 {
-    // remove all of the clck handlers
-    // TODO
     AppMessage am = (AppMessage) {
         .message_type_id = APP_QUIT,
         .payload = NULL
@@ -161,8 +147,6 @@ void app_event_loop(void)
                 // execute the button's callback
                 ButtonMessage *message = (ButtonMessage *)data.payload;
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
-                // clean up
-                free(message);
             }
             else if (data.message_type_id == APP_TICK)
             {
@@ -173,6 +157,10 @@ void app_event_loop(void)
             }
             else if (data.message_type_id == APP_QUIT)
             {
+                // remove all of the clck handlers
+                button_unsubscribe_all();
+                // remove the ticktimer service handler and stop it
+                rebble_time_service_unsubscribe();
                 printf("ev quit\n");
                 // app was quit, break out of this loop into the main handler
                 break;
@@ -239,7 +227,7 @@ void app_select_single_click_handler(ClickRecognizerRef recognizer, void *contex
             appmanager_app_start("System");
             break;
         case APP_TYPE_SYSTEM:
-            // navigate / launch
+            menu_select();
             break;
     }
 }

@@ -18,6 +18,9 @@
  */
 #include "rebble_time.h"
 
+// TODO     Make this dynamic. hacky 
+#define NUM_APPS 3
+
 typedef struct AppMessage
 {
     uint8_t message_type_id;
@@ -38,6 +41,15 @@ typedef struct TickMessage
     TimeUnits tick_units;
 } TickMessage;
 
+typedef void (*AppMainHandler)(void);
+
+typedef struct App {
+    //TaskHandle_t *task;
+    uint8_t type;
+    char name[10];
+    AppMainHandler main;
+} App;
+
 
 #define APP_BUTTON       0
 #define APP_QUIT         1
@@ -51,6 +63,8 @@ typedef struct TickMessage
 void appmanager_init(void);
 void appmanager_post_button_message(ButtonMessage *bmessage);
 void appmanager_post_tick_message(TickMessage *tmessage, BaseType_t *pxHigherPri);
+void appmanager_app_start(char *name);
+void appmanager_app_quit(void);
 
 
 void rbl_window_load_proc(void);

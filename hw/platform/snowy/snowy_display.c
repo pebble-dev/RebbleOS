@@ -24,6 +24,10 @@
 #include <stm32f4xx_spi.h>
 #include <stm32f4xx_tim.h>
 
+#define ROW_LENGTH    DISPLAY_COLS
+#define COLUMN_LENGTH DISPLAY_ROWS
+uint8_t column_buffer[COLUMN_LENGTH];
+
 void snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset);
 uint8_t snowy_display_wait_FPGA_ready(void);
 void snowy_display_splash(uint8_t scene);
@@ -41,9 +45,9 @@ void snowy_display_SPI_start(void);
 void snowy_display_SPI_end(void);
 void snowy_display_drawscene(uint8_t scene);
 void snowy_display_init_intn(void);
+void snowy_display_dma_send(uint8_t *data, uint32_t len);
+void snowy_display_next_column(uint8_t col_index);
 
-void delay_us(uint16_t us);
-void delay_ns(uint16_t ns);
 
 // pointer to the place in flash where the FPGA image resides
 extern unsigned char _binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
@@ -316,15 +320,14 @@ void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
     while (DMA2_Stream5->CR & DMA_SxCR_EN);
 
     DMA_ClearFlag(DMA2_Stream5, DMA_FLAG_FEIF5|DMA_FLAG_DMEIF5|DMA_FLAG_TEIF5|DMA_FLAG_HTIF5|DMA_FLAG_TCIF5);
-    
     DMA_StructInit(&DMA_InitStructure);
     // set the pointer to the SPI6 DR register
     DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t) &SPI6->DR;
     DMA_InitStructure.DMA_Channel = DMA_Channel_1;
     DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
     DMA_InitStructure.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)display.DisplayBuffer; // set this to bypass assert
-    DMA_InitStructure.DMA_BufferSize = MAX_FRAMEBUFFER_SIZE;
+    DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)data;
+    DMA_InitStructure.DMA_BufferSize = length;
     DMA_InitStructure.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
     DMA_InitStructure.DMA_FIFOMode  = DMA_FIFOMode_Disable;
     DMA_InitStructure.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
@@ -345,6 +348,8 @@ void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
  */
 void DMA2_Stream5_IRQHandler()
 {
+    static uint8_t col_index = 0;
+    
     if (DMA_GetITStatus(DMA2_Stream5, DMA_IT_TCIF5))
     {
         //printf("DMA BEGIN end frame\n");
@@ -360,7 +365,18 @@ void DMA2_Stream5_IRQHandler()
         {
         };
 
+        // if we are finished sending  each column, then reset and stop
+        if (col_index < ROW_LENGTH - 1)
+        {
+            ++col_index;
+            // ask for convert and display the next column
+            snowy_display_next_column(col_index);
+            return;
+        }
+                
+                
         // done. We are still in control of the SPI select, so lets let go
+        col_index = 0;
         snowy_display_cs(0);
         display.State = DISPLAY_STATE_IDLE;
     }
@@ -423,16 +439,27 @@ uint8_t snowy_display_SPI6_send(uint8_t data)
 }
 
 /*
+ * Given a column index, start the conversion of the display data and dma it
+ */
+void snowy_display_next_column(uint8_t col_index)
+{   
+    // set the content
+    scanline_convert_column(column_buffer, display.FrameBuffer, col_index);
+    
+    snowy_display_dma_send(column_buffer, COLUMN_LENGTH);
+}
+
+/*
  * Send n bytes over SPI using the DMA engine.
  * This will async run and call the ISR when complete
  */
-uint8_t snowy_display_dma_send(uint8_t *data, uint32_t length)
+void snowy_display_dma_send(uint8_t *data, uint32_t length)
 {
     // re-initialise the DMA controller. prep for send
     snowy_display_reinit_dma((uint32_t *)data, length);
     DMA_Cmd(DMA2_Stream5, ENABLE);
     
-    return 0;
+    return;
 }
 
 /*
@@ -451,9 +478,9 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
     //snowy_display_cs(1);
     snowy_display_reset(0);
     snowy_display_cs(1);
-    delay_ns(1);
+    delay_us(1);
     snowy_display_reset(1);
-    delay_ns(1);
+    delay_us(1);
     
     // don't wait when we are not in bootloader mode
     // qemu doesn't like this, real pebble behaves
@@ -473,7 +500,7 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
             return 1;
         }
         
-        delay_us(100);
+        delay_us(50);
             
         k++;
         
@@ -507,7 +534,7 @@ void snowy_display_reset(uint8_t enabled)
 void snowy_display_SPI_start(void)
 {
     snowy_display_cs(1);
-    delay_us(100);
+    delay_ns(50);
 }
 
 /*
@@ -539,18 +566,19 @@ void snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
     display.State = DISPLAY_STATE_FRAME_INIT;
     printf("C Frame\n");
-    scanline_convert_buffer(xoffset, yoffset);
+    //scanline_convert_buffer(xoffset, yoffset);
     printf("eC Frame\n");
     snowy_display_cs(1);
-    delay_us(80);
+    delay_ns(80);
     snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
     snowy_display_cs(0);
-    delay_us(1);
+    delay_ns(100);
 
     display.State = DISPLAY_STATE_FRAME;
 
     snowy_display_send_frame();
 }
+
 
 /* 
  * We can fill the framebuffer now. Depending on mode, we will DMA
@@ -561,7 +589,9 @@ void snowy_display_send_frame()
     snowy_display_cs(1);
     
     // send over DMA
-    snowy_display_dma_send(display.DisplayBuffer, MAX_FRAMEBUFFER_SIZE);
+    // we are only going to send one single column at a time
+    // the dma engine completion will trigger the next lot of data to go
+    snowy_display_next_column(0);
     
     // we return immediately and let the system take care of the rest
 }
@@ -572,12 +602,14 @@ void snowy_display_send_frame()
 void snowy_display_send_frame_slow()
 {
     snowy_display_cs(1);
-    delay_us(50);
+    delay_ns(50);
       
     // send via standard SPI
-    for(uint16_t i = 0; i < MAX_FRAMEBUFFER_SIZE; i++)
+    for(uint8_t x = 0; x < DISPLAY_COLS; x++)
     {
-        snowy_display_SPI6_send(display.DisplayBuffer[i]);
+        scanline_convert_column(column_buffer, display.FrameBuffer, x);
+        for (uint8_t j = 0; j < DISPLAY_ROWS; j++)
+            snowy_display_SPI6_send(display.FrameBuffer[j]);
     }   
     
     snowy_display_cs(0);
@@ -638,13 +670,13 @@ void snowy_display_splash(uint8_t scene)
     {
         delay_ns(1);
         snowy_display_cs(1);
-        delay_us(100);
+        delay_ns(100);
         snowy_display_SPI6_send(DISPLAY_CTYPE_SCENE); // Scene select
         snowy_display_SPI6_send(scene); // Select scene
         snowy_display_cs(0);
         
         IWDG_ReloadCounter();
-        delay_us(100);
+        delay_ns(100);
         
         if (snowy_display_wait_FPGA_ready())
         {
@@ -672,18 +704,14 @@ void snowy_display_full_init(void)
     {
         return;
     }
-    display_logo(display.BackBuffer);
+    display_logo(display.FrameBuffer);
     
     snowy_display_program_FPGA();
     
     delay_us(100);
-    hw_display_on();
-
-    delay_us(100);
     snowy_display_start_frame(0, 0);
     delay_us(10);
-    //snowy_display_send_frame();
-    
+        
     IWDG_ReloadCounter();
     
     // enable interrupts now we have the splash up
@@ -735,7 +763,7 @@ void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 
 uint8_t *hw_display_get_buffer(void)
 {
-    return display.BackBuffer;
+    return display.FrameBuffer;
 }
 
 uint8_t hw_display_get_state()
@@ -763,20 +791,20 @@ void hw_display_start(void)
 {
     // begin the init
     snowy_display_splash(2);
-    delay_us(100);
+    delay_ns(100);
     snowy_display_full_init();
 }
 
 
 // Util
 
-void delay_us(uint16_t us)
+void delay_ns(uint16_t ns)
 {
-    for(int i = 0; i < 22 * us; i++)
+    for(int i = 0; i < 22 * ns; i++)
             ;;
 }
 
-void delay_ns(uint16_t ns)
+void delay_us(uint16_t us)
 {
-    delay_us(1000 * ns);
+    delay_ns(1000 * us);
 }

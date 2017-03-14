@@ -32,7 +32,7 @@ typedef enum {
 typedef void(*TickHandler)(struct tm *tick_time, TimeUnits units_changed);
 void rebble_time_service_subscribe(TimeUnits tick_units, TickHandler handler);
 void rebble_time_service_unsubscribe(void);
-void rebble_time_callback_trigger(struct tm *tick_time, TimeUnits tick_units, BaseType_t *xHigherPriorityTaskWoken);
+void rebble_time_service_disable_timer();
 
 
 // private

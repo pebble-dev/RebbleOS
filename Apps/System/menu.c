@@ -18,6 +18,7 @@
 #include "rebbleos.h"
 #include "librebble.h"
 #include "menu.h"
+#include "appmanager.h"
 
 /*
 // menu
@@ -50,6 +51,7 @@ receive events
 */
 
 static int8_t menu_index = 0;
+extern App apps[3];
 
 void menu_init(void)
 {
@@ -58,27 +60,40 @@ void menu_init(void)
     main_menu[0].sub_text   = "";
     main_menu[1].text       = "Console";
     main_menu[1].sub_text   = ": Sys booted";
-    main_menu[2].text       = "Info";
-    main_menu[2].sub_text   = ": ";
-    main_menu[3].text       = "Toys";
-    main_menu[3].sub_text   = "/toys/";
+    main_menu[2].text       = "a";
+    main_menu[2].sub_text   = "";
+    main_menu[3].text       = "b";
+    main_menu[3].sub_text   = "";
 }
 
 void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety)
 {
-    char buf[25];
+//     char buf[25];
     
-    for (uint8_t i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 2; i++)
     {
         // build the sub text
-        if (i == 2) // its the info menu, prob need to get cleverer here for auto magic
-        {
-            sprintf(buf, ": %d", ambient_get());
-            menu[i].sub_text = buf;
-        }
+//         if (i == 2) // its the info menu, prob need to get cleverer here for auto magic
+//         {
+//             sprintf(buf, ": %d", ambient_get());
+//             menu[i].sub_text = buf;
+//         }
 
         menu_draw_list_item(0, i * 42, offsetx, offsety, &menu[i], (menu_index == i ? 1 : 0));
     }
+    
+    uint8_t j = 2;
+    for (uint8_t i = 0; i < NUM_APPS; i++)
+    {
+        if (apps[i].type == APP_TYPE_FACE)
+        {
+            menu[j].text = apps[i].name;
+            menu_draw_list_item(0, j * 42, offsetx, offsety, &menu[j], (menu_index == j ? 1 : 0));
+            j++;
+        }
+        
+    }
+    
 }
 
 void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offsety, menu_item_t* menu, uint8_t selected)
@@ -137,7 +152,8 @@ void menu_down()
 
 void menu_select()
 {
-    
+    if (menu_index > 1)
+        appmanager_app_start(main_menu[menu_index].text);
 }
 
 void menu_back()

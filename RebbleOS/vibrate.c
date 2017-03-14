@@ -45,7 +45,7 @@ void vibrate_init(void)
     rv = xTaskCreate(_vibrate_thread, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_vibrate_task); /* XXX: allocate statically later */
     assert(rv == pdPASS);
     
-    _vibrate_queue = xQueueCreate(10, sizeof(uint8_t));
+    _vibrate_queue = xQueueCreate(1, sizeof(uint8_t));
 }
 
 /*
