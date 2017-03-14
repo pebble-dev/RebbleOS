@@ -77,6 +77,7 @@ static void _init_USART3(void)
 void platform_init() {
     SCB->VTOR = 0x08004000;
     NVIC_SetVectorTable(0x08004000, 0);
+    NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
 }
 
 void platform_init_late() {
