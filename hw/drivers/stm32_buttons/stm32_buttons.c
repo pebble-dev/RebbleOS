@@ -98,7 +98,6 @@ void stm32_buttons_raw_isr()
         if (EXTI_GetITStatus(exti_line) == RESET)
             continue;
         
-        printf("button! %d\n", i);
         /* Handle the interrupt for button i. */
         if (_isr)
             _isr(i);
