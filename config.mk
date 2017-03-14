@@ -94,5 +94,6 @@ SRCS_all += RebbleOS/Gui/neographics.c
 
 include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk
+include hw/drivers/stm32_buttons/config.mk
 include hw/platform/snowy/config.mk
 include hw/platform/tintin/config.mk

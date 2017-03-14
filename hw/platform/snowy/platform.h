@@ -23,7 +23,7 @@
 #include "snowy_power.h"
 #include "snowy_vibrate.h"
 #include "snowy_display.h"
-#include "snowy_buttons.h"
+#include "stm32_buttons.h"
 #include "snowy_rtc.h"
 #include "snowy_ambient.h"
 

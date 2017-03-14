@@ -12,6 +12,7 @@
 #include <stm32f2xx_gpio.h>
 #include <stm32f2xx_spi.h>
 #include <stm32f2xx_rcc.h>
+#include <stm32f2xx_syscfg.h>
 #include <misc.h>
 
 /*** debug routines ***/
@@ -114,14 +115,19 @@ void hw_backlight_set(uint16_t val) {
 
 /* buttons */
 
-void hw_buttons_init() {
-}
+#include "stm32_buttons_platform.h"
 
-uint8_t hw_button_pressed(uint8_t button_id) {
-    return 0;
-}
+stm32_button_t platform_buttons[HW_BUTTON_MAX] = {
+    [HW_BUTTON_BACK]   = { GPIO_Pin_3, GPIOC, EXTI_PortSourceGPIOC, EXTI_PinSource3, RCC_AHB1Periph_GPIOC, EXTI3_IRQn },
+    [HW_BUTTON_UP]     = { GPIO_Pin_2, GPIOA, EXTI_PortSourceGPIOA, EXTI_PinSource2, RCC_AHB1Periph_GPIOA, EXTI2_IRQn },
+    [HW_BUTTON_SELECT] = { GPIO_Pin_6, GPIOC, EXTI_PortSourceGPIOC, EXTI_PinSource6, RCC_AHB1Periph_GPIOC, EXTI9_5_IRQn },
+    [HW_BUTTON_DOWN]   = { GPIO_Pin_1, GPIOA, EXTI_PortSourceGPIOA, EXTI_PinSource1, RCC_AHB1Periph_GPIOA, EXTI1_IRQn }
+};
 
-buttons_t buttons;
+STM32_BUTTONS_MK_IRQ_HANDLER(3)
+STM32_BUTTONS_MK_IRQ_HANDLER(2)
+STM32_BUTTONS_MK_IRQ_HANDLER(9_5)
+STM32_BUTTONS_MK_IRQ_HANDLER(1)
 
 /* display */
 
@@ -194,6 +200,8 @@ static void _display_write(unsigned char c) {
 }
 
 void hw_display_start_frame(uint8_t x, uint8_t y) {
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
     printf("tintin: here we go, slowly blitting %d %d\n", x, y);
     GPIO_WriteBit(GPIOB, 1 << 12, 1);
     delay_us(7);
