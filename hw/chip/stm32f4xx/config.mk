@@ -1,6 +1,7 @@
 CFLAGS_stm32f4xx = $(CFLAGS_all)
 CFLAGS_stm32f4xx += -Ihw/chip/stm32f4xx/inc
-CFLAGS_stm32f4xx += -DUSE_STDPERIPH_DRIVER -DSTM32F4XX -DSTM32F429_439xx -D__FPU_PRESENT=1 -D__FPU_USED=1 -DARM_MATH_CM4 -mcpu=cortex-m4 -mfloat-abi=softfp -mfpu=fpv4-sp-d16 -fsingle-precision-constant
+CFLAGS_stm32f4xx += -DUSE_STDPERIPH_DRIVER -DSTM32F4XX -DSTM32F429_439xx -D__FPU_PRESENT=1 -D__FPU_USED=0 -DARM_MATH_CM4 -mcpu=cortex-m4 -mfloat-abi=soft -fsingle-precision-constant
+#-mfpu=fpv4-sp-d16
 
 SRCS_stm32f4xx = $(SRCS_all)
 SRCS_stm32f4xx += hw/chip/stm32f4xx/startup_stm32f4xx.s
@@ -24,9 +25,9 @@ SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_dsi.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_exti.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_flash.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_flash_ramfunc.c
-#SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_fmc.c
+SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_fmc.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_fmpi2c.c
-#SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_fsmc.c
+# SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_fsmc.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_gpio.c
 #SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_hash.c
 #SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_hash_md5.c

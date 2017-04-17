@@ -26,5 +26,6 @@
 #include "stm32_buttons.h"
 #include "snowy_rtc.h"
 #include "snowy_ambient.h"
+#include "snowy_ext_flash.h"
 
 #endif

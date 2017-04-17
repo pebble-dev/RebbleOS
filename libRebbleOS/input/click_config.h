@@ -19,6 +19,8 @@
 #include "neographics.h"
 #include "layer.h"
 #include "platform.h"
+#include "pebble_defines.h"
+#include "gbitmap.h"
 
 /* XXX: move this to buttons.h so we don't have to depend on platform.h (ick) here */
 typedef enum ButtonId
@@ -74,20 +76,6 @@ ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer);
 bool click_recognizer_is_repeating(ClickRecognizerRef recognizer);
 
 // TODO move me
-
-// TODO in neogfx?
-typedef enum GAlign
-{
-    GAlignCenter,
-    GAlignTopLeft,
-    GAlignTopRight,
-    GAlignTop,
-    GAlignLeft,
-    GAlignBottom,
-    GAlignRight,
-    GAlignBottomRight,
-    GAlignBottomLeft
-} GAlign;
 
 
 typedef struct GColourPair

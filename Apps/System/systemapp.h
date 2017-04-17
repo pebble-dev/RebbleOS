@@ -20,10 +20,6 @@
 #include "display.h"
 #include "backlight.h"
 #include "menu.h"
-#include "ambient.h"
-
-#define ANIM_STOP        0
-#define ANIM_RTL         1
 
 
 #define BTN_SELECT_PRESS 1

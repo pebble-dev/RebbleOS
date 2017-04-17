@@ -34,6 +34,8 @@
 // #include "ugui.h"
 #include "rebble_time.h"
 #include "main.h"
+#include "log.h"
+#include "flash.h"
 
 // Public API functions as exposed through the various layers
 

@@ -1,5 +1,4 @@
-#ifndef __SNOWY_DISPLAY_H
-#define __SNOWY_DISPLAY_H
+#pragma once
 /* 
  * This file is part of the RebbleOS distribution.
  *   (https://github.com/pebble-dev)
@@ -75,7 +74,5 @@ void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t
 void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
 
 void delay_us(uint16_t us);
-void delay_ns(uint16_t ns);
+void delay_ms(uint16_t ms);
 
-
-#endif

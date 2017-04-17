@@ -17,9 +17,12 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
  #include "ugui.h"
+ #include "librebble.h"
+ 
 typedef struct {
     char *text;
     char *sub_text;
+    uint16_t image_res_id;
     
 } menu_item_t;
 

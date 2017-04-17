@@ -34,12 +34,12 @@ void flash_init()
 {
     hw_flash_init();
 
-    flash_test(120);
+//     flash_test(120);
 }
 
 inline void flash_load_read_bytes(uint32_t address, uint8_t *buffer, size_t offset, size_t num_bytes)
 {
-    nor_read_bytes(address, buffer, num_bytes);
+    hw_flash_read_bytes(address, buffer, num_bytes);
 }
 
 void flash_load_resource_id(uint16_t resource_id, uint8_t *buffer)
@@ -47,12 +47,12 @@ void flash_load_resource_id(uint16_t resource_id, uint8_t *buffer)
     ResHandle address;
     address = flash_get_reshandle(resource_id - 1);
 
-    nor_read_bytes(REGION_RES_START + RES_START + address.offset, buffer, address.size);
+    hw_flash_read_bytes(REGION_RES_START + RES_START + address.offset, buffer, address.size);
 }
 
 void flash_load_resource_from_handle(ResHandle resource_handle, uint8_t *buffer)
 {
-    nor_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
+    hw_flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
 }
 
 void flash_load_resource_length(uint16_t resource_id, uint8_t *buffer, size_t offset, size_t num_bytes)
@@ -60,7 +60,7 @@ void flash_load_resource_length(uint16_t resource_id, uint8_t *buffer, size_t of
     ResHandle address;
     address = flash_get_reshandle(resource_id - 1);
 //     printf("FLASH ofs %d,idx %d, size %d, crc %d\n", (int)address.offset, (int)address.index, (int)address.size, (int)address.crc);
-    nor_read_bytes(REGION_RES_START + RES_START + address.offset + offset, buffer, num_bytes);
+    hw_flash_read_bytes(REGION_RES_START + RES_START + address.offset + offset, buffer, num_bytes);
 }
 
 ResHandle flash_get_reshandle(uint16_t resource_id)
@@ -69,10 +69,10 @@ ResHandle flash_get_reshandle(uint16_t resource_id)
     
     // go to the flash resource headers table
     // can speed this up by memcpy to the struct
-    resHandle.index = nor_read_word(REGION_RES_START + RES_TABLE_START + (resource_id * 16));
-    resHandle.offset = nor_read_word(REGION_RES_START + RES_TABLE_START + (resource_id * 16) + 4);
-    resHandle.size = nor_read_word(REGION_RES_START + RES_TABLE_START + (resource_id * 16) + 8);
-    resHandle.crc = nor_read_word(REGION_RES_START + RES_TABLE_START + (resource_id * 16) + 12);
+    resHandle.index = hw_flash_read32(REGION_RES_START + RES_TABLE_START + (resource_id * 16));
+    resHandle.offset = hw_flash_read32(REGION_RES_START + RES_TABLE_START + (resource_id * 16) + 4);
+    resHandle.size = hw_flash_read32(REGION_RES_START + RES_TABLE_START + (resource_id * 16) + 8);
+    resHandle.crc = hw_flash_read32(REGION_RES_START + RES_TABLE_START + (resource_id * 16) + 12);
 //     printf("FLASH ofs %d,idx %d, size %d, crc %d\n", resHandle.offset, resHandle.index, resHandle.size, resHandle.crc);
     return resHandle;
 }
@@ -102,5 +102,6 @@ size_t resource_size(ResHandle handle)
 
 void resource_load(ResHandle resource_handle, uint8_t *buffer, size_t image_size)
 {
-    nor_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
+    printf("resource load\n");
+    hw_flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
 }

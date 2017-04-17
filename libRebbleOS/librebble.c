@@ -33,5 +33,3 @@ void rbl_draw(void)
 {
     display_draw();
 }
-
-// void resource_load(void *image, ResHandle handle, size_t image_size) {}

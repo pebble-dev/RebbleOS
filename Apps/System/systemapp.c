@@ -40,6 +40,8 @@ typedef struct {
 
 static Time s_last_time;
 
+GBitmap* gbitmap = NULL;
+
 static void systemapp_window_load(Window *window)
 {
     printf("WF load\n");
@@ -49,8 +51,10 @@ static void systemapp_window_load(Window *window)
     s_canvas_layer = layer_create(bounds);
     layer_set_update_proc(s_canvas_layer, systemapp_update_proc);
     layer_add_child(window_layer, s_canvas_layer);
-
-    layer_mark_dirty(s_canvas_layer);
+   
+    
+    //layer_mark_dirty(s_canvas_layer);
+    
     // TODO until we compile those fonts in, this wil crash
     // as we have no font set
     //layer_add_child(window_layer, s_text_layer);
@@ -152,7 +156,7 @@ void systemapp_resumed(void)
 
 static void systemapp_update_proc(Layer *layer, GContext *nGContext)
 {   
-   menu_show(0, 0);
+    menu_show(0, 0);
 }
 
 

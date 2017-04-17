@@ -26,6 +26,7 @@
 #include <stddef.h>
 #include <inttypes.h>
 #include "rebble_memory.h"
+#include "log.h"
 #include <stdlib.h>
 
 
@@ -38,15 +39,14 @@
 #define TRIG_MAX_RATIO 0xffff
 #define TRIG_MAX_ANGLE 0x10000
 
-#include "graphics_bitmap.h"
-#include "graphics_reshandle.h"
-#include "graphics_resource.h"
-
-
 struct GBitmap;
 struct n_GRect;
 struct ResHandle;
 
+#include "graphics_reshandle.h"
+#include "graphics_resource.h"
+
+#include "gbitmap.h"
 
 int32_t sin_lookup(int32_t angle);
 int32_t cos_lookup(int32_t angle);

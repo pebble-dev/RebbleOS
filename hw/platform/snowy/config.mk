@@ -12,6 +12,7 @@ SRCS_snowy += hw/platform/snowy/snowy_rtc.c
 SRCS_snowy += hw/platform/snowy/snowy_scanlines.c
 SRCS_snowy += hw/platform/snowy/snowy_vibrate.c
 SRCS_snowy += hw/platform/snowy/snowy_ambient.c
+SRCS_snowy += hw/platform/snowy/snowy_ext_flash.c
 SRCS_snowy += hw/platform/snowy/snowy.c
 SRCS_snowy += Resources/FPGA_4.3_snowy_dumped.bin
 

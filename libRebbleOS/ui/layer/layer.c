@@ -255,19 +255,6 @@ void graphics_release_frame_buffer(GContext *context, GBitmap *bitmap)
 }
 
 
-// resources
-ResHandle resource_get_handle(uint16_t resource_id)
-{
-    ResHandle res;
-    return res;
-}
-
-size_t resource_size(ResHandle handle)
-{
-    return 0;
-}
-
-
 
 GPoint grect_center_point(GRect *rect)
 {

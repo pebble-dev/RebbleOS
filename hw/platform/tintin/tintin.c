@@ -266,3 +266,23 @@ void hw_vibrate_init() {
 
 void hw_vibrate_enable(uint8_t enabled) {
 }
+
+
+void hw_flash_init() {
+}
+
+uint16_t hw_flash_read16(uint32_t address) {
+    return 0xC0;   
+}
+
+uint32_t hw_flash_read32(uint32_t address) {
+    return 0xC0;
+}
+
+void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length) {
+    memcpy(buffer, 0xC0, length);
+}
+
+void hw_flash_write16(uint32_t address, uint16_t data) {
+    
+}

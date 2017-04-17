@@ -247,7 +247,7 @@ void snowy_display_init_SPI6(void)
     SPI_InitStruct.SPI_CPOL = SPI_CPOL_High;        // clock is low when idle
     SPI_InitStruct.SPI_CPHA = SPI_CPHA_1Edge;      // data sampled at first edge
     SPI_InitStruct.SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
-    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; // SPI frequency is APB2 frequency / 2
+    SPI_InitStruct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; // SPI frequency is APB2 frequency / 8
     SPI_InitStruct.SPI_FirstBit = SPI_FirstBit_MSB;// data is transmitted LSB first
     // pebble additionally has these Set
 
@@ -377,6 +377,7 @@ void DMA2_Stream5_IRQHandler()
                 
         // done. We are still in control of the SPI select, so lets let go
         col_index = 0;
+        
         snowy_display_cs(0);
         display.State = DISPLAY_STATE_IDLE;
     }
@@ -472,7 +473,7 @@ void snowy_display_dma_send(uint8_t *data, uint32_t length)
 uint8_t snowy_display_FPGA_reset(uint8_t mode)
 {
     uint16_t k = 0;
-    uint8_t g9 = 0;    
+    uint8_t g9 = 0;
 
     snowy_display_cs(mode);
     //snowy_display_cs(1);
@@ -500,7 +501,7 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
             return 1;
         }
         
-        delay_us(50);
+        delay_ms(100);
             
         k++;
         
@@ -534,7 +535,7 @@ void snowy_display_reset(uint8_t enabled)
 void snowy_display_SPI_start(void)
 {
     snowy_display_cs(1);
-    delay_ns(50);
+    delay_us(100);
 }
 
 /*
@@ -569,10 +570,10 @@ void snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
     //scanline_convert_buffer(xoffset, yoffset);
     printf("eC Frame\n");
     snowy_display_cs(1);
-    delay_ns(80);
+    delay_us(80);
     snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
     snowy_display_cs(0);
-    delay_ns(100);
+    delay_us(100);
 
     display.State = DISPLAY_STATE_FRAME;
 
@@ -586,8 +587,9 @@ void snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
  */
 void snowy_display_send_frame()
 {
+//     return snowy_display_send_frame_slow();
     snowy_display_cs(1);
-    
+    delay_us(80);
     // send over DMA
     // we are only going to send one single column at a time
     // the dma engine completion will trigger the next lot of data to go
@@ -602,14 +604,14 @@ void snowy_display_send_frame()
 void snowy_display_send_frame_slow()
 {
     snowy_display_cs(1);
-    delay_ns(50);
+    delay_us(50);
       
     // send via standard SPI
     for(uint8_t x = 0; x < DISPLAY_COLS; x++)
     {
         scanline_convert_column(column_buffer, display.FrameBuffer, x);
         for (uint8_t j = 0; j < DISPLAY_ROWS; j++)
-            snowy_display_SPI6_send(display.FrameBuffer[j]);
+            snowy_display_SPI6_send(column_buffer[j]);
     }   
     
     snowy_display_cs(0);
@@ -631,7 +633,7 @@ uint8_t snowy_display_wait_FPGA_ready(void)
             printf("timed out waiting for ready\n");
             return 0;
         }        
-        delay_us(100);
+        delay_us(200);
     }
     printf("FPGA Ready\n");
     
@@ -668,15 +670,15 @@ void snowy_display_splash(uint8_t scene)
     // known issue apparently (Katharine Berry confirmed)
     for (uint8_t i = 0; i < 10; i++)
     {
-        delay_ns(1);
+        delay_us(1);
         snowy_display_cs(1);
-        delay_ns(100);
+        delay_us(100);
         snowy_display_SPI6_send(DISPLAY_CTYPE_SCENE); // Scene select
         snowy_display_SPI6_send(scene); // Select scene
         snowy_display_cs(0);
         
         IWDG_ReloadCounter();
-        delay_ns(100);
+        delay_us(100);
         
         if (snowy_display_wait_FPGA_ready())
         {
@@ -791,20 +793,20 @@ void hw_display_start(void)
 {
     // begin the init
     snowy_display_splash(2);
-    delay_ns(100);
+    delay_us(100);
     snowy_display_full_init();
 }
 
 
 // Util
 
-void delay_ns(uint16_t ns)
+void delay_us(uint16_t us)
 {
-    for(int i = 0; i < 22 * ns; i++)
+    for(int i = 0; i < 22 * us; i++)
             ;;
 }
 
-void delay_us(uint16_t us)
+void delay_ms(uint16_t ms)
 {
-    delay_ns(1000 * us);
+    delay_us(1000 * ms);
 }

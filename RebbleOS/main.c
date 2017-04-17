@@ -35,7 +35,7 @@ int main(void)
 
     rebbleos_init();
     
-    printf("RebbleOS (Ginge) v0.0.0.0\n");
+    printf("RebbleOS (Ginge) v0.0.0.1\n");
     
     vTaskStartScheduler();  // should never return
     for (;;);
@@ -87,13 +87,15 @@ void hardware_init(void)
     printf("vibro init init\n");
     display_init();
     printf("display init\n");
-    buttons_init();
+//     buttons_init();
     printf("buttons init\n");
     rtc_init();
     ambient_init();
     printf("ambiance init\n");
     backlight_init();
     printf("bl init\n");
+    flash_init();
+    printf("flash init\n");
     platform_init_late();
 }
 

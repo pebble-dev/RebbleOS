@@ -3,15 +3,16 @@ CFLAGS_all += -IHardware
 CFLAGS_all += -IFreeRTOS/include
 CFLAGS_all += -IFreeRTOS/portable/GCC/ARM_CM4F
 CFLAGS_all += -IPlatform/CMSIS/Include
-CFLAGS_all += -ILibraries/UGUI
-CFLAGS_all += -ILibraries/neographics/src/
-CFLAGS_all += -ILibraries/neographics/src/draw_command
-CFLAGS_all += -ILibraries/neographics/src/path
-CFLAGS_all += -ILibraries/neographics/src/primitives
-CFLAGS_all += -ILibraries/neographics/src/types
-CFLAGS_all += -ILibraries/neographics/src/fonts
-CFLAGS_all += -ILibraries/neographics/src/text
+CFLAGS_all += -Ilib/UGUI
+CFLAGS_all += -Ilib/neographics/src/
+CFLAGS_all += -Ilib/neographics/src/draw_command
+CFLAGS_all += -Ilib/neographics/src/path
+CFLAGS_all += -Ilib/neographics/src/primitives
+CFLAGS_all += -Ilib/neographics/src/types
+CFLAGS_all += -Ilib/neographics/src/fonts
+CFLAGS_all += -Ilib/neographics/src/text
 CFLAGS_all += -Ilib/minilib/inc
+CFLAGS_all += -Ilib/png
 CFLAGS_all += -IWatchfaces
 CFLAGS_all += -IApps
 CFLAGS_all += -IApps/System
@@ -48,17 +49,20 @@ SRCS_all += lib/minilib/rand.c
 
 SRCS_all += Hardware/stdarg.c
 
-SRCS_all += Libraries/UGUI/ugui.c
+SRCS_all += lib/UGUI/ugui.c
 
-SRCS_all += Libraries/neographics/src/common.c
-SRCS_all += Libraries/neographics/src/context.c
-SRCS_all += Libraries/neographics/src/draw_command/draw_command.c
-SRCS_all += Libraries/neographics/src/fonts/fonts.c
-SRCS_all += Libraries/neographics/src/path/path.c
-SRCS_all += Libraries/neographics/src/primitives/circle.c
-SRCS_all += Libraries/neographics/src/primitives/line.c
-SRCS_all += Libraries/neographics/src/primitives/rect.c
-SRCS_all += Libraries/neographics/src/text/text.c
+SRCS_all += lib/neographics/src/common.c
+SRCS_all += lib/neographics/src/context.c
+SRCS_all += lib/neographics/src/draw_command/draw_command.c
+SRCS_all += lib/neographics/src/fonts/fonts.c
+SRCS_all += lib/neographics/src/path/path.c
+SRCS_all += lib/neographics/src/primitives/circle.c
+SRCS_all += lib/neographics/src/primitives/line.c
+SRCS_all += lib/neographics/src/primitives/rect.c
+SRCS_all += lib/neographics/src/text/text.c
+
+SRCS_all += lib/png/png.c
+SRCS_all += lib/png/upng.c
 
 SRCS_all += RebbleOS/ambient.c
 SRCS_all += RebbleOS/appmanager.c
@@ -74,13 +78,17 @@ SRCS_all += RebbleOS/smartstrap.c
 SRCS_all += RebbleOS/rebble_time.c
 SRCS_all += RebbleOS/rebble_memory.c
 SRCS_all += RebbleOS/vibrate.c
+SRCS_all += RebbleOS/flash.c
+SRCS_all += RebbleOS/log.c
 
 SRCS_all += libRebbleOS/librebble.c
 SRCS_all += libRebbleOS/math_sin.c
 SRCS_all += libRebbleOS/ui/layer/layer.c
+SRCS_all += libRebbleOS/ui/layer/bitmap_layer.c
 SRCS_all += libRebbleOS/ui/layer/scroll_layer.c
 SRCS_all += libRebbleOS/ui/layer/text_layer.c
 SRCS_all += libRebbleOS/ui/window.c
+SRCS_all += libRebbleOS/graphics/gbitmap.c
 SRCS_all += libRebbleOS/event/tick_timer_service.c
 
 SRCS_all += Watchfaces/simple.c

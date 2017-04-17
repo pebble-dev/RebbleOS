@@ -50,6 +50,12 @@ void debug_write(const unsigned char *p, size_t len) {
         while (!(USART3->SR & USART_SR_TC));
         USART3->DR = p[i];
     }
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
+    
+    for (i = 0; i < len; i++) {
+        while (!(UART8->SR & USART_SR_TC));
+        UART8->DR = p[i];
+    }
 }
 
 /*

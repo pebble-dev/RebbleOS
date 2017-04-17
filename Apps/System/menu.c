@@ -50,27 +50,33 @@ receive events
         notify app
 */
 
+#define STANDARD_MENU_COUNT 2
+
 static int8_t menu_index = 0;
-extern App apps[3];
+extern App apps[NUM_APPS];
 
 void menu_init(void)
 {
     printf("menu init\n");
     main_menu[0].text       = "Settings";
     main_menu[0].sub_text   = "";
+    main_menu[0].image_res_id = 16;
     main_menu[1].text       = "Console";
     main_menu[1].sub_text   = ": Sys booted";
+    main_menu[1].image_res_id = 24;
     main_menu[2].text       = "a";
     main_menu[2].sub_text   = "";
+    main_menu[2].image_res_id = 0;
     main_menu[3].text       = "b";
     main_menu[3].sub_text   = "";
+    main_menu[3].image_res_id = 0;
 }
 
 void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety)
 {
-//     char buf[25];
-    
-    for (uint8_t i = 0; i < 2; i++)
+
+    // Draw the standard apps
+    for (uint8_t i = 0; i < STANDARD_MENU_COUNT; i++)
     {
         // build the sub text
 //         if (i == 2) // its the info menu, prob need to get cleverer here for auto magic
@@ -82,12 +88,13 @@ void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety)
         menu_draw_list_item(0, i * 42, offsetx, offsety, &menu[i], (menu_index == i ? 1 : 0));
     }
     
-    uint8_t j = 2;
+    uint8_t j = STANDARD_MENU_COUNT;
     for (uint8_t i = 0; i < NUM_APPS; i++)
     {
         if (apps[i].type == APP_TYPE_FACE)
         {
             menu[j].text = apps[i].name;
+            menu[j].image_res_id = 25;
             menu_draw_list_item(0, j * 42, offsetx, offsety, &menu[j], (menu_index == j ? 1 : 0));
             j++;
         }
@@ -118,20 +125,35 @@ void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offset
         UG_SetForecolor(C_BLACK);
     }
 
-//     x += offsetx;
-//     y += offsety;
-    
-
     graphics_context_set_fill_color(nGContext, bg);
     graphics_fill_rect(nGContext, GRect(x, y, x + 144, y + 42), 0, GCornerNone);
+    
     // and an icon
-    // and text
-    UG_FontSelect(&FONT_8X14);
-    UG_PutString(x + 20, y + 5, menu->text);
+    if (menu->image_res_id > 0)
+    {
+        GBitmap *gbitmap = gbitmap_create_with_resource(menu->image_res_id);
+        graphics_draw_bitmap_in_rect(nGContext, gbitmap, GRect(x + 5, y + 5, 25,25)); //gbitmap->bounds.size.w, gbitmap->bounds.size.h));
+        gbitmap_destroy(gbitmap);
+    }
+    
+    
     // and subtext
-    UG_FontSelect(&FONT_6X8);
-    UG_PutString(x + 40, y + 25, menu->sub_text);
+    if (strlen(menu->sub_text) > 0)
+    {
+        UG_FontSelect(&FONT_6X8);
+        UG_PutString(x + 42, y + 25, menu->sub_text);
+        // and text
+        UG_FontSelect(&FONT_8X14);
+        UG_PutString(x + 40, y + 5, menu->text);
+    }
+    else
+    {
+        UG_FontSelect(&FONT_8X14);
+        UG_PutString(x + 40, y + 10, menu->text);
+    }
 }
+
+uint16_t fl_idx = 7;
 
 void menu_show(uint8_t offsetx, uint8_t offsety)
 {
@@ -145,7 +167,7 @@ void menu_up()
 }
 
 void menu_down()
-{
+{    
     if (menu_index < 3)
         menu_index++;
 }
