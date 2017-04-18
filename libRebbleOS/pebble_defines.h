@@ -60,4 +60,5 @@
 
 #define GCornerNone n_GCornerNone
 
+#define graphics_context_set_text_color n_graphics_context_set_text_color
 #include "gbitmap.h"

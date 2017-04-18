@@ -21,20 +21,12 @@
 extern SystemStatus system_status;
 extern SystemSettings system_settings;
 
-static UG_GUI gui;
-
 
 /*
  * Initialise the uGUI component and start the draw
  */
 void gui_init(void)
 {   
-    /* Configure uGUI */
-    UG_Init(&gui, scanline_rgb888pixel_to_frambuffer, DISPLAY_COLS, DISPLAY_ROWS);
-
-    /* Draw text with uGUI */
-//     UG_FontSelect(&FONT_8X14);
-
     neographics_init(display_get_buffer());
 }
 

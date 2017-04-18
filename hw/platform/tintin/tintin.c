@@ -227,12 +227,12 @@ uint8_t hw_display_get_state() {
 }
 
 
-void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c) {
-    if (c)
-        _display_fb[y][17 - (x / 8)] |= (0x80 >> (x % 8));
-    else
-        _display_fb[y][17 - (x / 8)] &= ~(0x80 >> (x % 8));
-}
+// void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c) {
+//     if (c)
+//         _display_fb[y][17 - (x / 8)] |= (0x80 >> (x % 8));
+//     else
+//         _display_fb[y][17 - (x / 8)] &= ~(0x80 >> (x % 8));
+// }
 
 /* rtc */
 

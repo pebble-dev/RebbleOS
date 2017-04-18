@@ -20,10 +20,9 @@
 #include "string.h"
 #include "display.h"
 #include "snowy_display.h"
-#include "ugui.h"
+
 
 extern display_t display;
-
 
 
 /*
@@ -72,7 +71,7 @@ void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t
     }
 }
 
-
+/*
 // uGUI gives us a single pixel and color c in RGB888
 // the cordinates of the pixel are used to calculate the position of 
 // the real framebuffer position.
@@ -100,4 +99,4 @@ void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c)
     display.FrameBuffer[pos] = red << 4 | green << 2 | blue;
 
     return;
-}
+}*/

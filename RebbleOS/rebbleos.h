@@ -31,7 +31,6 @@
 #include "gui.h"
 #include "display.h"
 #include "neographics.h"
-// #include "ugui.h"
 #include "rebble_time.h"
 #include "main.h"
 #include "log.h"

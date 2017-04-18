@@ -55,7 +55,7 @@ void appmanager_init(void)
     apps[2].type = APP_TYPE_FACE;
     
    
-    xTaskCreate(vAppTask, "App", configMINIMAL_STACK_SIZE * 8, NULL, tskIDLE_PRIORITY + 5UL, &xAppTask);
+    xTaskCreate(vAppTask, "App", configMINIMAL_STACK_SIZE * 16, NULL, tskIDLE_PRIORITY + 5UL, &xAppTask);
     xAppMessageQueue = xQueueCreate(5, sizeof(struct AppMessage));
     printf("App Task Created!\n");
 }

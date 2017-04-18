@@ -27,6 +27,7 @@ void systemapp_main(void);
 
 static Window *s_main_window;
 static Layer *s_canvas_layer;
+static TextLayer *s_text_layer;
 
 void systemapp_config_provider(Window *window);
 void up_single_click_handler(ClickRecognizerRef recognizer, void *context);
@@ -54,11 +55,6 @@ static void systemapp_window_load(Window *window)
    
     
     //layer_mark_dirty(s_canvas_layer);
-    
-    // TODO until we compile those fonts in, this wil crash
-    // as we have no font set
-    //layer_add_child(window_layer, s_text_layer);
-    //text_layer_set_text(s_text_layer, "Hello\n");
 
     //tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_handler);
 }

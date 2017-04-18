@@ -6,7 +6,7 @@
 #include "rebble_time.h"
 #include "stm32f2xx.h"
 
-#include "ugui.h"
+
 void debug_init();
 void debug_write(const unsigned char *p, size_t len);
 void platform_init();
@@ -40,6 +40,6 @@ void rtc_disable_timer_interval(void);
 
 void hw_vibrate_init();
 void hw_vibrate_enable(uint8_t enabled);
-void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
+
 
 #endif

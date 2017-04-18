@@ -3,7 +3,6 @@ CFLAGS_all += -IHardware
 CFLAGS_all += -IFreeRTOS/include
 CFLAGS_all += -IFreeRTOS/portable/GCC/ARM_CM4F
 CFLAGS_all += -IPlatform/CMSIS/Include
-CFLAGS_all += -Ilib/UGUI
 CFLAGS_all += -Ilib/neographics/src/
 CFLAGS_all += -Ilib/neographics/src/draw_command
 CFLAGS_all += -Ilib/neographics/src/path
@@ -49,8 +48,6 @@ SRCS_all += lib/minilib/rand.c
 
 SRCS_all += Hardware/stdarg.c
 
-SRCS_all += lib/UGUI/ugui.c
-
 SRCS_all += lib/neographics/src/common.c
 SRCS_all += lib/neographics/src/context.c
 SRCS_all += lib/neographics/src/draw_command/draw_command.c
@@ -89,6 +86,7 @@ SRCS_all += libRebbleOS/ui/layer/scroll_layer.c
 SRCS_all += libRebbleOS/ui/layer/text_layer.c
 SRCS_all += libRebbleOS/ui/window.c
 SRCS_all += libRebbleOS/graphics/gbitmap.c
+SRCS_all += libRebbleOS/graphics/font_loader.c
 SRCS_all += libRebbleOS/event/tick_timer_service.c
 
 SRCS_all += Watchfaces/simple.c

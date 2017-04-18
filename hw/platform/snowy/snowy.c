@@ -38,8 +38,9 @@
 void debug_init()
 {
     init_USART3(); // general debugging
+#ifdef DEBUG_UART_SMARTSTRAP
     init_USART8(); // smartstrap debugging
-        
+#endif
     printf("USART3/8 init\n");
 }
 
