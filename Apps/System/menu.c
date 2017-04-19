@@ -54,10 +54,10 @@ receive events
 
 static int8_t menu_index = 0;
 extern App apps[NUM_APPS];
-    // these will get cached out so meh
+
 void menu_init(void)
 {
-        // these will get cached out so meh
+    
     printf("menu init\n");
     main_menu[0].text       = "Settings";
     main_menu[0].sub_text   = "";
@@ -130,14 +130,15 @@ void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offset
     if (menu->image_res_id > 0)
     {
         GBitmap *gbitmap = gbitmap_create_with_resource(menu->image_res_id);
-        graphics_draw_bitmap_in_rect(nGContext, gbitmap, GRect(x + 5, y + 5, 25,25)); //gbitmap->bounds.size.w, gbitmap->bounds.size.h));
+        graphics_draw_bitmap_in_rect(nGContext, gbitmap, GRect(x + 5, y + 5, 25,25));
         gbitmap_destroy(gbitmap);
     }
 
+    // these will get cached out so meh
     GFont font1 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
     GFont font2 = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
     
-    // and subtext
+    // and text/subtext
     if (strlen(menu->sub_text) > 0)
     {
         graphics_draw_text(nGContext, menu->sub_text, font1,

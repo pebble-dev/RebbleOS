@@ -22,6 +22,9 @@
 
 void _gbitmap_draw(GBitmap *bitmap, GRect clip);
 
+/*
+ * Create a bitmap of size frame
+ */
 GBitmap *gbitmap_create(GRect frame)
 {
     //Allocate gbitmap
@@ -29,10 +32,14 @@ GBitmap *gbitmap_create(GRect frame)
     gbitmap->bounds = frame;
     gbitmap->free_data_on_destroy = true;
     gbitmap->free_palette_on_destroy = true;
+    gbitmap->format = GBitmapFormat4BitPalette;
     
     return gbitmap;
 }
 
+/*
+ * Kill a Bitmap and all the things it uses
+ */
 void gbitmap_destroy(GBitmap *bitmap)
 {
     if (bitmap->free_palette_on_destroy)
@@ -44,12 +51,19 @@ void gbitmap_destroy(GBitmap *bitmap)
     bitmap = NULL;
 }
 
+/*
+ * Call a draw out of a bitmap image into the bounds.
+ * If the bitmap is larger it will get clipped
+ * If it is larger it will be placed at bounds x + bitmap x
+ */
 void gbitmap_draw(GBitmap *bitmap, GRect bounds)
 {
     _gbitmap_draw(bitmap, bounds);
 }
 
-
+/*
+ * Mega draw. Draw based on format etc
+ */
 void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
 {
     //Decode paletized image to raw rgb values
@@ -180,22 +194,33 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
     }
 }
 
-
+/*
+ * How many bytes per row of a bitmap. For example, 1 bit image has 8 bits per byte. 8 rows would be 1 byte
+ */
 uint16_t gbitmap_get_bytes_per_row(const GBitmap *bitmap)
 {
     return bitmap->row_size_bytes;
 }
 
+/*
+ * Gets the format of the bitmap
+ */
 GBitmapFormat gbitmap_get_format(const GBitmap *bitmap)
 {
     return bitmap->format;
 }
 
+/*
+ * Get the data out of that ther bitmap
+ */
 uint8_t *gbitmap_get_data(const GBitmap *bitmap)
 {
     return (uint8_t *)bitmap->addr;
 }
 
+/*
+ * given a GBitmap, set the format and data of the image data.
+ */
 void gbitmap_set_data(GBitmap *bitmap, uint8_t *data, GBitmapFormat format, uint16_t row_size_bytes, bool free_on_destroy)
 {
     bitmap->addr = data;
@@ -204,21 +229,33 @@ void gbitmap_set_data(GBitmap *bitmap, uint8_t *data, GBitmapFormat format, uint
     bitmap->free_data_on_destroy = free_on_destroy;
 }
 
+/*
+ * Get the boundary of the bitmp
+ */
 GRect gbitmap_get_bounds(const GBitmap *bitmap)
 {
     return bitmap->bounds;
 }
 
+/*
+ * Set the boundary of the bitmp
+ */
 void gbitmap_set_bounds(GBitmap *bitmap, GRect bounds)
 {
     bitmap->bounds = bounds;
 }
 
+/*
+ * Get the palette of the bitmp
+ */
 GColor *gbitmap_get_palette(const GBitmap *bitmap)
 {
     return bitmap->palette;
 }
 
+/*
+ * Set the palette of the bitmp
+ */
 void gbitmap_set_palette(GBitmap *bitmap, GColor *palette, bool free_on_destroy)
 {
     free(bitmap->palette);
@@ -226,22 +263,21 @@ void gbitmap_set_palette(GBitmap *bitmap, GColor *palette, bool free_on_destroy)
     bitmap->free_palette_on_destroy = free_on_destroy;
 }
 
+/*
+ * Load a resource into the GBitmap by resource id
+ */
 GBitmap *gbitmap_create_with_resource(uint32_t resource_id)
 {
+    uint8_t *png_data = resource_fully_load_id(resource_id);
     ResHandle res_handle = resource_get_handle(resource_id);
     size_t png_data_size = resource_size(res_handle);
-    uint8_t *png_data = calloc(1, png_data_size); //freed by upng impl
-    
-    if (png_data == NULL)
-    {
-        printf("PNG Load alloc failed\n");
-        return NULL;
-    }
-    resource_load(res_handle, png_data, png_data_size);
-    
+        
     return gbitmap_create_from_png_data(png_data, png_data_size);
 }
 
+/*
+ * Create a new bitmap with the given data
+ */
 GBitmap *gbitmap_create_with_data(const uint8_t *data)
 {
     GRect r;
@@ -253,6 +289,9 @@ GBitmap *gbitmap_create_with_data(const uint8_t *data)
     return bitmap;
 }
 
+/*
+ * Get a sub bitmap from a larger bitmap
+ */
 GBitmap *gbitmap_create_as_sub_bitmap(const GBitmap *base_bitmap, GRect sub_rect)
 {
     GBitmap *bitmap = gbitmap_create(sub_rect);
@@ -265,10 +304,15 @@ GBitmap *gbitmap_create_as_sub_bitmap(const GBitmap *base_bitmap, GRect sub_rect
     bitmap->free_data_on_destroy = base_bitmap->free_data_on_destroy;
     bitmap->format = base_bitmap->format;
     bitmap->bounds = sub_rect;
+ 
+    // TODO bounds checking and stuff
     
     return bitmap;
 }
 
+/*
+ * Given loaded png image, create a new GBitmap
+ */
 GBitmap *gbitmap_create_from_png_data(const uint8_t *png_data, size_t png_data_size)
 {   
     GRect fr;
@@ -280,6 +324,9 @@ GBitmap *gbitmap_create_from_png_data(const uint8_t *png_data, size_t png_data_s
     return bitmap;
 }
 
+/*
+ * Create and initialise a GBitmap
+ */
 GBitmap *gbitmap_create_blank(GSize size, GBitmapFormat format)
 {
     GRect gr = { .size = size, .origin.x = 0, .origin.y = 0 };
@@ -295,6 +342,9 @@ GBitmap *gbitmap_create_blank(GSize size, GBitmapFormat format)
     return bitmap;
 }
 
+/*
+ * Create and initialise a GBitmap with a palette
+ */
 GBitmap *gbitmap_create_blank_with_palette(GSize size, GBitmapFormat format, GColor *palette, bool free_on_destroy)
 {
     GBitmap *bitmap = gbitmap_create_blank(size, format);
@@ -304,11 +354,17 @@ GBitmap *gbitmap_create_blank_with_palette(GSize size, GBitmapFormat format, GCo
     return bitmap;
 }
 
+/*
+ * TODO
+ */
 GBitmap *gbitmap_create_palettized_from_1bit(const GBitmap *src_bitmap)
 {
     return NULL;
 }
 
+/*
+ * Set the position vars of a bitmap
+ */
 void _gbitmap_set_size_pos(GBitmap *bitmap, GRect size)
 {
     bitmap->bounds = size;

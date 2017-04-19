@@ -36,5 +36,4 @@
 void flash_test(uint16_t resource_id);
 void flash_init(void);
 
-size_t resource_size(ResHandle handle);
-void resource_load(ResHandle resource_handle, uint8_t *buffer, size_t image_size);
+void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes);

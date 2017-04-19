@@ -32,6 +32,10 @@ void _nor_reset_region(uint32_t address);
 void _nor_reset_state(void);
 uint8_t _flash_test(void);
 
+/*
+ * Initialise the flash hardware. 
+ * it's NOR flash, using a multiplexed io
+ */
 void hw_flash_init(void)
 {
     FMC_NORSRAMInitTypeDef fmc_nor_init_struct;
@@ -45,35 +49,24 @@ void hw_flash_init(void)
     // The bootloader toggles the reset manually before we init.
     // It didn't do anything below, so I assume it works. Also works without
     // bootloader sets D4 high here
-//     gpio_init_struct.GPIO_Mode = GPIO_Mode_OUT;
-//     gpio_init_struct.GPIO_Pin =  GPIO_Pin_4;
-//     gpio_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-//     gpio_init_struct.GPIO_Speed = GPIO_Speed_100MHz;
-//     gpio_init_struct.GPIO_OType = GPIO_OType_PP;
-//     GPIO_Init(GPIOD, &gpio_init_struct);
-// 
-//      GPIO_SetBits(GPIOD, GPIO_Pin_4);
+    // gpio_init_struct.GPIO_Mode = GPIO_Mode_OUT;
+    // gpio_init_struct.GPIO_Pin =  GPIO_Pin_4;
+    // gpio_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    // gpio_init_struct.GPIO_Speed = GPIO_Speed_100MHz;
+    // gpio_init_struct.GPIO_OType = GPIO_OType_PP;
+    // GPIO_Init(GPIOD, &gpio_init_struct);
+    // 
+    // GPIO_SetBits(GPIOD, GPIO_Pin_4);
     _nor_gpio_config();
     
-//     GPIO_ResetBits(GPIOD, GPIO_Pin_4);
-//     delay_us(10);
-//     GPIO_SetBits(GPIOD, GPIO_Pin_4);
-//     delay_us(30);
-    
+    //GPIO_ResetBits(GPIOD, GPIO_Pin_4);
+    //delay_us(10);
+    //GPIO_SetBits(GPIOD, GPIO_Pin_4);
+    // let the flash initialise from the reset
+    delay_ms(30);    
     
     RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FMC, ENABLE);
-        
-    // clock config
-    // This is what the bootloader had. Slow settings that barely worked
-//     p.FMC_AddressSetupTime = 1;
-//     p.FMC_AddressHoldTime = 1;
-//     p.FMC_DataSetupTime = 3;
-//     p.FMC_BusTurnAroundDuration = 1;
-//     p.FMC_CLKDivision = 15;
-//     p.FMC_DataLatency = 15;
-//     p.FMC_AccessMode = FMC_AccessMode_A;
-
-    
+   
     // settled on these
     p.FMC_AddressSetupTime = 4;
     p.FMC_AddressHoldTime = 3;
@@ -187,16 +180,27 @@ void _nor_gpio_config(void)
     GPIO_Init(GPIOE, &gpio_init_struct);
 }
 
+/*
+ * Issue a CFI command to the region we are reading to reset
+ * the flash state machine for this region back to default
+ */
 inline void _nor_reset_region(uint32_t address)
 {
     hw_flash_write16(address, 0xF0);
 }
 
+/*
+ * Issue a CFI command to reset the whole flash, resetting the state machine
+ */
 inline void _nor_reset_state(void)
 {
     hw_flash_write16(0, 0xF0);
 }
 
+/*
+ * Call for a test. Unlocks the CFI ID region and reads the QRY section
+ * NOTE: seems wonky on real hardware. works in emu!
+ */
 uint8_t _flash_test(void)
 {
     uint16_t nr, nr1, nr2;
@@ -219,6 +223,9 @@ uint8_t _flash_test(void)
     return result;
 }
 
+/*
+ * Issue a CFI region read request and reset the flash state
+ */
 void _nor_enter_read_mode(uint32_t address)
 {
     // CFI start read unlock

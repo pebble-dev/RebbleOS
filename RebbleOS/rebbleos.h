@@ -35,6 +35,7 @@
 #include "main.h"
 #include "log.h"
 #include "flash.h"
+#include "resource.h"
 
 // Public API functions as exposed through the various layers
 

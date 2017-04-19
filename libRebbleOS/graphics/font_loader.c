@@ -21,11 +21,11 @@
 uint16_t _fonts_get_resource_id_for_key(const char *key);
 
 
-GFont fonts_get_system_font_by_resource_id(uint16_t resource_id);
+GFont fonts_get_system_font_by_resource_id(uint32_t resource_id);
 
 typedef struct GFontCache
 {
-    uint16_t resource_id;
+    uint32_t resource_id;
     GFont font;
 } GFontCache;
 
@@ -41,8 +41,11 @@ GFont fonts_get_system_font(const char *font_key)
     return fonts_get_system_font_by_resource_id(res_id);
 }
 
-
-GFont fonts_get_system_font_by_resource_id(uint16_t resource_id)
+/*
+ * Load a system font from the resource table
+ * Will save into a cheesey cache so it isn't loaded over and over.
+ */
+GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 {
     if (_cached_count == 0)
     {
@@ -58,18 +61,7 @@ GFont fonts_get_system_font_by_resource_id(uint16_t resource_id)
         }
     }
 
-    printf("RESID ASDASD %d\n", resource_id);
-    ResHandle res = resource_get_handle(resource_id);
-    size_t sz = resource_size(res);
-    uint8_t *buffer = calloc(1, sz);
-    
-    if (buffer == NULL)
-    {
-        printf("font alloc failed\n");
-        return NULL;
-    }
-    
-    resource_load(res, buffer, sz);
+    uint8_t *buffer = resource_fully_load_id(resource_id);
 
     GFont font = (GFont)buffer;
 
@@ -80,25 +72,22 @@ GFont fonts_get_system_font_by_resource_id(uint16_t resource_id)
     return font;
 }
 
+/*
+ * Load a custom font
+ */
 GFont fonts_load_custom_font(ResHandle handle)
 {
     
-    size_t sz = resource_size(handle);
-    uint8_t *buffer = calloc(1, sz);
-    
-    if (buffer == NULL)
-    {
-        printf("font alloc failed\n");
-        return NULL;
-    }
-    
-    resource_load(handle, buffer, sz);
+    uint8_t *buffer = resource_fully_load_res(handle);
 
     GFont font = (GFont)buffer;
 
     return font;
 }
 
+/*
+ * Unload a custom font
+ */
 void fonts_unload_custom_font(GFont font)
 {
     free(font);
@@ -106,10 +95,11 @@ void fonts_unload_custom_font(GFont font)
 
 #define EQ_FONT(font) (strncmp(key, font, strlen(key)) == 0) return font ## _ID;
 
+/*
+ * Load a font by a string key
+ */
 uint16_t _fonts_get_resource_id_for_key(const char *key)
-{
-    printf("key %s %d %d\n", key, strlen(FONT_KEY_GOTHIC_28_BOLD), FONT_KEY_GOTHIC_28_BOLD_ID);
-    
+{   
     // this seems kinda.... messy and bad. Why a char * Pebble? why pass strings around?
     // I got my answer from Heiko:
     /*
