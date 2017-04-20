@@ -87,7 +87,7 @@ void hardware_init(void)
     printf("vibro init init\n");
     display_init();
     printf("display init\n");
-//     buttons_init();
+    buttons_init();
     printf("buttons init\n");
     rtc_init();
     ambient_init();

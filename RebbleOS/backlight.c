@@ -46,6 +46,7 @@ void backlight_init(void)
     backlight_is_on = 0;
     backlight_brightness = 0;
 
+    backlight_on(100, 3000);
 }
 
 // In here goes the functions to dim the backlight
@@ -118,7 +119,7 @@ void vBacklightTask(void *pvParameters)
     struct backlight_message_t *message;
 //     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
     uint8_t wait = 0;
-    TickType_t xTimeBefore, time_now;
+    TickType_t on_expiry_time;
     uint8_t backlight_status;
     uint16_t bri_scale;
     uint16_t bri_it;
@@ -142,13 +143,12 @@ void vBacklightTask(void *pvParameters)
         else if (backlight_status == BACKLIGHT_ON)
         {
             // set the queue reader to immediately return
-            wait = 100;
+            wait = 50;
             
-            backlight_set_from_ambient();
+//             backlight_set_from_ambient();
+            backlight_set(bri_scale);
             
-            // timer expired
-            time_now = (xTaskGetTickCount() - xTimeBefore);
-            if (time_now > (portTICK_RATE_MS * 400))
+            if (xTaskGetTickCount() > on_expiry_time)
             {
                 backlight_status = BACKLIGHT_FADE;
                 bri_scale = backlight_brightness / 50;
@@ -174,7 +174,8 @@ void vBacklightTask(void *pvParameters)
                     backlight_status = BACKLIGHT_ON;
                     // timestamp the tick counter so we can stay on for
                     // the right amount of time
-                    xTimeBefore = xTaskGetTickCount();
+                    bri_scale = message->val1;
+                    on_expiry_time = xTaskGetTickCount() + (message->val2 / portTICK_RATE_MS);
                     backlight_set(message->val1);
                     break;
             }

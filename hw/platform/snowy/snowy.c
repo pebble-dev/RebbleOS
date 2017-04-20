@@ -30,7 +30,7 @@
 //#define printf(fmt, ...) (0)
 
 // ENABLE this if you want smartstrap debugging output. For now if you do this qemu might not work
- #define DEBUG_UART_SMARTSTRAP
+//  #define DEBUG_UART_SMARTSTRAP
 
 /* 
  * Begin device init 

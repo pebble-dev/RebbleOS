@@ -53,7 +53,7 @@ void hw_button_init(void)
         gpioinit.GPIO_OType = GPIO_OType_OD;
         GPIO_Init(btn->gpio_ptr, &gpioinit);
 
-        RCC_AHB1PeriphClockCmd(btn->gpio_clock, DISABLE);
+//         RCC_AHB1PeriphClockCmd(btn->gpio_clock, DISABLE);
         
         /* Set up the pin external interrupt. */
         EXTI_InitTypeDef extiinit;
@@ -77,7 +77,7 @@ void hw_button_init(void)
         nvicinit.NVIC_IRQChannelCmd = ENABLE;
         NVIC_Init(&nvicinit);
 
-        RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, DISABLE);
+//         RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, DISABLE);
     }
 }
 
@@ -116,7 +116,7 @@ int hw_button_pressed(hw_button_t button_id)
 
     int stat = GPIO_ReadInputDataBit(btn->gpio_ptr, btn->gpio_pin);
     
-    RCC_AHB1PeriphClockCmd(btn->gpio_clock, DISABLE);
+//     RCC_AHB1PeriphClockCmd(btn->gpio_clock, DISABLE);
     
     return !stat;
 }
