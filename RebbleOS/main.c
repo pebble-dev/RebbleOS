@@ -165,7 +165,7 @@ static StaticTask_t _idle_tcb;
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) {
     *ppxIdleTaskTCBBuffer = &_idle_tcb;
     *ppxIdleTaskStackBuffer = _idle_stack;
-    *pulIdleTaskStackSize = 250; /* WTF? */;
+    *pulIdleTaskStackSize = sizeof(_idle_stack) / sizeof(_idle_stack[0]);
 }
 
 /* configUSE_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
@@ -176,5 +176,5 @@ static StaticTask_t _timer_tcb;
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize) {
     *ppxTimerTaskTCBBuffer = &_timer_tcb;
     *ppxTimerTaskStackBuffer = _timer_stack;
-    *pulTimerTaskStackSize = 100; /* WTF? */;
+    *pulTimerTaskStackSize = sizeof(_timer_stack) / sizeof(_timer_stack[0]);
 }
