@@ -12,5 +12,6 @@ LDFLAGS_tintin = $(LDFLAGS_stm32f2xx)
 LIBS_tintin = $(LIBS_stm32f2xx)
 
 QEMUFLAGS_tintin = -machine pebble-bb2 -cpu cortex-m3
+QEMUSPITYPE_tintin = mtdblock
 
 PLATFORMS += tintin

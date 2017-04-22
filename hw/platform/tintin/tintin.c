@@ -7,6 +7,7 @@
 
 #include <stm32f2xx.h>
 #include "tintin.h"
+#include <debug.h>
 
 #include <stm32f2xx_usart.h>
 #include <stm32f2xx_gpio.h>
@@ -268,23 +269,147 @@ void hw_vibrate_enable(uint8_t enabled) {
 }
 
 
+#define JEDEC_READ 0x03
+#define JEDEC_RDSR 0x05
+#define JEDEC_IDCODE 0x9F
+#define JEDEC_DUMMY 0xA9
+#define JEDEC_WAKE 0xAB
+#define JEDEC_SLEEP 0xB9
+
+#define JEDEC_RDSR_BUSY 0x01
+
+#define JEDEC_IDCODE_MICRON_N25Q032A11 0x20BB16
+
+static uint8_t _hw_flash_txrx(uint8_t c) {
+    while (!(SPI1->SR & SPI_SR_TXE))
+        ;
+    SPI1->DR = c;
+    while (!(SPI1->SR & SPI_SR_RXNE))
+        ;
+    return SPI1->DR;
+}
+
+static void _hw_flash_enable(int i) {
+    /* enable GPIOA */
+    GPIO_WriteBit(GPIOA, 1 << 4, !i);
+    delay_us(1);
+    /* disable GPIOA */
+}
+
+static void _hw_flash_wfidle() {
+    _hw_flash_enable(1);
+    _hw_flash_txrx(JEDEC_RDSR);
+    while (_hw_flash_txrx(JEDEC_DUMMY) & JEDEC_RDSR_BUSY)
+        ;
+    _hw_flash_enable(0);
+}
+
 void hw_flash_init() {
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    
+    /* Set up the pins. */
+    GPIO_WriteBit(GPIOA, 1 << 4, 0); /* nCS */
+    GPIO_PinAFConfig(GPIOA, 5, GPIO_AF_SPI1);
+    GPIO_PinAFConfig(GPIOA, 6, GPIO_AF_SPI1);
+    GPIO_PinAFConfig(GPIOA, 7, GPIO_AF_SPI1);
+    
+    GPIO_InitTypeDef gpioinit;
+    
+    gpioinit.GPIO_Pin = (1 << 7) | (1 << 6);
+    gpioinit.GPIO_Mode = GPIO_Mode_AF;
+    gpioinit.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioinit.GPIO_OType = GPIO_OType_PP;
+    gpioinit.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOA, &gpioinit);
+
+    gpioinit.GPIO_Pin = (1 << 5);
+    gpioinit.GPIO_Mode = GPIO_Mode_AF;
+    gpioinit.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioinit.GPIO_OType = GPIO_OType_PP;
+    gpioinit.GPIO_PuPd = GPIO_PuPd_DOWN;
+    GPIO_Init(GPIOA, &gpioinit);
+
+    gpioinit.GPIO_Pin = (1 << 4);
+    gpioinit.GPIO_Mode = GPIO_Mode_OUT;
+    gpioinit.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioinit.GPIO_OType = GPIO_OType_PP;
+    gpioinit.GPIO_PuPd = GPIO_PuPd_UP;
+    GPIO_Init(GPIOA, &gpioinit);
+
+    /* Set up the SPI controller, SPI1. */
+    SPI_InitTypeDef spiinit;
+    
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+    SPI_I2S_DeInit(SPI2);
+    
+    spiinit.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
+    spiinit.SPI_Mode = SPI_Mode_Master;
+    spiinit.SPI_DataSize = SPI_DataSize_8b;
+    spiinit.SPI_CPOL = SPI_CPOL_Low;
+    spiinit.SPI_CPHA = SPI_CPHA_1Edge;
+    spiinit.SPI_NSS = SPI_NSS_Soft;
+    spiinit.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
+    spiinit.SPI_FirstBit = SPI_FirstBit_MSB;
+    spiinit.SPI_CRCPolynomial = 7 /* Um. */;
+    SPI_Init(SPI2, &spiinit);
+    SPI_Cmd(SPI2, ENABLE);
+    
+    /* In theory, SPI is up.  Now let's see if we can talk to the part. */
+    _hw_flash_enable(1);
+    _hw_flash_txrx(JEDEC_WAKE);
+    _hw_flash_enable(0);
+    delay_us(100);
+    
+    _hw_flash_wfidle();
+     
+    uint32_t part_id = 0;
+    
+    _hw_flash_enable(1);
+    _hw_flash_txrx(JEDEC_IDCODE);
+    part_id |= _hw_flash_txrx(JEDEC_DUMMY) << 16;
+    part_id |= _hw_flash_txrx(JEDEC_DUMMY) << 8;
+    part_id |= _hw_flash_txrx(JEDEC_DUMMY) << 0;
+    _hw_flash_enable(0);
+    
+    printf("tintin flash: JEDEC ID %06x\n", part_id);
+    
+    if (part_id != JEDEC_IDCODE_MICRON_N25Q032A11) {
+        panic("tintin flash: unsupported part ID");
+    }
 }
 
+
+void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
+    assert(addr < 0x1000000 && "address too large for JEDEC_READ command");
+    
+    _hw_flash_wfidle();
+    
+    _hw_flash_enable(1);
+    _hw_flash_txrx(JEDEC_READ);
+    _hw_flash_txrx((addr >> 16) & 0xFF);
+    _hw_flash_txrx((addr >>  8) & 0xFF);
+    _hw_flash_txrx((addr >>  0) & 0xFF);
+    
+    /* XXX: could use DMA, conceivably */
+    for (int i = 0; i < len; i++)
+        buf[i] = _hw_flash_txrx(JEDEC_DUMMY);
+    
+    _hw_flash_enable(0);
+}
+
+/* XXX: I think these are unused; could be trivially implemented, but ... */
 uint16_t hw_flash_read16(uint32_t address) {
-    return 0xC0;   
-}
-
-uint32_t hw_flash_read32(uint32_t address) {
+    panic("unimplemented");
     return 0xC0;
 }
 
-void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length) {
-    memcpy(buffer, 0xC0, length);
+uint32_t hw_flash_read32(uint32_t address) {
+    panic("unimplemented");
+    return 0xC0;
 }
 
 void hw_flash_write16(uint32_t address, uint16_t data) {
-    
+    panic("flash write unimplemented");
 }
 
 void ss_debug_write(const unsigned char *p, size_t len)

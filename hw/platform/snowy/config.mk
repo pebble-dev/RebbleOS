@@ -20,5 +20,6 @@ LDFLAGS_snowy = $(LDFLAGS_stm32f4xx)
 LIBS_snowy = $(LIBS_stm32f4xx)
 
 QEMUFLAGS_snowy = -machine pebble-snowy-bb -cpu cortex-m4
+QEMUSPITYPE_snowy = pflash
 
 PLATFORMS += snowy

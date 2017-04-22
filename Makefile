@@ -63,7 +63,7 @@ $(eval DEPS_$(1) = $(addprefix $(BUILD)/$(1)/,$(addsuffix .d,$(basename $(SRCS_$
 $(1): $(BUILD)/$(1)/tintin_fw.bin
 
 $(1)_qemu: $(BUILD)/$(1)/fw.qemu_flash.bin
-	$(QEMU) -rtc base=localtime -serial null -serial null -serial stdio -gdb tcp::63770,server $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -pflash Resources/$(1)_spi.bin $(QEMUFLAGS)
+	$(QEMU) -rtc base=localtime -serial null -serial null -serial stdio -gdb tcp::63770,server $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) Resources/$(1)_spi.bin $(QEMUFLAGS)
 
 $(1)_gdb:
 	$(PFX)gdb -ex 'target remote localhost:63770' -ex "sym $(BUILD)/$(1)/tintin_fw.elf"
