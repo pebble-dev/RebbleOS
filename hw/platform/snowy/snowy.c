@@ -21,6 +21,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "snowy.h"
+#include "stm32_power.h"
 #include "stm32_buttons_platform.h"
 
 /*
@@ -148,6 +149,8 @@ void init_USART8(void)
  */
 void platform_init()
 {
+    stm32_power_init();
+    
     // for stuff that needs special init for the platform
     // not done in SystemInit, it did something weird.
     SCB->VTOR = 0x08004000;

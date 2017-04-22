@@ -45,7 +45,8 @@ typedef enum stm32_power_register {
     STM32_POWER_MAX
 } stm32_power_register_t;
 
-void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr);
+extern void stm32_power_init();
+extern void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr);
 
 static inline void stm32_power_request(stm32_power_register_t reg, uint32_t domain) {
     stm32_power_incr(reg, domain, 1);

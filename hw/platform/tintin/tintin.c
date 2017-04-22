@@ -16,6 +16,8 @@
 #include <stm32f2xx_syscfg.h>
 #include <misc.h>
 
+#include "stm32_power.h"
+
 /*** debug routines ***/
 
 static void _init_USART3();
@@ -76,6 +78,8 @@ static void _init_USART3(void)
 /*** platform ***/
 
 void platform_init() {
+    stm32_power_init();
+    
     SCB->VTOR = 0x08004000;
     NVIC_SetVectorTable(0x08004000, 0);
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);

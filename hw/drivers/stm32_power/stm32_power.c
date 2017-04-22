@@ -45,16 +45,27 @@
 #include "stm32_power.h"
 #include "debug.h"
 
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
+
 #define MK_STORAGE(n, b) static uint8_t _power_state_##n[b] = {0};
 STM32_POWER_EXPANDO(MK_STORAGE)
 #undef MK_STORAGE
+
+static StaticSemaphore_t stm32_power_mutex_mem;
+static SemaphoreHandle_t stm32_power_mutex;
+
+void stm32_power_init() {
+    stm32_power_mutex = xSemaphoreCreateMutexStatic(&stm32_power_mutex_mem);
+}
 
 void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr) {
     int bits;
     uint8_t *statep;
     void (*clkcmd)(uint32_t periph, FunctionalState state);
     
-    /* XXX: So where's the locking? */
+    xSemaphoreTake(stm32_power_mutex, portMAX_DELAY);
     
     switch (reg) {
 #define MK_CASE(n, b) case STM32_POWER_##n: statep = _power_state_##n; bits = b; clkcmd = RCC_##n##PeriphClockCmd; break;
@@ -76,4 +87,6 @@ void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr) {
         statep[i] += incr;
         clkcmd(1 << i, statep[i] ? ENABLE : DISABLE);
     }
+    
+    xSemaphoreGive(stm32_power_mutex);
 }
