@@ -16,8 +16,17 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#define VIBRATE_CMD_PATTERN_1 1
-#define VIBRATE_CMD_PATTERN_2 2
-#define VIBRATE_CMD_STOP      3
+
+typedef enum
+{
+   VIBRATE_CMD_STOP,
+   VIBRATE_CMD_PATTERN_1,
+   VIBRATE_CMD_PATTERN_2,
+   VIBRATE_CMD_MAX,        // not an actual command; used as a maximum index or sentinel value
+} VibrateCmd_t;
+
+// #define VIBRATE_CMD_PATTERN_1 1
+// #define VIBRATE_CMD_PATTERN_2 2
+// #define VIBRATE_CMD_STOP      3
 
 void vibrate_init(void);

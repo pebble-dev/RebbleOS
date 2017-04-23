@@ -23,15 +23,35 @@
 #include "vibrate.h"
 #include "task.h"
 #include "semphr.h"
+#include <stdbool.h>
 
+typedef struct
+{
+   const VibrateCmd_t command;
+   size_t curBufferIndex;
+   const size_t length;
+   const uint16_t * const buffer;
+} VibrateTrack_t;
 
-static uint16_t VIBRO_SHORT[] = { 255, 1000 };
-static uint16_t VIBRO_TAP_TAP[] = { 255, 750, 0, 750, 255, 750 };
+/*
+ * Definitions of all tracks.
+ * 
+ * TODO Dinamically load these.
+ */
+static VibrateTrack_t _vibrateTracks[VIBRATE_CMD_MAX] = {
+   {.command = VIBRATE_CMD_STOP     , .length = 1, .buffer = (const uint16_t []) {100}},
+   {.command = VIBRATE_CMD_PATTERN_1, .length = 2, .buffer = (const uint16_t []) {255, 1000}},
+   {.command = VIBRATE_CMD_PATTERN_2, .length = 6, .buffer = (const uint16_t []) {255, 750, 0, 750, 255, 750}},
+};
 
 static TaskHandle_t _vibrate_task;
 static xQueueHandle _vibrate_queue;
 
 static void _vibrate_thread(void *pvParameters);
+static void _enable(uint8_t enabled);
+static void _play_track(VibrateTrack_t *pattern, bool doRepeat);
+static void _rewind_track(VibrateTrack_t* pattern);
+static void _rewind_all_tracks(void);
 
 /*
  * Initialise the vibration controller and tasks
@@ -39,8 +59,9 @@ static void _vibrate_thread(void *pvParameters);
 void vibrate_init(void)
 {
     int rv;
-    
+        
     hw_vibrate_init();
+    _rewind_all_tracks();
     
     rv = xTaskCreate(_vibrate_thread, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_vibrate_task); /* XXX: allocate statically later */
     assert(rv == pdPASS);
@@ -57,28 +78,47 @@ static void _enable(uint8_t enabled)
 }
 
 /*
- * Quickly and dirtily pop out a pattern on the motor
+ * Play a given pattern.
  */
-static void _play_pattern(uint16_t *pattern, uint8_t pattern_length)
+static void _play_track(VibrateTrack_t *pattern, bool doRepeat)
 {
-    // set the timer 12 CH2 to pwm to vibrate
-    // TODO FIX
-    return;
-    // low rumble
-    // touble tap
-    // medium
-    // high
-    // and drill
-    
-    for (uint8_t i = 0; i < pattern_length; i += 2)
+    assert(pattern->curBufferIndex <= pattern->length);
+      
+    if(pattern->curBufferIndex < pattern->length)
     {
-        // vibrate for x time
-        // until this is variable...
-        if (pattern[i] > 0)
-            _enable(1);
-        vTaskDelay(pattern[i+1] / portTICK_RATE_MS);
-        _enable(0);
+        if (pattern->buffer[pattern->curBufferIndex] > 0)
+        {
+            _enable(true);
+        }
+       
+        vTaskDelay(pattern->buffer[pattern->curBufferIndex] / portTICK_RATE_MS);
+       
+        _enable(false);
+        pattern->curBufferIndex++;
     }
+    else if (doRepeat)
+    {
+        pattern->curBufferIndex = 0;
+    }
+}
+
+/*
+ * Reset all patterns to their default state
+ */
+static void _rewind_all_tracks()
+{
+    for(VibrateCmd_t i = 0; i < VIBRATE_CMD_MAX; i++)
+    {
+        _vibrateTracks[i].curBufferIndex = 0;
+    }
+}
+
+/*
+ * Set a track's position to 0
+ */
+static void _rewind_track(VibrateTrack_t* pattern)
+{
+    pattern->curBufferIndex = 0;
 }
 
 /*
@@ -86,32 +126,20 @@ static void _play_pattern(uint16_t *pattern, uint8_t pattern_length)
  */
 static void _vibrate_thread(void *pvParameters)
 {
-    uint8_t data;
-
+    VibrateCmd_t command;
+    static VibrateTrack_t *currentTrack = &_vibrateTracks[VIBRATE_CMD_STOP];
+   
     while(1)
     {       
-        if (!xQueueReceive(_vibrate_queue, &data, portMAX_DELAY))
-            continue;
-
-        uint8_t len;
-        uint16_t *pattern;
-        
-        switch(data)
+        if (xQueueReceive(_vibrate_queue, &command, portMAX_DELAY))
         {
-            case VIBRATE_CMD_STOP:
-                // slam the brakes on somehow
-                break;
-            case VIBRATE_CMD_PATTERN_1:
-                // big vibrate
-                pattern = VIBRO_SHORT;
-                len = 1;
-                break;
-            case VIBRATE_CMD_PATTERN_2:
-                // tap tap
-                pattern = VIBRO_TAP_TAP;
-                len = 3;
-                break;
+            if (command < VIBRATE_CMD_MAX)
+            {
+                currentTrack = &_vibrateTracks[command];
+                _rewind_track(currentTrack);
+            }
         }
-        _play_pattern(pattern, len);
+         
+        _play_track(currentTrack, false);
     }
 }
