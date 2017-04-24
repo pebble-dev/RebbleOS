@@ -22,6 +22,7 @@
 #include "snowy_display.h"
 #include "backlight.h"
 #include "snowy_backlight.h"
+#include "stm32_power.h"
 #include <stm32f4xx_spi.h>
 #include <stm32f4xx_tim.h>
 
@@ -35,6 +36,10 @@ void hw_backlight_init(void)
 {
     hw_backlight_set(4999);
 }
+
+/* We turn on the clocks when pwmValue > 0, and turn them off when we're not
+ * running the backlight.  */
+static uint8_t _backlight_clocks_on = 0;
 
 /*
  * Set the PWM value (brightness) of the backlight
@@ -50,7 +55,8 @@ void hw_backlight_set(uint16_t pwmValue)
     // Pebble Time has backlight control driven by TIM12
     // It is set to PWM mode 2 and will count up to n
     
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE); 
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    
     GPIO_PinAFConfig(GPIOB, GPIO_PinSource14, GPIO_AF_TIM12);
     
     /* Set pins */
@@ -61,6 +67,8 @@ void hw_backlight_set(uint16_t pwmValue)
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
     
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    
     TIM_BaseStruct.TIM_Prescaler = 0;
     TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
     TIM_BaseStruct.TIM_Period = 9999; // 10khz calculated by clock dividers
@@ -70,8 +78,9 @@ void hw_backlight_set(uint16_t pwmValue)
     TIM_TimeBaseInit(TIM12, &TIM_BaseStruct);
 
     // now the OC timer
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM12, ENABLE);
-
+    if (!_backlight_clocks_on)
+        stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_TIM12);
+    
     // This shouldn't be here, but for some reason in QEMU, setting
     // the TIM clocks in RCC turns off UART8. weird.
     //RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
@@ -86,6 +95,10 @@ void hw_backlight_set(uint16_t pwmValue)
     
     TIM_Cmd(TIM12, ENABLE);
     TIM_CtrlPWMOutputs(TIM12, ENABLE);
+    
+    _backlight_clocks_on = pwmValue > 0;
+    if (!_backlight_clocks_on)
+        stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_TIM12);
     
     printf("Backlight: Set\n");
 }

@@ -19,6 +19,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "snowy_ambient.h"
+#include "stm32_power.h"
 
 /*
  * Initialise the hardware. This means all GPIOs and SPI for the display
@@ -37,8 +38,8 @@ void hw_ambient_init(void)
     ADC_CommonStructInit(&ADC_CommonInitStructure);
     
     //RCC_ADCCLKConfig(RCC_PCLK2_Div6);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
 
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
@@ -85,6 +86,10 @@ void hw_ambient_init(void)
     
     ADC_RegularChannelConfig(ADC1, ADC_Channel_2, 1, ADC_SampleTime_144Cycles);
 
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+
+
     printf("Ambience\n");
 }
 
@@ -93,6 +98,9 @@ uint16_t hw_ambient_get(void)
     uint16_t val;
     
     // ambient is connected to PA3 so lets pull it up and energise
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+
     GPIO_SetBits(GPIOA, GPIO_Pin_3);
     delay_us(10);
     
@@ -101,6 +109,10 @@ uint16_t hw_ambient_get(void)
     val = ADC_GetConversionValue(ADC1);
     
     GPIO_ResetBits(GPIOA, GPIO_Pin_3);
+    
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+
     printf("Ambient: %d\n", val);
     
     return val;

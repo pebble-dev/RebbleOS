@@ -49,14 +49,16 @@ void debug_init()
 void debug_write(const unsigned char *p, size_t len)
 {
     int i;
-    /* XXX: better power management */
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+    
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
     
     for (i = 0; i < len; i++) {
         while (!(USART3->SR & USART_SR_TC));
         USART3->DR = p[i];
     }
     
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+
 // #ifdef DEBUG_UART_SMARTSTRAP
 //     RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
 //     
@@ -71,13 +73,16 @@ void debug_write(const unsigned char *p, size_t len)
 void ss_debug_write(const unsigned char *p, size_t len)
 {
     int i;
-#ifdef DEBUG_UART_SMARTSTRAP
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
     
+#ifdef DEBUG_UART_SMARTSTRAP
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+
     for (i = 0; i < len; i++) {
         while (!(UART8->SR & USART_SR_TC));
         UART8->DR = p[i];
     }
+
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
 #endif
 }
 
@@ -89,8 +94,8 @@ void init_USART3(void)
     GPIO_InitTypeDef GPIO_InitStruct;
     USART_InitTypeDef USART_InitStruct;
 
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
@@ -110,6 +115,9 @@ void init_USART3(void)
     USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
     USART_Init(USART3, &USART_InitStruct);
     USART_Cmd(USART3, ENABLE);
+
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 }
 
 /*
@@ -120,8 +128,8 @@ void init_USART8(void)
     GPIO_InitTypeDef GPIO_InitStruct;
     USART_InitTypeDef USART_InitStruct;
 
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
 
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
@@ -141,7 +149,9 @@ void init_USART8(void)
     USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
     USART_Init(UART8, &USART_InitStruct);
     USART_Cmd(UART8, ENABLE);
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
+
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
 }
 
 /*

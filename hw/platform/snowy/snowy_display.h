@@ -34,6 +34,7 @@
 typedef struct {
 //    SPI *spi;  // SPI6
     GPIO_TypeDef *PortDisplay;
+    uint32_t ClockDisplay;
     uint16_t PinReset;
     uint16_t PinPower;
     uint16_t PinCs;

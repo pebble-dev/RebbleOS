@@ -23,6 +23,7 @@
 #include <stm32f4xx_i2c.h>
 #include <stm32f4xx_tim.h>
 #include "stm32f4x_i2c.h"
+#include "stm32_power.h"
 
 // useful?
 // https://developer.mbed.org/users/switches/code/MAX14690/file/666b6c505289/MAX14690.h
@@ -76,7 +77,8 @@ void max14690_init(void)
     GPIO_SetBits(GPIOF, GPIO_Pin_2);
     */
     GPIO_InitTypeDef GPIO_InitStructure;
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOF, ENABLE);
+    
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_2 | GPIO_Pin_3;
@@ -87,6 +89,8 @@ void max14690_init(void)
     
     GPIO_SetBits(GPIOF, GPIO_Pin_3);
     GPIO_SetBits(GPIOF, GPIO_Pin_2);
+
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     
     printf("****I2C**\n");
     uint8_t buf[0x1F];

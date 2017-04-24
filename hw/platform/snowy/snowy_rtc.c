@@ -20,6 +20,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "snowy_rtc.h"
+#include "stm32_power.h"
 #include <stdlib.h>
 #include <time.h>
 
@@ -38,6 +39,8 @@ void rtc_init(void)
     
     // Configure the RTC clocks
     rtc_config();
+    
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
 
     // Setup the wakeup interrupt for later on when we do power management
     EXTI_ClearITPendingBit(EXTI_Line22);
@@ -81,6 +84,8 @@ void rtc_init(void)
     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);  
+
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
 
     printf("RTC INIT\n");
 }
@@ -152,7 +157,7 @@ void rtc_config(void)
 {
     RTC_InitTypeDef  RTC_InitStructure;
     
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_PWR);
 
     PWR_BackupAccessCmd(ENABLE); // allow RTC access
     
@@ -196,9 +201,10 @@ void rtc_config(void)
     RTC_InitStructure.RTC_SynchPrediv = uwSynchPrediv;
     RTC_InitStructure.RTC_HourFormat = RTC_HourFormat_24;
     RTC_Init(&RTC_InitStructure);
-    
-    EXTI_ClearITPendingBit(EXTI_Line17);
 
+    EXTI_ClearITPendingBit(EXTI_Line17);
+    
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_PWR);
 }
 
 void hw_get_time_str(char *buf)

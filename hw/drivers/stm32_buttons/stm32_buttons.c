@@ -54,7 +54,7 @@ void hw_button_init(void)
         gpioinit.GPIO_OType = GPIO_OType_OD;
         GPIO_Init(btn->gpio_ptr, &gpioinit);
 
-//        stm32_power_release(STM32_POWER_AHB1, btn->gpio_clock);
+        stm32_power_release(STM32_POWER_AHB1, btn->gpio_clock);
 
         /* Set up the pin external interrupt. */
         EXTI_InitTypeDef extiinit;
@@ -78,7 +78,7 @@ void hw_button_init(void)
         nvicinit.NVIC_IRQChannelCmd = ENABLE;
         NVIC_Init(&nvicinit);
 
-//        stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+        stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     }
 }
 
@@ -113,11 +113,9 @@ int hw_button_pressed(hw_button_t button_id)
     stm32_button_t *btn = &platform_buttons[button_id];
     
     /* XXX: should push and pop.  calling this from an ISR could be real exciting! */
-    RCC_AHB1PeriphClockCmd(btn->gpio_clock, ENABLE);
-
+    stm32_power_request(STM32_POWER_AHB1, btn->gpio_clock);
     int stat = GPIO_ReadInputDataBit(btn->gpio_ptr, btn->gpio_pin);
-    
-//     RCC_AHB1PeriphClockCmd(btn->gpio_clock, DISABLE);
+    stm32_power_release(STM32_POWER_AHB1, btn->gpio_clock);
     
     return !stat;
 }

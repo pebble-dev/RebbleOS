@@ -22,6 +22,7 @@
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_fsmc.h"
 #include "platform.h"
+#include "stm32_power.h"
 
 // base region
 #define Bank1_NOR_ADDR ((uint32_t)0x60000000)
@@ -41,11 +42,7 @@ void hw_flash_init(void)
     FMC_NORSRAMInitTypeDef fmc_nor_init_struct;
     FMC_NORSRAMTimingInitTypeDef p;
     
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
-
+    
     // The bootloader toggles the reset manually before we init.
     // It didn't do anything below, so I assume it works. Also works without
     // bootloader sets D4 high here
@@ -65,7 +62,7 @@ void hw_flash_init(void)
     // let the flash initialise from the reset
     delay_ms(30);    
     
-    RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FMC, ENABLE);
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
    
     // settled on these
     p.FMC_AddressSetupTime = 4;
@@ -104,15 +101,18 @@ void hw_flash_init(void)
     {
         printf("FLASH FAILED!\n");
     }
+    
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 }
 
 void _nor_gpio_config(void)
 {
     GPIO_InitTypeDef gpio_init_struct;
     
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE |
-                            RCC_AHB1Periph_GPIOB, ENABLE);
-
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+    
     /* We have the following known config on Snowy
      * S29VS128R flash controller
      * Using multiplexing mode
@@ -178,6 +178,11 @@ void _nor_gpio_config(void)
                                     GPIO_Pin_14 | GPIO_Pin_15;
                                     
     GPIO_Init(GPIOE, &gpio_init_struct);
+
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+
 }
 
 /*
@@ -205,6 +210,9 @@ uint8_t _flash_test(void)
 {
     uint16_t nr, nr1, nr2;
     uint8_t result;
+    
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
     _nor_reset_state();
     // Write CFI command to enter ID region
     hw_flash_write16(0xAAA, 0x98);
@@ -220,6 +228,9 @@ uint8_t _flash_test(void)
     
     // Quit CFI ID mode
     _nor_reset_region(0xAAA);
+    
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
     return result;
 }
 
@@ -237,31 +248,55 @@ void _nor_enter_read_mode(uint32_t address)
 
 void hw_flash_write16(uint32_t address, uint16_t data)
 {
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
      (*(__IO uint16_t *)(Bank1_NOR_ADDR + address) = (data));
+     
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 }
 
 uint16_t hw_flash_read16(uint32_t address)
 {
+    uint16_t rv;
+    
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
     _nor_enter_read_mode(address);
 
-    return *(__IO uint16_t *)(Bank1_NOR_ADDR + address);
+    rv = *(__IO uint16_t *)(Bank1_NOR_ADDR + address);
+    
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+    
+    return rv;
 }
 
 void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length)
 {
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
     _nor_enter_read_mode(address);
     for(uint32_t i = 0; i < length; i++)
     {
         buffer[i] = *(__IO uint8_t *)((Bank1_NOR_ADDR + address + i));
     }
     _nor_reset_region(0xAAA);
+
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 }
 
 uint32_t hw_flash_read32(uint32_t address)
 {
+    uint32_t rv;
+    
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+    
     _nor_enter_read_mode(address);
     
-    return (*(__IO uint32_t *)((Bank1_NOR_ADDR + address)));
+    rv = (*(__IO uint32_t *)((Bank1_NOR_ADDR + address)));
+
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+    
+    return rv;
 }
 
 

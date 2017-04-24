@@ -23,6 +23,7 @@
 #include "snowy_display.h"
 #include <stm32f4xx_spi.h>
 #include <stm32f4xx_tim.h>
+#include "stm32_power.h"
 
 #define ROW_LENGTH    DISPLAY_COLS
 #define COLUMN_LENGTH DISPLAY_ROWS
@@ -58,6 +59,7 @@ void snowy_display_init_dma(void);
 // Display configuration for the Pebble TIME
 display_t display = {
     .PortDisplay    = GPIOG,
+    .ClockDisplay   = RCC_AHB1Periph_GPIOG,
     .PinReset       = GPIO_Pin_15,
     .PinCs          = GPIO_Pin_8, 
     .PinBacklight   = GPIO_Pin_14,
@@ -80,11 +82,11 @@ void hw_display_init(void)
     display.State = DISPLAY_STATE_BOOTING;
 
     // init display variables
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOF, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
         
     printf("Display Init\n");
     //GPIO_InitTypeDef GPIO_InitStructure;
@@ -159,6 +161,12 @@ void hw_display_init(void)
     snowy_display_init_SPI6();
     
     snowy_display_init_dma();
+
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
      
 //     // bootloader does this too. Why??
 //     GPIO_SetBits(GPIOD, GPIO_Pin_2);
@@ -184,7 +192,7 @@ void snowy_display_init_intn(void)
     EXTI_InitTypeDef EXTI_InitStruct;
     NVIC_InitTypeDef NVIC_InitStruct;
     
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
         
     // Wait for external interrupts when the FPGA is done with a command
     SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOG, EXTI_PinSource10);
@@ -201,6 +209,8 @@ void snowy_display_init_intn(void)
     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);
+
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
 }
 
 /*
@@ -212,7 +222,7 @@ void snowy_display_init_SPI6(void)
     SPI_InitTypeDef SPI_InitStruct;
 
     // enable clock for used IO pins
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 
     /* configure pins used by SPI6
         * PG13 = SCK
@@ -238,8 +248,10 @@ void snowy_display_init_SPI6(void)
     GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_Init(display.PortDisplay, &GPIO_InitStruct);
 
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
+
     // enable peripheral clock
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI6, ENABLE);
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
 
     SPI_InitStruct.SPI_Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
     SPI_InitStruct.SPI_Mode = SPI_Mode_Master;     // transmit in master mode, NSS pin has to be always high
@@ -254,7 +266,22 @@ void snowy_display_init_SPI6(void)
     SPI_Init(SPI6, &SPI_InitStruct); 
 
     SPI_Cmd(SPI6, ENABLE); // enable SPI
+
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
 }
+
+static void _snowy_display_request_clocks()
+{
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
+}
+
+static void _snowy_display_release_clocks()
+{
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
+}
+
 
 /*
  * Initialise DMA for sending frames.
@@ -266,9 +293,10 @@ void snowy_display_init_dma(void)
     NVIC_InitTypeDef NVIC_InitStructure;
     DMA_InitTypeDef DMA_InitStructure;
     
+    _snowy_display_request_clocks();
+    
     // spi6 dma config:
     // SPI6 	DMA2 	DMA Stream 5 	DMA Channel 1 	DMA Stream 6 	DMA Channel 0
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA2, ENABLE);
     // De-init DMA configuration just to be sure. No Boom
     DMA_DeInit(DMA2_Stream5);
     // Configure DMA controller to manage TX DMA requests
@@ -300,6 +328,8 @@ void snowy_display_init_dma(void)
     // Enable dma
     SPI_I2S_DMACmd(SPI6, SPI_I2S_DMAReq_Tx, ENABLE);
     
+    _snowy_display_release_clocks();
+    
     // tell the NVIC to party
     NVIC_InitStructure.NVIC_IRQChannel = DMA2_Stream5_IRQn;
     NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 9;
@@ -310,11 +340,13 @@ void snowy_display_init_dma(void)
 
 /*
  * Start a new Dma transfer
+ *
+ * Expects clocks to already be running!
  */
 void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
 {
     DMA_InitTypeDef DMA_InitStructure;
-    
+
     // Configure DMA controller to manage TX DMA requests
     DMA_Cmd(DMA2_Stream5, DISABLE);
     while (DMA2_Stream5->CR & DMA_SxCR_EN);
@@ -380,6 +412,9 @@ void DMA2_Stream5_IRQHandler()
         
         snowy_display_cs(0);
         display.State = DISPLAY_STATE_IDLE;
+        
+        /* request_clocks in snowy_display_start_frame */
+        _snowy_display_release_clocks();
     }
 }
 
@@ -407,11 +442,15 @@ void EXTI15_10_IRQHandler(void)
  */
 void snowy_display_cs(uint8_t enabled)
 {
+    stm32_power_request(STM32_POWER_AHB1, display.ClockDisplay);
+
     // CS bit is inverted
     if (!enabled)
         GPIO_SetBits(display.PortDisplay, display.PinCs);
     else
         GPIO_ResetBits(display.PortDisplay, display.PinCs);
+    
+    stm32_power_release(STM32_POWER_AHB1, display.ClockDisplay);
 }
 
 /*
@@ -475,6 +514,8 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
     uint16_t k = 0;
     uint8_t g9 = 0;
 
+    _snowy_display_request_clocks();
+    
     snowy_display_cs(mode);
     //snowy_display_cs(1);
     snowy_display_reset(0);
@@ -485,8 +526,10 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
     
     // don't wait when we are not in bootloader mode
     // qemu doesn't like this, real pebble behaves
-    //if (mode == 1)
+    //if (mode == 1) {
+        _snowy_display_release_clocks();
         return 1;
+    //}
    
     // The real pebble at this point will pull reset done once it has reset
     // it also (probably dangerously) "just works" without.
@@ -498,6 +541,7 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
         if (g9 > 0)
         {
             printf("FPGA Was reset\n");
+            _snowy_display_release_clocks();
             return 1;
         }
         
@@ -510,6 +554,7 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
             printf("timed out waiting for reset\n");
             //display_vibrate(1);
             vibrate_enable(1);
+            _snowy_display_release_clocks();
             return 0;
         }
     }
@@ -520,10 +565,14 @@ uint8_t snowy_display_FPGA_reset(uint8_t mode)
  */
 void snowy_display_reset(uint8_t enabled)
 {
+    stm32_power_request(STM32_POWER_AHB1, display.ClockDisplay);
+
     if (enabled)
         GPIO_SetBits(display.PortDisplay, display.PinReset);
     else
         GPIO_ResetBits(display.PortDisplay, display.PinReset);
+
+    stm32_power_release(STM32_POWER_AHB1, display.ClockDisplay);
 }
 
 // SPI Command related
@@ -565,6 +614,8 @@ void snowy_display_drawscene(uint8_t scene)
  */
 void snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
+    _snowy_display_request_clocks();
+
     display.State = DISPLAY_STATE_FRAME_INIT;
     printf("C Frame\n");
     //scanline_convert_buffer(xoffset, yoffset);
@@ -578,6 +629,8 @@ void snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
     display.State = DISPLAY_STATE_FRAME;
 
     snowy_display_send_frame();
+    
+    /* release_clocks in DMA2_Stream5_IRQHandler */
 }
 
 
@@ -647,9 +700,12 @@ uint8_t snowy_display_wait_FPGA_ready(void)
  */
 void snowy_display_splash(uint8_t scene)
 {  
-    
+    _snowy_display_request_clocks();
+
     if (!snowy_display_FPGA_reset(0)) // mode bootloader
     {
+        _snowy_display_release_clocks();
+
         return;
     }
   
@@ -691,6 +747,8 @@ void snowy_display_splash(uint8_t scene)
         snowy_display_FPGA_reset(0);
     }
     
+    _snowy_display_release_clocks();
+
     return;                
 }
 
@@ -702,8 +760,12 @@ void snowy_display_full_init(void)
 {
     printf("Going full fat\n");
     
+    _snowy_display_request_clocks();
+    
     if (!snowy_display_FPGA_reset(1)) // full fat
     {
+        _snowy_display_release_clocks();
+
         return;
     }
     display_logo(display.FrameBuffer);
@@ -718,6 +780,9 @@ void snowy_display_full_init(void)
     
     // enable interrupts now we have the splash up
     snowy_display_init_intn();
+    
+    _snowy_display_release_clocks();
+
     return;
 }
 
@@ -750,9 +815,13 @@ void snowy_display_program_FPGA(void)
  */
 void hw_display_on()
 {
+    _snowy_display_request_clocks();
+
     snowy_display_SPI_start();
     snowy_display_SPI6_send(DISPLAY_CTYPE_DISPLAY_ON); // Power on
     snowy_display_SPI_end();
+    
+    _snowy_display_release_clocks();
 }
 
 /*
