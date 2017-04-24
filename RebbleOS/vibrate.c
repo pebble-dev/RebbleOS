@@ -51,7 +51,7 @@ static VibratePattern_t _default_vibrate_patterns[VIBRATE_CMD_MAX] = {
                                                     {.frequency = 255, .duration_ms = 750}},
     },
     
-    // VIBRATE_CMD_PALY_PATTERN_3
+    // VIBRATE_CMD_PLAY_PATTERN_3
     {
         .length = 25, 
         .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 100},
