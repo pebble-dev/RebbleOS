@@ -20,11 +20,14 @@
  * serialized externally (i.e., no locking is done for flash accesses inside
  * the HAL), but does not require that peripherals *as a whole* be
  * serialized; as a result, since this driver works on a multi-peripheral
- * scale, it enforces its own locking.  Note also that this means that you
- * must never call into the HAL from an interrupt service routine!  XXX:
- * this is conceptually kind of inconsistent, and we should either decide to
- * do all of the locking inside of the HAL, or we should decide to do all of
- * the locking inside the OS (and have a global lock for the HAL).
+ * scale, it enforces its own locking.  XXX: this is conceptually kind of
+ * inconsistent, and we should either decide to do all of the locking inside
+ * of the HAL, or we should decide to do all of the locking inside the OS
+ * (and have a global lock for the HAL).
+ *
+ * For now, we use FreeRTOS critical sections, to make it permissible to
+ * call into this API from an interrupt service routine.  Later, we may
+ * switch back to a mutex, as necessary.
  *
  * XXX: Which STM32F4xx are Time series? STM32F446xx has what looks like
  * "0th-level clock gating" on AHB1 that we might be able to save a little
@@ -53,11 +56,15 @@
 STM32_POWER_EXPANDO(MK_STORAGE)
 #undef MK_STORAGE
 
+#ifdef STM32_POWER_USE_MUTEX
 static StaticSemaphore_t stm32_power_mutex_mem;
 static SemaphoreHandle_t stm32_power_mutex;
+#endif
 
 void stm32_power_init() {
+#ifdef STM32_POWER_USE_MUTEX
     stm32_power_mutex = xSemaphoreCreateMutexStatic(&stm32_power_mutex_mem);
+#endif
 }
 
 void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr) {
@@ -65,7 +72,11 @@ void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr) {
     uint8_t *statep;
     void (*clkcmd)(uint32_t periph, FunctionalState state);
     
+#ifdef STM32_POWER_USE_MUTEX
     xSemaphoreTake(stm32_power_mutex, portMAX_DELAY);
+#else
+    uint32_t critical_state = taskENTER_CRITICAL_FROM_ISR();
+#endif
     
     switch (reg) {
 #define MK_CASE(n, b) case STM32_POWER_##n: statep = _power_state_##n; bits = b; clkcmd = RCC_##n##PeriphClockCmd; break;
@@ -85,8 +96,14 @@ void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr) {
         assert(!((incr == -1) && (statep[i] == 0x0)) && "stm32_power_incr underflow");
         
         statep[i] += incr;
-        clkcmd(1 << i, statep[i] ? ENABLE : DISABLE);
+        
+        if (statep[i]) /* XXX: Don't turn off the clocks until we're good and ready. */
+            clkcmd(1 << i, statep[i] ? ENABLE : DISABLE);
     }
-    
+
+#ifdef STM32_POWER_USE_MUTEX
     xSemaphoreGive(stm32_power_mutex);
+#else
+    taskEXIT_CRITICAL_FROM_ISR(critical_state);
+#endif
 }
