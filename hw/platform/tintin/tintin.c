@@ -35,13 +35,14 @@ void debug_write(const unsigned char *p, size_t len) {
     if (!_debug_initialized)
         return;
 
-    /* XXX: better power management */
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
     
     for (i = 0; i < len; i++) {
         while (!(USART3->SR & USART_SR_TC));
         USART3->DR = p[i];
     }
+
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
 }
 
 /*
@@ -52,8 +53,8 @@ static void _init_USART3(void)
     GPIO_InitTypeDef GPIO_InitStruct;
     USART_InitTypeDef USART_InitStruct;
 
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 
     GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
@@ -73,6 +74,9 @@ static void _init_USART3(void)
     USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
     USART_Init(USART3, &USART_InitStruct);
     USART_Cmd(USART3, ENABLE);
+
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 }
 
 /*** platform ***/
@@ -142,10 +146,10 @@ static uint8_t _display_fb[168][20];
 void hw_display_init() {
     printf("tintin: hw_display_init\n");
 
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_SPI2, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOC, ENABLE);
-    
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
+
     GPIO_WriteBit(GPIOB, 1 << 12, 0);
     GPIO_PinAFConfig(GPIOB, 1, GPIO_AF_TIM3);
     GPIO_PinAFConfig(GPIOB, 13, GPIO_AF_SPI2);
@@ -189,6 +193,10 @@ void hw_display_init() {
     spiinit.SPI_CRCPolynomial = 7 /* Um. */;
     SPI_Init(SPI2, &spiinit);
     SPI_Cmd(SPI2, ENABLE);
+
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 }
 
 void hw_display_reset() {
@@ -206,7 +214,8 @@ static void _display_write(unsigned char c) {
 }
 
 void hw_display_start_frame(uint8_t x, uint8_t y) {
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
 
     printf("tintin: here we go, slowly blitting %d %d\n", x, y);
     GPIO_WriteBit(GPIOB, 1 << 12, 1);
@@ -221,6 +230,9 @@ void hw_display_start_frame(uint8_t x, uint8_t y) {
     _display_write(0);
     delay_us(7);
     GPIO_WriteBit(GPIOB, 1 << 12, 0);
+
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
 }
 
 uint8_t *hw_display_get_buffer(void) {
@@ -294,10 +306,12 @@ static uint8_t _hw_flash_txrx(uint8_t c) {
 }
 
 static void _hw_flash_enable(int i) {
-    /* enable GPIOA */
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+
     GPIO_WriteBit(GPIOA, 1 << 4, !i);
     delay_us(1);
-    /* disable GPIOA */
+    
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
 }
 
 static void _hw_flash_wfidle() {
@@ -309,7 +323,7 @@ static void _hw_flash_wfidle() {
 }
 
 void hw_flash_init() {
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
     
     /* Set up the pins. */
     GPIO_WriteBit(GPIOA, 1 << 4, 0); /* nCS */
@@ -339,11 +353,14 @@ void hw_flash_init() {
     gpioinit.GPIO_OType = GPIO_OType_PP;
     gpioinit.GPIO_PuPd = GPIO_PuPd_UP;
     GPIO_Init(GPIOA, &gpioinit);
+    
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
 
     /* Set up the SPI controller, SPI1. */
     SPI_InitTypeDef spiinit;
     
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SPI1, ENABLE);
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI1);
+
     SPI_I2S_DeInit(SPI2);
     
     spiinit.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
@@ -380,12 +397,17 @@ void hw_flash_init() {
     if (part_id != JEDEC_IDCODE_MICRON_N25Q032A11) {
         panic("tintin flash: unsupported part ID");
     }
+    
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI1);
+
 }
 
 
 void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
     assert(addr < 0x1000000 && "address too large for JEDEC_READ command");
     
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI1);
+
     _hw_flash_wfidle();
     
     _hw_flash_enable(1);
@@ -399,6 +421,8 @@ void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
         buf[i] = _hw_flash_txrx(JEDEC_DUMMY);
     
     _hw_flash_enable(0);
+    
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI1);
 }
 
 /* XXX: I think these are unused; could be trivially implemented, but ... */
