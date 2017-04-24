@@ -97,8 +97,7 @@ void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr) {
         
         statep[i] += incr;
         
-        if (statep[i]) /* XXX: Don't turn off the clocks until we're good and ready. */
-            clkcmd(1 << i, statep[i] ? ENABLE : DISABLE);
+        clkcmd(1 << i, statep[i] ? ENABLE : DISABLE);
     }
 
 #ifdef STM32_POWER_USE_MUTEX
