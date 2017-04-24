@@ -24,23 +24,33 @@
 typedef enum
 {
     VIBRATE_CMD_PLAY_PATTERN_1,
-    VIBRATE_CMD_PALY_PATTERN_2,
-    VIBRATE_CMD_PALY_PATTERN_3,
+    VIBRATE_CMD_PLAY_PATTERN_2,
+    VIBRATE_CMD_PLAY_PATTERN_3,
     VIBRATE_CMD_STOP,
     VIBRATE_CMD_MAX // add any other commands IDs _before_ this
 } VibrateCmd_t;
 
 /**
+ * Each vibration pattern is composed of a series of pairs. Each pair contains a duration (during which the motor
+ * spinns), and a spin frequency.
+ */
+typedef struct
+{
+    uint16_t frequency;
+    uint16_t duration_ms;
+} VibratePatternPair_t;
+
+/**
  * Struct which defines a pattern:
- *  buffer - contains the sequence of durations
- *  length - is the length of the buffer (a duration of 0 will be interpreted as silence)
- *  curBufferIndex - the index in the buffer of the current durration
+ *  buffer - contains the sequence of durations, in milliseconds
+ *  length - is the length of the buffer
+ *  cur_buffer_index - the index in the buffer of the current durration
  */
 typedef struct
 {
     const uint8_t length;
-    const uint16_t * const buffer;
-    uint8_t curBufferIndex;
+    const VibratePatternPair_t * const buffer;
+    uint8_t cur_buffer_index;
 } VibratePattern_t;
 
 void vibrate_init(void);
