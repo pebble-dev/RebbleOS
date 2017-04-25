@@ -33,6 +33,10 @@ void _nor_reset_region(uint32_t address);
 void _nor_reset_state(void);
 uint8_t _flash_test(void);
 
+static uint16_t _nor_read16(uint32_t address);
+static void _nor_write16(uint32_t address, uint16_t data);
+
+
 /*
  * Initialise the flash hardware. 
  * it's NOR flash, using a multiplexed io
@@ -191,7 +195,7 @@ void _nor_gpio_config(void)
  */
 inline void _nor_reset_region(uint32_t address)
 {
-    hw_flash_write16(address, 0xF0);
+    _nor_write16(address, 0xF0);
 }
 
 /*
@@ -199,7 +203,7 @@ inline void _nor_reset_region(uint32_t address)
  */
 inline void _nor_reset_state(void)
 {
-    hw_flash_write16(0, 0xF0);
+    _nor_write16(0, 0xF0);
 }
 
 /*
@@ -215,11 +219,11 @@ uint8_t _flash_test(void)
 
     _nor_reset_state();
     // Write CFI command to enter ID region
-    hw_flash_write16(0xAAA, 0x98);
+    _nor_write16(0xAAA, 0x98);
     // 0x20-0x24 are the "Qrery header QRY"
-    nr = hw_flash_read16(0x20);
-    nr1 = hw_flash_read16(0x22);
-    nr2 = hw_flash_read16(0x24);
+    nr = _nor_read16(0x20);
+    nr1 = _nor_read16(0x22);
+    nr2 = _nor_read16(0x24);
     printf("READR NR %d NR1 %d NR2 %d\n", nr, nr1, nr2);
     if ( nr != 81 || nr1 != 82 )
         result = 0;
@@ -240,13 +244,13 @@ uint8_t _flash_test(void)
 void _nor_enter_read_mode(uint32_t address)
 {
     // CFI start read unlock
-    hw_flash_write16(0xAAA, 0xAA);
-    hw_flash_write16(0x554, 0x55);
+    _nor_write16(0xAAA, 0xAA);
+    _nor_write16(0x554, 0x55);
     // unlock the address
     _nor_reset_region(address);
 }
 
-void hw_flash_write16(uint32_t address, uint16_t data)
+static void _nor_write16(uint32_t address, uint16_t data)
 {
     stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 
@@ -255,7 +259,7 @@ void hw_flash_write16(uint32_t address, uint16_t data)
     stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 }
 
-uint16_t hw_flash_read16(uint32_t address)
+static uint16_t _nor_read16(uint32_t address)
 {
     uint16_t rv;
     
@@ -283,20 +287,4 @@ void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length)
 
     stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 }
-
-uint32_t hw_flash_read32(uint32_t address)
-{
-    uint32_t rv;
-    
-    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
-    
-    _nor_enter_read_mode(address);
-    
-    rv = (*(__IO uint32_t *)((Bank1_NOR_ADDR + address)));
-
-    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
-    
-    return rv;
-}
-
 

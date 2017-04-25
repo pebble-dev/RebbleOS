@@ -53,20 +53,6 @@ void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
     xSemaphoreGive(flash_mutex);
 }
 
-uint16_t flash_read16(uint32_t address)
-{
-    xSemaphoreTake(flash_mutex, portMAX_DELAY);
-    return hw_flash_read16(address);
-    xSemaphoreGive(flash_mutex);
-}
-
-uint32_t flash_read32(uint32_t address)
-{
-    xSemaphoreTake(flash_mutex, portMAX_DELAY);
-    return hw_flash_read32(address);
-    xSemaphoreGive(flash_mutex);
-}
-
 void flash_dump(void)
 {
     uint8_t buffer[1025];

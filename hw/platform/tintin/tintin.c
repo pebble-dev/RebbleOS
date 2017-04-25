@@ -425,21 +425,6 @@ void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI1);
 }
 
-/* XXX: I think these are unused; could be trivially implemented, but ... */
-uint16_t hw_flash_read16(uint32_t address) {
-    panic("unimplemented");
-    return 0xC0;
-}
-
-uint32_t hw_flash_read32(uint32_t address) {
-    panic("unimplemented");
-    return 0xC0;
-}
-
-void hw_flash_write16(uint32_t address, uint16_t data) {
-    panic("flash write unimplemented");
-}
-
 void ss_debug_write(const unsigned char *p, size_t len)
 {
     // unsupported on this platform

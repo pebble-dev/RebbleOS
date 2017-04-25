@@ -19,7 +19,4 @@
 #include "stm32f4xx.h"
 
 void hw_flash_init(void);
-uint16_t hw_flash_read16(uint32_t address);
-uint32_t hw_flash_read32(uint32_t address);
 void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length);
-void hw_flash_write16(uint32_t address, uint16_t data);
