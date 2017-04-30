@@ -41,5 +41,5 @@ void rtc_disable_timer_interval(void);
 void hw_vibrate_init();
 void hw_vibrate_enable(uint8_t enabled);
 
-
+void ss_debug_write(const unsigned char *p, size_t len);
 #endif

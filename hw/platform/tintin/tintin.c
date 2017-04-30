@@ -286,3 +286,8 @@ void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length) {
 void hw_flash_write16(uint32_t address, uint16_t data) {
     
 }
+
+void ss_debug_write(const unsigned char *p, size_t len)
+{
+    // unsupported on this platform
+}

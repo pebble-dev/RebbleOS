@@ -40,7 +40,7 @@ void resource_load_id(uint16_t resource_id, uint8_t *buffer)
 }
 
 /*
- * Load up a handle for the resource by IDD
+ * Load up a handle for the resource by ID
  */
 ResHandle resource_get_handle(uint16_t resource_id)
 {
@@ -125,4 +125,43 @@ uint8_t *resource_fully_load_res(ResHandle res_handle)
     resource_load(res_handle, buffer);
 
     return buffer;
+}
+
+
+
+
+/*
+ * 
+ * 
+ * APP RESOURCES
+ * 
+ */
+
+/*
+ * List all resources for an app
+ */
+void app_resource_list(char *buffer, uint16_t slot_id)
+{
+    ResourceHeader res_header;
+    ResHandle handle;
+    
+    
+    flash_read_bytes(REGION_APP_RES_START + APP_HEADER_START, &res_header, sizeof(ResourceHeader));
+    printf("SIZE: %s %d\n", res_header.resource_name, res_header.resource_list_count);
+    
+    for (int i = 0; i < res_header.resource_list_count; i++)
+    {
+        flash_read_bytes(REGION_APP_RES_START + APP_RES_TABLE_START + ((i) * sizeof(ResHandle)), &handle, sizeof(ResHandle));
+        
+        printf("H i:%d sz:%d of:0x08%x\n", i, handle.size, handle.offset);
+    }
+}
+
+
+
+
+uintptr_t vApplicationStartSyscall(uint16_t syscall_index)
+{
+    printf("APP SYSCALL %d\n");
+    return 0;
 }

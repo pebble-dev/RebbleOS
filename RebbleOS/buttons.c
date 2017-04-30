@@ -267,7 +267,7 @@ void vButtonTask(void *pvParameters)
         if (time_increment == 0)
             time_increment = portMAX_DELAY;
         else
-            time_increment = pdMS_TO_TICKS(30);
+            time_increment = pdMS_TO_TICKS(10);
     }
 }
 

@@ -25,15 +25,42 @@
 #define REGION_MFG_SIZE     0x20000
 // Resource start
 #define REGION_RES_START    0x380000
-#define REGION_RES_SIZE     0x7D000
+#define REGION_RES_SIZE     0x7D000 // TODO
 
+#define REGION_APP_RES_START    0xB3A000
+#define REGION_APP_RES_SIZE     0x7D000
+
+// app slots
+#define APP_SLOT_1_START    0xB3E000
+#define APP_HEADER_BIN_OFFSET 0x59
+#define APP_SLOT_SIZE       0x48000
 
 #define RES_COUNT           0x00
 #define RES_CRC             0x04
 #define RES_TABLE_START     0x0C
 #define RES_START           0x200C
 
+// app slot sizes
+#define APP_RES_TABLE_START 0x65
+#define APP_RES_START       0x1000
+#define APP_HEADER_START    0x4C
+
+/*
+ 
+ @4c
+*/
+typedef struct ResourceHeader {
+    char resource_name[13];
+    uint32_t resource_list_count;
+    uint32_t resource_list_crc_maybe;
+    uint32_t unknownoffset;
+} __attribute__((__packed__)) ResourceHeader;
+ 
+
 void flash_test(uint16_t resource_id);
 void flash_init(void);
-
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes);
+void flash_load_app(uint8_t app_id, uint8_t *buffer, size_t count);
+void flash_load_app_header(uint8_t app_id, ApplicationHeader *header);
+
+BssInfo flash_get_bss(uint8_t slot_id);

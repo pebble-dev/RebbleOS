@@ -89,7 +89,7 @@
 
 #include "platform_freertos.h"
 
-#define configSUPPORT_STATIC_ALLOCATION 0
+#define configSUPPORT_STATIC_ALLOCATION 1
 
 #define configUSE_PREEMPTION   1
 #define configUSE_IDLE_HOOK    1
@@ -119,7 +119,7 @@
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 
 /* Software timer definitions. */
-#define configUSE_TIMERS    1
+#define configUSE_TIMERS    0
 #define configTIMER_TASK_PRIORITY  ( 2 )
 #define configTIMER_QUEUE_LENGTH  10
 #define configTIMER_TASK_STACK_DEPTH ( configMINIMAL_STACK_SIZE * 2 )

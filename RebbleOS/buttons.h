@@ -21,7 +21,7 @@
 #include "rebbleos.h"
 #include "librebble.h"
 
-#define butDEBOUNCE_DELAY       ( 1 / portTICK_RATE_MS )
+#define butDEBOUNCE_DELAY       ( portTICK_RATE_MS )
 
 #define BUTTON_STATE_PRESSED    0
 #define BUTTON_STATE_RELEASED   1

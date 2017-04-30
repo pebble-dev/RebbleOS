@@ -797,7 +797,7 @@ UBaseType_t x;
 		( void ) memset( pxNewTCB->pxStack, ( int ) tskSTACK_FILL_BYTE, ( size_t ) ulStackDepth * sizeof( StackType_t ) );
 	}
 	#endif /* ( ( configCHECK_FOR_STACK_OVERFLOW > 1 ) || ( ( configUSE_TRACE_FACILITY == 1 ) || ( INCLUDE_uxTaskGetStackHighWaterMark == 1 ) ) ) */
-
+// printf("init stack %s\n", pxNewTCB->pcTaskName);
 	/* Calculate the top of stack address.  This depends on whether the stack
 	grows from high memory to low (as per the 80x86) or vice versa.
 	portSTACK_GROWTH is used to make the result positive or negative as required
@@ -863,7 +863,7 @@ UBaseType_t x;
 		pxNewTCB->uxMutexesHeld = 0;
 	}
 	#endif /* configUSE_MUTEXES */
-
+// printf("init stack %s\n", pxNewTCB->pcTaskName);
 	vListInitialiseItem( &( pxNewTCB->xStateListItem ) );
 	vListInitialiseItem( &( pxNewTCB->xEventListItem ) );
 
@@ -933,6 +933,8 @@ UBaseType_t x;
 	}
 	#endif
 
+	
+	
 	/* Initialize the TCB stack to look as if the task was already running,
 	but had been interrupted by the scheduler.  The return address is set
 	to the start of the task function. Once the stack has been initialised
@@ -3589,7 +3591,7 @@ static void prvCheckTasksWaitingTermination( void )
 		to the task to free any memory allocated at the application level. */
 		#if ( configUSE_NEWLIB_REENTRANT == 1 )
 		{
-			_reclaim_reent( &( pxTCB->xNewLib_reent ) );
+			_reclaim_reent( &( pxTCB->xNewLib_reent) );
 		}
 		#endif /* configUSE_NEWLIB_REENTRANT */
 

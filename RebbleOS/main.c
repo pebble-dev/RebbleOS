@@ -148,13 +148,33 @@ void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName) 
 /* configUSE_STATIC_ALLOCATION is set to 1, so the application must provide an
 implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
 used by the Idle task. */
+/*
+ * 
+ *           Joshua 
+ * The below works on the device as well as qemu.
+ * The stack data size on arm is 32 bit, so setting to a uint type causes weird
+ * pointer issues in freertos.
+ * StackType_t is platform independant, and is sized to a frame, pointer. in our case 32 bit.
+ * That's also why sizeof(_idle_stack) is 4 times out. Task size is task stack entries * sizeof(int)
+ * 
+ * Ginge
+ * 
+ */
+static StackType_t _idle_stack[250];
+static StaticTask_t _idle_tcb;
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) {
-
+    *ppxIdleTaskTCBBuffer = &_idle_tcb;
+    *ppxIdleTaskStackBuffer = _idle_stack;
+    *pulIdleTaskStackSize = 250; /* WTF? */;
 }
 
 /* configUSE_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
 application must provide an implementation of vApplicationGetTimerTaskMemory()
 to provide the memory that is used by the Timer service task. */
+static StackType_t _timer_stack[100];
+static StaticTask_t _timer_tcb;
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize) {
-
+    *ppxTimerTaskTCBBuffer = &_timer_tcb;
+    *ppxTimerTaskStackBuffer = _timer_stack;
+    *pulTimerTaskStackSize = 100; /* WTF? */;
 }

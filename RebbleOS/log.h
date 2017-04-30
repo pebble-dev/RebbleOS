@@ -18,6 +18,9 @@
  */
 
 
-#define APP_LOG_LEVEL_DEBUG 1
+#define APP_LOG app_log
 
-#define APP_LOG(level, f_, ...) printf((f_), ##__VA_ARGS__)
+void app_log_trace(uint8_t lvl, const char *filename, const char *fmt, ...);
+void app_log(uint8_t lvl, const char *fmt, ...);
+
+#define APP_LOG_LEVEL_DEBUG 1

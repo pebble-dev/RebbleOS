@@ -65,11 +65,10 @@ void n_graphics_context_set_antialiased(n_GContext * ctx, bool antialias);
 void n_graphics_context_begin(n_GContext * ctx);
 void n_graphics_context_end(n_GContext * ctx);
 
-// TODO implement replacement for GBitmap
-// n_GBitmap * n_graphics_capture_frame_buffer(n_GContext * ctx);
-// n_GBitmap * n_graphics_capture_frame_buffer_format(n_GContext * ctx, n_GBitmapFormat format);
-//     // TODO replacement for GBitmapFormat
-// bool n_graphics_release_frame_buffer(n_GContext * ctx, n_GBitmap * bitmap);
+GBitmap * n_graphics_capture_frame_buffer(n_GContext * ctx);
+GBitmap * n_graphics_capture_frame_buffer_format(n_GContext * ctx, GBitmapFormat format);
+
+bool n_graphics_release_frame_buffer(n_GContext * ctx, GBitmap * bitmap);
 
 n_GContext * n_graphics_context_from_buffer(uint8_t * buf);
 // n_GContext * n_graphics_context_from_graphics_context(GContext * ctx);

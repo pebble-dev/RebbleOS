@@ -55,7 +55,7 @@ static void systemapp_window_load(Window *window)
    
     
     //layer_mark_dirty(s_canvas_layer);
-
+    
     //tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_handler);
 }
 

@@ -30,7 +30,7 @@
 //#define printf(fmt, ...) (0)
 
 // ENABLE this if you want smartstrap debugging output. For now if you do this qemu might not work
-//  #define DEBUG_UART_SMARTSTRAP
+#define DEBUG_UART_SMARTSTRAP
 
 /* 
  * Begin device init 
@@ -45,7 +45,8 @@ void debug_init()
 }
 
 /* note that locking needs to be handled by external entity here */
-void debug_write(const unsigned char *p, size_t len) {
+void debug_write(const unsigned char *p, size_t len)
+{
     int i;
     /* XXX: better power management */
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART3, ENABLE);
@@ -55,6 +56,20 @@ void debug_write(const unsigned char *p, size_t len) {
         USART3->DR = p[i];
     }
     
+// #ifdef DEBUG_UART_SMARTSTRAP
+//     RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
+//     
+//     for (i = 0; i < len; i++) {
+//         while (!(UART8->SR & USART_SR_TC));
+//         UART8->DR = p[i];
+//     }
+// #endif
+}
+
+/* note that locking needs to be handled by external entity here */
+void ss_debug_write(const unsigned char *p, size_t len)
+{
+    int i;
 #ifdef DEBUG_UART_SMARTSTRAP
     RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
     
@@ -159,7 +174,6 @@ void platform_init_late()
     printf("SYSCLK: %d\n", RCC_Clocks.SYSCLK_Frequency);
     printf("CFGR  : %d\n", RCC->PLLCFGR);
     printf("Relocating NVIC to 0x08004000\n");
-
 }
 
 /*
