@@ -22,6 +22,14 @@
 #include "systemapp.h"
 #include "api_func_symbols.h"
 
+/*
+ * Module TODO
+ * 
+ * Hook the flags up. These contain app type etc.
+ * resource loading from apps
+ * 
+ */
+
 static void _appmanager_flash_load_app_manifest();
 App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id);
 void _appmanager_app_thread(void *parameters);
@@ -30,8 +38,10 @@ void back_long_click_release_handler(ClickRecognizerRef recognizer, void *contex
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context);
 
 TaskHandle_t _app_task_handle;
+TaskHandle_t _app_thread_manager_task_handle;
 static xQueueHandle _app_message_queue;
 static xQueueHandle _app_thread_queue;
+StaticTask_t _app_thread_manager_task;
 StaticTask_t _app_task;
 
 static App *_running_app;
@@ -41,10 +51,17 @@ static App *_app_manifest_head;
 void simple_main(void);
 void nivz_main(void);
 
-#define APP_STACK_SIZE 20000
+#define APP_STACK_SIZE_IN_BYTES 96000
+#define APP_THREAD_MANAGER_STACK_SIZE 1000
+StackType_t _app_thread_manager_stack[APP_THREAD_MANAGER_STACK_SIZE];  // stack + heap for app (in words)
 
-StackType_t _app_stack[APP_STACK_SIZE];  // stack + heap for app (in words)
-
+// We are abusing the stack area to store the app too. These need different memory sizes
+union {
+    uint8_t byte_buf[APP_STACK_SIZE_IN_BYTES]; // app memory
+    StackType_t word_buf[0];
+} _stack_addr;
+    
+    
 void appmanager_init(void)
 {
     // load the baked in 
@@ -52,16 +69,17 @@ void appmanager_init(void)
     _appmanager_add_to_manifest(_appmanager_create_app("Simple", APP_TYPE_FACE, simple_main, true, 0));
     _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", APP_TYPE_FACE, nivz_main, true, 0));
     
-    watchdog_reset();
     // now load the ones on flash
     _appmanager_flash_load_app_manifest();
-    watchdog_reset();
     
     _app_message_queue = xQueueCreate(5, sizeof(struct AppMessage));
-    _app_thread_queue = xQueueCreate(1, sizeof(struct AppMessage));
+    _app_thread_queue = xQueueCreate(1, sizeof(struct AppMessage));    
+   
+    // set off using system
+    appmanager_app_start("NiVZ");
     
     // create the thread
-    _app_task_handle = xTaskCreateStatic(_appmanager_app_thread, "App", APP_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, _app_stack, &_app_task);
+    _app_thread_manager_task_handle = xTaskCreateStatic(_appmanager_app_thread, "App", APP_THREAD_MANAGER_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, _app_thread_manager_stack, &_app_thread_manager_task);
     
     printf("App Task Created!\n");
 }
@@ -73,6 +91,8 @@ App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is
     if (app == NULL)
         return NULL;
     
+    printf("CREATING\n");
+    
     app->name = calloc(1, strlen(name) + 1);
     
     if (app->name == NULL)
@@ -83,7 +103,7 @@ App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is
     app->type = type;
     app->header = NULL;
     app->next = NULL;
-    app->slot_id = 0;
+    app->slot_id = slot_id;
     app->is_internal = is_internal;
     
     return app;
@@ -99,7 +119,7 @@ void _appmanager_flash_load_app_manifest(void)
     
     // super cheesy
     // 8 app slots
-    for(uint8_t i = 0; i < 8; i++)
+    for(uint8_t i = 0; i < 24; i++)
     {
         flash_load_app_header(i, &header);
         
@@ -228,6 +248,9 @@ void app_event_loop(void)
                 rebble_time_service_unsubscribe();
 
                 printf("ev quit\n");
+                // The task will die hard.
+                // TODO: BAD! The task will never call the cleanup after loop!
+                vTaskDelete(_app_task_handle);
                 // app was quit, break out of this loop into the main handler
                 break;
             }
@@ -242,17 +265,14 @@ void app_event_loop(void)
 void _appmanager_app_thread(void *parms)
 {
     printf("APP THREAD\n");
-    uint8_t *running_app_program_memory = NULL;
-    ApplicationHeader header;   // TODO change to malloc so we can free after load
+
+    ApplicationHeader header;   // TODO change to malloc so we can free after load?
     char *app_name;
     AppMessage am;
-    
-    // set off using system
-    appmanager_app_start("System");
-    
-    
+        
     for( ;; )
     {
+        printf("Pend RECV\n");
         // Sleep waiting for the go signal
         xQueueReceive(_app_thread_queue, &am, portMAX_DELAY);
         
@@ -263,9 +283,7 @@ void _appmanager_app_thread(void *parms)
         // clear the queue of any work from the previous app... such as an errant quit
         xQueueReset(_app_message_queue);
             
-        // kill the current app
-    //     appmanager_app_quit();
-        
+      
         // TODO reset clicks
 
         
@@ -298,29 +316,108 @@ void _appmanager_app_thread(void *parms)
         // it's the one
         _running_app = node;
         
-        flash_load_app_header(node->slot_id, &header);
-        
         if (!node->is_internal)
         {
-            
+            /*
+             
+             Heres what is going down. We are going to load the app header file from flash
+             This contains sizes and offsets. Then we load the app itself.
+             
+             There is a symbol table in each Pebble app that needs to have the address 
+             of _our_ symbol table poked into it. This allows the app to do a lookup of 
+             a function id internally, check it in our rebble sym table, and return 
+             a pointer address to to the function to jump to.
+             
+             We also have to make sure to init bss to 0 on fork otherwise it 
+             may have garbage
+             
+             Then we set the Global Offset Table (GOT). Each Pebble app is compiled with
+             Position Independant code (PIC) that means it can run from any address.
+             This is usually used on dlls .so files and the like, and a Pebble app is no different
+             It is the responsibility of the dynamic loader (us in this case) to get
+             the GOT (which is at the end of the binary) and relocate all of the text symbols
+             in the application binary.
+             NOTE: once we have re-allocated, we don't need the GOT any more, so we can delete it
+             
+             For now, the statically allocated memory for the app task is also used
+             to load the application into. The application needs uint8 size to execute 
+             from, while the stack is uint32. The stack is therefore partitioned into 
+                [app binary | stack++....--heap]
+             
+             The entry point given to the task (that spawns the app) is the beginning of the
+             stack region, after the app binary. The relative bin and stack and then 
+             unioned through as the right sizes to the BX and the SP.           
+             
+             We are leaning on Rtos here to actually spawn the app with it's own stack
+             (cheap fork)  and make sure the (M)SP is set accordingly. 
+             As a bonus we can manipulate this task in FreeRTOS directly through it's 
+             TCB handle (suspen, kill, delete)
+             
+             Steps:
+             * Find app on flash
+             * Load app into lower stack
+             * Set symbol table address
+             * load relocs and reloc the GOT
+             * zero BSS
+             * fork
+                 
+             */
+            uint32_t total_app_size = 0;
+            flash_load_app_header(node->slot_id, &header);
+        
             BssInfo bss = flash_get_bss(node->slot_id);
-            
-            // allocate the buffer for the memory to go into
-            printf("WILL ALLOC %d %d\n", header.app_size + bss.size, bss.size);
-            running_app_program_memory = calloc(1, header.app_size + bss.size);
-            
+
             // load the app from flash
-            flash_load_app(node->slot_id, running_app_program_memory, header.app_size);
+            // and any reloc entries too.
+            flash_load_app(node->slot_id, _stack_addr.byte_buf, header.app_size + (header.reloc_entries_count * 4));
+            
+            
+            // re-allocate the GOT for -fPIC
+            // Pebble has the GOT at the end of the app.
+            // first get the GOT realloc table
+            uint32_t *got = &_stack_addr.byte_buf[header.app_size];
+            
+            for (uint32_t i = 0; i < header.reloc_entries_count; i+=4)
+            {
+                // this screams cleanuo
+                uint32_t got_val = (uint32_t)((unsigned char)(got[i]) << 24 |
+                                            (unsigned char)(got[i + 1]) << 16 |
+                                            (unsigned char)(got[i + 2]) << 8 |
+                                            (unsigned char)(got[i + 3]));
+                
+                // global offset register in flash for the GOT
+                uint32_t addr = _stack_addr.byte_buf + got_val;
+                
+                // get the existing value in the register
+                uint32_t existing_offset_val = (uint32_t)((unsigned char)(_stack_addr.byte_buf[addr]) << 24 |
+                                                        (unsigned char)(_stack_addr.byte_buf[addr + 1]) << 16 |
+                                                        (unsigned char)(_stack_addr.byte_buf[addr + 2]) << 8 |
+                                                        (unsigned char)(_stack_addr.byte_buf[addr + 3]));
 
-            //init bss to 0
-            uint32_t bss_start = bss.end_address - bss.size;
-            memset(bss_start, 0, bss.size);
+                // The offset is offset in memory. i.e. existing offset in register + head of app
+                uint32_t new_offset = existing_offset_val + _stack_addr.byte_buf;
+                
+                // Set the new value
+                _stack_addr.byte_buf[addr]     =  (uint32_t)(new_offset) & 0xFF;
+                _stack_addr.byte_buf[addr + 1] =  ((uint32_t)(new_offset) >> 8)  & 0xFF;
+                _stack_addr.byte_buf[addr + 2] =  ((uint32_t)(new_offset) >> 16) & 0xFF;
+                _stack_addr.byte_buf[addr + 3] =  ((uint32_t)(new_offset) >> 24) & 0xFF;
+            }
+            
+            // init bss to 0
+            uint32_t bss_size = bss.end_address - header.app_size;
+            memset(header.app_size, 0, bss_size);
+            
+            // The app start will clear the re-alloc table values when they are used by stack
 
+            // app size app size + bss + reloc
+            total_app_size = header.app_size + bss_size;
+            
             // load the address into the special register in the app. hopefully in a platformish independant way
-            running_app_program_memory[header.sym_table_addr]     =     (uint32_t)(sym)         & 0xFF;
-            running_app_program_memory[header.sym_table_addr + 1] =     ((uint32_t)(sym) >> 8)  & 0xFF;
-            running_app_program_memory[header.sym_table_addr + 2] =     ((uint32_t)(sym) >> 16) & 0xFF;
-            running_app_program_memory[header.sym_table_addr + 3] =     ((uint32_t)(sym) >> 24) & 0xFF;
+            _stack_addr.byte_buf[header.sym_table_addr]     =     (uint32_t)(sym)         & 0xFF;
+            _stack_addr.byte_buf[header.sym_table_addr + 1] =     ((uint32_t)(sym) >> 8)  & 0xFF;
+            _stack_addr.byte_buf[header.sym_table_addr + 2] =     ((uint32_t)(sym) >> 16) & 0xFF;
+            _stack_addr.byte_buf[header.sym_table_addr + 3] =     ((uint32_t)(sym) >> 24) & 0xFF;
             
             printf("H:    %s\n", header.header);
             printf("SDKv: %d.%d\n", header.sdk_version.major, header.sdk_version.minor);
@@ -336,28 +433,27 @@ void _appmanager_app_thread(void *parms)
             printf("Flags:%d\n", header.flags);
             printf("Reloc:%d\n", header.reloc_entries_count);
 
-            // set the initial offset pointer
-            // XXX NOTE -2 on the offset for some reason. TODO investigate
-            printf("A 0x%x\n", running_app_program_memory[header.offset -2]);
-            _running_app->main = &running_app_program_memory[header.offset - 2];
-            printf("New:  0x%x 0x%x\n", running_app_program_memory, _running_app->main);
-            printf("Mem:  0x%x 0x%x\n", (*_running_app->main), _running_app->main);
+            printf("A 0x%x\n", *(_stack_addr.byte_buf + header.sym_table_addr));
+            printf("A 0x%x\n", _stack_addr.byte_buf[header.offset]);
+            printf("A 0x%x\n", _stack_addr.byte_buf[header.offset +1]);
+            printf("A 0x%x\n", _stack_addr.byte_buf[header.offset+2]);
+ 
+            
+            // Let this guy do the heavy lifting!
+            _app_task_handle = xTaskCreateStatic(&_stack_addr.byte_buf[header.offset], "dynapp", (APP_STACK_SIZE_IN_BYTES - total_app_size) / sizeof(StackType_t), NULL, tskIDLE_PRIORITY + 5UL, &_stack_addr.word_buf[header.offset], &_app_task);
         }
-        
-        // start the app. this will block if the app is written to call
-        // the main app_event_loop.
-        // The main loop work is deferred to the app until it quits
-        ((AppMainHandler)(_running_app->main))();
-        
+        else
+        {
+            // start the app. this will block if the app is written to call
+            // the main app_event_loop.
+            // The main loop work is deferred to the app until it quits
+            // 
+            // actually spawn a static task here?
+            ((AppMainHandler)(_running_app->main))();
+        }
         // we unblocked. It looks like the app quit
         // around we go again
-        if (running_app_program_memory != NULL)
-            free(running_app_program_memory);
-        
-        running_app_program_memory = NULL;
     }
-
-    vTaskDelete(_app_task_handle);
 }
 
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context)
@@ -417,6 +513,7 @@ void test1(uint8_t lvl, const char *fmt, ...)
 void api_unimpl()
 {
     printf("UNK\n");
+    while(1);
 }
 
 void p_n_grect_standardize(n_GRect r)

@@ -32,8 +32,11 @@
 
 // app slots
 #define APP_SLOT_1_START    0xB3E000
+#define APP_SLOT_9_START    0xc34000
+#define APP_SLOT_17_START    0xc82000
 #define APP_HEADER_BIN_OFFSET 0x59
 #define APP_SLOT_SIZE       0x48000
+
 
 #define RES_COUNT           0x00
 #define RES_CRC             0x04

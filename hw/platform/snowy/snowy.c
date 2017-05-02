@@ -203,3 +203,11 @@ STM32_BUTTONS_MK_IRQ_HANDLER(1)
 STM32_BUTTONS_MK_IRQ_HANDLER(2)
 STM32_BUTTONS_MK_IRQ_HANDLER(3)
 STM32_BUTTONS_MK_IRQ_HANDLER(4)
+
+
+
+static void  MemMang_Handler()
+{
+    printf("hard\n");
+    while(1);
+}

@@ -71,29 +71,29 @@ typedef struct Uuid {
 } __attribute__((__packed__)) Uuid;
   
 typedef struct ApplicationHeader {
-  char header[8];                   // PBLAPP
-  Version header_version;           // version of this header
-  Version sdk_version;              // sdk it was compiled against it seems
-  Version app_version;              // app version
-  uint16_t app_size;                // size of app binary + app header (but not reloc)
-  uint32_t offset;                  // beginning of the app binary
-  uint32_t crc;                     // data's crc?
-  char name[MAX_APP_STR_LEN];
-  char company[MAX_APP_STR_LEN];
-  uint32_t icon_resource_id;
-  uint32_t sym_table_addr;          // The system will poke the sdk's symbol table address into this field on load
-  uint32_t flags;
-  uint32_t reloc_entries_count;     // reloc list count
-  Uuid uuid;
-  uint32_t resource_crc;
-  uint32_t resource_timestamp;
-  uint16_t virtual_size;            // The total amount of memory used by the process (.text + .data + .bss)
+    char header[8];                   // PBLAPP
+    Version header_version;           // version of this header
+    Version sdk_version;              // sdk it was compiled against it seems
+    Version app_version;              // app version
+    uint16_t app_size;                // size of app binary + app header (but not reloc)
+    uint32_t offset;                  // beginning of the app binary
+    uint32_t crc;                     // data's crc?
+    char name[MAX_APP_STR_LEN];
+    char company[MAX_APP_STR_LEN];
+    uint32_t icon_resource_id;
+    uint32_t sym_table_addr;          // The system will poke the sdk's symbol table address into this field on load
+    uint32_t flags;
+    uint32_t reloc_entries_count;     // reloc list count
+    Uuid uuid;
+    uint32_t resource_crc;
+    uint32_t resource_timestamp;
+    uint16_t virtual_size;            // The total amount of memory used by the process (.text + .data + .bss)
 } __attribute__((__packed__)) ApplicationHeader;
 
 
 
 typedef struct App {
-    uint8_t type; // this will be in flags I presume
+    uint8_t type; // this will be in flags I presume <-- it is. TODO. Hook flags up
     bool is_internal; // is the app baked into flash
     uint8_t slot_id;
     char *name;

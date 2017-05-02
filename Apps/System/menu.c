@@ -98,7 +98,8 @@ void menu_draw_list(MenuItem menu[], uint8_t offsetx, uint8_t offsety)
             menu_draw_list_item(0, 2 * 42, offsetx, offsety, &_main_menu[2], (_menu_index == 2 ? 1 : 0));
         }
         
-        if (!strncmp(node->name, "91 Dub 4.0", strlen(node->name)))
+//         if (!strncmp(node->name, "91 Dub 4.0", strlen(node->name)))
+        if (!strncmp(node->name, "watchface", strlen(node->name)))
         {
             // match!
             _main_menu[3].text = node->name;
