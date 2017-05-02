@@ -1,3 +1,10 @@
+/* debug.c
+ * Debugging facilities, including panic()
+ * RebbleOS
+ *
+ * Author: Joshua Wise <joshua@joshuawise.com>
+ */
+
 #include <stdio.h>
 #include "debug.h"
 
