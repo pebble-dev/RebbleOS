@@ -47,6 +47,7 @@ struct fmtctx {
 };
 
 int fmt(struct fmtctx *ctx, va_list args);
+int vsfmt(char *buf, unsigned int len, const char *ifmt, va_list ap);
 int sfmt(char *buf, unsigned int len, const char *ifmt, ...);
 
 #endif

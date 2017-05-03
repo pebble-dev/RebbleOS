@@ -202,7 +202,7 @@ void hw_get_time_str(char *buf)
     RTC_TimeTypeDef  RTC_TimeStructure;
 
     RTC_GetTime(RTC_Format_BIN, &RTC_TimeStructure);
-    sprintf(buf, "%02d:%02d:%02d\n",RTC_TimeStructure.RTC_Hours, RTC_TimeStructure.RTC_Minutes, RTC_TimeStructure.RTC_Seconds);
+    snprintf(buf, 12, "%02d:%02d:%02d\n",RTC_TimeStructure.RTC_Hours, RTC_TimeStructure.RTC_Minutes, RTC_TimeStructure.RTC_Seconds);
 }
 
 struct tm *hw_get_time(void)

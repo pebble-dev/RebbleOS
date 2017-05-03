@@ -23,3 +23,34 @@ int puts(const char *s) {
 	putchar('\n');
 	return 0;
 }
+
+int snprintf(char *buf, unsigned int len, const char *ifmt, ...) {
+	va_list ap;
+	int n;
+	
+	va_start(ap, ifmt);
+	n = vsfmt(buf, len, ifmt, ap);
+	va_end(ap);
+	
+	return n;
+}
+
+static void _fmtout(void *p, char c) {
+	putchar(c);
+}
+
+int printf(const char *ifmt, ...) {
+	va_list ap;
+	struct fmtctx ctx;
+	int num_written;
+
+	ctx.str = ifmt;
+	ctx.out = _fmtout;
+	ctx.priv = NULL;
+
+	va_start(ap, ifmt);
+	num_written = fmt(&ctx, ap);
+	va_end(ap);
+
+	return num_written;
+}

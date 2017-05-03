@@ -34,7 +34,3 @@ Portions of this codebase are instead made available under other licenses:
  
  * upng, in lib/png/, is available under a BSD-style license.  Please see
    lib/png/upng.c for more information.
-
- * stdarg, in Hardware/stadrg.c, is available under the terms of the GNU
-   Lesser General Public License.  Please see that file for more
-   information.
