@@ -8,6 +8,10 @@
 
 #include "rebbleos.h"
 
+extern size_t xPortGetFreeAppHeapSize(void);
+extern void *pvPortAppMalloc(size_t);
+extern void vPortAppFree(void*);
+
 // TODO refactor heap allocator and init here
 void rblos_memory_init(void)
 {
@@ -77,7 +81,7 @@ void *app_malloc(size_t size)
     if(!rblos_memory_sanity_check_app(size))
         return NULL;
     
-    return pvPortAppMalloc(size);
+    return (void*)pvPortAppMalloc(size);
     
 }
 
@@ -86,7 +90,7 @@ void *app_calloc(size_t count, size_t size)
     if(!rblos_memory_sanity_check_app(size))
         return NULL;
     
-    void *x = pvPortAppMalloc(count * size);
+    void *x = (void*)pvPortAppMalloc(count * size);
     
     if (x != NULL)
         memset(x, 0, count * size);

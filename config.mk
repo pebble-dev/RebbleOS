@@ -28,6 +28,8 @@ CFLAGS_all += -IlibRebbleOS/event
 
 # XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
+# CFLAGS_all += -Wno-implicit-function-declaration
+CFLAGS_all += -Wno-unused-variable -Wno-unused-function
 
 LDFLAGS_all += -nostartfiles -nostdlib
 LIBS_all += -lgcc

@@ -9,6 +9,7 @@
 #include "platform.h"
 #include "flash.h"
 
+extern size_t xPortGetFreeAppHeapSize(void);
 
 uint32_t _resource_get_app_res_slot_address(uint16_t slot_id);
 
@@ -99,6 +100,7 @@ void resource_load_app(ResHandle resource_handle, uint8_t *buffer, uint16_t slot
     if (resource_handle.index > 1)
         ofs = 0x1C;
     flash_read_bytes(_resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset + ofs, buffer, resource_handle.size);
+    return;
 }
 
 

@@ -22,6 +22,9 @@
  * 
  */
 
+extern void appHeapInit(size_t, uint8_t*);
+extern  GFont *fonts_load_custom_font(ResHandle*, uint16_t);
+
 static void _appmanager_flash_load_app_manifest();
 static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id);
 static void _appmanager_app_thread(void *parameters);
@@ -468,7 +471,7 @@ static void _appmanager_app_thread(void *parms)
                     existing /= 4;
                     
                     // take the offset and add the apps base address
-                    existing += app_stack_heap.word_buf;
+                    existing += (uint32_t)app_stack_heap.word_buf;
                     
                     // write it back to the register
                     app_stack_heap.word_buf[got[i]/4] = existing;
@@ -523,13 +526,13 @@ static void _appmanager_app_thread(void *parms)
             appHeapInit(heap_size, (void *)heap_entry);
 
             // Let this guy do the heavy lifting!
-            _app_task_handle = xTaskCreateStatic((void*)&app_stack_heap.byte_buf[header.offset], 
+            _app_task_handle = xTaskCreateStatic((TaskFunction_t)&app_stack_heap.byte_buf[header.offset], 
                                                  "dynapp", 
                                                  stack_size, 
                                                  NULL, 
                                                  tskIDLE_PRIORITY + 6UL, 
-                                                 stack_entry, 
-                                                 &_app_task);
+                                                 (StackType_t*) stack_entry, 
+                                                 (StaticTask_t* )&_app_task);
         }
         else
         {
@@ -539,8 +542,8 @@ static void _appmanager_app_thread(void *parms)
             appHeapInit(MAX_APP_MEMORY_SIZE - (MAX_APP_STACK_SIZE * 4), app_stack_heap.byte_buf);
              
             uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - MAX_APP_STACK_SIZE];
-
-            _app_task_handle = xTaskCreateStatic((void*)_running_app->main, 
+             
+            _app_task_handle = xTaskCreateStatic((TaskFunction_t)_running_app->main, 
                                                   "dynapp", 
                                                   MAX_APP_STACK_SIZE, 
                                                   NULL, 
@@ -598,7 +601,7 @@ App *app_manager_get_apps_head()
 
 /* Some stubs below for testing etc */
 
-void api_unimpl()
+void api_unimpl(void)
 {
 
     while(1);

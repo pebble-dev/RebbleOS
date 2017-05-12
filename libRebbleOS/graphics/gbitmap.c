@@ -9,6 +9,8 @@
 #include "upng.h"
 #include "png.h"
 
+extern uint8_t *resource_fully_load_id_app(uint16_t, uint16_t);
+
 void _gbitmap_draw(GBitmap *bitmap, GRect clip);
 
 /*
@@ -264,7 +266,7 @@ GBitmap *gbitmap_create_with_resource(uint32_t resource_id)
 
 GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, uint16_t slot_id)
 {
-    uint8_t *png_data = resource_fully_load_id_app(resource_id, slot_id);
+    uint8_t *png_data = (uint8_t*)resource_fully_load_id_app(resource_id, slot_id);
     ResHandle res_handle = resource_get_handle_app(resource_id, slot_id);
     size_t png_data_size = resource_size(res_handle);
         
@@ -274,7 +276,7 @@ GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, uint16_t slot_id
 /*
  * Create a new bitmap with the given data
  */
-GBitmap *gbitmap_create_with_data(const uint8_t *data)
+GBitmap *gbitmap_create_with_data(uint8_t *data)
 {
     GRect r;
     // allocate a gbitmap
@@ -309,7 +311,7 @@ GBitmap *gbitmap_create_as_sub_bitmap(const GBitmap *base_bitmap, GRect sub_rect
 /*
  * Given loaded png image, create a new GBitmap
  */
-GBitmap *gbitmap_create_from_png_data(const uint8_t *png_data, size_t png_data_size)
+GBitmap *gbitmap_create_from_png_data(uint8_t *png_data, size_t png_data_size)
 {   
     GRect fr;
     //Allocate gbitmap
@@ -353,7 +355,7 @@ GBitmap *gbitmap_create_blank_with_palette(GSize size, GBitmapFormat format, GCo
 /*
  * TODO
  */
-GBitmap *gbitmap_create_palettized_from_1bit(const GBitmap *src_bitmap)
+GBitmap *gbitmap_create_palettized_from_1bit(GBitmap *src_bitmap)
 {
     return NULL;
 }
@@ -373,7 +375,7 @@ void _gbitmap_set_size_pos(GBitmap *bitmap, GRect size)
  * Bitmaps will be clipped to rect
  * If rect > bitmap, bitmap will be tiled
  */
-void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect rect)
+void graphics_draw_bitmap_in_rect(GContext *ctx, GBitmap *bitmap, GRect rect)
 {
     _gbitmap_set_size_pos(bitmap, rect);
     
