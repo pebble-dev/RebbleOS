@@ -346,7 +346,7 @@ static void prvInsertBlockIntoFreeList( BlockLink_t *pxBlockToInsert )
 {
 BlockLink_t *pxIterator;
 uint8_t *puc;
-printf("START %x\n", (&xStart)->pxNextFreeBlock);
+
 	/* Iterate through the list until a block is found that has a higher address
 	than the block being inserted. */
 	for( pxIterator = &xStart; pxIterator->pxNextFreeBlock < pxBlockToInsert; pxIterator = pxIterator->pxNextFreeBlock )

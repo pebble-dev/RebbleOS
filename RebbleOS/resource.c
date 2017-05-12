@@ -94,7 +94,11 @@ void resource_load_app(ResHandle resource_handle, uint8_t *buffer, uint16_t slot
         printf("Res: malloc fail. Not enough heap for %d\n", resource_handle.size);
         return NULL;
     }
-    flash_read_bytes(_resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset, buffer, resource_handle.size);
+    printf("Res: Start %p\n", _resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset);
+    uint16_t ofs = 0;
+    if (resource_handle.index > 1)
+        ofs = 0x1C;
+    flash_read_bytes(_resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset + ofs, buffer, resource_handle.size);
 }
 
 

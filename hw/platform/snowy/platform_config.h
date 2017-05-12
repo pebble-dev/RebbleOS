@@ -69,4 +69,6 @@
 #define RES_START               0x200C
 
 /* When we load a font from flash, is it offset from the given offset in the header? Seems so */
-#define APP_FONT_START          0x1C
+// Some fonts? confused
+//#define APP_FONT_START          0x1C
+#define APP_FONT_START          0x00

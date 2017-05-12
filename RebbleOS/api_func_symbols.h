@@ -1090,7 +1090,7 @@ unalloc376,
 unalloc377,
 unalloc378,
 unalloc379,
-unalloc380,     //localtime
+rebble_time_get_tm,     //localtime
 unalloc381,
 unalloc382,
 unalloc383,
