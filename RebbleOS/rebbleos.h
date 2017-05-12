@@ -24,6 +24,7 @@
 #include "rebble_time.h"
 #include "main.h"
 #include "log.h"
+#include "debug.h"
 #include "flash.h"
 #include "resource.h"
 
