@@ -14,7 +14,7 @@ void layer_insert_node(Layer *layer_to_insert, Layer *sibling_layer, bool below)
 // Layer Functions
 Layer *layer_create(GRect frame)
 {
-    Layer* layer = (Layer*)calloc(1, sizeof(Layer));
+    Layer* layer = app_calloc(1, sizeof(Layer));
     if (layer == NULL)
     {
         printf("NO MEMORY FOR LAYER!\n");
@@ -22,6 +22,8 @@ Layer *layer_create(GRect frame)
     }
     layer->bounds = frame;
     layer->frame = frame;
+    layer->child = NULL;
+    layer->sibling = NULL;
     
     return layer;
 }
@@ -29,7 +31,7 @@ Layer *layer_create(GRect frame)
 Layer *layer_create_with_data(GRect frame, size_t data_size)
 {
     Layer *layer = layer_create(frame);
-    layer->callback_data = calloc(1, data_size);
+    layer->callback_data = app_calloc(1, data_size);
     
     return layer;
 }
@@ -57,6 +59,12 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
 {   
     if (parent_layer == NULL || child_layer == NULL)
         return;
+
+    if(parent_layer->child == child_layer)
+    {
+        printf("LAYER IS ALREADY CHILD\n");
+        return;
+    }
     
     // if parent isn't already with child, it will become it
     // this will set the root node for all other elements in this parent
@@ -70,7 +78,14 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
     
     // now find the parents childs siblings
     while(child->sibling)
+    {
+        if (child == child_layer)
+        {
+            printf("LAYER IS ALREADY CHILD\n");
+            return;
+        }
         child = child->sibling;
+    }
     
     child->sibling = child_layer;
     child_layer->parent = parent_layer;
@@ -163,6 +178,7 @@ void layer_remove_node(Layer *to_be_removed)
 {
     // remove our node by pointing next to parents next, jumping over us
     to_be_removed->parent->sibling = to_be_removed->sibling;
+    to_be_removed->sibling = NULL;
 }
 
 /*
@@ -225,7 +241,7 @@ void layer_delete_tree(Layer *layer)
     {
         layer_delete_tree(layer->child);
         layer_delete_tree(layer->sibling);
-        free(layer);
+        app_free(layer);
     }
 }
 

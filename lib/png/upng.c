@@ -239,11 +239,11 @@ static void huffman_tree_init(huffman_tree* tree, uint16_t* buffer, uint16_t num
 /*given the code lengths (as stored in the PNG file), generate the tree as defined by Deflate. maxbitlen is the maximum bits that a code in the tree can have. return value is error.*/
 static void huffman_tree_create_lengths(upng_t* upng, huffman_tree* tree, const uint16_t *bitlen)
 {
-        uint16_t* tree1d = malloc(sizeof(uint16_t) * MAX_SYMBOLS);
+        uint16_t* tree1d = app_malloc(sizeof(uint16_t) * MAX_SYMBOLS);
 uint16_t blcount[MAX_BIT_LENGTH];
 uint16_t nextcode[MAX_BIT_LENGTH];
-        //unsigned* blcount = malloc(sizeof(unsigned) * MAX_BIT_LENGTH);
-        //unsigned* nextcode = malloc(sizeof(unsigned) * MAX_BIT_LENGTH);
+        //unsigned* blcount = app_malloc(sizeof(unsigned) * MAX_BIT_LENGTH);
+        //unsigned* nextcode = app_malloc(sizeof(unsigned) * MAX_BIT_LENGTH);
 if (!tree1d) {
                 SET_ERROR(upng, UPNG_ENOMEM);
                 return;
@@ -309,7 +309,7 @@ if (!tree1d) {
                         tree->tree2d[n] = 0;	/*remove possible remaining 32767's */
                 }
         }
-        free(tree1d);
+        app_free(tree1d);
         //free(blcount);
         //free(nextcode);
 }
@@ -344,10 +344,10 @@ static uint16_t huffman_decode_symbol(upng_t *upng, const unsigned char *in, uns
 static void get_tree_inflate_dynamic(upng_t* upng, huffman_tree* codetree, huffman_tree* codetreeD, huffman_tree* codelengthcodetree, const unsigned char *in, unsigned long *bp, unsigned long inlength)
 {
 
-        //unsigned* codelengthcode = (unsigned*)malloc(sizeof(unsigned) * NUM_CODE_LENGTH_CODES);
+        //unsigned* codelengthcode = (unsigned*)app_malloc(sizeof(unsigned) * NUM_CODE_LENGTH_CODES);
         uint16_t codelengthcode[NUM_CODE_LENGTH_CODES];
-        uint16_t* bitlen = (uint16_t*)malloc(sizeof(uint16_t) * NUM_DEFLATE_CODE_SYMBOLS);
-        //unsigned* bitlenD = (unsigned*)malloc(sizeof(unsigned) * NUM_DISTANCE_SYMBOLS);
+        uint16_t* bitlen = (uint16_t*)app_malloc(sizeof(uint16_t) * NUM_DEFLATE_CODE_SYMBOLS);
+        //unsigned* bitlenD = (unsigned*)app_malloc(sizeof(unsigned) * NUM_DISTANCE_SYMBOLS);
         uint16_t bitlenD[NUM_DISTANCE_SYMBOLS];
 
 if (!bitlen) {
@@ -505,7 +505,7 @@ uint16_t n, hlit, hdist, hclen, i;
                 huffman_tree_create_lengths(upng, codetreeD, bitlenD);
         }
         //free(codelengthcode);
-        free(bitlen);
+        app_free(bitlen);
         //free(bitlenD);
 }
 
@@ -513,7 +513,7 @@ uint16_t n, hlit, hdist, hclen, i;
 static void inflate_huffman(upng_t* upng, unsigned char* out, unsigned long outsize, const unsigned char *in, unsigned long *bp, unsigned long *pos, unsigned long inlength, uint16_t btype)
 {
 //Converted to malloc, was overflowing 2k stack on Pebble
-        uint16_t* codetree_buffer = (uint16_t*)malloc(sizeof(uint16_t) * DEFLATE_CODE_BUFFER_SIZE);
+        uint16_t* codetree_buffer = (uint16_t*)app_malloc(sizeof(uint16_t) * DEFLATE_CODE_BUFFER_SIZE);
         uint16_t codetreeD_buffer[DISTANCE_BUFFER_SIZE];
 if (codetree_buffer == NULL) {
                 SET_ERROR(upng, UPNG_ENOMEM);
@@ -624,7 +624,7 @@ if (codetree_buffer == NULL) {
                 }
         }
 
-free(codetree_buffer);
+app_free(codetree_buffer);
 //free(codetreeD_buffer);
 return;
 }
@@ -983,7 +983,7 @@ case UPNG_PLT:
 static void upng_free_source(upng_t* upng)
 {
     if (upng->source.owning != 0) {
-            free((void*)upng->source.buffer);
+        app_free((void*)upng->source.buffer);
     }
 
     upng->source.buffer = NULL;
@@ -1087,7 +1087,7 @@ upng_error upng_decode(upng_t* upng)
 
         /* release old result, if any */
         if (upng->buffer != 0) {
-                free(upng->buffer);
+                app_free(upng->buffer);
                 upng->buffer = 0;
                 upng->size = 0;
         }
@@ -1131,28 +1131,28 @@ upng_error upng_decode(upng_t* upng)
                 } else if (upng_chunk_type(chunk) == CHUNK_PLTE) {
                     upng->palette_entries = length / 3; //3 bytes per color entry
                     if(upng->palette) {
-                        free(upng->palette);
+                        app_free(upng->palette);
                         upng->palette = NULL;
                     }
-                    upng->palette = malloc(length);
+                    upng->palette = app_malloc(length);
                     memcpy(upng->palette, data, length);
                 } else if (upng_chunk_type(chunk) == CHUNK_tRNS) {
                     upng->alpha_entries = length;
                     if(upng->alpha) {
-                        free(upng->alpha);
+                        app_free(upng->alpha);
                         upng->alpha = NULL;
                     }
-                    upng->alpha = malloc(length);
+                    upng->alpha = app_malloc(length);
                     memcpy(upng->alpha, data, length);
                 } else if (upng_chunk_type(chunk) == CHUNK_TEXT) {
                     int keyword_length = (strlen((const char*)data) + 1);
                     // Copy keyword located at start of data (includes null terminator)
-                    upng->text[upng->text_count].keyword = malloc(keyword_length);
+                    upng->text[upng->text_count].keyword = app_malloc(keyword_length);
                     strcpy(upng->text[upng->text_count].keyword,(const char*)data);
 
                     int text_length = length - keyword_length + 1;
                     // Copy the text from data, starts after the null after keyword
-                    upng->text[upng->text_count].text = malloc(text_length);
+                    upng->text[upng->text_count].text = app_malloc(text_length);
                     memcpy((char*)upng->text[upng->text_count].text,(const char*)(data + keyword_length), text_length - 1);//no null terminator
                     //add missing null terminator
                     upng->text[upng->text_count].text[text_length - 1] = '\0';
@@ -1167,7 +1167,7 @@ upng_error upng_decode(upng_t* upng)
         }
 
         /* allocate enough space for the (compressed and filtered) image data */
-        compressed = (unsigned char*)malloc(compressed_size);
+        compressed = (unsigned char*)app_malloc(compressed_size);
         if (compressed == NULL) {
                 SET_ERROR(upng, UPNG_ENOMEM);
                 return upng->error;
@@ -1196,7 +1196,7 @@ upng_error upng_decode(upng_t* upng)
 
 // Pebble has only so much free ram, so free source buffer now that we are
 // done with it.
-free(upng->source.buffer);
+app_free(upng->source.buffer);
 upng->source.buffer = NULL;
 
         /* allocate space to store inflated (but still filtered) data */
@@ -1204,10 +1204,10 @@ upng->source.buffer = NULL;
 int width_aligned_bytes = (upng->width * upng_get_bpp(upng) + 7) / 8;
         inflated_size = (width_aligned_bytes * upng->height) + upng->height; //pad byte
 //Hard-codec CCM usage, avoid compositor buffer (ie. +32k to be safe)
-        //inflated = (void*)0x1000a0d8;//(unsigned char*)malloc(inflated_size);
-        inflated = (unsigned char*)malloc(inflated_size);
+        //inflated = (void*)0x1000a0d8;//(unsigned char*)app_malloc(inflated_size);
+        inflated = (unsigned char*)app_malloc(inflated_size);
         if (inflated == NULL) {
-                free(compressed);
+                app_free(compressed);
                 SET_ERROR(upng, UPNG_ENOMEM);
                 return upng->error;
         }
@@ -1215,23 +1215,23 @@ int width_aligned_bytes = (upng->width * upng_get_bpp(upng) + 7) / 8;
         /* decompress image data */
         error = uz_inflate(upng, inflated, inflated_size, compressed, compressed_size);
         if (error != UPNG_EOK) {
-                free(compressed);
+                app_free(compressed);
                 //free(inflated);
                 return upng->error;
         }
 
         /* free the compressed compressed data */
-        free(compressed);
+        app_free(compressed);
 
         /* allocate final image buffer */
         //upng->size = (upng->height * upng->width * upng_get_bpp(upng) + 7) / 8;
         upng->size = width_aligned_bytes * upng->height;
 
 /*
-        upng->buffer = (unsigned char*)malloc(upng->size);
+        upng->buffer = (unsigned char*)app_malloc(upng->size);
         if (upng->buffer == NULL) {
     printf("allocating %ld in upng", upng->size);
-                free(inflated);
+                app_free(inflated);
                 upng->size = 0;
                 SET_ERROR(upng, UPNG_ENOMEM);
                 return upng->error;
@@ -1240,11 +1240,11 @@ int width_aligned_bytes = (upng->width * upng_get_bpp(upng) + 7) / 8;
 
         /* unfilter scanlines */
         post_process_scanlines(upng, inflated, inflated, upng);
-        //free(inflated);
+        //app_free(inflated);
 upng->buffer = inflated;
 
         if (upng->error != UPNG_EOK) {
-                free(upng->buffer);
+                app_free(upng->buffer);
                 upng->buffer = NULL;
                 upng->size = 0;
         } else {
@@ -1261,7 +1261,7 @@ static upng_t* upng_new(void)
 {
         upng_t* upng;
 
-        upng = (upng_t*)malloc(sizeof(upng_t));
+        upng = (upng_t*)app_malloc(sizeof(upng_t));
         if (upng == NULL) {
                 return NULL;
         }
@@ -1337,7 +1337,7 @@ upng_t* upng_new_from_file(const char *filename)
         rewind(file);
 
         /* read contents of the file into the vector */
-        buffer = (unsigned char *)malloc((unsigned long)size);
+        buffer = (unsigned char *)app_malloc((unsigned long)size);
         if (buffer == NULL) {
                 fclose(file);
                 SET_ERROR(upng, UPNG_ENOMEM);
@@ -1371,7 +1371,7 @@ void upng_free(upng_t* upng)
 // 
     /* deallocate alpha buffer, we rolled all alphas into the palette */
     if (upng->alpha) {
-        free(upng->alpha);
+        app_free(upng->alpha);
     }
 
     /* deallocate source buffer, if necessary */
@@ -1381,14 +1381,14 @@ void upng_free(upng_t* upng)
     
     if (upng->text_count) {
         for(unsigned int i = 0; i < upng->text_count; i++){
-        free(upng->text[i].keyword);
-        free(upng->text[i].text);
+        app_free(upng->text[i].keyword);
+        app_free(upng->text[i].text);
         }
     }
     upng->text_count = 0;
 
     /* deallocate struct itself */
-    free(upng);
+    app_free(upng);
 }
 
 upng_error upng_get_error(const upng_t* upng)

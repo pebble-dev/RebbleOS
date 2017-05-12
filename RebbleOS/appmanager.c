@@ -1,8 +1,10 @@
 /* appmanager.c
- * routines for [...]
+ * Routines for managing the loading of applications dynamically
+ * Each app is loaded with its own stack and heap.
+ *   (https://github.com/pebble-dev)
  * RebbleOS
- *
- * Author: Barry Carter <barry.carter@gmail.com>
+ * 
+ * Author: Barry Carter <barry.carter@gmail.com>.
  */
 
 #include <stdlib.h>
@@ -15,7 +17,8 @@
  * Module TODO
  * 
  * Hook the flags up. These contain app type etc.
- * resource loading from apps
+ * break the exec into smaller parts
+ * Move event loop out
  * 
  */
 
@@ -36,52 +39,67 @@ StaticTask_t _app_task;
 static App *_running_app;
 static App *_app_manifest_head;
 
-// simple doesn't have an include, so cheekily forward declare here
-void simple_main(void);
-void nivz_main(void);
-
-#define APP_STACK_SIZE_IN_BYTES 96000
-#define APP_THREAD_MANAGER_STACK_SIZE 1000
+/* The manager thread needs only a small stack */
+#define APP_THREAD_MANAGER_STACK_SIZE 300
 StackType_t _app_thread_manager_stack[APP_THREAD_MANAGER_STACK_SIZE];  // stack + heap for app (in words)
 
 // We are abusing the stack area to store the app too. These need different memory sizes
 union {
-    uint8_t byte_buf[APP_STACK_SIZE_IN_BYTES]; // app memory
+    uint8_t byte_buf[MAX_APP_MEMORY_SIZE]; // app memory
     StackType_t word_buf[0];
-} _stack_addr;
-    
-    
+} app_stack_heap;
+
+
+// simple doesn't have an include, so cheekily forward declare here
+void simple_main(void);
+void nivz_main(void);
+
+/*
+ * Load any pre-existing apps into the manifest, search for any new ones and then start up
+ */
 void appmanager_init(void)
 {
+   
     // load the baked in 
     _appmanager_add_to_manifest(_appmanager_create_app("System", APP_TYPE_SYSTEM, systemapp_main, true, 0));
     _appmanager_add_to_manifest(_appmanager_create_app("Simple", APP_TYPE_FACE, simple_main, true, 0));
     _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", APP_TYPE_FACE, nivz_main, true, 0));
     
+    _app_task_handle = NULL;
+    
     // now load the ones on flash
     _appmanager_flash_load_app_manifest();
     
     _app_message_queue = xQueueCreate(5, sizeof(struct AppMessage));
-    _app_thread_queue = xQueueCreate(1, sizeof(struct AppMessage));    
+    _app_thread_queue = xQueueCreate(1, sizeof(struct AppMessage));
    
     // set off using system
-    appmanager_app_start("NiVZ");
+    //appmanager_app_start("91 Dub 4.0");
+    appmanager_app_start("System");
     
-    // create the thread
-    _app_thread_manager_task_handle = xTaskCreateStatic(_appmanager_app_thread, "App", APP_THREAD_MANAGER_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, _app_thread_manager_stack, &_app_thread_manager_task);
+    // create the task manager thread
+    _app_thread_manager_task_handle = xTaskCreateStatic(_appmanager_app_thread, 
+                                                        "App", 
+                                                        APP_THREAD_MANAGER_STACK_SIZE, 
+                                                        NULL, 
+                                                        tskIDLE_PRIORITY + 5UL, 
+                                                        _app_thread_manager_stack, 
+                                                        &_app_thread_manager_task);
     
     printf("App Task Created!\n");
 }
 
-
+/*
+ * 
+ * Generate an entry in the application manifest for each found app.
+ * 
+ */
 App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id)
 {
     App *app = calloc(1, sizeof(App));
     if (app == NULL)
         return NULL;
-    
-    printf("CREATING\n");
-    
+        
     app->name = calloc(1, strlen(name) + 1);
     
     if (app->name == NULL)
@@ -101,6 +119,9 @@ App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is
 
 /*
  * Load the list of apps and faces from flash
+ * The app manifest is a list of all known applications we found in flash
+ * We scan all block regions and look for app signatures.
+ * TODO The real app likely does nothing quite so crude. We need to find the app table!
  */
 void _appmanager_flash_load_app_manifest(void)
 {
@@ -108,7 +129,7 @@ void _appmanager_flash_load_app_manifest(void)
     
     // super cheesy
     // 8 app slots
-    for(uint8_t i = 0; i < 24; i++)
+    for(uint8_t i = 0; i < 32; i++)
     {
         flash_load_app_header(i, &header);
         
@@ -125,7 +146,7 @@ void _appmanager_flash_load_app_manifest(void)
     }
 }
 
-
+/* App manifest is a linked list. Just slot it in */
 void _appmanager_add_to_manifest(App *app)
 {  
     if (_app_manifest_head == NULL)
@@ -144,7 +165,36 @@ void _appmanager_add_to_manifest(App *app)
     child->next = app;
 }
 
+/*
+ * Get an application by name. NULL if invalid
+ */
+App *appmanager_get_app(char *app_name)
+{
+    // find the app
+    App *node = _app_manifest_head;
+    
+    // now find the matching
+    while(node)
+    {
+        if (!strncmp(node->name, (char *)app_name, strlen(node->name)))
+        {
+            // match!
+            return node;
+        }
 
+        node = node->next;
+    }
+    
+    printf("No app found!\n");
+    return NULL;
+}
+
+
+/*
+ * Start an application by name
+ * This will send a kill -9 to the current app and send a queued message
+ * The message contains the app name
+ */
 void appmanager_app_start(char *name)
 {
     AppMessage am;
@@ -187,6 +237,13 @@ void appmanager_post_tick_message(TickMessage *tmessage, BaseType_t *pxHigherPri
     xQueueSendToBackFromISR(_app_message_queue, &am, pxHigherPri);
 }
 
+/*
+ * 
+ * Once an application is spawned, it calls into app_event_loop
+ * This function is a busy loop, but with the benefit that it is also a task
+ * In here we are the main event handler, for buttons quits etc etc.
+ * 
+ */
 void app_event_loop(void)
 {
     uint32_t xMaxBlockTime = 1000 / portTICK_RATE_MS;
@@ -201,11 +258,15 @@ void app_event_loop(void)
     // Install our own handler to hijack the long back press
     //window_long_click_subscribe(BUTTON_ID_BACK, 1100, back_long_click_handler, back_long_click_release_handler);
     
-    // TODO move to using local running_app variable to make atomic
-    window_single_click_subscribe(BUTTON_ID_SELECT, app_select_single_click_handler);
+    if (_running_app->type != APP_TYPE_SYSTEM)
+    {
+        // TODO move to using local running_app variable to make atomic
+        window_single_click_subscribe(BUTTON_ID_SELECT, app_select_single_click_handler);
+    }
+    
     // hook the return from menu if we are a system app
-    if (_running_app->type == APP_TYPE_SYSTEM)
-        window_single_click_subscribe(BUTTON_ID_BACK, back_long_click_handler);
+//     if (_running_app->type == APP_TYPE_SYSTEM)
+//         window_single_click_subscribe(BUTTON_ID_BACK, back_long_click_handler);
     
     // redraw
     window_dirty(true);
@@ -249,7 +310,13 @@ void app_event_loop(void)
 }
 
 /*
- * A task to run an application
+ * A task to run an application.
+ * 
+ * This task runs all the time and is a dynamic app loader and thread spawner
+ * Once an app is loaded, it is handed off to a new task. 
+ * The new task is created with a statically allocated array of MAX_APP_MEMORY_SIZE
+ * This array is used as the heap and the stack.
+ * refer to heap_app.c (for now, until the refactor) TODO
  */
 void _appmanager_app_thread(void *parms)
 {
@@ -261,17 +328,18 @@ void _appmanager_app_thread(void *parms)
         
     for( ;; )
     {
-        printf("Pend RECV\n");
-        // Sleep waiting for the go signal
+        // Sleep waiting for the go signal. The app to start will be the parameter
+        // generally, at this point we would have an app to run, but serves as a nice block for now
+        // TODO There is actually no way to fully block an errant requet to load two apps.
+        // We need to check state and quit the existing app properly
         xQueueReceive(_app_thread_queue, &am, portMAX_DELAY);
         
         app_name = (char *)am.payload;
         
-        printf("RECV App: %s\n", app_name);
+        printf("Start App: %s\n", app_name);
 
         // clear the queue of any work from the previous app... such as an errant quit
-        xQueueReset(_app_message_queue);
-            
+        xQueueReset(_app_message_queue);            
       
         // TODO reset clicks
 
@@ -283,59 +351,80 @@ void _appmanager_app_thread(void *parms)
         }
         
         // find the app
-        App *node = _app_manifest_head;
+        App *app = appmanager_get_app(app_name);
         
-        // now find the last node
-        while(node)
-        {
-            if (!strncmp(node->name, (char *)app_name, strlen(node->name)))
-            {
-                // match!
-                break;
-            }
-            
-            if (node->next == NULL)
-            {
-                printf("No app found!\n");
-                return;
-            }
-            node = node->next;
-        }
+        if (app == NULL)
+            return;
 
         // it's the one
-        _running_app = node;
+        _running_app = app;
         
-        if (!node->is_internal)
+        if (_app_task_handle != NULL)
+            vTaskDelete(_app_task_handle);
+        
+        
+        // If the app is running off RAM (i.e it's a PIC loaded app...) and not system, we need to patch it
+        if (!app->is_internal)
         {
             /*
              
              Heres what is going down. We are going to load the app header file from flash
-             This contains sizes and offsets. Then we load the app itself.
+             This contains sizes and offsets. The app bin sits directly after the app header.
+             Then we load the app itself as well as the header block (for future reference)
              
              There is a symbol table in each Pebble app that needs to have the address 
-             of _our_ symbol table poked into it. This allows the app to do a lookup of 
-             a function id internally, check it in our rebble sym table, and return 
-             a pointer address to to the function to jump to.
+             of _our_ symbol table poked into it. 
+             The symbol table is a big lookup table of pointer functions. When an app calls aa function
+             such as window_create() it actually turns that into an integer id in the app.
+             When the app calls the function, it does function => id => RebbleOS => id to function => call
+             This allows the app to do a lookup of a function id internally, check it in our rebble sym table, and return a pointer address to to the function to jump to.
              
-             We also have to make sure to init bss to 0 on fork otherwise it 
-             may have garbage
+             We also have to take care of BSS section. This is defined int he app header for the size, 
+             and sits directly after the app binary. We alocate enough room for the BSS, and zero it out
+             BSS. is always zeroed.
              
              Then we set the Global Offset Table (GOT). Each Pebble app is compiled with
              Position Independant code (PIC) that means it can run from any address.
              This is usually used on dlls .so files and the like, and a Pebble app is no different
              It is the responsibility of the dynamic loader (us in this case) to get
-             the GOT (which is at the end of the binary) and relocate all of the text symbols
+             the GOT (which is at the end of the binary) and relocate all of the data symbols
              in the application binary.
-             NOTE: once we have re-allocated, we don't need the GOT any more, so we can delete it
+             The got is a clever way of doing relative lookups in the app for "shared" data.
+             
+             http://grantcurell.com/2015/09/21/what-is-the-symbol-table-and-what-is-the-global-offset-table/
+             
+             In short, the app header defines how many relocations of memory we need to do, and where in the bin
+             these relocation registers are. 
+             The loader does this:
+             load GOT from end of binary using header offset value. for each entry, 
+             get the position in memory for our GOT lookup table
+             The value in the got table inside the .DATA section is updated to add the base address
+             of the executing app to the relative offset already stored in the register.
+             It is usual in a shred lib to have a shared data section between all apps. The data is copied
+             to a separate location for each instance. 
+             In this case we aer using the .DATA section in place. No sharing. no clever. Not required.
+             
+             When thwe app executes, any variables stored in the global are looked up...
+             int global_a;
+             printf(global_a);
+                > go to the GOT in the DATA section by relative address and get the address of global_a
+                > go to the address of global_a in data section
+                > this is the allocated memory for globals
+                > retrieve value
+             
+             NOTE: once we have relocated, we don't need the loaded header GOT any more, so we can delete it
+             in fact the bss section will zero over it.
              
              For now, the statically allocated memory for the app task is also used
              to load the application into. The application needs uint8 size to execute 
              from, while the stack is uint32. The stack is therefore partitioned into 
-                [app binary | stack++....--heap]
+               fixed_memory_for_app[n] = [ app binary | GOT || BSS | heap++....  | ...stack ]
              
              The entry point given to the task (that spawns the app) is the beginning of the
-             stack region, after the app binary. The relative bin and stack and then 
-             unioned through as the right sizes to the BX and the SP.           
+             stack region, after the app binary. The relative bin and stack are then 
+             unioned through as the right sizes to the BX and the SP.
+             The app deals with 8 bit bytes where the staack is a word of uint32. To use the same array,
+             the value is unioned sto save epic bitshifting
              
              We are leaning on Rtos here to actually spawn the app with it's own stack
              (cheap fork)  and make sure the (M)SP is set accordingly. 
@@ -352,66 +441,55 @@ void _appmanager_app_thread(void *parms)
                  
              */
             uint32_t total_app_size = 0;
-            flash_load_app_header(node->slot_id, &header);
+            flash_load_app_header(app->slot_id, &header);
         
-            BssInfo bss = flash_get_bss(node->slot_id);
-
             // load the app from flash
             // and any reloc entries too.
-            flash_load_app(node->slot_id, _stack_addr.byte_buf, header.app_size + (header.reloc_entries_count * 4));
+            flash_load_app(app->slot_id, app_stack_heap.byte_buf, header.app_size + (header.reloc_entries_count * 4));
             
             
             // re-allocate the GOT for -fPIC
             // Pebble has the GOT at the end of the app.
             // first get the GOT realloc table
-            uint32_t *got = &_stack_addr.byte_buf[header.app_size];
+            uint32_t *got = &app_stack_heap.word_buf[header.app_size / 4];
             
-            for (uint32_t i = 0; i < header.reloc_entries_count; i+=4)
-            {
-                // this screams cleanuo
-                uint32_t got_val = (uint32_t)((unsigned char)(got[i]) << 24 |
-                                            (unsigned char)(got[i + 1]) << 16 |
-                                            (unsigned char)(got[i + 2]) << 8 |
-                                            (unsigned char)(got[i + 3]));
-                
-                // global offset register in flash for the GOT
-                uint32_t addr = _stack_addr.byte_buf + got_val;
-                
-                // get the existing value in the register
-                uint32_t existing_offset_val = (uint32_t)((unsigned char)(_stack_addr.byte_buf[addr]) << 24 |
-                                                        (unsigned char)(_stack_addr.byte_buf[addr + 1]) << 16 |
-                                                        (unsigned char)(_stack_addr.byte_buf[addr + 2]) << 8 |
-                                                        (unsigned char)(_stack_addr.byte_buf[addr + 3]));
+            if (header.reloc_entries_count > 0)
+            {                
+                // go through all of the reloc entries and do the reloc dance
+                for (uint32_t i = 0; i < header.reloc_entries_count; i++)
+                {
+                    // get the got out of the table.
+                    // use that value to get the relative offset from the address
+                    uint32_t existing = app_stack_heap.word_buf[got[i]/4];
 
-                // The offset is offset in memory. i.e. existing offset in register + head of app
-                uint32_t new_offset = existing_offset_val + _stack_addr.byte_buf;
-                
-                // Set the new value
-                _stack_addr.byte_buf[addr]     =  (uint32_t)(new_offset) & 0xFF;
-                _stack_addr.byte_buf[addr + 1] =  ((uint32_t)(new_offset) >> 8)  & 0xFF;
-                _stack_addr.byte_buf[addr + 2] =  ((uint32_t)(new_offset) >> 16) & 0xFF;
-                _stack_addr.byte_buf[addr + 3] =  ((uint32_t)(new_offset) >> 24) & 0xFF;
+                    // we are working in words
+                    existing /= 4;
+                    
+                    // take the offset and add the apps base address
+                    existing += app_stack_heap.word_buf;
+                    
+                    // write it back to the register
+                    app_stack_heap.word_buf[got[i]/4] = existing;
+                }
             }
             
             // init bss to 0
-            uint32_t bss_size = bss.end_address - header.app_size;
-            memset(header.app_size, 0, bss_size);
+            uint32_t bss_size = header.virtual_size - header.app_size;
+            memset(&app_stack_heap.byte_buf[header.app_size], 0, bss_size);
             
-            // The app start will clear the re-alloc table values when they are used by stack
-
-            // app size app size + bss + reloc
-            total_app_size = header.app_size + bss_size;
+            // app size app size + bss
+            total_app_size = header.virtual_size;
             
-            // load the address into the special register in the app. hopefully in a platformish independant way
-            _stack_addr.byte_buf[header.sym_table_addr]     =     (uint32_t)(sym)         & 0xFF;
-            _stack_addr.byte_buf[header.sym_table_addr + 1] =     ((uint32_t)(sym) >> 8)  & 0xFF;
-            _stack_addr.byte_buf[header.sym_table_addr + 2] =     ((uint32_t)(sym) >> 16) & 0xFF;
-            _stack_addr.byte_buf[header.sym_table_addr + 3] =     ((uint32_t)(sym) >> 24) & 0xFF;
+            // load the address of our lookup table into the special register in the app. hopefully in a platformish independant way
+            app_stack_heap.byte_buf[header.sym_table_addr]     =     (uint32_t)(sym)         & 0xFF;
+            app_stack_heap.byte_buf[header.sym_table_addr + 1] =     ((uint32_t)(sym) >> 8)  & 0xFF;
+            app_stack_heap.byte_buf[header.sym_table_addr + 2] =     ((uint32_t)(sym) >> 16) & 0xFF;
+            app_stack_heap.byte_buf[header.sym_table_addr + 3] =     ((uint32_t)(sym) >> 24) & 0xFF;
             
             printf("H:    %s\n", header.header);
             printf("SDKv: %d.%d\n", header.sdk_version.major, header.sdk_version.minor);
             printf("Appv: %d.%d\n", header.app_version.major, header.app_version.minor);
-            printf("AppSz:%d\n", header.app_size);
+            printf("AppSz:%x\n", header.app_size);
             printf("AppOf:0x%x\n", header.offset);
             printf("AppCr:%d\n", header.crc);
             printf("Name: %s\n", header.name);
@@ -422,26 +500,56 @@ void _appmanager_app_thread(void *parms)
             printf("Flags:%d\n", header.flags);
             printf("Reloc:%d\n", header.reloc_entries_count);
 
-            printf("A 0x%x\n", *(_stack_addr.byte_buf + header.sym_table_addr));
-            printf("A 0x%x\n", _stack_addr.byte_buf[header.offset]);
-            printf("A 0x%x\n", _stack_addr.byte_buf[header.offset +1]);
-            printf("A 0x%x\n", _stack_addr.byte_buf[header.offset+2]);
- 
+            printf("VSize 0x%x\n", header.virtual_size);
+             
+            uint32_t stack_size = MAX_APP_STACK_SIZE;
+            
+            // Get the start point of the stack in the array
+            uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - stack_size];
+            // Calculate the heap size of the remaining memory
+            uint32_t heap_size = ((MAX_APP_MEMORY_SIZE) - total_app_size) - (stack_size * 4);
+            // Where is our heap going to start. It's directly after the ap + bss
+            uint32_t *heap_entry = &app_stack_heap.byte_buf[total_app_size];
+
+            printf("Base %x heap %x sz %d stack %x sz %d\n", 
+                   app_stack_heap.word_buf,
+                   heap_entry,
+                   heap_size,
+                   stack_entry, 
+                   stack_size);
+            
+            // heap is all uint8_t
+            appHeapInit(heap_size, heap_entry);
             
             // Let this guy do the heavy lifting!
-            _app_task_handle = xTaskCreateStatic(&_stack_addr.byte_buf[header.offset], "dynapp", (APP_STACK_SIZE_IN_BYTES - total_app_size) / sizeof(StackType_t), NULL, tskIDLE_PRIORITY + 5UL, &_stack_addr.word_buf[header.offset], &_app_task);
+            _app_task_handle = xTaskCreateStatic(&app_stack_heap.byte_buf[header.offset], 
+                                                 "dynapp", 
+                                                 stack_size, 
+                                                 NULL, 
+                                                 tskIDLE_PRIORITY + 6UL, 
+                                                 stack_entry, 
+                                                 &_app_task);
         }
         else
         {
-            // start the app. this will block if the app is written to call
-            // the main app_event_loop.
+            // "System" or otherwise internal apps are spawned here. They don't need loading from flash,
+            // just a reasonable entrypoint
             // The main loop work is deferred to the app until it quits
-            // 
-            // actually spawn a static task here?
-            ((AppMainHandler)(_running_app->main))();
+            appHeapInit(MAX_APP_MEMORY_SIZE - (MAX_APP_STACK_SIZE * 4), app_stack_heap.byte_buf);
+             
+            uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - MAX_APP_STACK_SIZE];
+             
+            _app_task_handle = xTaskCreateStatic(_running_app->main, 
+                                                  "dynapp", 
+                                                  MAX_APP_STACK_SIZE, 
+                                                  NULL, 
+                                                  tskIDLE_PRIORITY + 6UL, 
+                                                  stack_entry, 
+                                                  &_app_task);
+
+            // around we go again
+            // TODO block while running
         }
-        // we unblocked. It looks like the app quit
-        // around we go again
     }
 }
 
@@ -477,6 +585,9 @@ void app_select_single_click_handler(ClickRecognizerRef recognizer, void *contex
     }
 }
 
+/*
+ * Get the top level node for the app manifest
+ */
 App *app_manager_get_apps_head()
 {
     return _app_manifest_head;
@@ -484,20 +595,7 @@ App *app_manager_get_apps_head()
 
 
 
-
-void test() //uint8_t lvl, const char *fmt, ...)
-{
-    printf("hello\n");
-}
-
-void test1(uint8_t lvl, const char *fmt, ...)
-{
-    va_list ar;
-    va_start(ar, fmt);
-    printf(fmt, ar);
-    printf("\n");
-    va_end(ar);
-}
+/* Some stubs below for testing etc */
 
 void api_unimpl()
 {
@@ -505,7 +603,48 @@ void api_unimpl()
     while(1);
 }
 
+/* Some missing functionality */
+
 void p_n_grect_standardize(n_GRect r)
 {
     n_grect_standardize(r);
 }
+
+
+
+/*
+ * Cheesy proxy to get the apps slot_id
+ * When we need any resource from an app, we need a way of knowing
+ * which app it was that wanted that resource. We know which app is running, that's the apps slot
+ * 
+ */
+GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id)
+{
+    return gbitmap_create_with_resource_app(resource_id, _running_app->slot_id);
+}
+
+ResHandle *resource_get_handle_proxy(uint32_t resource_id)
+{
+    printf("ResH %d %d\n", resource_id, _running_app->slot_id);
+
+    // push to the heap.
+    ResHandle *x = app_malloc(sizeof(ResHandle));
+    ResHandle y = resource_get_handle_app(resource_id, _running_app->slot_id);
+    memcpy(x, &y, sizeof(ResHandle));
+     
+    return x;
+}
+
+GFont *fonts_load_custom_font_proxy(ResHandle *handle)
+{
+    return fonts_load_custom_font(handle, _running_app->slot_id);
+}
+
+
+
+
+
+
+
+
+

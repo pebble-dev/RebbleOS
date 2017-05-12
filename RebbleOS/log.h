@@ -20,7 +20,8 @@
 
 #define APP_LOG app_log
 
-void app_log_trace(uint8_t lvl, const char *filename, const char *fmt, ...);
+// void app_log_trace(uint8_t lvl, const char *filename, const char *fmt, ...);
+void app_log_trace(uint8_t level, const char *filename, uint32_t f, const char *fmt, ...);
 void app_log(uint8_t lvl, const char *fmt, ...);
 
 #define APP_LOG_LEVEL_DEBUG 1

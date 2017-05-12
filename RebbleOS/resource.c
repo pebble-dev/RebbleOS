@@ -7,6 +7,10 @@
 
 #include "rebbleos.h"
 #include "platform.h"
+#include "flash.h"
+
+
+uint32_t _resource_get_app_res_slot_address(uint16_t slot_id);
 
 void resource_init()
 {
@@ -44,11 +48,74 @@ ResHandle resource_get_handle(uint16_t resource_id)
     // sanity check the resource
     if (resHandle.size > 200000) // arbitary 200k
     {
-        printf("Res: WARN. Suspect res size %d\n", resHandle.size);
+        printf("Res: WARN. Suspect res id %d size %d\n", resource_id, resHandle.size);
+        while(1);
     }
 
     return resHandle;
 }
+
+/*
+ * Load up a handle for the resource by ID
+ */
+ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id)
+{
+    ResHandle resHandle;
+
+     if (resource_id == 0)
+//          return resHandle;
+        while(1);
+    uint32_t res_base = _resource_get_app_res_slot_address(slot_id) +  ((resource_id - 1) * sizeof(ResHandle));
+    
+    printf("RES BASE %x %d\n", res_base, resource_id);
+    
+    
+    // get the resource from the flash.
+    // each resource is in a big array in the flash, so we get the offsets for the resouce
+    // by multiplying out by the size of each resource
+    flash_read_bytes(res_base, &resHandle, sizeof(ResHandle));
+    
+    printf("RES %d %x %d\n", resHandle.index, resHandle.offset, resHandle.size);
+
+    // sanity check the resource
+    if (resHandle.size > 200000) // arbitary 200k
+    {
+        printf("Res: WARN. Suspect res size %d\n", resHandle.size);
+        while(1);
+    }
+
+    return resHandle;
+}
+
+void resource_load_app(ResHandle resource_handle, uint8_t *buffer, uint16_t slot_id)
+{
+    if (resource_handle.size > xPortGetFreeAppHeapSize())
+    {
+        printf("Res: malloc fail. Not enough heap for %d\n", resource_handle.size);
+        return NULL;
+    }
+    flash_read_bytes(_resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset, buffer, resource_handle.size);
+}
+
+
+uint32_t _resource_get_app_res_slot_address(uint16_t slot_id)
+{
+    uint32_t res_addr = 0;
+    
+    if (slot_id < 8)
+        res_addr = APP_SLOT_0_START + (slot_id * APP_SLOT_SIZE);
+    else if (slot_id < 16)
+        res_addr =  APP_SLOT_8_START + ((slot_id - 8) * APP_SLOT_SIZE);
+    else if (slot_id < 24)
+        res_addr = APP_SLOT_16_START + ((slot_id - 16) * APP_SLOT_SIZE);
+    else if (slot_id < 32)
+        res_addr = APP_SLOT_24_START + ((slot_id - 24) * APP_SLOT_SIZE);
+    
+    res_addr += APP_HEADER_BIN_OFFSET + RES_TABLE_START - APP_RES_TABLE_OFFSET;
+    
+    return res_addr;
+}
+
 
 /*
  * return the size of a resource
@@ -65,9 +132,10 @@ size_t resource_size(ResHandle handle)
  */
 void resource_load(ResHandle resource_handle, uint8_t *buffer)
 {
-    if (resource_handle.size > xPortGetFreeHeapSize())
+    
+    if (resource_handle.size > xPortGetFreeAppHeapSize())
     {
-        printf("Res: malloc fail. Not enough heap for %d\n", resource_handle.size);
+        printf("Ress: malloc fail. Not enough heap for %d\n", resource_handle.size);
         return NULL;
     }
     flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
@@ -84,6 +152,39 @@ uint8_t *resource_fully_load_id(uint16_t resource_id)
     return resource_fully_load_res(res);
 }
 
+uint8_t *resource_fully_load_id_app(uint16_t resource_id, uint16_t slot_id)
+{
+    ResHandle res = resource_get_handle_app(resource_id, slot_id);
+    return resource_fully_load_res_app(res, slot_id);
+}
+
+
+bool _resource_is_sane(ResHandle res_handle)
+{
+    size_t sz = resource_size(res_handle);
+    
+    if (sz <= 0)
+    {
+        printf("Res: res<=0\n");
+        return false;
+    }
+    
+    if (sz > xPortGetFreeAppHeapSize())
+    {
+        printf("Res: malloc fail. Not enough heap for %d\n", sz);
+        return false;
+    }
+    
+    if (sz > 100000)
+    {
+        printf("Res: malloc will fail. > 100Kb requested\n");
+        return false;
+    }
+    
+    return true;
+}
+
+
 /*
  * Load a resource fully into a returned buffer
  * By resource handle
@@ -91,24 +192,16 @@ uint8_t *resource_fully_load_id(uint16_t resource_id)
  */
 uint8_t *resource_fully_load_res(ResHandle res_handle)
 {
-    size_t sz = resource_size(res_handle);
-
-    if (sz > xPortGetFreeHeapSize())
-    {
-        printf("Res: malloc fail. Not enough heap for %d\n", sz);
+    if (!_resource_is_sane(res_handle))
         return NULL;
-    }
     
-    if (sz > 100000)
-    {
-        printf("Res: malloc will fail. > 100Kb requested\n");
-        return NULL;
-    }
-    uint8_t *buffer = rbl_calloc(1, sz);
+    size_t sz = resource_size(res_handle);
+    
+    uint8_t *buffer = app_calloc(1, sz);
     
     if (buffer == NULL)
     {
-        printf("font alloc failed\n");
+        printf("Resource alloc failed\n");
         return NULL;
     }
 
@@ -117,7 +210,25 @@ uint8_t *resource_fully_load_res(ResHandle res_handle)
     return buffer;
 }
 
-
+uint8_t *resource_fully_load_res_app(ResHandle res_handle, uint16_t slot_id)
+{
+    if (!_resource_is_sane(res_handle))
+        return NULL;
+    
+    size_t sz = resource_size(res_handle);
+ 
+    uint8_t *buffer = app_calloc(1, sz);
+    
+    if (buffer == NULL)
+    {
+        printf("Resource alloc failed\n");
+        return NULL;
+    }
+    resource_load_app(res_handle, buffer, slot_id);
+    printf("RES DONE\n");
+    return buffer;
+}
+    
 
 
 /*
@@ -130,7 +241,7 @@ uint8_t *resource_fully_load_res(ResHandle res_handle)
 /*
  * List all resources for an app
  */
-void app_resource_list(char *buffer, uint16_t slot_id)
+/*void app_resource_list(char *buffer, uint16_t slot_id)
 {
     ResourceHeader res_header;
     ResHandle handle;
@@ -145,7 +256,7 @@ void app_resource_list(char *buffer, uint16_t slot_id)
         
         printf("H i:%d sz:%d of:0x08%x\n", i, handle.size, handle.offset);
     }
-}
+}*/
 
 
 

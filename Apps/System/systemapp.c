@@ -16,12 +16,12 @@ void systemapp_main(void);
 
 static Window *s_main_window;
 static Layer *s_canvas_layer;
-static TextLayer *s_text_layer;
 
 void systemapp_config_provider(Window *window);
 void up_single_click_handler(ClickRecognizerRef recognizer, void *context);
 void down_single_click_handler(ClickRecognizerRef recognizer, void *context);
 void select_single_click_handler(ClickRecognizerRef recognizer, void *context);
+void back_click_handler(ClickRecognizerRef recognizer, void *context);
 
 typedef struct {
     uint8_t hours;
@@ -68,6 +68,7 @@ void systemapp_init(void)
     window_stack_push(s_main_window, true);
     
     window_set_click_config_provider(s_main_window, (ClickConfigProvider)systemapp_config_provider);
+    menu_show(0, 0);
 }
 
 void systemapp_deinit(void)
@@ -105,6 +106,7 @@ void systemapp_config_provider(Window *window)
     window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 600, down_single_click_handler);
     window_single_repeating_click_subscribe(BUTTON_ID_UP, 600, up_single_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, select_single_click_handler);
+    window_single_click_subscribe(BUTTON_ID_BACK, back_click_handler);
 }
 
 void down_single_click_handler(ClickRecognizerRef recognizer, void *context)
@@ -121,27 +123,19 @@ void up_single_click_handler(ClickRecognizerRef recognizer, void *context)
 
 void select_single_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    printf("Select\n");
+    menu_select();
+    layer_mark_dirty(s_canvas_layer);
 }
 
-const char *systemapp_getname()
+void back_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    return systemapp_name;
-}
-
-void systemapp_suspending()
-{
-    printf("WF: Going to sleep\n");
-}
-
-void systemapp_resumed(void)
-{
-    printf("WF: Wakeup\n");
+    menu_back();
+    layer_mark_dirty(s_canvas_layer);
 }
 
 static void systemapp_update_proc(Layer *layer, GContext *nGContext)
 {   
-    menu_show(0, 0);
+    menu_show(0, 0);    
 }
 
 

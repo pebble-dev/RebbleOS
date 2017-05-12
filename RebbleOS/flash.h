@@ -23,10 +23,6 @@
 #define RES_CRC             0x04
 #define RES_TABLE_START     0x0C
 
-// app slot sizes
-#define APP_RES_TABLE_START 0x65
-#define APP_RES_START       0x1000
-#define APP_HEADER_START    0x4C
 
 /*
  
@@ -43,7 +39,5 @@ typedef struct ResourceHeader {
 void flash_test(uint16_t resource_id);
 void flash_init(void);
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes);
-void flash_load_app(uint8_t app_id, uint8_t *buffer, size_t count);
-void flash_load_app_header(uint8_t app_id, ApplicationHeader *header);
-
-BssInfo flash_get_bss(uint8_t slot_id);
+void flash_load_app(uint16_t app_id, uint8_t *buffer, size_t count);
+void flash_load_app_header(uint16_t app_id, ApplicationHeader *header);

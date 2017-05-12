@@ -54,7 +54,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         // convert the palettes and alphas from 8 bit (requiring 4 bytes) to 2 bit rgba (1 byte)
         if (plen > 0)
         {
-            n_GColor *conv_palettes = calloc(1, plen * sizeof(n_GColor));
+            n_GColor *conv_palettes = app_calloc(1, plen * sizeof(n_GColor));
             
             for (uint8_t i = 0; i < plen; i++)
             {
@@ -110,7 +110,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
             if (bitmap->palette_size ==0 && alen > 0)
             {
                 // convert palette
-                n_GColor *conv_palettes = calloc(1, 4 * sizeof(n_GColor));
+                n_GColor *conv_palettes = app_calloc(1, 4 * sizeof(n_GColor));
 
                 // black with alpha (black)
                 conv_palettes[0].argb = n_GColorFromRGBA(0, 0, 0, 255).argb;

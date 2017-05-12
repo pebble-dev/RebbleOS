@@ -13,7 +13,7 @@ void text_layer_draw(struct Layer *layer, GContext *context);
 // Layer Functions
 TextLayer *text_layer_create(GRect bounds)
 {
-    TextLayer* tlayer = (TextLayer*)calloc(1, sizeof(TextLayer));
+    TextLayer* tlayer = app_calloc(1, sizeof(TextLayer));
     Layer* layer = layer_create(bounds);
     // give the layer a reference back to us
     layer->container = tlayer;
@@ -28,7 +28,7 @@ TextLayer *text_layer_create(GRect bounds)
 void text_layer_destroy(TextLayer *layer)
 {
     layer_destroy(layer->layer);
-    free(layer);
+    app_free(layer);
 }
 
 Layer *text_layer_get_layer(TextLayer *text_layer)
@@ -62,7 +62,7 @@ void text_layer_set_overflow_mode(TextLayer *text_layer, GTextOverflowMode line_
 }
 
 void text_layer_set_font(TextLayer * text_layer, GFont font)
-{
+{   
     text_layer->font = font;
 }
 
@@ -86,6 +86,17 @@ void text_layer_draw(struct Layer *layer, GContext *context)
 {
     TextLayer *tlayer = (TextLayer *)layer->container;
     printf("cb\n");
+    
+    printf("FONT: v %d lnh %d gcnt %d cp %d has %d cpb %d fis %d f %d\n",
+           (tlayer->font)->version,
+           (tlayer->font)->line_height,
+           (tlayer->font)->glyph_amount,
+           (tlayer->font)->wildcard_codepoint,
+           (tlayer->font)->hash_table_size,
+           (tlayer->font)->codepoint_bytes,
+           (tlayer->font)->fontinfo_size,
+           (tlayer->font)->features);
+    
     // we are goingto draw the text now
     graphics_draw_text(context, tlayer->text, tlayer->font,
                        layer->bounds, tlayer->overflow_mode,

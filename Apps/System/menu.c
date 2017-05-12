@@ -1,8 +1,9 @@
 /* menu.c
- * routines for [...]
+ * Poor mans menu to stop gap us
+ * 
  * RebbleOS
- *
- * Author: Barry Carter <barry.carter@gmail.com>
+ * 
+ * Author: Barry Carter <barry.carter@gmail.com>.
  */
 
 #include "rebbleos.h"
@@ -13,48 +14,39 @@
 /*
 // menu
 
-// draw menu
-// - items
-// scroll up / down
+This is teh suckiest. All hard coded (in the worst way) until we get proper menu support
+coded up
 
-// flow
- button is pressed
-  button handler calls to see if anyone is handling this request
-    if in app
-      up = "health"
-      down = timeline
-      select = menu
-      back nothing (app can bind this?)
-    if in menu
-      forward commands
-
-
-gui controller
-
-receive events
-    button pressed
-    in menu
-        scroll
-        choose next screen
-    in app
-        notify app
 */
 
-#define STANDARD_MENU_COUNT 2
+#define STANDARD_MENU_COUNT 4
 
-static int8_t _menu_index = 3;
+static int8_t _menu_index = 0;
 MenuItem _main_menu[4];
+static char *_selected_menu_name;
+
+#define MENU_MAIN       0
+#define MENU_WATCH      1
+#define MENU_CONSOLE    2
+
+uint8_t _menu_type = MENU_MAIN;
 
 void menu_init(void)
 {
     
     printf("menu init\n");
-    _main_menu[0].text       = "Settings";
-    _main_menu[0].sub_text   = "";
-    _main_menu[0].image_res_id = 16;
+    _main_menu[0].text       = "Watchfaces";
+    _main_menu[0].sub_text   = "Will scan flash";
+    _main_menu[0].image_res_id = 25;
     _main_menu[1].text       = "Dump Flash";
     _main_menu[1].sub_text   = "Device will lock";
     _main_menu[1].image_res_id = 24;
+    _main_menu[2].text       = "RebbleOS";
+    _main_menu[2].sub_text   = "... v0.0.0.1";
+    _main_menu[2].image_res_id = 24;
+    _main_menu[3].text       = "... Soon (TM)";
+    _main_menu[3].sub_text   = "";
+    _main_menu[3].image_res_id = 25;
 }
 
 void menu_draw_list(MenuItem menu[], uint8_t offsetx, uint8_t offsety)
@@ -62,63 +54,49 @@ void menu_draw_list(MenuItem menu[], uint8_t offsetx, uint8_t offsety)
     // Draw the standard apps
     for (uint8_t i = 0; i < STANDARD_MENU_COUNT; i++)
     {
-        // build the sub text
-//         if (i == 2) // its the info menu, prob need to get cleverer here for auto magic
-//         {
-//             sprintf(buf, ": %d", ambient_get());
-//             menu[i].sub_text = buf;
-//         }
-
+        if (_menu_index == i)
+            _selected_menu_name = menu[i].text;
         menu_draw_list_item(0, i * 42, offsetx, offsety, &menu[i], (_menu_index == i ? 1 : 0));
     }
-        
-    // find the app
+     
+}
+
+void menu_draw_watch_list()
+{
+    // loop through all apps
     App *node = app_manager_get_apps_head();
+    uint8_t i = 0;
+    n_GContext *nGContext = neographics_get_global_context();
+    
+    graphics_context_set_fill_color(nGContext, GColorBlue);
+    graphics_fill_rect(nGContext, GRect(0, 0, 144, 168), 0, GCornerNone);
     
     while(node)
     {
-        printf("NODE: %s %d %d\n", node->name, node->next, strncmp("91 Dub 4.0", node->name, strlen(node->name)));
+        if ((!strcmp(node->name, "System")) ||
+            (!strcmp(node->name, "TrekV2")) ||
+            (!strcmp(node->name, "watchface")))
+        {
+            node = node->next;
+            continue;
+        }
+        MenuItem mi;
+        mi.text = node->name;
+        mi.sub_text = 0;
+        mi.image_res_id = 25;
+        menu_draw_list_item(0, i * 42, 0, 0, &mi, (_menu_index == i ? 1 : 0));
 
-        if (!strncmp(node->name, "NiVZ", strlen(node->name)))
-        {
-            // match!
-            _main_menu[2].text = node->name;
-            _main_menu[2].sub_text = 0;
-            _main_menu[2].image_res_id = 25;
-            menu_draw_list_item(0, 2 * 42, offsetx, offsety, &_main_menu[2], (_menu_index == 2 ? 1 : 0));
-        }
+        if (_menu_index == i)
+            _selected_menu_name = node->name;
         
-//         if (!strncmp(node->name, "91 Dub 4.0", strlen(node->name)))
-        if (!strncmp(node->name, "watchface", strlen(node->name)))
-        {
-            // match!
-            _main_menu[3].text = node->name;
-            _main_menu[3].sub_text = 0;
-            _main_menu[3].image_res_id = 25;
-            menu_draw_list_item(0, 3 * 42, offsetx, offsety, &_main_menu[3], (_menu_index == 3 ? 1 : 0));
-        }
-        
-        if (node->next == NULL)
-        {
-            printf("Done iter!\n");
-        }
         node = node->next;
-    }
 
-    /*
-    uint8_t j = STANDARD_MENU_COUNT;
-    for (uint8_t i = 0; i < NUM_APPS; i++)
-    {
-        if (apps[i].type == APP_TYPE_FACE)
-        {
-            menu[j].text = apps[i].name;
-            menu[j].image_res_id = 25;
-            menu_draw_list_item(0, j * 42, offsetx, offsety, &menu[j], (menu_index == j ? 1 : 0));
-            j++;
-        }
+        // we show 4 for now
+        if (i >= 3)
+            break;
         
-    }*/
-    
+        i++;
+    }
 }
 
 void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offsety, MenuItem* menu, uint8_t selected)
@@ -173,14 +151,16 @@ void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offset
                        GRect(x + 40, y + 0, 100,25), 0,
                        0, 0);
     }
-
 }
 
 uint16_t fl_idx = 7;
 
 void menu_show(uint8_t offsetx, uint8_t offsety)
 {
-    menu_draw_list(_main_menu, offsetx, offsety);
+    if (_menu_type == MENU_MAIN)
+        menu_draw_list(_main_menu, offsetx, offsety);
+    else if (_menu_type == MENU_WATCH)
+        menu_draw_watch_list();
 }
 
 void menu_up()
@@ -197,7 +177,18 @@ void menu_down()
 
 void menu_select()
 {
-    if (_menu_index == 1)
+    if (_menu_type == MENU_WATCH)
+    {
+        appmanager_app_start(_selected_menu_name);
+        return;
+    }
+    
+    if (_menu_index == 0)
+    {
+        // submenu watchfaces
+        _menu_type = MENU_WATCH;
+    }
+    else if (_menu_index == 1)
     {
         // dump flash
         flash_dump();
@@ -210,7 +201,16 @@ void menu_select()
 
 void menu_back()
 {
-    
-}
+    if (_menu_type == MENU_WATCH)
+    {
+        _menu_type = MENU_MAIN;
+    }        
+    else
+    {
+        appmanager_app_start("Simple");
+        return;
+    }
 
+    // TODO quit back to watchface
+}
 

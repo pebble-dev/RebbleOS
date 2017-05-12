@@ -102,10 +102,6 @@ typedef struct App {
     struct App *next;
 } App;
 
-typedef struct BssInfo {
-    uint32_t end_address;
-    size_t size;
-} BssInfo;
 
 #define APP_BUTTON       0
 #define APP_QUIT         1
@@ -121,7 +117,8 @@ void appmanager_post_button_message(ButtonMessage *bmessage);
 void appmanager_post_tick_message(TickMessage *tmessage, BaseType_t *pxHigherPri);
 void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
-
+App *appmanager_get_app(char *app_name);
+App *app_manager_get_apps_head();
 
 void rbl_window_load_proc(void);
 void app_event_loop(void);

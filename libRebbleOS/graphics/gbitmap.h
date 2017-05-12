@@ -88,6 +88,7 @@ void gbitmap_set_bounds(GBitmap *bitmap, GRect bounds);
 GColor *gbitmap_get_palette(const GBitmap *bitmap);
 void gbitmap_set_palette(GBitmap *bitmap, GColor *palette, bool free_on_destroy);
 GBitmap *gbitmap_create_with_resource(uint32_t resource_id);
+GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, uint16_t slot_id);
 GBitmap *gbitmap_create_with_data(const uint8_t *data);
 GBitmap *gbitmap_create_as_sub_bitmap(const GBitmap *base_bitmap, GRect sub_rect);
 GBitmap *gbitmap_create_from_png_data(const uint8_t *png_data, size_t png_data_size);

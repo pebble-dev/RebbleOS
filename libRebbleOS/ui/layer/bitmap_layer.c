@@ -14,7 +14,7 @@ static void _bitmap_update_proc(Layer *layer, GContext *nGContext);
 
 BitmapLayer *bitmap_layer_create(GRect frame)
 {
-    BitmapLayer* blayer = (BitmapLayer*)calloc(1, sizeof(BitmapLayer));
+    BitmapLayer* blayer = app_calloc(1, sizeof(BitmapLayer));
     Layer* layer = layer_create(frame);
     // give the layer a reference back to us
     layer->container = blayer;

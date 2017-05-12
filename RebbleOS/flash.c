@@ -17,7 +17,7 @@
 
 /// MUTEX
 static SemaphoreHandle_t flash_mutex;
-uint32_t _flash_get_app_slot_address(uint8_t slot_id);
+uint32_t _flash_get_app_slot_address(uint16_t slot_id);
 extern unsigned int _ram_top;
 #define portMPU_REGION_READ_WRITE (0x03UL << MPU_RASR_AP_Pos)
 void flash_init()
@@ -60,31 +60,26 @@ void flash_dump(void)
 }
 
 
-void flash_load_app_header(uint8_t app_id, ApplicationHeader *header)
+void flash_load_app_header(uint16_t app_id, ApplicationHeader *header)
 {
     flash_read_bytes(_flash_get_app_slot_address(app_id), header, sizeof(ApplicationHeader));
 }
 
-void flash_load_app(uint8_t app_id, uint8_t *buffer, size_t count)
+void flash_load_app(uint16_t app_id, uint8_t *buffer, size_t count)
 {
     flash_read_bytes(_flash_get_app_slot_address(app_id), buffer, count);
 }
 
-uint32_t _flash_get_app_slot_address(uint8_t slot_id)
+uint32_t _flash_get_app_slot_address(uint16_t slot_id)
 {
     // I still don't really get the flash layout. sometimes apps appear in different pages
     if (slot_id < 8)
-        return APP_SLOT_1_START + (slot_id * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
+        return APP_SLOT_0_START + (slot_id * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
     else if (slot_id < 16)
-        return APP_SLOT_9_START + (slot_id - 8 * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
+        return APP_SLOT_8_START + (slot_id - 8 * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
     else if (slot_id < 24)
-        return APP_SLOT_17_START + ((slot_id - 16) * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
+        return APP_SLOT_16_START + ((slot_id - 16) * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
+    else if (slot_id < 32)
+        return APP_SLOT_24_START + ((slot_id - 24) * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
 }
 
-
-BssInfo flash_get_bss(uint8_t slot_id)
-{
-    BssInfo bss;
-    flash_read_bytes(_flash_get_app_slot_address(slot_id) + sizeof(ApplicationHeader) - 2, &bss, 8);
-    return bss;
-}

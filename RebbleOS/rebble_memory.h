@@ -19,9 +19,15 @@
 #include "FreeRTOS.h"
 #include <string.h>
 #include <stdlib.h>
+#include "stdbool.h"
 
 #define malloc pvPortMalloc
 #define calloc pvPortCalloc
 #define free vPortFree
 
 void *pvPortCalloc(size_t count, size_t size);
+void rblos_memory_init(void);
+bool rblos_memory_sanity_check_app(size_t size);
+void *app_malloc(size_t size);
+void *app_calloc(size_t count, size_t size);
+void app_free(void *mem);

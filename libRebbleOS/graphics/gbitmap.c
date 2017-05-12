@@ -17,7 +17,7 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clip);
 GBitmap *gbitmap_create(GRect frame)
 {
     //Allocate gbitmap
-    GBitmap *gbitmap = calloc(1, sizeof(GBitmap));
+    GBitmap *gbitmap = app_calloc(1, sizeof(GBitmap));
     gbitmap->bounds = frame;
     gbitmap->free_data_on_destroy = true;
     gbitmap->free_palette_on_destroy = true;
@@ -32,11 +32,11 @@ GBitmap *gbitmap_create(GRect frame)
 void gbitmap_destroy(GBitmap *bitmap)
 {
     if (bitmap->free_palette_on_destroy)
-        free(bitmap->palette);
+        app_free(bitmap->palette);
     if (bitmap->free_data_on_destroy)
-        free(bitmap->addr);
+        app_free(bitmap->addr);
         
-    free(bitmap);
+    app_free(bitmap);
     bitmap = NULL;
 }
 
@@ -247,7 +247,7 @@ GColor *gbitmap_get_palette(const GBitmap *bitmap)
  */
 void gbitmap_set_palette(GBitmap *bitmap, GColor *palette, bool free_on_destroy)
 {
-    free(bitmap->palette);
+    app_free(bitmap->palette);
     bitmap->palette = palette;
     bitmap->free_palette_on_destroy = free_on_destroy;
 }
@@ -259,6 +259,15 @@ GBitmap *gbitmap_create_with_resource(uint32_t resource_id)
 {
     uint8_t *png_data = resource_fully_load_id(resource_id);
     ResHandle res_handle = resource_get_handle(resource_id);
+    size_t png_data_size = resource_size(res_handle);
+        
+    return gbitmap_create_from_png_data(png_data, png_data_size);
+}
+
+GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, uint16_t slot_id)
+{
+    uint8_t *png_data = resource_fully_load_id_app(resource_id, slot_id);
+    ResHandle res_handle = resource_get_handle_app(resource_id, slot_id);
     size_t png_data_size = resource_size(res_handle);
         
     return gbitmap_create_from_png_data(png_data, png_data_size);
@@ -321,7 +330,7 @@ GBitmap *gbitmap_create_blank(GSize size, GBitmapFormat format)
     GRect gr = { .size = size, .origin.x = 0, .origin.y = 0 };
     GBitmap *bitmap = gbitmap_create(gr);
     bitmap->format = format;
-    bitmap->addr = calloc(1, size.w * size.h);
+    bitmap->addr = app_calloc(1, size.w * size.h);
     
     if (bitmap->addr == NULL)
     {
