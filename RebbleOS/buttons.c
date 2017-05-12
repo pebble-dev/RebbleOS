@@ -1,5 +1,5 @@
 /* buttons.c
- * routines for [...]
+ * routines for Debouncing and sending buttons through a click, multi, long press handler
  * RebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
@@ -16,23 +16,19 @@
  */
 #include "rebbleos.h"
 
-static TaskHandle_t xButtonDebounceTask;
-static xQueueHandle xButtonQueue;
-ButtonMessage button_message;
+static TaskHandle_t _button_debounce_task;
+static xQueueHandle _button_queue;
+static ButtonMessage _button_message;
+static uint8_t _last_press; // TODO
+static void _button_message_thread(void *pvParameters);
+static void _button_debounce_thread(void *pvParameters);
+static void _button_update(ButtonId button_id, uint8_t press);
+static void _button_released(ButtonHolder *button);
+static uint8_t _button_check_time(void);
+static ButtonHolder *_button_holders[NUM_BUTTONS];
 
-uint8_t last_press; // ugh
-
-void vButtonTask(void *pvParameters);
-void vButtonDebounceTask(void *pvParameters);
-
-void button_update(ButtonId button_id, uint8_t press);
-void button_released(ButtonHolder *button);
-uint8_t button_check_time(void);
 void button_send_app_click(void *callback, void *recognizer, void *context);
 
-ButtonHolder *button_holders[NUM_BUTTONS];
-
-static void button_isr(hw_button_t button_id);
 
 /*
  * Start the button processor
@@ -41,12 +37,11 @@ void buttons_init(void)
 {
     hw_button_init();
     
-    xTaskCreate(vButtonTask, "Button", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, NULL);
-    xTaskCreate(vButtonDebounceTask, "Debounce", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, &xButtonDebounceTask);
+    xTaskCreate(_button_message_thread, "Button", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, NULL);
+    xTaskCreate(_button_debounce_thread, "Debounce", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, &_button_debounce_task);
     
-    xButtonQueue = xQueueCreate(5, sizeof(uint8_t));
+    _button_queue = xQueueCreate(5, sizeof(uint8_t));
     
-    printf("Button Task Created!\n");
     hw_button_set_isr(button_isr);
         
     // Initialise the button click configs
@@ -54,6 +49,8 @@ void buttons_init(void)
     {
         button_add_click_config(i, (ClickConfig) {});
     }
+    
+    printf("Button Task Created!\n");
 }
 
 /*
@@ -63,9 +60,9 @@ void button_isr(hw_button_t /* which is definitionally the same as a ButtonID */
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     
-    last_press = button_id;
+    _last_press = button_id;
 
-    vTaskNotifyGiveFromISR(xButtonDebounceTask, &xHigherPriorityTaskWoken);
+    vTaskNotifyGiveFromISR(_button_debounce_task, &xHigherPriorityTaskWoken);
 
     /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context switch
     should be performed to ensure the interrupt returns directly to the highest
@@ -90,7 +87,7 @@ ButtonHolder *button_add_click_config(ButtonId button_id, ClickConfig click_conf
     button_holder->click_config = click_config;
     button_holder->button_id = button_id;
 
-    button_holders[button_id] = button_holder;
+    _button_holders[button_id] = button_holder;
     
     return button_holder;
 }
@@ -98,9 +95,9 @@ ButtonHolder *button_add_click_config(ButtonId button_id, ClickConfig click_conf
 /*
  * Called up button press or releases after debouncing has occured
  */
-void button_update(ButtonId button_id, uint8_t press)
+static void _button_update(ButtonId button_id, uint8_t press)
 {
-    ButtonHolder *button = button_holders[button_id];
+    ButtonHolder *button = _button_holders[button_id];
     
     // go through the buttons and find any that match
     if (press)
@@ -120,7 +117,7 @@ void button_update(ButtonId button_id, uint8_t press)
     else
     {
         // the button was not pressed at the time we got the message. release it.
-        button_released(button);
+        _button_released(button);
     }
 }
 
@@ -128,7 +125,7 @@ void button_update(ButtonId button_id, uint8_t press)
  * release the key. decides which callback to call depending on click settings
  * i.e. will call short click release only if its below a long clck time
  */
-void button_released(ButtonHolder *button)
+static void _button_released(ButtonHolder *button)
 {
     uint32_t now = xTaskGetTickCount();
     uint32_t delta_ms = portTICK_PERIOD_MS * (now - button->press_time);
@@ -174,7 +171,7 @@ void button_released(ButtonHolder *button)
  * If the button is set to, say, repeat, then we look for timed out
  * buttons and trigger the relevant action.
  */
-uint8_t button_check_time(void)
+static uint8_t _button_check_time(void)
 {
     uint32_t now = xTaskGetTickCount();
     ButtonHolder *button;
@@ -182,7 +179,7 @@ uint8_t button_check_time(void)
 
     for (uint8_t i = 0; i < NUM_BUTTONS; i++)
     {
-        button = button_holders[i];
+        button = _button_holders[i];
         pressed = button_pressed(i);
                 
         if (!pressed)
@@ -239,7 +236,7 @@ uint8_t button_check_time(void)
  * The main loop will only halt into a permanent sleep once
  * all buttons are released. Until that time, it will loop in n ms intervals
  */
-void vButtonTask(void *pvParameters)
+static void _button_message_thread(void *pvParameters)
 {
     uint8_t data;
     
@@ -247,12 +244,12 @@ void vButtonTask(void *pvParameters)
            
     for( ;; )
     {
-        if (xQueueReceive(xButtonQueue, &data, time_increment))
+        if (xQueueReceive(_button_queue, &data, time_increment))
         {           
-            button_update(data, button_pressed(data));
+            _button_update(data, button_pressed(data));
         }
         
-        time_increment = button_check_time();
+        time_increment = _button_check_time();
 
         if (time_increment == 0)
             time_increment = portMAX_DELAY;
@@ -264,7 +261,7 @@ void vButtonTask(void *pvParameters)
 /*
  * Debounce the button
  */
-void vButtonDebounceTask(void *pvParameters)
+static void _button_debounce_thread(void *pvParameters)
 {
     for( ;; )
     {
@@ -272,7 +269,7 @@ void vButtonDebounceTask(void *pvParameters)
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
         
         // tell the main worker we have something
-        xQueueSendToBack(xButtonQueue, &last_press, (TickType_t)100);
+        xQueueSendToBack(_button_queue, &_last_press, (TickType_t)100);
 
         // because we are using a notification on the task, any further triggers while
         // the buttons are bouncing are ignored while we are sleeping
@@ -290,13 +287,13 @@ void vButtonDebounceTask(void *pvParameters)
  */
 void button_send_app_click(void *callback, void *recognizer, void *context)
 {   
-    button_message.callback = callback;
-    button_message.clickref = recognizer; // TODO
-    button_message.context  = context;
+    _button_message.callback = callback;
+    _button_message.clickref = recognizer; // TODO
+    _button_message.context  = context;
 
     backlight_on(100, 3000);
     
-    appmanager_post_button_message(&button_message);
+    appmanager_post__button_message(&_button_message);
 }
 
 
@@ -318,7 +315,7 @@ void button_single_click_subscribe(ButtonId button_id, ClickHandler handler)
     if (button_id >= NUM_BUTTONS)
         return;
     
-    ButtonHolder *holder = button_holders[button_id]; // get the button
+    ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.click.handler = handler;
     holder->click_config.click.repeat_interval_ms = 0;
 }
@@ -328,7 +325,7 @@ void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat
     if (button_id >= NUM_BUTTONS)
         return;
     
-    ButtonHolder *holder = button_holders[button_id]; // get the button
+    ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.click.handler = handler;
     holder->click_config.click.repeat_interval_ms = repeat_interval_ms;
 }
@@ -338,7 +335,7 @@ void button_multi_click_subscribe(ButtonId button_id, uint8_t min_clicks, uint8_
     if (button_id >= NUM_BUTTONS)
         return;
     
-//     ButtonHolder *holder = button_holders[button_id]; // get the button
+//     ButtonHolder *holder = _button_holders[button_id]; // get the button
 }
 
 void button_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHandler down_handler, ClickHandler up_handler)
@@ -346,7 +343,7 @@ void button_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHan
     if (button_id >= NUM_BUTTONS)
         return;
     
-    ButtonHolder *holder = button_holders[button_id]; // get the button
+    ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.long_click.handler = down_handler;
     holder->click_config.long_click.release_handler = up_handler;
     holder->click_config.long_click.delay_ms = delay_ms;
@@ -357,7 +354,7 @@ void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
     if (button_id >= NUM_BUTTONS)
         return;
     
-    ButtonHolder *holder = button_holders[button_id]; // get the button
+    ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.raw.up_handler = up_handler;
     holder->click_config.raw.down_handler = down_handler;
 }
@@ -366,7 +363,7 @@ void button_unsubscribe_all(void)
 {
     for(uint8_t i = 0; i < NUM_BUTTONS; i++)
     {
-        ButtonHolder *holder = button_holders[i]; // get the button
+        ButtonHolder *holder = _button_holders[i]; // get the button
         memset(holder, 0, sizeof(ClickConfig));
     }
 }

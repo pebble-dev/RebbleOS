@@ -40,6 +40,7 @@ typedef struct ButtonHolder {
 
 void buttons_init(void);
 uint8_t button_pressed(ButtonId button_id);
+void button_isr(hw_button_t button_id);
 
 void button_single_click_subscribe(ButtonId button_id, ClickHandler handler);
 void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat_interval_ms, ClickHandler handler);

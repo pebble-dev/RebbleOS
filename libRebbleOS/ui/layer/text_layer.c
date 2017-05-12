@@ -85,17 +85,16 @@ void text_layer_set_size(TextLayer *text_layer, const GSize max_size)
 void text_layer_draw(struct Layer *layer, GContext *context)
 {
     TextLayer *tlayer = (TextLayer *)layer->container;
-    printf("cb\n");
     
-    printf("FONT: v %d lnh %d gcnt %d cp %d has %d cpb %d fis %d f %d\n",
-           (tlayer->font)->version,
-           (tlayer->font)->line_height,
-           (tlayer->font)->glyph_amount,
-           (tlayer->font)->wildcard_codepoint,
-           (tlayer->font)->hash_table_size,
-           (tlayer->font)->codepoint_bytes,
-           (tlayer->font)->fontinfo_size,
-           (tlayer->font)->features);
+//     printf("FONT: v %d lnh %d gcnt %d cp %d has %d cpb %d fis %d f %d\n",
+//            (tlayer->font)->version,
+//            (tlayer->font)->line_height,
+//            (tlayer->font)->glyph_amount,
+//            (tlayer->font)->wildcard_codepoint,
+//            (tlayer->font)->hash_table_size,
+//            (tlayer->font)->codepoint_bytes,
+//            (tlayer->font)->fontinfo_size,
+//            (tlayer->font)->features);
     
     // we are goingto draw the text now
     graphics_draw_text(context, tlayer->text, tlayer->font,
