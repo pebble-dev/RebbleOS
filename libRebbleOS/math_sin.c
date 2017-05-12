@@ -1,6 +1,6 @@
 /* math_sin.c
  * LUT-based sine table
- * RebbleOS core
+ * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */

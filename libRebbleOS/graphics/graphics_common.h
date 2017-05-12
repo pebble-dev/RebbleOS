@@ -1,4 +1,11 @@
 #pragma once
+/* graphics_common.h
+ * routines for [...]
+ * libRebbleOS
+ *
+ * Author: Barry Carter <barry.carter@gmail.com>
+ */
+
 /*
 
 

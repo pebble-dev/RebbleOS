@@ -1,6 +1,6 @@
 /* text_layer.c
  * routines for [...]
- * RebbleOS core
+ * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */

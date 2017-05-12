@@ -11,6 +11,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "display.h"
+#include "log.h"
 #include "vibrate.h"
 #include "snowy_display.h"
 #include <stm32f4xx_spi.h>
@@ -76,7 +77,6 @@ void hw_display_init(void)
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
         
-    printf("Display Init\n");
     //GPIO_InitTypeDef gpio_init_structure;
     GPIO_InitTypeDef gpio_init_disp;
     GPIO_InitTypeDef gpio_init_disp_o;
@@ -479,7 +479,7 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
         
         if (g9 > 0)
         {
-            printf("FPGA Was reset\n");
+            DRV_LOG("FPGA", APP_LOG_LEVEL_DEBUG, "FPGA Reset");
             _snowy_display_release_clocks();
             return 1;
         }
@@ -490,8 +490,10 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
         
         if (k >=1001)
         {
-            printf("timed out waiting for reset\n");
+            char *err = "Timed out waiting for reset";
+            DRV_LOG("FPGA", APP_LOG_LEVEL_ERROR, err);
             _snowy_display_release_clocks();
+            assert(!err);
             return 0;
         }
     }
@@ -600,7 +602,6 @@ void _snowy_display_send_frame_slow()
     }   
     
     _snowy_display_cs(0);
-    printf("End Frame\n");
 }
 
 /*
@@ -615,12 +616,14 @@ uint8_t _snowy_display_wait_FPGA_ready(void)
     {
         if (!--i)
         {
-            printf("timed out waiting for ready\n");
+            char *err = "Timed out waiting for ready";
+            DRV_LOG("FPGA", APP_LOG_LEVEL_ERROR, err);
+            assert(!err);
             return 0;
         }        
         delay_us(200);
     }
-    printf("FPGA Ready\n");
+    DRV_LOG("FPGA", APP_LOG_LEVEL_DEBUG, "FPGA Ready");
     
     return 1;
 }
@@ -671,7 +674,7 @@ void _snowy_display_splash(uint8_t scene)
         if (_snowy_display_wait_FPGA_ready())
         {
             hw_display_on();
-            printf("Display Init Complete\n");
+            DRV_LOG("Display", APP_LOG_LEVEL_INFO, "Display is ready");
             
             break;
         }
@@ -690,7 +693,7 @@ void _snowy_display_splash(uint8_t scene)
  */
 void _snowy_display_full_init(void)
 {
-    printf("Going full fat\n");
+    DRV_LOG("Display", APP_LOG_LEVEL_INFO, "Init full driver mode");
     
     _snowy_display_request_clocks();
     
@@ -734,7 +737,7 @@ void _snowy_display_program_FPGA(void)
     }
     _snowy_display_cs(0);
     
-    printf("Sent FPGA dump\n");
+    DRV_LOG("Display", APP_LOG_LEVEL_DEBUG, "FPGA bin uploaded");
 }
 
 

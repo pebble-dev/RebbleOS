@@ -11,6 +11,7 @@
 #include "string.h"
 #include "snowy_rtc.h"
 #include "stm32_power.h"
+#include "log.h"
 #include <stdlib.h>
 #include <time.h>
 
@@ -76,8 +77,6 @@ void rtc_init(void)
     NVIC_Init(&NVIC_InitStruct);  
 
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
-
-    printf("RTC INIT\n");
 }
 
 /* 
@@ -258,11 +257,10 @@ void hw_set_date_time(struct tm date_time)
 
 void RTC_WKUP_IRQHandler(void)
 {
-    printf("WAKE\n");
     if(RTC_GetITStatus(RTC_IT_WUT) != RESET)
     {
         RTC_ClearITPendingBit(RTC_IT_WUT);
-        printf("WAKE\n");
+        DRV_LOG("RTC", APP_LOG_LEVEL_DEBUG, "RTC WAKE IRQ");
         EXTI_ClearITPendingBit(EXTI_Line22);
     } 
 }
@@ -277,8 +275,6 @@ void RTC_Alarm_IRQHandler(void)
         
         RTC_ClearITPendingBit(RTC_IT_ALRA);
         EXTI_ClearITPendingBit(EXTI_Line17);
-        
-
     } 
 }
 

@@ -86,7 +86,7 @@ void appmanager_init(void)
                                                         _app_thread_manager_stack, 
                                                         &_app_thread_manager_task);
     
-    printf("App Task Created!\n");
+    KERN_LOG("app", APP_LOG_LEVEL_INFO, "App thread created");
 }
 
 /*
@@ -139,7 +139,8 @@ void _appmanager_flash_load_app_manifest(void)
             // it's real... so far. Lets crc check to make sure
             // TODO
             // crc32....(header.header)
-            printf("VALID App Found %s\n", header.name);
+            KERN_LOG("app", APP_LOG_LEVEL_INFO, "VALID App Found %s", header.name);
+
             // main gets set later
             _appmanager_add_to_manifest(_appmanager_create_app(header.name, APP_TYPE_FACE, NULL, false, i));
         }
@@ -185,7 +186,7 @@ App *appmanager_get_app(char *app_name)
         node = node->next;
     }
     
-    printf("No app found!\n");
+    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "NO App Found %s", app_name);
     return NULL;
 }
 
@@ -249,7 +250,7 @@ void app_event_loop(void)
     uint32_t xMaxBlockTime = 1000 / portTICK_RATE_MS;
     AppMessage data;
     
-    printf("LOOP\n");
+    KERN_LOG("app", APP_LOG_LEVEL_INFO, "App entered mainloop");
     
     // we assume they are configured now
     rbl_window_load_proc();
@@ -297,7 +298,7 @@ void app_event_loop(void)
                 // remove the ticktimer service handler and stop it
                 rebble_time_service_unsubscribe();
 
-                printf("ev quit\n");
+                KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Quit");
                 // The task will die hard.
                 // TODO: BAD! The task will never call the cleanup after loop!
                 vTaskDelete(_app_task_handle);
@@ -320,8 +321,6 @@ void app_event_loop(void)
  */
 void _appmanager_app_thread(void *parms)
 {
-    printf("APP THREAD\n");
-
     ApplicationHeader header;   // TODO change to malloc so we can free after load?
     char *app_name;
     AppMessage am;
@@ -336,7 +335,7 @@ void _appmanager_app_thread(void *parms)
         
         app_name = (char *)am.payload;
         
-        printf("Start App: %s\n", app_name);
+        KERN_LOG("app", APP_LOG_LEVEL_INFO, "Starting app %s", app_name);
 
         // clear the queue of any work from the previous app... such as an errant quit
         xQueueReset(_app_message_queue);            
@@ -346,7 +345,8 @@ void _appmanager_app_thread(void *parms)
         
         if (_app_manifest_head == NULL)
         {
-            printf("Bad, no apps\n");
+            KERN_LOG("app", APP_LOG_LEVEL_ERROR, "No Apps found!");
+            assert(!"No Apps");
             return;
         }
         
@@ -486,21 +486,20 @@ void _appmanager_app_thread(void *parms)
             app_stack_heap.byte_buf[header.sym_table_addr + 2] =     ((uint32_t)(sym) >> 16) & 0xFF;
             app_stack_heap.byte_buf[header.sym_table_addr + 3] =     ((uint32_t)(sym) >> 24) & 0xFF;
             
-            printf("H:    %s\n", header.header);
-            printf("SDKv: %d.%d\n", header.sdk_version.major, header.sdk_version.minor);
-            printf("Appv: %d.%d\n", header.app_version.major, header.app_version.minor);
-            printf("AppSz:%x\n", header.app_size);
-            printf("AppOf:0x%x\n", header.offset);
-            printf("AppCr:%d\n", header.crc);
-            printf("Name: %s\n", header.name);
-            printf("Cmpy: %s\n", header.company);
-            printf("Icon: %d\n", header.icon_resource_id);
-            
-            printf("Sym:  0x%x\n", header.sym_table_addr);
-            printf("Flags:%d\n", header.flags);
-            printf("Reloc:%d\n", header.reloc_entries_count);
-
-            printf("VSize 0x%x\n", header.virtual_size);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App signature:");
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "H:    %s", header.header);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "SDKv: %d.%d", header.sdk_version.major, header.sdk_version.minor);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Appv: %d.%d", header.app_version.major, header.app_version.minor);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "AppSz:%x", header.app_size);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "AppOf:0x%x", header.offset);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "AppCr:%d", header.crc);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Name: %s", header.name);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Cmpy: %s", header.company);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Icon: %d", header.icon_resource_id);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Sym:  0x%x", header.sym_table_addr);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Flags:%d", header.flags);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Reloc:%d", header.reloc_entries_count);
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "VSize 0x%x", header.virtual_size);
              
             uint32_t stack_size = MAX_APP_STACK_SIZE;
             
@@ -511,7 +510,7 @@ void _appmanager_app_thread(void *parms)
             // Where is our heap going to start. It's directly after the ap + bss
             uint32_t *heap_entry = &app_stack_heap.byte_buf[total_app_size];
 
-            printf("Base %x heap %x sz %d stack %x sz %d\n", 
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Base %x heap %x sz %d stack %x sz %d", 
                    app_stack_heap.word_buf,
                    heap_entry,
                    heap_size,
@@ -558,7 +557,7 @@ void back_long_click_handler(ClickRecognizerRef recognizer, void *context)
     switch(_running_app->type)
     {
         case APP_TYPE_FACE:
-            printf("TODO: Quiet time\n");
+            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "TODO: Quiet time");
             break;
         case APP_TYPE_SYSTEM:
             // quit the app
@@ -569,7 +568,7 @@ void back_long_click_handler(ClickRecognizerRef recognizer, void *context)
 
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context)
 {
-    printf("Long Back Rel\n");
+    
 }
 
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context)
@@ -599,7 +598,7 @@ App *app_manager_get_apps_head()
 
 void api_unimpl()
 {
-    printf("UNK\n");
+
     while(1);
 }
 
@@ -625,7 +624,7 @@ GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id)
 
 ResHandle *resource_get_handle_proxy(uint32_t resource_id)
 {
-    printf("ResH %d %d\n", resource_id, _running_app->slot_id);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "ResH %d %d", resource_id, _running_app->slot_id);
 
     // push to the heap.
     ResHandle *x = app_malloc(sizeof(ResHandle));

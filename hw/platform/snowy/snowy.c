@@ -11,14 +11,9 @@
 #include "stdio.h"
 #include "string.h"
 #include "snowy.h"
+#include "log.h"
 #include "stm32_power.h"
 #include "stm32_buttons_platform.h"
-
-/*
- * Printf support. Uncommet to disable output
- * (but not remove strings)
- */
-//#define printf(fmt, ...) (0)
 
 // ENABLE this if you want smartstrap debugging output. For now if you do this qemu might not work
 #define DEBUG_UART_SMARTSTRAP
@@ -32,7 +27,7 @@ void debug_init()
 #ifdef DEBUG_UART_SMARTSTRAP
     init_USART8(); // smartstrap debugging
 #endif
-    printf("USART3/8 init\n");
+    DRV_LOG("debug", APP_LOG_LEVEL_INFO, "Usart 3/8 Init");
 }
 
 /* note that locking needs to be handled by external entity here */
@@ -208,9 +203,8 @@ STM32_BUTTONS_MK_IRQ_HANDLER(3)
 STM32_BUTTONS_MK_IRQ_HANDLER(4)
 
 
-
 static void  MemMang_Handler()
 {
-    printf("hard\n");
+    KERN_LOG("MemHnd", APP_LOG_LEVEL_ERROR, "Memory manager Failed!");
     while(1);
 }

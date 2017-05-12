@@ -38,4 +38,3 @@ void hw_vibrate_enable(uint8_t enabled)
     else
         GPIO_ResetBits(vibrate.Port, vibrate.Pin);
 }
-

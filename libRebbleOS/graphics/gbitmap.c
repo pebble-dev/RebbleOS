@@ -1,6 +1,6 @@
 /* gbitmap.c
  * routines for [...]
- * RebbleOS core
+ * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
@@ -334,7 +334,7 @@ GBitmap *gbitmap_create_blank(GSize size, GBitmapFormat format)
     
     if (bitmap->addr == NULL)
     {
-        printf("gbitmap_create_blank Malloc failed\n");
+        SYS_LOG("gbitmap", APP_LOG_LEVEL_ERROR, "gbitmap_create_blank Malloc failed");
         return NULL;
     }
     return bitmap;

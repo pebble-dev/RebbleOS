@@ -1,27 +1,27 @@
 #pragma once
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* log.h
+ * routines for logging apps and system
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
 
+#define SYS_LOG(module, lvl, fmt, ...) \
+            log_printf(module, "SYS", lvl, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define KERN_LOG(module, lvl, fmt, ...) \
+            log_printf(module, "KERN", lvl, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define DRV_LOG(module, lvl, fmt, ...) \
+            log_printf(module, "DRIVER", lvl, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
 
-#define APP_LOG app_log
 
-// void app_log_trace(uint8_t lvl, const char *filename, const char *fmt, ...);
+typedef enum LogLevel {
+    APP_LOG_LEVEL_ERROR,
+    APP_LOG_LEVEL_WARNING,
+    APP_LOG_LEVEL_INFO,
+    APP_LOG_LEVEL_DEBUG,
+    APP_LOG_LEVEL_DEBUG_VERBOSE
+} LogLevel;
+
+
 void app_log_trace(uint8_t level, const char *filename, uint32_t f, const char *fmt, ...);
-void app_log(uint8_t lvl, const char *fmt, ...);
-
-#define APP_LOG_LEVEL_DEBUG 1
+void log_printf(const char *layer, const char *module, uint8_t level, const char *filename, uint32_t line_no, const char *fmt, ...);

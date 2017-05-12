@@ -19,10 +19,7 @@ static void _display_cmd(uint8_t cmd, char *data);
  * Start the display driver and tasks. Show splash
  */
 void display_init(void)
-{   
-    // init variables   
-    printf("Display Init\n");
-    
+{      
     // initialise device specific display
     hw_display_init();
     hw_display_start();
@@ -35,7 +32,7 @@ void display_init(void)
     
     _display_cmd(DISPLAY_CMD_DRAW, NULL);
     
-    printf("Display Tasks Created!\n");
+    KERN_LOG("Display", APP_LOG_LEVEL_INFO, "Display Tasks Created");
 }
 
 /*

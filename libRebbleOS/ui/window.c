@@ -1,6 +1,6 @@
 /* window.c
  * routines for [...]
- * RebbleOS core
+ * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
@@ -18,7 +18,7 @@ Window *window_create()
     Window *window = calloc(1, sizeof(Window));
     if (window == NULL)
     {
-        printf("No memory for Window\n");
+        SYS_LOG("window", APP_LOG_LEVEL_ERROR, "No memory for Window");
         return NULL;
     }
     // and it's root layer

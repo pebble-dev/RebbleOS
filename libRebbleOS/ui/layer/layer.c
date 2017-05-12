@@ -1,6 +1,6 @@
 /* layer.c
  * routines for [...]
- * RebbleOS core
+ * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
@@ -17,7 +17,7 @@ Layer *layer_create(GRect frame)
     Layer* layer = app_calloc(1, sizeof(Layer));
     if (layer == NULL)
     {
-        printf("NO MEMORY FOR LAYER!\n");
+        SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "NO MEMORY FOR LAYER!");
         return NULL;
     }
     layer->bounds = frame;
@@ -62,7 +62,7 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
 
     if(parent_layer->child == child_layer)
     {
-        printf("LAYER IS ALREADY CHILD\n");
+        SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "LAYER IS ALREADY CHILD");
         return;
     }
     
@@ -81,7 +81,7 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
     {
         if (child == child_layer)
         {
-            printf("LAYER IS ALREADY CHILD\n");
+            SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "LAYER IS ALREADY CHILD\n");
             return;
         }
         child = child->sibling;

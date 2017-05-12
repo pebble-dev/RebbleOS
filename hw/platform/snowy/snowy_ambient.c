@@ -9,6 +9,7 @@
 #include "stdio.h"
 #include "string.h"
 #include "snowy_ambient.h"
+#include "log.h"
 #include "stm32_power.h"
 
 /*
@@ -78,9 +79,6 @@ void hw_ambient_init(void)
 
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
-
-
-    printf("Ambience\n");
 }
 
 uint16_t hw_ambient_get(void)
@@ -103,7 +101,7 @@ uint16_t hw_ambient_get(void)
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
 
-    printf("Ambient: %d\n", val);
+    DRV_LOG("ambie", APP_LOG_LEVEL_DEBUG, "Ambient: %d", val);
     
     return val;
 }

@@ -8,16 +8,16 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
     
     if (upng == NULL)
     {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "UPNG malloc error"); 
+        SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG malloc error");
     }
     if (upng_get_error(upng) != UPNG_EOK)
     {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "UPNG Loaded:%d line:%d", 
+        SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG Loaded:%d line:%d", 
       upng_get_error(upng), upng_get_error_line(upng));
     }
     if (upng_decode(upng) != UPNG_EOK)
     {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "UPNG Decode:%d line:%d", 
+        SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG Decode:%d line:%d", 
       upng_get_error(upng), upng_get_error_line(upng));
     }
 

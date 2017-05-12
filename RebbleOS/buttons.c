@@ -50,7 +50,7 @@ void buttons_init(void)
         button_add_click_config(i, (ClickConfig) {});
     }
     
-    printf("Button Task Created!\n");
+    KERN_LOG("buttons", APP_LOG_LEVEL_INFO, "Button Task Created");
 }
 
 /*
@@ -293,9 +293,8 @@ void button_send_app_click(void *callback, void *recognizer, void *context)
 
     backlight_on(100, 3000);
     
-    appmanager_post__button_message(&_button_message);
+    appmanager_post_button_message(&_button_message);
 }
-
 
 
 /*

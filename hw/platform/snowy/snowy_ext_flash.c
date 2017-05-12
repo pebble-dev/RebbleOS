@@ -12,11 +12,13 @@
 #include "stm32f4xx_fsmc.h"
 #include "platform.h"
 #include "stm32_power.h"
+#include "log.h"
 
 // base region
 #define Bank1_NOR_ADDR ((uint32_t)0x60000000)
 
-void _nor_gpio_config(void);
+void _nor_gpio_config(void)
+;
 void _nor_enter_read_mode(uint32_t address);
 void _nor_reset_region(uint32_t address);
 void _nor_reset_state(void);
@@ -92,7 +94,9 @@ void hw_flash_init(void)
         
     if (!_flash_test())
     {
-        printf("FLASH FAILED!\n");
+        DRV_LOG("Flash", APP_LOG_LEVEL_ERROR, "Flash version check failed");
+        // we carry on here, as it seems to work. TODO find unlock?
+        //assert(!err);
     }
     
     stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
@@ -213,7 +217,9 @@ uint8_t _flash_test(void)
     nr = _nor_read16(0x20);
     nr1 = _nor_read16(0x22);
     nr2 = _nor_read16(0x24);
-    printf("READR NR %d NR1 %d NR2 %d\n", nr, nr1, nr2);
+
+    DRV_LOG("Flash", APP_LOG_LEVEL_DEBUG, "READR NR %d NR1 %d NR2 %d\n", nr, nr1, nr2);
+    
     if ( nr != 81 || nr1 != 82 )
         result = 0;
     else

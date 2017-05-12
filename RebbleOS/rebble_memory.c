@@ -1,13 +1,12 @@
 /* rebble_memory.c
- * routines for [...]
+ * routines for Allocating memory for system and apps. 
+ * App memory gets alocated ont he app's own heap where sys has a global heap
  * RebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-#include "stdio.h"
-#include "string.h"
-#include "rebble_memory.h"
+#include "rebbleos.h"
 
 // TODO refactor heap allocator and init here
 void rblos_memory_init(void)
@@ -20,7 +19,7 @@ void rblos_memory_init(void)
 // heap4 doesn't have calloc
 void *pvPortCalloc(size_t count, size_t size)
 {
-    printf("OOB CALLOC\n");
+    KERN_LOG("main", APP_LOG_LEVEL_DEBUG, "System Calloc. Check who did this");
     void *x = pvPortMalloc(count * size);
     if (x != NULL)
         memset(x, 0, count * size);
@@ -53,20 +52,20 @@ bool rblos_memory_sanity_check_app(size_t size)
 {
     if (size == 0)
     {
-        printf("Malloc fail. size=0. Huh?\n");
+        KERN_LOG("main", APP_LOG_LEVEL_ERROR, "Malloc fail. size=0. Huh?");
         return false;
     }
     
     if (size > xPortGetFreeAppHeapSize())
     {
-        printf("Malloc fail. Not enough heap for %d\n", size);
+        KERN_LOG("main", APP_LOG_LEVEL_DEBUG, "Malloc fail. Not enough heap for %d", size);
         return false;
         while(1); // TODO for debugging
     }
     
     if (size > 100000)
     {
-        printf("Malloc will fail. > 100Kb requested\n");
+        KERN_LOG("main", APP_LOG_LEVEL_DEBUG, "Malloc will fail. > 100Kb requested");
         return false;
     }
     

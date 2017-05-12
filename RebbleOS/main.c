@@ -7,7 +7,7 @@
 
 #include "rebbleos.h"
 
-void CheckTaskWatchDog (void *pvParameters);
+static void _watchdog_thread (void *pvParameters);
 
 int main(void)
 {
@@ -16,7 +16,7 @@ int main(void)
     hardware_init();
 
     xTaskCreate(
-        CheckTaskWatchDog,                 /* Function pointer */
+        _watchdog_thread,                 /* Function pointer */
         "WWDGTask",                          /* Task name - for debugging only*/
         configMINIMAL_STACK_SIZE,         /* Stack depth in words */
         (void*) NULL,                     /* Pointer to tasks arguments (parameter) */
@@ -25,7 +25,7 @@ int main(void)
 
     rebbleos_init();
     
-    printf("RebbleOS (Ginge) v0.0.0.1\n");
+    KERN_LOG("main", APP_LOG_LEVEL_INFO, "RebbleOS %s", VERSION);
     
     vTaskStartScheduler();  // should never return
     for (;;);
@@ -52,7 +52,7 @@ void watchdog_reset(void)
 /*
  * A task to periodically reset the watchdog timer
  */
-void CheckTaskWatchDog(void *pvParameters)
+static void _watchdog_thread(void *pvParameters)
 {
     while(1)
     {
@@ -68,24 +68,24 @@ void hardware_init(void)
 {
     platform_init();
     debug_init();
-    printf("debug init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Debug Init");
     watchdog_init();
-    printf("watchdog init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Watchdog Init");
     power_init();
-    printf("power init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     vibrate_init();
-    printf("vibro init init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Vibro Init");
     display_init();
-    printf("display init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Display Init");
     buttons_init();
-    printf("buttons init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Buttons Init");
     rtc_init();
     ambient_init();
-    printf("ambiance init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Ambiance Init");
     backlight_init();
-    printf("bl init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Backlight Init");
     flash_init();
-    printf("flash init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Flash Init");
     platform_init_late();
 }
 
@@ -107,9 +107,9 @@ void vApplicationTickHook(void) {
    to query the size of free heap space that remains (although it does not
    provide information on how the remaining heap might be fragmented). */
 void vApplicationMallocFailedHook(void) {
-    printf("Malloc fail\n");
-  taskDISABLE_INTERRUPTS();
-  for(;;);
+    KERN_LOG("malloc", APP_LOG_LEVEL_ERROR, "Malloc Failed!");
+    taskDISABLE_INTERRUPTS();
+    for(;;);
 }
 
 /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
@@ -125,14 +125,14 @@ void vApplicationIdleHook(void) {
 }
 
 void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName) {
-  (void) pcTaskName;
-  (void) pxTask;
-  /* Run time stack overflow checking is performed if
-     configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
-     function is called if a stack overflow is detected. */
-  printf("stck ovf\n");
-  taskDISABLE_INTERRUPTS();
-  for(;;);
+    (void) pcTaskName;
+    (void) pxTask;
+    /* Run time stack overflow checking is performed if
+        configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
+        function is called if a stack overflow is detected. */
+    KERN_LOG("init", APP_LOG_LEVEL_ERROR, "Stack Overflow!");
+    taskDISABLE_INTERRUPTS();
+    for(;;);
 }
 
 /* configUSE_STATIC_ALLOCATION is set to 1, so the application must provide an

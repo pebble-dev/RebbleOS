@@ -60,33 +60,3 @@ void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t
         i += 2 * DISPLAY_COLS;
     }
 }
-
-/*
-// uGUI gives us a single pixel and color c in RGB888
-// the cordinates of the pixel are used to calculate the position of 
-// the real framebuffer position.
-// Because of the way the scanlines are encoded [LSB0|LSB1...  MSB0|MSB1...]
-// we will convert the pixel into its lsb and msb, and or it into the existing buffer
-void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c)
-{
-    if (x > DISPLAY_COLS || y > DISPLAY_ROWS)
-        return;
-    
-    // write to the pixel buffer in y0 [x0, 1, 3], y1 [x1, 1 2 3]
-    uint16_t pos = (y * DISPLAY_COLS) + x;
-        
-    // take the rgb888 and turn it into something the display can use
-    uint16_t red = c >> 16;
-    uint16_t green = (c & 0xFF00) >> 8;
-    uint16_t blue = (c & 0x00FF);
-    
-    // scale from rgb to pbl
-    red = red / (255 / 3);
-    green = green / (255 / 3);
-    blue = blue / (255 / 3);
-
-    // for now write to the pixel buffer in raw format
-    display.FrameBuffer[pos] = red << 4 | green << 2 | blue;
-
-    return;
-}*/

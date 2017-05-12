@@ -1,6 +1,6 @@
 /* font_loader.c
  * routines for [...]
- * RebbleOS core
+ * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */

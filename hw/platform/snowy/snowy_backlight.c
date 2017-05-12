@@ -13,10 +13,9 @@
 #include "backlight.h"
 #include "snowy_backlight.h"
 #include "stm32_power.h"
+#include "log.h"
 #include <stm32f4xx_spi.h>
 #include <stm32f4xx_tim.h>
-
-extern display_t display;
 
 /*
  * Initialise the backlight. This is set as a timer (TIM12)
@@ -94,5 +93,5 @@ void hw_backlight_set(uint16_t pwmValue)
     if (!_backlight_clocks_on)
         stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_TIM12);
     
-    printf("Backlight: Set\n");
+    DRV_LOG("backl", APP_LOG_LEVEL_DEBUG, "Backlight Set: %d", pwmValue);
 }

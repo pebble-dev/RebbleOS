@@ -48,7 +48,7 @@ ResHandle resource_get_handle(uint16_t resource_id)
     // sanity check the resource
     if (resHandle.size > 200000) // arbitary 200k
     {
-        printf("Res: WARN. Suspect res id %d size %d\n", resource_id, resHandle.size);
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: WARN. Suspect res id %d size %d", resource_id, resHandle.size);
         while(1);
     }
 
@@ -67,7 +67,7 @@ ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id)
         while(1);
     uint32_t res_base = _resource_get_app_res_slot_address(slot_id) +  ((resource_id - 1) * sizeof(ResHandle));
     
-    printf("RES BASE %x %d\n", res_base, resource_id);
+    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource base %x %d", res_base, resource_id);
     
     
     // get the resource from the flash.
@@ -75,12 +75,12 @@ ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id)
     // by multiplying out by the size of each resource
     flash_read_bytes(res_base, &resHandle, sizeof(ResHandle));
     
-    printf("RES %d %x %d\n", resHandle.index, resHandle.offset, resHandle.size);
+    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource %d %x %x", resHandle.index, resHandle.offset, resHandle.size);
 
     // sanity check the resource
     if (resHandle.size > 200000) // arbitary 200k
     {
-        printf("Res: WARN. Suspect res size %d\n", resHandle.size);
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: WARN. Suspect res size %d", resHandle.size);
         while(1);
     }
 
@@ -91,10 +91,10 @@ void resource_load_app(ResHandle resource_handle, uint8_t *buffer, uint16_t slot
 {
     if (resource_handle.size > xPortGetFreeAppHeapSize())
     {
-        printf("Res: malloc fail. Not enough heap for %d\n", resource_handle.size);
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", resource_handle.size);
         return NULL;
     }
-    printf("Res: Start %p\n", _resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset);
+    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Res: Start %p", _resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset);
     uint16_t ofs = 0;
     if (resource_handle.index > 1)
         ofs = 0x1C;
@@ -139,7 +139,7 @@ void resource_load(ResHandle resource_handle, uint8_t *buffer)
     
     if (resource_handle.size > xPortGetFreeAppHeapSize())
     {
-        printf("Ress: malloc fail. Not enough heap for %d\n", resource_handle.size);
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Ress: malloc fail. Not enough heap for %d", resource_handle.size);
         return NULL;
     }
     flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
@@ -169,19 +169,19 @@ bool _resource_is_sane(ResHandle res_handle)
     
     if (sz <= 0)
     {
-        printf("Res: res<=0\n");
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: res<=0");
         return false;
     }
     
     if (sz > xPortGetFreeAppHeapSize())
     {
-        printf("Res: malloc fail. Not enough heap for %d\n", sz);
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", sz);
         return false;
     }
     
     if (sz > 100000)
     {
-        printf("Res: malloc will fail. > 100Kb requested\n");
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc will fail. > 100Kb requested");
         return false;
     }
     
@@ -205,7 +205,7 @@ uint8_t *resource_fully_load_res(ResHandle res_handle)
     
     if (buffer == NULL)
     {
-        printf("Resource alloc failed\n");
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Resource alloc failed");
         return NULL;
     }
 
@@ -225,11 +225,10 @@ uint8_t *resource_fully_load_res_app(ResHandle res_handle, uint16_t slot_id)
     
     if (buffer == NULL)
     {
-        printf("Resource alloc failed\n");
+        KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource alloc failed");
         return NULL;
     }
     resource_load_app(res_handle, buffer, slot_id);
-    printf("RES DONE\n");
     return buffer;
 }
     
@@ -267,6 +266,6 @@ uint8_t *resource_fully_load_res_app(ResHandle res_handle, uint16_t slot_id)
 
 uintptr_t vApplicationStartSyscall(uint16_t syscall_index)
 {
-    printf("APP SYSCALL %d\n");
+//     printf("APP SYSCALL %d\n");
     return 0;
 }

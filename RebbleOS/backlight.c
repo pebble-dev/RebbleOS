@@ -7,9 +7,9 @@
 
 #include "rebbleos.h"
 
-static TaskHandle_t xBacklightTask;
-static xQueueHandle xBacklightQueue;
-void vBacklightTask(void *pvParameters);
+static TaskHandle_t _backlight_task;
+static xQueueHandle _backlight_queue;
+static void _backlight_thread(void *pvParameters);
 
 struct backlight_message_t
 {
@@ -18,8 +18,8 @@ struct backlight_message_t
     uint16_t val2;
 } backlight_message;
 
-uint16_t backlight_brightness;
-uint8_t backlight_is_on;
+uint16_t _backlight_brightness;
+uint8_t _backlight_is_on;
 
 /*
  * Backlight is a go
@@ -28,13 +28,13 @@ void backlight_init(void)
 {
     hw_backlight_init();
     
-    xTaskCreate(vBacklightTask, "Bl", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xBacklightTask);    
+    xTaskCreate(_backlight_thread, "Bl", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_backlight_task);    
     
-    xBacklightQueue = xQueueCreate( 2, sizeof(struct backlight_message_t *));
+    _backlight_queue = xQueueCreate( 2, sizeof(struct backlight_message_t *));
         
-    printf("Backlight Tasks Created!\n");
-    backlight_is_on = 0;
-    backlight_brightness = 0;
+    KERN_LOG("backl", APP_LOG_LEVEL_INFO, "Backlight Tasks Created");
+    _backlight_is_on = 0;
+    _backlight_brightness = 0;
 
     backlight_on(100, 3000);
 }
@@ -46,13 +46,12 @@ void backlight_init(void)
 void backlight_on(uint16_t brightness_pct, uint16_t time)
 {
     struct backlight_message_t *message;
-    printf("bl\n");
     //  send the queue the backlight on task
     message = &backlight_message;
     message->cmd = BACKLIGHT_ON;
     message->val1 = brightness_pct;
     message->val2 = time;
-    xQueueSendToBack(xBacklightQueue, &message, 0);
+    xQueueSendToBack(_backlight_queue, &message, 0);
 }
 
 
@@ -61,7 +60,7 @@ void backlight_set(uint16_t brightness_pct)
     uint16_t brightness;
     
     brightness = 8499 / (100 / brightness_pct);
-    printf("BRIGHTNESS %d\n", brightness); // display.Brightness);            
+    KERN_LOG("backl", APP_LOG_LEVEL_DEBUG, "Brightness %d", brightness);
 
     backlight_set_raw(brightness);
 }
@@ -71,7 +70,7 @@ void backlight_set(uint16_t brightness_pct)
  */
 void backlight_set_raw(uint16_t brightness)
 {
-    backlight_brightness = brightness;
+    _backlight_brightness = brightness;
 
     // set the display pwm value
     hw_backlight_set(brightness);
@@ -80,7 +79,7 @@ void backlight_set_raw(uint16_t brightness)
 void backlight_set_from_ambient(void)
 {
     uint16_t amb, bri;
-    bri = backlight_brightness;
+    bri = _backlight_brightness;
     
     backlight_set_raw(0);
     // give the led in the backlight time to de-energise
@@ -104,7 +103,7 @@ void backlight_set_from_ambient(void)
 /*
  * Will take care of dimmng and time light is on etc
  */
-void vBacklightTask(void *pvParameters)
+void _backlight_thread(void *pvParameters)
 {
     struct backlight_message_t *message;
 //     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
@@ -118,7 +117,7 @@ void vBacklightTask(void *pvParameters)
     {
         if (backlight_status == BACKLIGHT_FADE)
         {
-            uint16_t newbri = (backlight_brightness - bri_scale);
+            uint16_t newbri = (_backlight_brightness - bri_scale);
             wait = 10;
             backlight_set_raw(newbri);
 
@@ -141,7 +140,7 @@ void vBacklightTask(void *pvParameters)
             if (xTaskGetTickCount() > on_expiry_time)
             {
                 backlight_status = BACKLIGHT_FADE;
-                bri_scale = backlight_brightness / 50;
+                bri_scale = _backlight_brightness / 50;
                 bri_it = 50; // number of steps
             }
         }
@@ -151,7 +150,7 @@ void vBacklightTask(void *pvParameters)
             wait = 1000 / portTICK_RATE_MS;
         }
         
-        if (xQueueReceive(xBacklightQueue, &message, wait))
+        if (xQueueReceive(_backlight_queue, &message, wait))
         {
             switch(message->cmd)
             {
@@ -160,7 +159,7 @@ void vBacklightTask(void *pvParameters)
                 case BACKLIGHT_OFF:
                     break;
                 case BACKLIGHT_ON:
-                    printf("bl on %d\n", message->val1);
+                    KERN_LOG("backl", APP_LOG_LEVEL_DEBUG, "Backlight ON");
                     backlight_status = BACKLIGHT_ON;
                     // timestamp the tick counter so we can stay on for
                     // the right amount of time

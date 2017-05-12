@@ -82,21 +82,19 @@ void max14690_init(void)
 
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     
-    printf("****I2C**\n");
     uint8_t buf[0x1F];
     I2C_read_reg(&I2C_conf, 0x50, 0x00, buf, 0x1F + 1);
     
-    for (uint16_t i = 0; i < 0x1F + 1; i++)
-    {
-        printf("R: %02x %02x \n", i, buf[i]);
-    }
+//     for (uint16_t i = 0; i < 0x1F + 1; i++)
+//     {
+//         printf("R: %02x %02x \n", i, buf[i]);
+//     }
     
-    printf("****I2C Init**\n");
     // En LDO2
     I2C_write_reg(&I2C_conf, 0x50, 0x14, 0x03);
-    printf("****I2C 0x14**\n");
+
     buf[0] = 0x3;
     // En LDO3
     I2C_write_reg(&I2C_conf, 0x50, 0x16, 0x03);
-    printf("****I2C 0x16**\n");    
+//     printf("****I2C 0x16**\n");    
 }
