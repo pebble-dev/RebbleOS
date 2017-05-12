@@ -61,8 +61,6 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
     uint8_t alpha_offset = (bitmap->palette_size > 0) && (bitmap->palette[0].a == 0);
     uint32_t pal_idx;
     
-    uint8_t *buf = display_get_buffer();
-    
     // clip to the smallest real size of the image
     uint16_t ctmp = (bitmap->bounds.size.w > bitmap->raw_bitmap_size.w) ? bitmap->raw_bitmap_size.w : bitmap->bounds.size.w;
     uint16_t w = ctmp > clipping_bounds.size.w ? clipping_bounds.size.w : ctmp;

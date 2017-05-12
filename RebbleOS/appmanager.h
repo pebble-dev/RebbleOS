@@ -115,3 +115,6 @@ App *app_manager_get_apps_head();
 void rbl_window_load_proc(void);
 void app_event_loop(void);
 
+
+
+

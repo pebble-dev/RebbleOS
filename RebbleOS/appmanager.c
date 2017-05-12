@@ -23,18 +23,20 @@
  */
 
 static void _appmanager_flash_load_app_manifest();
-App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id);
-void _appmanager_app_thread(void *parameters);
+static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id);
+static void _appmanager_app_thread(void *parameters);
+static void _appmanager_add_to_manifest(App *app);
+
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context);
 
-TaskHandle_t _app_task_handle;
-TaskHandle_t _app_thread_manager_task_handle;
+static TaskHandle_t _app_task_handle;
+static TaskHandle_t _app_thread_manager_task_handle;
 static xQueueHandle _app_message_queue;
 static xQueueHandle _app_thread_queue;
-StaticTask_t _app_thread_manager_task;
-StaticTask_t _app_task;
+static StaticTask_t _app_thread_manager_task;
+static StaticTask_t _app_task;
 
 static App *_running_app;
 static App *_app_manifest_head;
@@ -94,7 +96,7 @@ void appmanager_init(void)
  * Generate an entry in the application manifest for each found app.
  * 
  */
-App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id)
+static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id)
 {
     App *app = calloc(1, sizeof(App));
     if (app == NULL)
@@ -148,7 +150,7 @@ void _appmanager_flash_load_app_manifest(void)
 }
 
 /* App manifest is a linked list. Just slot it in */
-void _appmanager_add_to_manifest(App *app)
+static void _appmanager_add_to_manifest(App *app)
 {  
     if (_app_manifest_head == NULL)
     {
@@ -319,7 +321,7 @@ void app_event_loop(void)
  * This array is used as the heap and the stack.
  * refer to heap_app.c (for now, until the refactor) TODO
  */
-void _appmanager_app_thread(void *parms)
+static void _appmanager_app_thread(void *parms)
 {
     ApplicationHeader header;   // TODO change to malloc so we can free after load?
     char *app_name;
@@ -508,7 +510,7 @@ void _appmanager_app_thread(void *parms)
             // Calculate the heap size of the remaining memory
             uint32_t heap_size = ((MAX_APP_MEMORY_SIZE) - total_app_size) - (stack_size * 4);
             // Where is our heap going to start. It's directly after the ap + bss
-            uint32_t *heap_entry = &app_stack_heap.byte_buf[total_app_size];
+            uint32_t *heap_entry = (uint32_t *)&app_stack_heap.byte_buf[total_app_size];
 
             KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Base %x heap %x sz %d stack %x sz %d", 
                    app_stack_heap.word_buf,
@@ -518,10 +520,10 @@ void _appmanager_app_thread(void *parms)
                    stack_size);
             
             // heap is all uint8_t
-            appHeapInit(heap_size, heap_entry);
-            
+            appHeapInit(heap_size, (void *)heap_entry);
+
             // Let this guy do the heavy lifting!
-            _app_task_handle = xTaskCreateStatic(&app_stack_heap.byte_buf[header.offset], 
+            _app_task_handle = xTaskCreateStatic((void*)&app_stack_heap.byte_buf[header.offset], 
                                                  "dynapp", 
                                                  stack_size, 
                                                  NULL, 
@@ -537,8 +539,8 @@ void _appmanager_app_thread(void *parms)
             appHeapInit(MAX_APP_MEMORY_SIZE - (MAX_APP_STACK_SIZE * 4), app_stack_heap.byte_buf);
              
             uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - MAX_APP_STACK_SIZE];
-             
-            _app_task_handle = xTaskCreateStatic(_running_app->main, 
+
+            _app_task_handle = xTaskCreateStatic((void*)_running_app->main, 
                                                   "dynapp", 
                                                   MAX_APP_STACK_SIZE, 
                                                   NULL, 
@@ -636,7 +638,7 @@ ResHandle *resource_get_handle_proxy(uint32_t resource_id)
 
 GFont *fonts_load_custom_font_proxy(ResHandle *handle)
 {
-    return fonts_load_custom_font(handle, _running_app->slot_id);
+    return (GFont *)fonts_load_custom_font(handle, _running_app->slot_id);
 }
 
 

@@ -7,6 +7,7 @@
  * memory management pages of http://www.FreeRTOS.org for more information.
  */
 #include <stdlib.h>
+#include <stdio.h>
 
 /* Defining MPU_WRAPPERS_INCLUDED_FROM_API_FILE prevents task.h from redefining
 all the API functions to use the MPU wrappers.  That should only be done when
@@ -300,7 +301,7 @@ BlockLink_t *pxFirstFreeBlock;
 uint8_t *pucAlignedHeap;
 size_t uxAddress;
 
-printf("CALLOC INIT %x %d\n",e_app_stack_heap, xTotalHeapSize);
+printf("CALLOC INIT %x %d\n",(unsigned int)e_app_stack_heap, (int)xTotalHeapSize);
 	/* Ensure the heap starts on a correctly aligned boundary. */
 	uxAddress = ( size_t ) e_app_stack_heap;
 

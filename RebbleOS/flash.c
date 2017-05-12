@@ -14,12 +14,12 @@
 // what about apps/watchface resource loading?
 // document
 
-
 /// MUTEX
 static SemaphoreHandle_t _flash_mutex;
 uint32_t _flash_get_app_slot_address(uint16_t slot_id);
 extern unsigned int _ram_top;
 #define portMPU_REGION_READ_WRITE (0x03UL << MPU_RASR_AP_Pos)
+
 void flash_init()
 {
     hw_flash_init();
@@ -62,7 +62,7 @@ void flash_dump(void)
 
 void flash_load_app_header(uint16_t app_id, ApplicationHeader *header)
 {
-    flash_read_bytes(_flash_get_app_slot_address(app_id), header, sizeof(ApplicationHeader));
+    flash_read_bytes(_flash_get_app_slot_address(app_id), (uint8_t *)header, sizeof(ApplicationHeader));
 }
 
 void flash_load_app(uint16_t app_id, uint8_t *buffer, size_t count)
@@ -81,5 +81,7 @@ uint32_t _flash_get_app_slot_address(uint16_t slot_id)
         return APP_SLOT_16_START + ((slot_id - 16) * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
     else if (slot_id < 32)
         return APP_SLOT_24_START + ((slot_id - 24) * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
+    
+    return 0;
 }
 

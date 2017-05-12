@@ -168,9 +168,9 @@ void platform_init_late()
     // Dump clocks
     RCC_ClocksTypeDef RCC_Clocks;
     RCC_GetClocksFreq(&RCC_Clocks);
-    printf("c     : %d", SystemCoreClock);
-    printf("SYSCLK: %d\n", RCC_Clocks.SYSCLK_Frequency);
-    printf("CFGR  : %d\n", RCC->PLLCFGR);
+    printf("c     : %d", (int)SystemCoreClock);
+    printf("SYSCLK: %d\n", (int)RCC_Clocks.SYSCLK_Frequency);
+    printf("CFGR  : %d\n", (int)RCC->PLLCFGR);
     printf("Relocating NVIC to 0x08004000\n");
 }
 

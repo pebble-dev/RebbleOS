@@ -88,9 +88,9 @@ GBitmap *gbitmap_create_palettized_from_1bit(const GBitmap *src_bitmap);
 void gbitmap_destroy(GBitmap *bitmap);
 
 void gbitmap_draw(GBitmap *bitmap, GRect bounds);
-
+// void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect rect);
 /*
-void graphics_draw_bitmap_in_rect(n_GContext *ctx, const GBitmap *bitmap, GRect rect);
+
 GBitmapSequence *gbitmap_sequence_create_with_resource(uint32_t resource_id);
 bool gbitmap_sequence_update_bitmap_next_frame(GBitmapSequence *bitmap_sequence, GBitmap *bitmap, uint32_t *delay_ms);
 bool gbitmap_sequence_update_bitmap_by_elapsed(GBitmapSequence *bitmap_sequence, GBitmap *bitmap, uint32_t elapsed_ms);
@@ -104,3 +104,8 @@ GBitmapDataRowInfo gbitmap_get_data_row_info(const GBitmap *bitmap, uint16_t y);
 void grect_align(GRect *rect, const GRect *inside_rect, const GAlign alignment, const bool clip);
 GRect grect_inset(GRect rect, GEdgeInsets insets);
 */
+
+
+
+/* TODO MOVE ME
+ */

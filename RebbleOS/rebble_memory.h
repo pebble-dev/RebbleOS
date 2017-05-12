@@ -22,3 +22,9 @@ bool rblos_memory_sanity_check_app(size_t size);
 void *app_malloc(size_t size);
 void *app_calloc(size_t count, size_t size);
 void app_free(void *mem);
+
+size_t xPortGetMinimumEverFreeAppHeapSize( void );
+size_t xPortGetFreeAppHeapSize( void );
+void vPortAppFree( void *pv );
+void *pvPortAppMalloc( size_t xWantedSize );
+void appHeapInit(size_t xTotalHeapSize, uint8_t *e_app_stack_heap);

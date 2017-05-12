@@ -30,3 +30,4 @@ void flash_init(void);
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes);
 void flash_load_app(uint16_t app_id, uint8_t *buffer, size_t count);
 void flash_load_app_header(uint16_t app_id, ApplicationHeader *header);
+void flash_dump(void);

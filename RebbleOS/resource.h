@@ -19,3 +19,4 @@ uint8_t *resource_fully_load_id(uint16_t resource_id);
 uint8_t *resource_fully_load_res(ResHandle res_handle);
 ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id);
 uint8_t *resource_fully_load_res_app(ResHandle res_handle, uint16_t slot_id);
+uint8_t *resource_fully_load_id_app(uint16_t resource_id, uint16_t slot_id);
