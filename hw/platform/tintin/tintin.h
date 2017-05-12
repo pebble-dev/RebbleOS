@@ -6,6 +6,7 @@
 #include "rebble_time.h"
 #include "stm32f2xx.h"
 
+extern int printf ( const char* , ... );
 
 void debug_init();
 void debug_write(const unsigned char *p, size_t len);

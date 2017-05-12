@@ -11,6 +11,9 @@
 #include "menu.h"
 #include "appmanager.h"
 
+extern void graphics_draw_bitmap_in_rect(GContext*, GBitmap*, GRect);
+extern void flash_dump(void);
+
 /*
 // menu
 

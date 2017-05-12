@@ -18,6 +18,8 @@
 
 #include "stm32_power.h"
 
+extern void *strcpy(char *a2, const char *a1);
+
 /*** debug routines ***/
 
 static void _init_USART3();
@@ -392,7 +394,7 @@ void hw_flash_init() {
     part_id |= _hw_flash_txrx(JEDEC_DUMMY) << 0;
     _hw_flash_enable(0);
     
-    printf("tintin flash: JEDEC ID %06x\n", part_id);
+    printf("tintin flash: JEDEC ID %08lx\n", part_id);
     
     if (part_id != JEDEC_IDCODE_MICRON_N25Q032A11) {
         panic("tintin flash: unsupported part ID");

@@ -42,7 +42,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         printf("\n PALETTE\n");
         for (int i = 0; i < plen; i++)
         {
-            printf("0x%02x ", palette[i]);
+            printf("0x%02x%02x%02x ", palette[i].r, palette[i].g, palette[i].b);
         }
         printf("\n ALPHA\n");
         for (int i = 0; i < alen; i++)

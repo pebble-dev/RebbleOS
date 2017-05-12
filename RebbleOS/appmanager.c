@@ -22,8 +22,12 @@
  * 
  */
 
+extern void appHeapInit(size_t, uint8_t*);
+extern  GFont *fonts_load_custom_font(ResHandle*, uint16_t);
+
 static void _appmanager_flash_load_app_manifest();
 App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id);
+void _appmanager_add_to_manifest(App *app);
 void _appmanager_app_thread(void *parameters);
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
@@ -466,7 +470,7 @@ void _appmanager_app_thread(void *parms)
                     existing /= 4;
                     
                     // take the offset and add the apps base address
-                    existing += app_stack_heap.word_buf;
+                    existing += (uint32_t)app_stack_heap.word_buf;
                     
                     // write it back to the register
                     app_stack_heap.word_buf[got[i]/4] = existing;
@@ -508,7 +512,7 @@ void _appmanager_app_thread(void *parms)
             // Calculate the heap size of the remaining memory
             uint32_t heap_size = ((MAX_APP_MEMORY_SIZE) - total_app_size) - (stack_size * 4);
             // Where is our heap going to start. It's directly after the ap + bss
-            uint32_t *heap_entry = &app_stack_heap.byte_buf[total_app_size];
+            uint32_t *heap_entry = (uint32_t*) &app_stack_heap.byte_buf[total_app_size];
 
             KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Base %x heap %x sz %d stack %x sz %d", 
                    app_stack_heap.word_buf,
@@ -518,16 +522,16 @@ void _appmanager_app_thread(void *parms)
                    stack_size);
             
             // heap is all uint8_t
-            appHeapInit(heap_size, heap_entry);
-            
+            appHeapInit(heap_size, (uint8_t*)heap_entry);
+
             // Let this guy do the heavy lifting!
-            _app_task_handle = xTaskCreateStatic(&app_stack_heap.byte_buf[header.offset], 
+            _app_task_handle = xTaskCreateStatic((TaskFunction_t)&app_stack_heap.byte_buf[header.offset], 
                                                  "dynapp", 
                                                  stack_size, 
                                                  NULL, 
                                                  tskIDLE_PRIORITY + 6UL, 
-                                                 stack_entry, 
-                                                 &_app_task);
+                                                 (StackType_t*) stack_entry, 
+                                                 (StaticTask_t* )&_app_task);
         }
         else
         {
@@ -538,7 +542,7 @@ void _appmanager_app_thread(void *parms)
              
             uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - MAX_APP_STACK_SIZE];
              
-            _app_task_handle = xTaskCreateStatic(_running_app->main, 
+            _app_task_handle = xTaskCreateStatic((TaskFunction_t)_running_app->main, 
                                                   "dynapp", 
                                                   MAX_APP_STACK_SIZE, 
                                                   NULL, 
@@ -596,7 +600,7 @@ App *app_manager_get_apps_head()
 
 /* Some stubs below for testing etc */
 
-void api_unimpl()
+void api_unimpl(void)
 {
 
     while(1);
@@ -636,7 +640,7 @@ ResHandle *resource_get_handle_proxy(uint32_t resource_id)
 
 GFont *fonts_load_custom_font_proxy(ResHandle *handle)
 {
-    return fonts_load_custom_font(handle, _running_app->slot_id);
+    return (GFont*)fonts_load_custom_font(handle, _running_app->slot_id);
 }
 
 

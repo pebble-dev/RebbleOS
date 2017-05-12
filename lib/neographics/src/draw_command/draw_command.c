@@ -252,7 +252,7 @@ n_GDrawCommandImage * n_gdraw_command_image_create_with_resource(uint32_t resour
     ResHandle handle = resource_get_handle(resource_id);
     size_t image_size = resource_size(handle) - 8;
     n_GDrawCommandImage * image = malloc(image_size);
-    resource_load_app(image, handle, image_size);
+    resource_load_app(handle, (uint8_t*)image, image_size);
     return image;
 }
 n_GDrawCommandImage * n_gdraw_command_image_clone(n_GDrawCommandImage * image) {
@@ -265,7 +265,7 @@ n_GDrawCommandSequence * n_gdraw_command_sequence_create_with_resource(uint32_t 
     ResHandle handle = resource_get_handle(resource_id);
     size_t sequence_size = resource_size(handle) - 8;
     n_GDrawCommandSequence * sequence = malloc(sequence_size);
-    resource_load_app(sequence, handle, sequence_size);
+    resource_load_app(handle, (uint8_t*)sequence, sequence_size);
     return sequence;
 }
 n_GDrawCommandSequence * n_gdraw_command_sequence_clone(n_GDrawCommandSequence * image) {

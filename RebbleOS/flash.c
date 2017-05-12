@@ -9,6 +9,9 @@
 #include "platform.h"
 #include "flash.h"
 
+extern void hw_flash_init(void);
+extern void hw_flash_read_bytes(uint32_t, uint8_t*, size_t);
+
 // TODO
 // DMA/async?
 // what about apps/watchface resource loading?
@@ -62,7 +65,7 @@ void flash_dump(void)
 
 void flash_load_app_header(uint16_t app_id, ApplicationHeader *header)
 {
-    flash_read_bytes(_flash_get_app_slot_address(app_id), header, sizeof(ApplicationHeader));
+    flash_read_bytes(_flash_get_app_slot_address(app_id), (uint8_t*)header, sizeof(ApplicationHeader));
 }
 
 void flash_load_app(uint16_t app_id, uint8_t *buffer, size_t count)
@@ -81,5 +84,6 @@ uint32_t _flash_get_app_slot_address(uint16_t slot_id)
         return APP_SLOT_16_START + ((slot_id - 16) * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
     else if (slot_id < 32)
         return APP_SLOT_24_START + ((slot_id - 24) * APP_SLOT_SIZE) + APP_HEADER_BIN_OFFSET;
+    return 0;
 }
 

@@ -9,6 +9,7 @@
 #include "platform.h"
 #include "flash.h"
 
+extern size_t xPortGetFreeAppHeapSize(void);
 
 uint32_t _resource_get_app_res_slot_address(uint16_t slot_id);
 
@@ -43,7 +44,7 @@ ResHandle resource_get_handle(uint16_t resource_id)
     // get the resource from the flash.
     // each resource is in a big array in the flash, so we get the offsets for the resouce
     // by multiplying out by the size of each resource
-    flash_read_bytes(REGION_RES_START + RES_TABLE_START + ((resource_id - 1) * sizeof(ResHandle)), &resHandle, sizeof(ResHandle));
+    flash_read_bytes(REGION_RES_START + RES_TABLE_START + ((resource_id - 1) * sizeof(ResHandle)), (uint8_t*)&resHandle, sizeof(ResHandle));
 
     // sanity check the resource
     if (resHandle.size > 200000) // arbitary 200k
@@ -73,7 +74,7 @@ ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id)
     // get the resource from the flash.
     // each resource is in a big array in the flash, so we get the offsets for the resouce
     // by multiplying out by the size of each resource
-    flash_read_bytes(res_base, &resHandle, sizeof(ResHandle));
+    flash_read_bytes(res_base, (uint8_t*)&resHandle, sizeof(ResHandle));
     
     KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource %d %x %x", resHandle.index, resHandle.offset, resHandle.size);
 
@@ -92,13 +93,14 @@ void resource_load_app(ResHandle resource_handle, uint8_t *buffer, uint16_t slot
     if (resource_handle.size > xPortGetFreeAppHeapSize())
     {
         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", resource_handle.size);
-        return NULL;
+        return;
     }
     KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Res: Start %p", _resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset);
     uint16_t ofs = 0;
     if (resource_handle.index > 1)
         ofs = 0x1C;
     flash_read_bytes(_resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset + ofs, buffer, resource_handle.size);
+    return;
 }
 
 
@@ -140,7 +142,7 @@ void resource_load(ResHandle resource_handle, uint8_t *buffer)
     if (resource_handle.size > xPortGetFreeAppHeapSize())
     {
         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Ress: malloc fail. Not enough heap for %d", resource_handle.size);
-        return NULL;
+        return;
     }
     flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
 }

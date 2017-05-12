@@ -45,7 +45,7 @@ const GBitmap *bitmap_layer_get_bitmap(BitmapLayer *bitmap_layer)
     return bitmap_layer->bitmap;
 }
 
-void bitmap_layer_set_bitmap(BitmapLayer *bitmap_layer, const GBitmap *bitmap)
+void bitmap_layer_set_bitmap(BitmapLayer *bitmap_layer, GBitmap *bitmap)
 {
     bitmap_layer->bitmap = bitmap;
 }
