@@ -31,6 +31,10 @@ void hw_backlight_init(void)
  * running the backlight.  */
 static uint8_t _backlight_clocks_on = 0;
 
+#define BL_PIN GPIO_Pin_14
+#define BL_PIN_SOURCE GPIO_PinSource14
+#define BL_PORT RCC_AHB1Periph_GPIOB
+
 /*
  * Set the PWM value (brightness) of the backlight
  * This is *currently* 9999 as the top value, with 5000 being 50%
@@ -45,19 +49,19 @@ void hw_backlight_set(uint16_t pwmValue)
     // Pebble Time has backlight control driven by TIM12
     // It is set to PWM mode 2 and will count up to n
     
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_request(STM32_POWER_AHB1, BL_PORT);
     
-    GPIO_PinAFConfig(GPIOB, GPIO_PinSource14, GPIO_AF_TIM12);
+    GPIO_PinAFConfig(GPIOB, BL_PIN_SOURCE, GPIO_AF_TIM12);
     
     /* Set pins */
-    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_14;
+    GPIO_InitStruct.GPIO_Pin = BL_PIN;
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
     GPIO_Init(GPIOB, &GPIO_InitStruct);
     
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_release(STM32_POWER_AHB1, BL_PORT);
     
     TIM_BaseStruct.TIM_Prescaler = 0;
     TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;

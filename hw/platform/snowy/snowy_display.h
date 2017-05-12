@@ -1,21 +1,11 @@
 #pragma once
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
+/* snowy_display.h
  * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "stm32f4xx.h"
 #include "platform.h"
 
@@ -33,28 +23,21 @@
 
 typedef struct {
 //    SPI *spi;  // SPI6
-    GPIO_TypeDef *PortDisplay;
-    uint32_t ClockDisplay;
-    uint16_t PinReset;
-    uint16_t PinPower;
-    uint16_t PinCs;
-    uint16_t PinBacklight;
-    GPIO_TypeDef *PortBacklight;
-    
-    uint16_t PinMiso;
-    uint16_t PinMosi;
-    uint16_t PinSck;
+    GPIO_TypeDef *port_display;
+    uint32_t clock_display;
+    uint16_t pin_reset;
+    uint16_t pin_cs;   
+    uint16_t pin_miso;
+    uint16_t pin_mosi;
+    uint16_t pin_sck;
     
     // inputs
-    uint16_t PinResetDone;
-    uint16_t PinIntn;
+    uint16_t pin_reset_done;
+    uint16_t pin_intn;
     
     //state
-    uint8_t PowerOn;
-    uint8_t State; // busy etc
-    uint8_t DisplayMode; // bootloader or full
-    
-    uint8_t FrameBuffer[DISPLAY_ROWS * DISPLAY_COLS];
+    uint8_t power_on;   
+    uint8_t frame_buffer[DISPLAY_ROWS * DISPLAY_COLS];
 } display_t;
 
 
@@ -63,7 +46,7 @@ void hw_display_reset(void);
 void hw_display_start(void);
 void hw_backlight_init(void);
 void hw_backlight_set(uint16_t val);
-uint8_t hw_display_get_state();
+uint8_t hw_display_is_ready();
 uint8_t *hw_display_get_buffer(void);
 
 void hw_display_on();
