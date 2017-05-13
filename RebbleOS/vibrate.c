@@ -13,18 +13,82 @@
 #include "vibrate.h"
 #include "task.h"
 #include "semphr.h"
+#include <stdbool.h>
 
+#define VIBRATE_QUEUE_MAX_WAIT_TICKS  20    // chosen by fair dice roll
 
-static uint16_t VIBRO_SHORT[] = { 255, 1000 };
-static uint16_t VIBRO_TAP_TAP[] = { 255, 750, 0, 750, 255, 750 };
+#define VIBRATE_QUEUE_MAX_ITEMS 5
+
+/**
+ * Initialization of default patterns. 
+ * buffer: contains the sequence of pairs, where each pair is composed of a frequency (at which the motor will spin)
+ *      ,and a duration of spin (in milliseconds).
+ * length:is the length of the buffer
+ * 
+ * TODO Maybe load these dinamically at some point
+ */
+static VibratePattern_t _default_vibrate_patterns[VIBRATE_CMD_MAX] = {
+    // VIBRATE_CMD_PLAY_PATTERN_1
+    {
+        .length =  1, 
+        .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 1000}},                   
+    },
+    
+    // VIBRATE_CMD_PLAY_PATTERN_2
+    {
+        .length =  2, 
+        .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 100}, 
+                                                    {.frequency = 255, .duration_ms = 750}},
+    },
+    
+    // VIBRATE_CMD_PLAY_PATTERN_3
+    {
+        .length = 25, 
+        .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100},
+                                                    {.frequency = 127, .duration_ms = 750},
+                                                    {.frequency = 255, .duration_ms = 100}},
+    },
+    
+    // VIBRATE_CMD_STOP
+    {
+        .length =  0, 
+        .buffer = (const VibratePatternPair_t [])  {{.frequency = 0, .duration_ms = 0}}
+    }
+};
 
 static TaskHandle_t _vibrate_task;
 static xQueueHandle _vibrate_queue;
 
+static void _enable(uint8_t enabled);
+static void _set_frequency(uint16_t frequency);
 static void _vibrate_thread(void *pvParameters);
+static void _print_pattern(VibratePattern_t *pattern);
+
 
 /*
- * Initialise the vibration controller and tasks
+ * Initialize the vibration controller and tasks
  */
 void vibrate_init(void)
 {
@@ -35,10 +99,58 @@ void vibrate_init(void)
     rv = xTaskCreate(_vibrate_thread, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_vibrate_task); /* XXX: allocate statically later */
     assert(rv == pdPASS);
     
-    _vibrate_queue = xQueueCreate(1, sizeof(uint8_t));
+    _vibrate_queue = xQueueCreate(VIBRATE_QUEUE_MAX_ITEMS, sizeof(VibratePattern_t*));
 }
 
-/*
+/**
+ * Execute a command
+ * @param command Command to execute. Note that VIBRATE_CMD_MAX is not a valid command.
+ */
+void vibrate_command(VibrateCmd_t command)
+{
+    if (command < VIBRATE_CMD_MAX)
+    {
+        vibrate_play_pattern(&_default_vibrate_patterns[command]);
+    }
+    else
+    {
+        // ya dun goofed
+        assert(false);
+    }
+}
+
+/**
+ * Play a given pattern.
+ * @param pattern Pointer to a struct containing a defined pattern.
+ */
+void vibrate_play_pattern(VibratePattern_t *pattern)
+{
+    pattern->cur_buffer_index = 0;
+    (void) xQueueSendToBack(_vibrate_queue, &pattern, VIBRATE_QUEUE_MAX_WAIT_TICKS);   
+}
+
+/**
+ * Stop playing a pattern. If the _vibrate_thread is currently blocked by vTaskDelay,
+ * the pattern will be stopped when vTaskDelay returns.
+ */
+void vibrate_stop(void)
+{
+    
+    (void) xQueueSendToBack(_vibrate_queue, &_default_vibrate_patterns[VIBRATE_CMD_STOP], VIBRATE_QUEUE_MAX_WAIT_TICKS);    
+}
+
+static void _print_pattern(VibratePattern_t *pattern)
+{
+    printf(">>> vibrate @%u:\n", pattern);
+    printf("\tlength:%d, val[%d]=(.frequency=%u, .duration=%u)\n",
+           pattern->length,
+           pattern->cur_buffer_index,
+           pattern->buffer[pattern->cur_buffer_index].frequency,
+           pattern->buffer[pattern->cur_buffer_index].duration_ms
+    );
+}
+
+/**
  * Start vibratin
  */
 static void _enable(uint8_t enabled)
@@ -46,29 +158,12 @@ static void _enable(uint8_t enabled)
     hw_vibrate_enable(enabled);
 }
 
-/*
- * Quickly and dirtily pop out a pattern on the motor
+/**
+ * Set vibration frequency
  */
-static void _play_pattern(uint16_t *pattern, uint8_t pattern_length)
+static void _set_frequency(uint16_t frequency)
 {
-    // set the timer 12 CH2 to pwm to vibrate
-    // TODO FIX
-    return;
-    // low rumble
-    // touble tap
-    // medium
-    // high
-    // and drill
-    
-    for (uint8_t i = 0; i < pattern_length; i += 2)
-    {
-        // vibrate for x time
-        // until this is variable...
-        if (pattern[i] > 0)
-            _enable(1);
-        vTaskDelay(pattern[i+1] / portTICK_RATE_MS);
-        _enable(0);
-    }
+    // TODO set the motor frequency here
 }
 
 /*
@@ -76,32 +171,35 @@ static void _play_pattern(uint16_t *pattern, uint8_t pattern_length)
  */
 static void _vibrate_thread(void *pvParameters)
 {
-    uint8_t data;
-
+    static VibratePattern_t *current_pattern = &_default_vibrate_patterns[VIBRATE_CMD_STOP];
+    
     while(1)
-    {       
-        if (!xQueueReceive(_vibrate_queue, &data, portMAX_DELAY))
-            continue;
-
-        uint8_t len;
-        uint16_t *pattern;
-        
-        switch(data)
+    {
+        if (!xQueueReceive(_vibrate_queue, &current_pattern, portMAX_DELAY))
         {
-            case VIBRATE_CMD_STOP:
-                // slam the brakes on somehow
-                break;
-            case VIBRATE_CMD_PATTERN_1:
-                // big vibrate
-                pattern = VIBRO_SHORT;
-                len = 1;
-                break;
-            case VIBRATE_CMD_PATTERN_2:
-                // tap tap
-                pattern = VIBRO_TAP_TAP;
-                len = 3;
-                break;
+            continue;
         }
-        _play_pattern(pattern, len);
+        
+        while (current_pattern->cur_buffer_index < current_pattern->length)
+        {
+            _set_frequency(current_pattern->buffer[current_pattern->cur_buffer_index].frequency);
+            _enable(true);
+            vTaskDelay(current_pattern->buffer[current_pattern->cur_buffer_index].duration_ms / portTICK_RATE_MS);
+            _enable(false);
+            
+            if (xQueueReceive(_vibrate_queue, &current_pattern, 0))
+            {
+                // if we just received another pattern (including stop), start playing it from the beginning
+                current_pattern->cur_buffer_index = 0;
+            }
+            else
+            {
+                current_pattern->cur_buffer_index++;
+            }
+            
+            _print_pattern(current_pattern);
+        }
+        
+        current_pattern = &_default_vibrate_patterns[VIBRATE_CMD_STOP];
     }
 }
