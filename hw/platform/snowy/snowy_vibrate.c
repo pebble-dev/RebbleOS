@@ -10,7 +10,7 @@
 #include "string.h"
 #include "snowy_vibrate.h"
 #include <stm32f4xx_spi.h>
-
+#include <stm32f4xx_gpio.h>
 
 vibrate_t vibrate = {
     .Pin     = GPIO_Pin_4,
