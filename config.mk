@@ -28,6 +28,8 @@ CFLAGS_all += -IlibRebbleOS/event
 
 # XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
+# CFLAGS_all += -Wno-implicit-function-declaration
+CFLAGS_all += -Wno-unused-variable -Wno-unused-function
 
 LDFLAGS_all += -nostartfiles -nostdlib
 LIBS_all += -lgcc
@@ -44,9 +46,8 @@ SRCS_all += FreeRTOS/portable/MemMang/heap_4.c
 SRCS_all += lib/minilib/minilib.c
 SRCS_all += lib/minilib/sbrk.c
 SRCS_all += lib/minilib/dprint.c
+SRCS_all += lib/minilib/fmt.c
 SRCS_all += lib/minilib/rand.c
-
-SRCS_all += Hardware/stdarg.c
 
 SRCS_all += lib/neographics/src/common.c
 SRCS_all += lib/neographics/src/context.c
@@ -78,6 +79,8 @@ SRCS_all += RebbleOS/vibrate.c
 SRCS_all += RebbleOS/flash.c
 SRCS_all += RebbleOS/log.c
 SRCS_all += RebbleOS/resource.c
+SRCS_all += RebbleOS/heap_app.c
+SRCS_all += RebbleOS/driver.c
 
 SRCS_all += libRebbleOS/librebble.c
 SRCS_all += libRebbleOS/math_sin.c
@@ -87,6 +90,7 @@ SRCS_all += libRebbleOS/ui/layer/scroll_layer.c
 SRCS_all += libRebbleOS/ui/layer/text_layer.c
 SRCS_all += libRebbleOS/ui/window.c
 SRCS_all += libRebbleOS/graphics/gbitmap.c
+SRCS_all += libRebbleOS/graphics/graphics.c
 SRCS_all += libRebbleOS/graphics/font_loader.c
 SRCS_all += libRebbleOS/event/tick_timer_service.c
 
@@ -102,5 +106,6 @@ SRCS_all += RebbleOS/Gui/neographics.c
 include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk
 include hw/drivers/stm32_buttons/config.mk
+include hw/drivers/stm32_power/config.mk
 include hw/platform/snowy/config.mk
 include hw/platform/tintin/config.mk

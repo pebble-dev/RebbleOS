@@ -1,19 +1,8 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* layer.c
+ * routines for [...]
+ * libRebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
 
 #include "librebble.h"
@@ -25,14 +14,16 @@ void layer_insert_node(Layer *layer_to_insert, Layer *sibling_layer, bool below)
 // Layer Functions
 Layer *layer_create(GRect frame)
 {
-    Layer* layer = (Layer*)calloc(1, sizeof(Layer));
+    Layer* layer = app_calloc(1, sizeof(Layer));
     if (layer == NULL)
     {
-        printf("NO MEMORY FOR LAYER!\n");
+        SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "NO MEMORY FOR LAYER!");
         return NULL;
     }
     layer->bounds = frame;
     layer->frame = frame;
+    layer->child = NULL;
+    layer->sibling = NULL;
     
     return layer;
 }
@@ -40,7 +31,7 @@ Layer *layer_create(GRect frame)
 Layer *layer_create_with_data(GRect frame, size_t data_size)
 {
     Layer *layer = layer_create(frame);
-    layer->callback_data = calloc(1, data_size);
+    layer->callback_data = app_calloc(1, data_size);
     
     return layer;
 }
@@ -56,7 +47,7 @@ void layer_destroy(Layer *layer)
 
 GRect layer_get_unobstructed_bounds(Layer *layer)
 {
-    return GRect(0, 0, 144, 168);
+    return layer->bounds;
 }
 
 void layer_set_update_proc(Layer *layer, void *proc)
@@ -68,6 +59,12 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
 {   
     if (parent_layer == NULL || child_layer == NULL)
         return;
+
+    if(parent_layer->child == child_layer)
+    {
+        SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "LAYER IS ALREADY CHILD");
+        return;
+    }
     
     // if parent isn't already with child, it will become it
     // this will set the root node for all other elements in this parent
@@ -81,7 +78,14 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
     
     // now find the parents childs siblings
     while(child->sibling)
+    {
+        if (child == child_layer)
+        {
+            SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "LAYER IS ALREADY CHILD\n");
+            return;
+        }
         child = child->sibling;
+    }
     
     child->sibling = child_layer;
     child_layer->parent = parent_layer;
@@ -174,6 +178,7 @@ void layer_remove_node(Layer *to_be_removed)
 {
     // remove our node by pointing next to parents next, jumping over us
     to_be_removed->parent->sibling = to_be_removed->sibling;
+    to_be_removed->sibling = NULL;
 }
 
 /*
@@ -194,6 +199,10 @@ void walk_layers(/*const*/ Layer *layer)
             if (layer->update_proc)
             {
                 GContext *context = neographics_get_global_context();
+                
+                // butcher the offset by adding the start of the framebuffer xy for the bitmap
+                context->offset = layer->frame;
+                
                 // call the callback
                 layer->update_proc(layer, context);
             }
@@ -236,7 +245,7 @@ void layer_delete_tree(Layer *layer)
     {
         layer_delete_tree(layer->child);
         layer_delete_tree(layer->sibling);
-        free(layer);
+        app_free(layer);
     }
 }
 
@@ -254,12 +263,3 @@ void graphics_release_frame_buffer(GContext *context, GBitmap *bitmap)
     // rbl_unlock_frame_buffer
 }
 
-
-
-GPoint grect_center_point(GRect *rect)
-{
-    uint16_t x, y;
-    x = (rect->size.w - rect->origin.x) / 2;
-    y = (rect->size.h - rect->origin.y) / 2;
-    return GPoint(x, y);
-}

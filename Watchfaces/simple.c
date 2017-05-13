@@ -1,21 +1,10 @@
-
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* simple.c
+ * Simple watchface
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "librebble.h"
 #include "stdio.h"
 #include "string.h"
@@ -136,7 +125,7 @@ static void simple_update_proc(Layer *layer, GContext *nGContext)
     
     graphics_context_set_fill_color(nGContext, GColorWhite);
     //GPoint s_center = { .x = 70, .y = 90 };
-    GPoint s_center = grect_center_point(&full_bounds);
+    GPoint s_center = n_graphics_center_point_rect(&full_bounds);
     graphics_fill_circle(nGContext, s_center, s_radius);
  
     graphics_draw_circle(nGContext, s_center, s_radius);

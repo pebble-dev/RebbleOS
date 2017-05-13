@@ -18,18 +18,16 @@
  */
  #include "librebble.h"
  
-typedef struct {
+typedef struct MenuItem {
     char *text;
     char *sub_text;
     uint16_t image_res_id;
     
-} menu_item_t;
-
-menu_item_t main_menu[4];
+} MenuItem;
 
 void menu_init(void);
-void menu_draw_list(menu_item_t menu[], uint8_t offsetx, uint8_t offsety);
-void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offsety, menu_item_t* menu, uint8_t selected);
+void menu_draw_list(MenuItem menu[], uint8_t offsetx, uint8_t offsety);
+void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offsety, MenuItem* menu, uint8_t selected);
 void menu_show(uint8_t offsetx, uint8_t offsety);
 void menu_up(void);
 void menu_down(void);

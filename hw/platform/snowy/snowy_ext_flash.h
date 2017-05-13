@@ -1,25 +1,14 @@
 #pragma once
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* snowy_ext_flash.h
+ * FMC NOR flash implementation for Pebble Time (snowy)
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "stm32f4xx.h"
 
 void hw_flash_init(void);
-uint16_t hw_flash_read16(uint32_t address);
-uint32_t hw_flash_read32(uint32_t address);
+void hw_flash_deinit(void);
 void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length);
-void hw_flash_write16(uint32_t address, uint16_t data);
+void *hw_flash_module_init(hw_driver_handler_t *handler);

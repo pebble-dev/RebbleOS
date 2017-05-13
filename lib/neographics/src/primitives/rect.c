@@ -105,6 +105,14 @@ static void n_graphics_draw_rect_bounded(
                  rect.origin.y + (mask & n_GCornerTopLeft ? radius : 0)));
 }
 
+n_GPoint n_graphics_center_point_rect(n_GRect *rect)
+{
+    uint16_t x, y;
+    x = (rect->size.w - rect->origin.x) / 2;
+    y = (rect->size.h - rect->origin.y) / 2;
+    return GPoint(x, y);
+}
+
 void n_graphics_draw_thin_rect(n_GContext * ctx, n_GRect rect) {
     n_graphics_draw_thin_rect_bounded(ctx, n_grect_standardize(rect), 0, __SCREEN_WIDTH, 0, __SCREEN_HEIGHT);
 }

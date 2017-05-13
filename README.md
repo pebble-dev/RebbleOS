@@ -1,87 +1,76 @@
-A FreeRTOS implementation for the Pebble Time board (STM32F439)
+# RebbleOS
 
-Stage 1 Goals
+RebbleOS is an open-source reimplementation of the firmware for the devices
+formerly manufactured by Pebble Technologies, Inc.  The firmware is based on
+FreeRTOS, and aims to be binary-compatible with applications that were
+written for the original Pebble OS, as well as radio-compatible with
+smartphone applications that are designed to work with Pebble.
 
-* To create a new, unique operating system for the Pebble hardware.
-  - Reverse engineer and re-implement each piece of hardware on the device
-  - That includes the bluetooth stack!
-  - Create a new set of application APIs
-  - Obtain full integration with Rebble.io store
-* Re-implement all watchface functions either completely, or as stubs
-* Implement a new ecosystem of app/watchface development
+## Hacking
 
+RebbleOS needs your help! This section discusses what you need to know to
+get started working on the project.
 
-Stage 2 Goals (long ways off)
+### Building
 
-* Re-implement as much as possible of the Pebble api set as possible
-* Attempt to attain binary compatibility for apps and watchfaces
-* i8n
+RebbleOS currently can be built for `snowy` (Pebble Time and Pebble Time
+Steel) and `tintin` (Pebble and Pebble Steel).  To build RebbleOS, follow
+these steps:
 
+* Obtain a checkout of the RebbleOS source code.
+* Create a `localconfig.mk` if your cross-compiler is in an unusual location.  For instance, if you have the SDK installed in `/home/me`, add the following line to your `localconfig.mk`: `PEBBLE_TOOLCHAIN_PATH=/home/me/Pebble/SDK/pebble-sdk-4.5-linux64/arm-cs-tools/bin`.  For more information on `localconfig.mk` variables, consult the `Makefile`.
+* Build the firmware: `make`
+* If you wish to run the firmware in `qemu`, copy the resources necessary into `Resources/`.  Take a look at `Utilities/mk_resources.sh` for more information on that.
+* To run the firmware in `qemu`, try `make snowy_qemu`.
 
-Working:
-* CPU core / peripherals.
-* Interrupts
-* Buttons on PT (currently interrupt driven)
-* Display backlight fade (stays on for n millis and then fades out)
-* Vibrate (no control path yet)
-* Basic charge information
-* Real Time Clock
-* Watchdog
-* Smart Strap for debugging output
-* Display!
-  - Shows a Rebble OS splash (Thanks for the convert @XDJackieXD)
-  - Base support for text and graphics output using uGUI
-  - Display almost fully functional
-  - Non overlapped draw mode
-  - backbuffer for animations and transitions
-* Menu system for status/console and reboot etc
-* Simple animations
-* A basic gui
-* Basic API for watchfaces
-* A "simple.c" watchface using the API
+If you wish to build firmware to run on your device, you may also wish to
+consider a script like `buildfw.sh`.  Running RebbleOS on hardware is
+currently out of scope for this document.
 
+### Code structure
 
+_(This section is, admittedly, somewhat aspirational.  Do not be surprised
+if code within RebbleOS does not necessarily conform to this structure
+yet!)_
 
-It will come
+RebbleOS is composed of four major components: the hardware abstraction
+layer, the core operating system, the PebbleOS compatibility layer, and
+system applications.  We break down these components as follows:
 
-Hardware TODO:
-* Gyro and Compass
-* More power management
-  - We need to turn clocks off when not in use etc
-* Flash memory
-* Microphone
-* Find the gpio for smart strap power
+* **Hardware abstraction layer.**  This subsystem provides a unified
+  interface for the rest of the system, and abstracts away platform-specific
+  elements.  The HAL lives in the directory `hw/`; symbols that the HAL
+  exports to the rest of the system are prefixed with `hw_`.  The main
+  entity that the HAL works on is a _"platform"_; for an example, take a
+  look at `hw/platform/snowy/config.mk`.  A platform depends on various chip
+  components, and potentially other driver components; it exports a
+  `platform.h` that includes all defines that the rest of the system may
+  need.  The HAL is, in theory, independent of the rest of the OS; it does
+  not call into the rest of the system other than through debugging
+  mechanisms and through callbacks that it is provided.
 
-OS TODO:
-* More API handles and drivers for specific functions (such as vibrate)
-* librebble/OS to have more APIs
-* loadable apps into a vTask
-* Fuller menu
+* **Core OS.** This subsystem provides basic services that any smartwatch
+  OS, even if not implementing a Pebble-like API, might need.  HAL accesses
+  are marshalled through concurrency protection; higher-level power
+  management takes place; and, flash wear leveling and filesystem management
+  happens in the core OS.  The core OS lives in `RebbleOS/`, and symbols
+  exported from the core OS are prefixed with `rblcore_`.  It calls on
+  FreeRTOS, which lives in `FreeRTOS/`.
 
-Instructions to compile:
+* **Pebble compatibility layer.**  The core OS provides basic isolation
+  between threads and framebuffer management primitives, but the Pebble
+  compatibility layer provides higher level operations, like Pebble-style
+  layers, input management and routing, and UI services.  The Pebble
+  compatibility layer lives in `libRebbleOS/`, and symbols exported from it
+  are prefixed with `rblpbl_`.  (Functions that are exactly analogous to
+  Pebble APIs may be named with their exact name.)
 
-you must have the path in the PATH variable that includes the pebble sdk
-PATH=$PATH:/home/baz/Pebble/SDK/pebble-sdk-4.5-linux64/bin
+* **System applications.** We'll, uh, get there when we have some.  Yeah.
 
-You will need to get the following packages:
+## Reuse and contact
 
- * Pebble Firmware Utils https://github.com/MarSoft/pebble-firmware-utils
- * Pebble firmware itself (link here)
- * (Optional) Pebble Qemu configured for PT
- 
- Edit the file buildfw.sh and change out paths and IP
- 
- run:
- 
- make
- 
- make {platform}_qemu   (i.e. snowy_qemu)
-
-
- 
-
-Barry Carter
-<barry.carter@gmail.com>
-
-Contributors:
-Joshua Wise <>
+RebbleOS is an open-source project licensed (primarily) under a BSD-style
+license.  For more information, please see the `LICENSE` and `AUTHORS`
+files.  Reuse of this project is not only permitted, but encouraged!  If you
+do something cool with RebbleOS, please get in touch with us.  The easiest
+way to do so is through the [Rebble Discord server](https://discordapp.com/invite/aRUAYFN), channel #firmware.  We look forward to meeting you!

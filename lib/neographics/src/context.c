@@ -74,19 +74,29 @@ void n_graphics_context_end(n_GContext * ctx) {
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-#ifndef NGFX_IS_CORE 
 GBitmap * n_graphics_capture_frame_buffer(n_GContext * ctx) {
+#ifndef NGFX_IS_CORE
     return graphics_capture_frame_buffer(ctx->underlying_context);
+#else
+    return NULL;
+#endif
 }
 
 GBitmap * n_graphics_capture_frame_buffer_format(n_GContext * ctx, GBitmapFormat format) {
+#ifndef NGFX_IS_CORE
     return graphics_capture_frame_buffer_format(ctx->underlying_context, format);
+#else
+    return NULL;
+#endif
 }
 
 bool n_graphics_release_frame_buffer(n_GContext * ctx, GBitmap * bitmap) {
+#ifndef NGFX_IS_CORE
     return graphics_release_frame_buffer(ctx->underlying_context, bitmap);
-}
+#else
+    return NULL;
 #endif
+}
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 

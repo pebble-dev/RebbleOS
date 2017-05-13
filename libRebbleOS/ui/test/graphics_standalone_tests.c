@@ -1,3 +1,10 @@
+/* graphics_standalone_tests.c
+ * routines for [...]
+ * RebbleOS core
+ *
+ * Author: Barry Carter <barry.carter@gmail.com>
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>

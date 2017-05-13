@@ -1,21 +1,11 @@
 #pragma once
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* bitmap_layer.h
+ * routines for [...]
+ * libRebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "point.h"
 #include "rect.h"
 #include "size.h"
@@ -41,4 +31,10 @@ typedef struct BitmapLayer
 } BitmapLayer;
 
 BitmapLayer *bitmap_layer_create(GRect frame);
-void bitmap_layer_set_bitmap(BitmapLayer *bitmap_layer, const GBitmap *bitmap);
+void bitmap_layer_destroy(BitmapLayer *bitmap_layer);
+Layer *bitmap_layer_get_layer(BitmapLayer *bitmap_layer);
+const GBitmap *bitmap_layer_get_bitmap(BitmapLayer *bitmap_layer);
+void bitmap_layer_set_bitmap(BitmapLayer *bitmap_layer, GBitmap *bitmap);
+void bitmap_layer_set_alignment(BitmapLayer *bitmap_layer, GAlign alignment);
+void bitmap_layer_set_background_color(BitmapLayer *bitmap_layer, GColor color);
+void bitmap_layer_set_compositing_mode(BitmapLayer *bitmap_layer, GCompOp mode);

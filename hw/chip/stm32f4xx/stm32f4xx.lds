@@ -88,7 +88,7 @@ SECTIONS
   _ebss = .;
   
   _sstack = .;
-  . += 0x2000;
+  . += 0x3000;
   _estack = .;
   _end = .;
   _ram_top = 0x20000000 + 256*1024;

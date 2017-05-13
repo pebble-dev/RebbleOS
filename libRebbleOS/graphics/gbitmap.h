@@ -1,21 +1,11 @@
 #pragma once
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* gbitmap.h
+ * routines for [...]
+ * libRebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "types.h"
 #include "pebble_defines.h"
 #include "color.h"
@@ -77,7 +67,7 @@ bool grect_is_empty(const GRect *const rect);
 void grect_standardize(GRect *rect);
 void grect_clip(GRect *const rect_to_clip, const GRect *const rect_clipper);
 bool grect_contains_point(const GRect *rect, const GPoint *point);
-// GPoint grect_center_point(const GRect *rect);
+// GPoint n_graphics_center_point_rect(const GRect *rect);
 GRect grect_crop(GRect rect, const int32_t crop_size_px);
 uint16_t gbitmap_get_bytes_per_row(const GBitmap *bitmap);
 GBitmapFormat gbitmap_get_format(const GBitmap *bitmap);
@@ -88,18 +78,20 @@ void gbitmap_set_bounds(GBitmap *bitmap, GRect bounds);
 GColor *gbitmap_get_palette(const GBitmap *bitmap);
 void gbitmap_set_palette(GBitmap *bitmap, GColor *palette, bool free_on_destroy);
 GBitmap *gbitmap_create_with_resource(uint32_t resource_id);
-GBitmap *gbitmap_create_with_data(const uint8_t *data);
+GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, uint16_t slot_id);
+GBitmap *gbitmap_create_with_data(uint8_t *data);
 GBitmap *gbitmap_create_as_sub_bitmap(const GBitmap *base_bitmap, GRect sub_rect);
-GBitmap *gbitmap_create_from_png_data(const uint8_t *png_data, size_t png_data_size);
+GBitmap *gbitmap_create_from_png_data(uint8_t *png_data, size_t png_data_size);
 GBitmap *gbitmap_create_blank(GSize size, GBitmapFormat format);
 GBitmap *gbitmap_create_blank_with_palette(GSize size, GBitmapFormat format, GColor *palette, bool free_on_destroy);
-GBitmap *gbitmap_create_palettized_from_1bit(const GBitmap *src_bitmap);
+GBitmap *gbitmap_create_palettized_from_1bit(GBitmap *src_bitmap);
 void gbitmap_destroy(GBitmap *bitmap);
 
 void gbitmap_draw(GBitmap *bitmap, GRect bounds);
 
+// void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect rect);
 /*
-void graphics_draw_bitmap_in_rect(n_GContext *ctx, const GBitmap *bitmap, GRect rect);
+
 GBitmapSequence *gbitmap_sequence_create_with_resource(uint32_t resource_id);
 bool gbitmap_sequence_update_bitmap_next_frame(GBitmapSequence *bitmap_sequence, GBitmap *bitmap, uint32_t *delay_ms);
 bool gbitmap_sequence_update_bitmap_by_elapsed(GBitmapSequence *bitmap_sequence, GBitmap *bitmap, uint32_t elapsed_ms);
@@ -113,3 +105,8 @@ GBitmapDataRowInfo gbitmap_get_data_row_info(const GBitmap *bitmap, uint16_t y);
 void grect_align(GRect *rect, const GRect *inside_rect, const GAlign alignment, const bool clip);
 GRect grect_inset(GRect rect, GEdgeInsets insets);
 */
+
+
+
+/* TODO MOVE ME
+ */

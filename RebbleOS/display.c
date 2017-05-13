@@ -1,54 +1,53 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* display.c
+ * routines for [...]
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+ 
 #include "rebbleos.h"
-#include "logo.h"
 
-static TaskHandle_t xDisplayCommandTask;
-static xQueueHandle xQueue;
-static SemaphoreHandle_t xMutex;
+static TaskHandle_t _display_task;
+static xQueueHandle _display_queue;
+static SemaphoreHandle_t _display_mutex;
+
+static void _display_thread(void *pvParameters);
+static void _display_start_frame(uint8_t offset_x, uint8_t offset_y);
+static void _display_cmd(uint8_t cmd, char *data);
+
+static struct hw_driver_display_t *_display_driver;
+
+static hw_driver_handler_t _callack_handler = {
+    .done_isr = display_done_ISR
+};
 
 /*
  * Start the display driver and tasks. Show splash
  */
 void display_init(void)
 {   
-    // init variables
-    
-    printf("Display Init\n");
-    
     // initialise device specific display
-    hw_display_init();
-    
-    hw_display_start();
-        
+    _display_driver = (hw_driver_display_t *)driver_register((hw_driver_module_init_t)hw_display_module_init, &_callack_handler);
+
+    assert(_display_driver->start && "Start is invalid");    
+    _display_driver->start();
+      
     // set up the RTOS tasks
-    xTaskCreate(vDisplayCommandTask, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &xDisplayCommandTask);
+    xTaskCreate(_display_thread, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_display_task);
     
-    xQueue = xQueueCreate( 10, sizeof(uint8_t) );
-        
-    printf("Display Tasks Created!\n");
+    _display_queue = xQueueCreate(2, sizeof(uint8_t));
+    _display_mutex = xSemaphoreCreateMutex();      
     
-    // turn on the LCD draw   
-//     display.State = DISPLAY_STATE_IDLE;
+    _display_cmd(DISPLAY_CMD_DRAW, NULL);
     
-    display_cmd(DISPLAY_CMD_DRAW, NULL);
-    
-    xMutex = xSemaphoreCreateMutex();
+    KERN_LOG("Display", APP_LOG_LEVEL_INFO, "Display Tasks Created");
+}
+
+/* We know how to load the FPGA from flash. Lets get to it
+ */
+void display_fpga_loader(hw_resources_t resource_id, void *buffer, size_t offset, size_t sz)
+{
+    flash_read_bytes(REGION_FPGA_START + offset, buffer, sz);
 }
 
 /*
@@ -62,8 +61,7 @@ void display_done_ISR(uint8_t cmd)
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
     // Notify the task that the transmission is complete.
-    //vTaskNotifyGiveFromISR(xDisplayISRTask, &xHigherPriorityTaskWoken);
-    vTaskNotifyGiveFromISR(xDisplayCommandTask, &xHigherPriorityTaskWoken);
+    vTaskNotifyGiveFromISR(_display_task, &xHigherPriorityTaskWoken);
 
     /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context switch
     should be performed to ensure the interrupt returns directly to the highest
@@ -72,7 +70,6 @@ void display_done_ISR(uint8_t cmd)
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
-
 /*
  * Brutally and forcefully reset the display. This will
  * reset, but it will leave you dead in the water. Make sure to init.
@@ -80,38 +77,27 @@ void display_done_ISR(uint8_t cmd)
  */
 void display_reset(uint8_t enabled)
 {
-    hw_display_reset();
-}
-
-/*
- * We can command the screen on and off. but only in bootloader mode. hrmph
- */
-void display_on()
-{    
-//    display.State = DISPLAY_STATE_TURNING_ON;
+    assert(_display_driver->reset && "Reset is invalid");
+    
+    _display_driver->reset();
 }
 
 /*
  * Begin rendering a frame from the framebuffer into the display
  */
-void display_start_frame(uint8_t xoffset, uint8_t yoffset)
+static void _display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
-    xSemaphoreTake(xMutex, portMAX_DELAY);
-    hw_display_start_frame(xoffset, yoffset);
-    xSemaphoreGive(xMutex);
-}
-
-/*
- * Given a frame of data, convert it and draw it to the display
- */
-void display_logo(uint8_t *frameData)
-{
-    for(uint16_t i = 0; i < 24192; i++)
-    {
-        frameData[i] = rebbleOS[i];
-    }
-
-    return;
+    xSemaphoreTake(_display_mutex, portMAX_DELAY);
+    
+    assert(_display_driver->draw && "Draw is invalid");
+    
+    _display_driver->draw(xoffset, yoffset);
+    
+    // block wait for the draw to finish
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+    
+    // unlock the mutex
+    xSemaphoreGive(_display_mutex);
 }
 
 /*
@@ -119,16 +105,17 @@ void display_logo(uint8_t *frameData)
  */
 uint8_t *display_get_buffer(void)
 {
-    return hw_display_get_buffer();
+    assert(_display_driver->get_buffer && "Display buffer is invalid");
+    return _display_driver->get_buffer();
 }
 
 /*
  * Request a command from the display driver. 
  * Such as DISPLAY_CMD_DRAW
  */
-void display_cmd(uint8_t cmd, char *data)
+static void _display_cmd(uint8_t cmd, char *data)
 {
-    xQueueSendToBack(xQueue, &cmd, 0);
+    xQueueSendToBack(_display_queue, &cmd, 0);
 }
 
 /*
@@ -136,31 +123,23 @@ void display_cmd(uint8_t cmd, char *data)
  */
 void display_draw(void)
 {
-    display_cmd(DISPLAY_CMD_DRAW, 0);
+    _display_cmd(DISPLAY_CMD_DRAW, 0);
 }
 
 /*
  * Main task processing for the display. Manages locking
  * state machine control and command management
  */
-void vDisplayCommandTask(void *pvParameters)
+static void _display_thread(void *pvParameters)
 {
     uint8_t data;
-    const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
+    const TickType_t max_block_time = pdMS_TO_TICKS(1000);
 
     while(1)
     {
-        // really this task should be started only after we are running
-        // have a post init for each piece of hardware or soemthing
-        if (hw_display_get_state() == DISPLAY_STATE_BOOTING)
-        {
-            vTaskDelay(5 / portTICK_RATE_MS);
-            continue;
-        }
-
-        // commands to be exectuted are send to this queue and processed
+        // commands to be executed are send to this queue and processed
         // one at a time
-        if (xQueueReceive(xQueue, &data, xMaxBlockTime))
+        if (xQueueReceive(_display_queue, &data, max_block_time))
         {
             switch(data)
             {
@@ -168,9 +147,10 @@ void vDisplayCommandTask(void *pvParameters)
                 // the outer laters. If someone calls an overlapping draw into here
                 // it's just going to fail
                 case DISPLAY_CMD_DRAW:
-                        printf("draaw\n");
                     // all we are responsible for is starting a frame draw
-                    display_start_frame(0, 0);
+                    _display_start_frame(0, 0);
+                    break;
+                case DISPLAY_CMD_DONE:
                     break;
             }
         }
@@ -180,4 +160,3 @@ void vDisplayCommandTask(void *pvParameters)
         }        
     }
 }
-

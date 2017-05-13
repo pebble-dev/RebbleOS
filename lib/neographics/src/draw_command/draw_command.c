@@ -157,7 +157,7 @@ void n_gdraw_command_list_draw(n_GContext * ctx, n_GDrawCommandList * list, n_GP
     nPrvGDrawCommandListDrawContext * context = malloc(sizeof(nPrvGDrawCommandListDrawContext));
     context->ctx = ctx; context->offset = offset;
     n_gdraw_command_list_iterate(list, n_prv_gdraw_command_draw_cb, context);
-    free(context);
+    app_free(context);
 }
 
 /* command list getters */
@@ -252,24 +252,24 @@ n_GDrawCommandImage * n_gdraw_command_image_create_with_resource(uint32_t resour
     ResHandle handle = resource_get_handle(resource_id);
     size_t image_size = resource_size(handle) - 8;
     n_GDrawCommandImage * image = malloc(image_size);
-    resource_load(image, handle, image_size);
+    resource_load_app(handle, (uint8_t*)image, image_size);
     return image;
 }
 n_GDrawCommandImage * n_gdraw_command_image_clone(n_GDrawCommandImage * image) {
     return NULL; } // TODO
 void n_gdraw_command_image_destroy(n_GDrawCommandImage * image) {
-    free(image);
+    app_free(image);
 }
 
 n_GDrawCommandSequence * n_gdraw_command_sequence_create_with_resource(uint32_t resource_id) {
     ResHandle handle = resource_get_handle(resource_id);
     size_t sequence_size = resource_size(handle) - 8;
     n_GDrawCommandSequence * sequence = malloc(sequence_size);
-    resource_load(sequence, handle, sequence_size);
+    resource_load_app(handle, (uint8_t*)sequence, sequence_size);
     return sequence;
 }
 n_GDrawCommandSequence * n_gdraw_command_sequence_clone(n_GDrawCommandSequence * image) {
     return NULL; }
 void n_gdraw_command_sequence_destroy(n_GDrawCommandSequence * sequence) {
-    free(sequence);
+    app_free(sequence);
 }

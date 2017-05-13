@@ -94,6 +94,13 @@ extern "C" {
 #define portSTACK_TYPE	uint32_t
 #define portBASE_TYPE	long
 
+#define portSVC_START_SCHEDULER             0
+#define portSVC_YIELD                       1
+#define portSVC_RAISE_PRIVILEGE             2
+#define portSVC_SYSCALL                     3
+
+#define portOFFSET_TO_PC                    ( 6 ) 
+
 typedef portSTACK_TYPE StackType_t;
 typedef long BaseType_t;
 typedef unsigned long UBaseType_t;

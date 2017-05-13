@@ -8,16 +8,16 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
     
     if (upng == NULL)
     {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "UPNG malloc error"); 
+        SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG malloc error");
     }
     if (upng_get_error(upng) != UPNG_EOK)
     {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "UPNG Loaded:%d line:%d", 
+        SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG Loaded:%d line:%d", 
       upng_get_error(upng), upng_get_error_line(upng));
     }
     if (upng_decode(upng) != UPNG_EOK)
     {
-        APP_LOG(APP_LOG_LEVEL_DEBUG, "UPNG Decode:%d line:%d", 
+        SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG Decode:%d line:%d", 
       upng_get_error(upng), upng_get_error_line(upng));
     }
 
@@ -42,7 +42,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         printf("\n PALETTE\n");
         for (int i = 0; i < plen; i++)
         {
-            printf("0x%02x ", palette[i]);
+            printf("0x%02x%02x%02x ", palette[i].r, palette[i].g, palette[i].b);
         }
         printf("\n ALPHA\n");
         for (int i = 0; i < alen; i++)
@@ -54,7 +54,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         // convert the palettes and alphas from 8 bit (requiring 4 bytes) to 2 bit rgba (1 byte)
         if (plen > 0)
         {
-            n_GColor *conv_palettes = calloc(1, plen * sizeof(n_GColor));
+            n_GColor *conv_palettes = app_calloc(1, plen * sizeof(n_GColor));
             
             for (uint8_t i = 0; i < plen; i++)
             {
@@ -110,7 +110,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
             if (bitmap->palette_size ==0 && alen > 0)
             {
                 // convert palette
-                n_GColor *conv_palettes = calloc(1, 4 * sizeof(n_GColor));
+                n_GColor *conv_palettes = app_calloc(1, 4 * sizeof(n_GColor));
 
                 // black with alpha (black)
                 conv_palettes[0].argb = n_GColorFromRGBA(0, 0, 0, 255).argb;

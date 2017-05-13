@@ -89,7 +89,7 @@
 
 #include "platform_freertos.h"
 
-#define configSUPPORT_STATIC_ALLOCATION 0
+#define configSUPPORT_STATIC_ALLOCATION 1
 
 #define configUSE_PREEMPTION   1
 #define configUSE_IDLE_HOOK    1
@@ -97,8 +97,8 @@
 #define configCPU_CLOCK_HZ    ( SystemCoreClock )
 #define configTICK_RATE_HZ    ( ( TickType_t ) 200 )
 #define configMAX_PRIORITIES   ( 5 )
-#define configMINIMAL_STACK_SIZE  ( ( unsigned short ) 130 )
-#define configTOTAL_HEAP_SIZE   ( ( size_t ) ( 75 * 1024 ) )
+#define configMINIMAL_STACK_SIZE  ( ( unsigned short ) 300 )
+#define configTOTAL_HEAP_SIZE   ( ( size_t ) ( 30 * 1024 ) )
 #define configMAX_TASK_NAME_LEN   ( 10 )
 #define configUSE_TRACE_FACILITY  0
 #define configUSE_16_BIT_TICKS   0
@@ -119,7 +119,7 @@
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 
 /* Software timer definitions. */
-#define configUSE_TIMERS    1
+#define configUSE_TIMERS    0
 #define configTIMER_TASK_PRIORITY  ( 2 )
 #define configTIMER_QUEUE_LENGTH  10
 #define configTIMER_TASK_STACK_DEPTH ( configMINIMAL_STACK_SIZE * 2 )

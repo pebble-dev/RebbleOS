@@ -1,25 +1,17 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* snowy_rtc.c
+ * STM32F4xx RTC implementation
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "stm32f4xx.h"
 #include "stm32f4xx_rtc.h"
 #include "stdio.h"
 #include "string.h"
 #include "snowy_rtc.h"
+#include "stm32_power.h"
+#include "log.h"
 #include <stdlib.h>
 #include <time.h>
 
@@ -38,6 +30,8 @@ void rtc_init(void)
     
     // Configure the RTC clocks
     rtc_config();
+    
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
 
     // Setup the wakeup interrupt for later on when we do power management
     EXTI_ClearITPendingBit(EXTI_Line22);
@@ -82,7 +76,7 @@ void rtc_init(void)
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);  
 
-    printf("RTC INIT\n");
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
 }
 
 /* 
@@ -152,7 +146,7 @@ void rtc_config(void)
 {
     RTC_InitTypeDef  RTC_InitStructure;
     
-    RCC_APB1PeriphClockCmd(RCC_APB1Periph_PWR, ENABLE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_PWR);
 
     PWR_BackupAccessCmd(ENABLE); // allow RTC access
     
@@ -196,9 +190,10 @@ void rtc_config(void)
     RTC_InitStructure.RTC_SynchPrediv = uwSynchPrediv;
     RTC_InitStructure.RTC_HourFormat = RTC_HourFormat_24;
     RTC_Init(&RTC_InitStructure);
-    
-    EXTI_ClearITPendingBit(EXTI_Line17);
 
+    EXTI_ClearITPendingBit(EXTI_Line17);
+    
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_PWR);
 }
 
 void hw_get_time_str(char *buf)
@@ -206,7 +201,7 @@ void hw_get_time_str(char *buf)
     RTC_TimeTypeDef  RTC_TimeStructure;
 
     RTC_GetTime(RTC_Format_BIN, &RTC_TimeStructure);
-    sprintf(buf, "%02d:%02d:%02d\n",RTC_TimeStructure.RTC_Hours, RTC_TimeStructure.RTC_Minutes, RTC_TimeStructure.RTC_Seconds);
+    snprintf(buf, 12, "%02d:%02d:%02d\n",RTC_TimeStructure.RTC_Hours, RTC_TimeStructure.RTC_Minutes, RTC_TimeStructure.RTC_Seconds);
 }
 
 struct tm *hw_get_time(void)
@@ -262,11 +257,10 @@ void hw_set_date_time(struct tm date_time)
 
 void RTC_WKUP_IRQHandler(void)
 {
-    printf("WAKE\n");
     if(RTC_GetITStatus(RTC_IT_WUT) != RESET)
     {
         RTC_ClearITPendingBit(RTC_IT_WUT);
-        printf("WAKE\n");
+        DRV_LOG("RTC", APP_LOG_LEVEL_DEBUG, "RTC WAKE IRQ");
         EXTI_ClearITPendingBit(EXTI_Line22);
     } 
 }
@@ -281,8 +275,6 @@ void RTC_Alarm_IRQHandler(void)
         
         RTC_ClearITPendingBit(RTC_IT_ALRA);
         EXTI_ClearITPendingBit(EXTI_Line17);
-        
-
     } 
 }
 

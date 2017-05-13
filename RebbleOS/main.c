@@ -1,23 +1,13 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* main.c
+ * Main entry point
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "rebbleos.h"
 
-void CheckTaskWatchDog (void *pvParameters);
+static void _watchdog_thread (void *pvParameters);
 
 int main(void)
 {
@@ -26,7 +16,7 @@ int main(void)
     hardware_init();
 
     xTaskCreate(
-        CheckTaskWatchDog,                 /* Function pointer */
+        _watchdog_thread,                 /* Function pointer */
         "WWDGTask",                          /* Task name - for debugging only*/
         configMINIMAL_STACK_SIZE,         /* Stack depth in words */
         (void*) NULL,                     /* Pointer to tasks arguments (parameter) */
@@ -35,7 +25,7 @@ int main(void)
 
     rebbleos_init();
     
-    printf("RebbleOS (Ginge) v0.0.0.1\n");
+    KERN_LOG("main", APP_LOG_LEVEL_INFO, "RebbleOS %s", VERSION);
     
     vTaskStartScheduler();  // should never return
     for (;;);
@@ -62,7 +52,7 @@ void watchdog_reset(void)
 /*
  * A task to periodically reset the watchdog timer
  */
-void CheckTaskWatchDog(void *pvParameters)
+static void _watchdog_thread(void *pvParameters)
 {
     while(1)
     {
@@ -78,24 +68,24 @@ void hardware_init(void)
 {
     platform_init();
     debug_init();
-    printf("debug init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Debug Init");
     watchdog_init();
-    printf("watchdog init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Watchdog Init");
     power_init();
-    printf("power init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
+    flash_init();
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Flash Init");
     vibrate_init();
-    printf("vibro init init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Vibro Init");
     display_init();
-    printf("display init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Display Init");
     buttons_init();
-    printf("buttons init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Buttons Init");
     rtc_init();
     ambient_init();
-    printf("ambiance init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Ambiance Init");
     backlight_init();
-    printf("bl init\n");
-    flash_init();
-    printf("flash init\n");
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Backlight Init");
     platform_init_late();
 }
 
@@ -117,9 +107,9 @@ void vApplicationTickHook(void) {
    to query the size of free heap space that remains (although it does not
    provide information on how the remaining heap might be fragmented). */
 void vApplicationMallocFailedHook(void) {
-    printf("Malloc fail\n");
-  taskDISABLE_INTERRUPTS();
-  for(;;);
+    KERN_LOG("malloc", APP_LOG_LEVEL_ERROR, "Malloc Failed!");
+    taskDISABLE_INTERRUPTS();
+    for(;;);
 }
 
 /* vApplicationIdleHook() will only be called if configUSE_IDLE_HOOK is set
@@ -135,26 +125,46 @@ void vApplicationIdleHook(void) {
 }
 
 void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName) {
-  (void) pcTaskName;
-  (void) pxTask;
-  /* Run time stack overflow checking is performed if
-     configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
-     function is called if a stack overflow is detected. */
-  printf("stck ovf\n");
-  taskDISABLE_INTERRUPTS();
-  for(;;);
+    (void) pcTaskName;
+    (void) pxTask;
+    /* Run time stack overflow checking is performed if
+        configCHECK_FOR_STACK_OVERFLOW is defined to 1 or 2.  This hook
+        function is called if a stack overflow is detected. */
+    KERN_LOG("init", APP_LOG_LEVEL_ERROR, "Stack Overflow!");
+    taskDISABLE_INTERRUPTS();
+    for(;;);
 }
 
 /* configUSE_STATIC_ALLOCATION is set to 1, so the application must provide an
 implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
 used by the Idle task. */
+/*
+ * 
+ *           Joshua 
+ * The below works on the device as well as qemu.
+ * The stack data size on arm is 32 bit, so setting to a uint type causes weird
+ * pointer issues in freertos.
+ * StackType_t is platform independant, and is sized to a frame, pointer. in our case 32 bit.
+ * That's also why sizeof(_idle_stack) is 4 times out. Task size is task stack entries * sizeof(int)
+ * 
+ * Ginge
+ * 
+ */
+static StackType_t _idle_stack[250];
+static StaticTask_t _idle_tcb;
 void vApplicationGetIdleTaskMemory(StaticTask_t **ppxIdleTaskTCBBuffer, StackType_t **ppxIdleTaskStackBuffer, uint32_t *pulIdleTaskStackSize) {
-
+    *ppxIdleTaskTCBBuffer = &_idle_tcb;
+    *ppxIdleTaskStackBuffer = _idle_stack;
+    *pulIdleTaskStackSize = sizeof(_idle_stack) / sizeof(_idle_stack[0]);
 }
 
 /* configUSE_STATIC_ALLOCATION and configUSE_TIMERS are both set to 1, so the
 application must provide an implementation of vApplicationGetTimerTaskMemory()
 to provide the memory that is used by the Timer service task. */
+static StackType_t _timer_stack[100];
+static StaticTask_t _timer_tcb;
 void vApplicationGetTimerTaskMemory(StaticTask_t **ppxTimerTaskTCBBuffer, StackType_t **ppxTimerTaskStackBuffer, uint32_t *pulTimerTaskStackSize) {
-
+    *ppxTimerTaskTCBBuffer = &_timer_tcb;
+    *ppxTimerTaskStackBuffer = _timer_stack;
+    *pulTimerTaskStackSize = sizeof(_timer_stack) / sizeof(_timer_stack[0]);
 }

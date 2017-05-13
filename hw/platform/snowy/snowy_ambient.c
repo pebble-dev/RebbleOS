@@ -1,24 +1,16 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* snowy_ambient.c
+ * Ambient light sensor routines for Pebble Time (snowy)
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "stm32f4xx.h"
 #include "stdio.h"
 #include "string.h"
 #include "snowy_ambient.h"
+#include "log.h"
+#include "stm32_power.h"
 
 /*
  * Initialise the hardware. This means all GPIOs and SPI for the display
@@ -37,8 +29,8 @@ void hw_ambient_init(void)
     ADC_CommonStructInit(&ADC_CommonInitStructure);
     
     //RCC_ADCCLKConfig(RCC_PCLK2_Div6);
-    RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
 
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
@@ -85,7 +77,8 @@ void hw_ambient_init(void)
     
     ADC_RegularChannelConfig(ADC1, ADC_Channel_2, 1, ADC_SampleTime_144Cycles);
 
-    printf("Ambience\n");
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
 }
 
 uint16_t hw_ambient_get(void)
@@ -93,6 +86,9 @@ uint16_t hw_ambient_get(void)
     uint16_t val;
     
     // ambient is connected to PA3 so lets pull it up and energise
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+
     GPIO_SetBits(GPIOA, GPIO_Pin_3);
     delay_us(10);
     
@@ -101,7 +97,11 @@ uint16_t hw_ambient_get(void)
     val = ADC_GetConversionValue(ADC1);
     
     GPIO_ResetBits(GPIOA, GPIO_Pin_3);
-    printf("Ambient: %d\n", val);
+    
+    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_ADC1);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+
+    DRV_LOG("ambie", APP_LOG_LEVEL_DEBUG, "Ambient: %d", val);
     
     return val;
 }

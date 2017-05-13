@@ -1,19 +1,8 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* snowy_ext_flash.c
+ * FMC NOR flash implementation for Pebble Time (snowy)
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
 
 #include "stm32f4xx.h"
@@ -22,15 +11,39 @@
 #include "stm32f4xx_gpio.h"
 #include "stm32f4xx_fsmc.h"
 #include "platform.h"
+#include "stm32_power.h"
+#include "log.h"
+#include "appmanager.h"
+#include "flash.h"
+
 
 // base region
 #define Bank1_NOR_ADDR ((uint32_t)0x60000000)
 
-void _nor_gpio_config(void);
+void _nor_gpio_config(void);
 void _nor_enter_read_mode(uint32_t address);
 void _nor_reset_region(uint32_t address);
 void _nor_reset_state(void);
-uint8_t _flash_test(void);
+int _flash_test(void);
+
+static uint16_t _nor_read16(uint32_t address);
+static void _nor_write16(uint32_t address, uint16_t data);
+
+hw_driver_ext_flash_t _hw_flash_driver = {
+    .common_info.module_name = "NOR Flash",
+    .common_info.init = hw_flash_init,
+    .common_info.deinit = hw_flash_deinit,
+    .common_info.test = _flash_test,
+    .read_bytes = hw_flash_read_bytes,
+};
+
+static hw_driver_handler_t *_handler;
+
+void *hw_flash_module_init(hw_driver_handler_t *handler)
+{
+    _handler = handler;
+    return &_hw_flash_driver;
+}
 
 /*
  * Initialise the flash hardware. 
@@ -41,11 +54,7 @@ void hw_flash_init(void)
     FMC_NORSRAMInitTypeDef fmc_nor_init_struct;
     FMC_NORSRAMTimingInitTypeDef p;
     
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOG, ENABLE);
-
+    
     // The bootloader toggles the reset manually before we init.
     // It didn't do anything below, so I assume it works. Also works without
     // bootloader sets D4 high here
@@ -65,7 +74,7 @@ void hw_flash_init(void)
     // let the flash initialise from the reset
     delay_ms(30);    
     
-    RCC_AHB3PeriphClockCmd(RCC_AHB3Periph_FMC, ENABLE);
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
    
     // settled on these
     p.FMC_AddressSetupTime = 4;
@@ -102,17 +111,26 @@ void hw_flash_init(void)
         
     if (!_flash_test())
     {
-        printf("FLASH FAILED!\n");
+        DRV_LOG("Flash", APP_LOG_LEVEL_ERROR, "Flash version check failed");
+        // we carry on here, as it seems to work. TODO find unlock?
+        //assert(!err);
     }
+    
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+}
+
+void hw_flash_deinit(void)
+{
 }
 
 void _nor_gpio_config(void)
 {
     GPIO_InitTypeDef gpio_init_struct;
     
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE |
-                            RCC_AHB1Periph_GPIOB, ENABLE);
-
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+    
     /* We have the following known config on Snowy
      * S29VS128R flash controller
      * Using multiplexing mode
@@ -178,6 +196,11 @@ void _nor_gpio_config(void)
                                     GPIO_Pin_14 | GPIO_Pin_15;
                                     
     GPIO_Init(GPIOE, &gpio_init_struct);
+
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+
 }
 
 /*
@@ -186,7 +209,7 @@ void _nor_gpio_config(void)
  */
 inline void _nor_reset_region(uint32_t address)
 {
-    hw_flash_write16(address, 0xF0);
+    _nor_write16(address, 0xF0);
 }
 
 /*
@@ -194,25 +217,30 @@ inline void _nor_reset_region(uint32_t address)
  */
 inline void _nor_reset_state(void)
 {
-    hw_flash_write16(0, 0xF0);
+    _nor_write16(0, 0xF0);
 }
 
 /*
  * Call for a test. Unlocks the CFI ID region and reads the QRY section
  * NOTE: seems wonky on real hardware. works in emu!
  */
-uint8_t _flash_test(void)
+int _flash_test(void)
 {
     uint16_t nr, nr1, nr2;
     uint8_t result;
+    
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
     _nor_reset_state();
     // Write CFI command to enter ID region
-    hw_flash_write16(0xAAA, 0x98);
+    _nor_write16(0xAAA, 0x98);
     // 0x20-0x24 are the "Qrery header QRY"
-    nr = hw_flash_read16(0x20);
-    nr1 = hw_flash_read16(0x22);
-    nr2 = hw_flash_read16(0x24);
-    printf("READR NR %d NR1 %d NR2 %d\n", nr, nr1, nr2);
+    nr = _nor_read16(0x20);
+    nr1 = _nor_read16(0x22);
+    nr2 = _nor_read16(0x24);
+
+    DRV_LOG("Flash", APP_LOG_LEVEL_DEBUG, "READR NR %d NR1 %d NR2 %d\n", nr, nr1, nr2);
+    
     if ( nr != 81 || nr1 != 82 )
         result = 0;
     else
@@ -220,6 +248,9 @@ uint8_t _flash_test(void)
     
     // Quit CFI ID mode
     _nor_reset_region(0xAAA);
+    
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
     return result;
 }
 
@@ -229,39 +260,47 @@ uint8_t _flash_test(void)
 void _nor_enter_read_mode(uint32_t address)
 {
     // CFI start read unlock
-    hw_flash_write16(0xAAA, 0xAA);
-    hw_flash_write16(0x554, 0x55);
+    _nor_write16(0xAAA, 0xAA);
+    _nor_write16(0x554, 0x55);
     // unlock the address
     _nor_reset_region(address);
 }
 
-void hw_flash_write16(uint32_t address, uint16_t data)
+static void _nor_write16(uint32_t address, uint16_t data)
 {
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
      (*(__IO uint16_t *)(Bank1_NOR_ADDR + address) = (data));
+     
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 }
 
-uint16_t hw_flash_read16(uint32_t address)
+static uint16_t _nor_read16(uint32_t address)
 {
+    uint16_t rv;
+    
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
     _nor_enter_read_mode(address);
 
-    return *(__IO uint16_t *)(Bank1_NOR_ADDR + address);
+    rv = *(__IO uint16_t *)(Bank1_NOR_ADDR + address);
+    
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+    
+    return rv;
 }
 
 void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length)
 {
+    stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+
     _nor_enter_read_mode(address);
     for(uint32_t i = 0; i < length; i++)
     {
         buffer[i] = *(__IO uint8_t *)((Bank1_NOR_ADDR + address + i));
     }
     _nor_reset_region(0xAAA);
-}
 
-uint32_t hw_flash_read32(uint32_t address)
-{
-    _nor_enter_read_mode(address);
-    
-    return (*(__IO uint32_t *)((Bank1_NOR_ADDR + address)));
+    stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 }
-
 

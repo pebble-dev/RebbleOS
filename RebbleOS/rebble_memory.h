@@ -1,27 +1,30 @@
 #pragma once
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* rebble_memory.h
+ * routines for Allocating memory for system and apps. 
+ * App memory gets alocated ont he app's own heap where sys has a global heap
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "FreeRTOS.h"
 #include <string.h>
 #include <stdlib.h>
+#include "stdbool.h"
 
 #define malloc pvPortMalloc
 #define calloc pvPortCalloc
 #define free vPortFree
 
 void *pvPortCalloc(size_t count, size_t size);
+void rblos_memory_init(void);
+bool rblos_memory_sanity_check_app(size_t size);
+void *app_malloc(size_t size);
+void *app_calloc(size_t count, size_t size);
+void app_free(void *mem);
+
+size_t xPortGetMinimumEverFreeAppHeapSize( void );
+size_t xPortGetFreeAppHeapSize( void );
+void vPortAppFree( void *pv );
+void *pvPortAppMalloc( size_t xWantedSize );
+void appHeapInit(size_t xTotalHeapSize, uint8_t *e_app_stack_heap);

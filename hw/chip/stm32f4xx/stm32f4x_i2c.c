@@ -20,7 +20,16 @@
 #include "stm32f4xx.h"
 #include <stm32f4xx_i2c.h>
 #include "stm32f4x_i2c.h"
+#include "stm32_power.h"
 
+static uint32_t I2C_write_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint16_t cnt);
+static uint32_t I2C_read_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint16_t cnt);
+static uint32_t I2C_read_byte(I2C_conf_t *I2C_conf, uint8_t *buf);
+static uint32_t I2C_write_byte(I2C_conf_t *I2C_conf, uint8_t byte);
+static uint32_t I2C_addr(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t dir);
+static uint32_t I2C_start(I2C_conf_t *I2C_conf);
+static uint8_t I2C_wait_for_flags(I2C_conf_t *I2C_conf, uint32_t Flags);
+static uint8_t I2C_wait_idle(I2C_conf_t *I2C_conf);
 
 void I2C_init(I2C_conf_t *I2C_conf)
 {
@@ -28,7 +37,10 @@ void I2C_init(I2C_conf_t *I2C_conf)
     I2C_InitTypeDef   I2C_InitStructure;
 
     // Enable the i2c bus
-    RCC_APB1PeriphClockCmd(I2C_conf->RCC_APB1Periph_I2Cx, ENABLE);
+    stm32_power_request(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
+    stm32_power_request(STM32_POWER_AHB1, I2C_conf->RCC_AHB1Periph_GPIO_SCL);
+    stm32_power_request(STM32_POWER_AHB1, I2C_conf->RCC_AHB1Periph_GPIO_SDA);
+
     // Reset the I2C Peripheral
     RCC_APB1PeriphResetCmd(I2C_conf->RCC_APB1Periph_I2Cx, ENABLE);
     RCC_APB1PeriphResetCmd(I2C_conf->RCC_APB1Periph_I2Cx, DISABLE);
@@ -66,12 +78,20 @@ void I2C_init(I2C_conf_t *I2C_conf)
     // I2C Peripheral Enable
     I2C_Cmd(I2C_conf->I2Cx, ENABLE);
 
+    stm32_power_release(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
+    stm32_power_release(STM32_POWER_AHB1, I2C_conf->RCC_AHB1Periph_GPIO_SCL);
+    stm32_power_release(STM32_POWER_AHB1, I2C_conf->RCC_AHB1Periph_GPIO_SDA);
+
     return; 
 }
 
 void I2C_deinit(I2C_conf_t *I2C_conf)
 {
     GPIO_InitTypeDef  GPIO_InitStructure; 
+
+    stm32_power_request(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
+    stm32_power_request(STM32_POWER_AHB1, I2C_conf->RCC_AHB1Periph_GPIO_SCL);
+    stm32_power_request(STM32_POWER_AHB1, I2C_conf->RCC_AHB1Periph_GPIO_SDA);
 
     // I2C Peripheral Disable
     I2C_Cmd(I2C_conf->I2Cx, DISABLE);
@@ -88,12 +108,18 @@ void I2C_deinit(I2C_conf_t *I2C_conf)
     GPIO_InitStructure.GPIO_Pin = I2C_conf->GPIO_Pin_SDA;
     GPIO_Init(I2C_conf->GPIO_SDA, &GPIO_InitStructure);
 
+    stm32_power_release(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
+    stm32_power_release(STM32_POWER_AHB1, I2C_conf->RCC_AHB1Periph_GPIO_SCL);
+    stm32_power_release(STM32_POWER_AHB1, I2C_conf->RCC_AHB1Periph_GPIO_SDA);
+
     return;
 }
 
 // write a byte
 void I2C_write_reg(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t reg, uint8_t data)
 {  
+    stm32_power_request(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
+
     I2C_start(I2C_conf);
     
     // Send I2C device Address and clear ADDR
@@ -110,12 +136,16 @@ void I2C_write_reg(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t reg, uint8_t data
     I2C_conf->I2Cx->CR1 |= I2C_CR1_STOP;
     
     I2C_wait_idle(I2C_conf);
+
+    stm32_power_release(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
     
     return;
 }
 
 void I2C_read_reg(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t cnt)
 {
+    stm32_power_request(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
+
     // Send the Register Address
     I2C_start(I2C_conf);
     printf("****I2C 1**\n");
@@ -129,10 +159,13 @@ void I2C_read_reg(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t reg, uint8_t *buf,
     // read
     I2C_read_bytes(I2C_conf, addr, buf, cnt);
     printf("****I2C 4**\n");
+
+    stm32_power_release(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
+
     return;
 }
 
-uint32_t I2C_write_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint16_t cnt)
+static uint32_t I2C_write_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint16_t cnt)
 {
     I2C_start(I2C_conf);
     I2C_addr(I2C_conf, addr, I2C_Direction_Transmitter);
@@ -157,7 +190,7 @@ uint32_t I2C_write_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint1
     return 0;
 }
 
-uint32_t I2C_read_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint16_t cnt)
+static uint32_t I2C_read_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint16_t cnt)
 {
     I2C_start(I2C_conf);
   
@@ -258,10 +291,10 @@ uint32_t I2C_read_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint16
     return 0;
 }
 
-uint32_t I2C_read_byte(I2C_conf_t *I2C_conf, uint8_t *buf)
+static uint32_t I2C_read_byte(I2C_conf_t *I2C_conf, uint8_t *buf)
 {
     uint32_t err;
-    
+
     // Wait for RXNE
     err = I2C_wait_for_flags(I2C_conf, I2C_SR1_RXNE);
         
@@ -276,7 +309,7 @@ uint32_t I2C_read_byte(I2C_conf_t *I2C_conf, uint8_t *buf)
     }
 }
 
-uint32_t I2C_write_byte(I2C_conf_t *I2C_conf, uint8_t byte)
+static uint32_t I2C_write_byte(I2C_conf_t *I2C_conf, uint8_t byte)
 { 
     // Write the byte to the DR
     I2C_conf->I2Cx->DR = byte;
@@ -284,7 +317,7 @@ uint32_t I2C_write_byte(I2C_conf_t *I2C_conf, uint8_t byte)
     return I2C_wait_for_flags(I2C_conf, I2C_SR1_TXE);
 }
 
-uint32_t I2C_addr(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t dir)
+static uint32_t I2C_addr(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t dir)
 {
     if (dir == 1)
         addr = addr | 1;
@@ -295,7 +328,7 @@ uint32_t I2C_addr(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t dir)
     return I2C_wait_for_flags(I2C_conf, I2C_SR1_ADDR);
 }
 
-uint32_t I2C_start(I2C_conf_t *I2C_conf)
+static uint32_t I2C_start(I2C_conf_t *I2C_conf)
 {  
     I2C_conf->I2Cx->CR1 |= I2C_CR1_START;
   
@@ -304,7 +337,7 @@ uint32_t I2C_start(I2C_conf_t *I2C_conf)
     return I2C_wait_for_flags(I2C_conf, I2C_SR1_SB);
 }
 
-uint8_t I2C_wait_for_flags(I2C_conf_t *I2C_conf, uint32_t Flags)
+static uint8_t I2C_wait_for_flags(I2C_conf_t *I2C_conf, uint32_t Flags)
 {
     uint16_t timeout = 5000;
   
@@ -319,7 +352,7 @@ uint8_t I2C_wait_for_flags(I2C_conf_t *I2C_conf, uint32_t Flags)
     return 0;
 }
 
-uint8_t I2C_wait_idle(I2C_conf_t *I2C_conf)
+static uint8_t I2C_wait_idle(I2C_conf_t *I2C_conf)
 { 
     uint32_t timeout = 5000;
 
@@ -334,5 +367,4 @@ uint8_t I2C_wait_idle(I2C_conf_t *I2C_conf)
     
     return 0;
 }
-
 

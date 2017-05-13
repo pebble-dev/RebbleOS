@@ -1,22 +1,15 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* font_loader.c
+ * routines for [...]
+ * libRebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "rebbleos.h"
 #include "librebble.h"
+
+// TODO This is still somewhat sketchy in that I'm not convinced some of these magic offsets
+// are right
 
 uint16_t _fonts_get_resource_id_for_key(const char *key);
 
@@ -75,14 +68,14 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 /*
  * Load a custom font
  */
-GFont fonts_load_custom_font(ResHandle handle)
+GFont *fonts_load_custom_font(ResHandle *handle, uint16_t slot_id)
 {
+    // The font is offset. account for it.
+    handle->offset += APP_FONT_START;
     
-    uint8_t *buffer = resource_fully_load_res(handle);
+    uint8_t *buffer = resource_fully_load_res_app(*handle, slot_id);
 
-    GFont font = (GFont)buffer;
-
-    return font;
+    return (GFont *)buffer;
 }
 
 /*
@@ -90,7 +83,7 @@ GFont fonts_load_custom_font(ResHandle handle)
  */
 void fonts_unload_custom_font(GFont font)
 {
-    free(font);
+    app_free(font);
 }
 
 #define EQ_FONT(font) (strncmp(key, font, strlen(key)) == 0) return font ## _ID;

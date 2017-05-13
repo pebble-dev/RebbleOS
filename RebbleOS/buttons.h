@@ -1,27 +1,17 @@
 #pragma once
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* buttons.h
+ * routines for Debouncing and sending buttons through a click, multi, long press handler
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "FreeRTOS.h"
 // not ideal. TODO reorg
 #include "rebbleos.h"
 #include "librebble.h"
 
-#define butDEBOUNCE_DELAY       ( 1 / portTICK_RATE_MS )
+#define butDEBOUNCE_DELAY       ( portTICK_RATE_MS )
 
 #define BUTTON_STATE_PRESSED    0
 #define BUTTON_STATE_RELEASED   1
@@ -40,6 +30,7 @@ typedef struct ButtonHolder {
 
 void buttons_init(void);
 uint8_t button_pressed(ButtonId button_id);
+void button_isr(hw_button_t button_id);
 
 void button_single_click_subscribe(ButtonId button_id, ClickHandler handler);
 void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat_interval_ms, ClickHandler handler);

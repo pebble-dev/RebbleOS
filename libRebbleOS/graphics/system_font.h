@@ -1,4 +1,11 @@
 #pragma once
+/* system_font.h
+ * routines for [...]
+ * libRebbleOS
+ *
+ * Author: Barry Carter <barry.carter@gmail.com>
+ */
+
 /*
 027 | gothic: 09
 028 | gothic: 14

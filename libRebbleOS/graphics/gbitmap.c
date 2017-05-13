@@ -1,24 +1,15 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* gbitmap.c
+ * routines for [...]
+ * libRebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
 
 #include "librebble.h"
 #include "upng.h"
 #include "png.h"
+
+extern uint8_t *resource_fully_load_id_app(uint16_t, uint16_t);
 
 void _gbitmap_draw(GBitmap *bitmap, GRect clip);
 
@@ -28,7 +19,7 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clip);
 GBitmap *gbitmap_create(GRect frame)
 {
     //Allocate gbitmap
-    GBitmap *gbitmap = calloc(1, sizeof(GBitmap));
+    GBitmap *gbitmap = app_calloc(1, sizeof(GBitmap));
     gbitmap->bounds = frame;
     gbitmap->free_data_on_destroy = true;
     gbitmap->free_palette_on_destroy = true;
@@ -43,11 +34,11 @@ GBitmap *gbitmap_create(GRect frame)
 void gbitmap_destroy(GBitmap *bitmap)
 {
     if (bitmap->free_palette_on_destroy)
-        free(bitmap->palette);
+        app_free(bitmap->palette);
     if (bitmap->free_data_on_destroy)
-        free(bitmap->addr);
+        app_free(bitmap->addr);
         
-    free(bitmap);
+    app_free(bitmap);
     bitmap = NULL;
 }
 
@@ -71,8 +62,6 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
 
     uint8_t alpha_offset = (bitmap->palette_size > 0) && (bitmap->palette[0].a == 0);
     uint32_t pal_idx;
-    
-    uint8_t *buf = display_get_buffer();
     
     // clip to the smallest real size of the image
     uint16_t ctmp = (bitmap->bounds.size.w > bitmap->raw_bitmap_size.w) ? bitmap->raw_bitmap_size.w : bitmap->bounds.size.w;
@@ -258,7 +247,7 @@ GColor *gbitmap_get_palette(const GBitmap *bitmap)
  */
 void gbitmap_set_palette(GBitmap *bitmap, GColor *palette, bool free_on_destroy)
 {
-    free(bitmap->palette);
+    app_free(bitmap->palette);
     bitmap->palette = palette;
     bitmap->free_palette_on_destroy = free_on_destroy;
 }
@@ -275,10 +264,19 @@ GBitmap *gbitmap_create_with_resource(uint32_t resource_id)
     return gbitmap_create_from_png_data(png_data, png_data_size);
 }
 
+GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, uint16_t slot_id)
+{
+    uint8_t *png_data = (uint8_t*)resource_fully_load_id_app(resource_id, slot_id);
+    ResHandle res_handle = resource_get_handle_app(resource_id, slot_id);
+    size_t png_data_size = resource_size(res_handle);
+        
+    return gbitmap_create_from_png_data(png_data, png_data_size);
+}
+
 /*
  * Create a new bitmap with the given data
  */
-GBitmap *gbitmap_create_with_data(const uint8_t *data)
+GBitmap *gbitmap_create_with_data(uint8_t *data)
 {
     GRect r;
     // allocate a gbitmap
@@ -313,7 +311,7 @@ GBitmap *gbitmap_create_as_sub_bitmap(const GBitmap *base_bitmap, GRect sub_rect
 /*
  * Given loaded png image, create a new GBitmap
  */
-GBitmap *gbitmap_create_from_png_data(const uint8_t *png_data, size_t png_data_size)
+GBitmap *gbitmap_create_from_png_data(uint8_t *png_data, size_t png_data_size)
 {   
     GRect fr;
     //Allocate gbitmap
@@ -332,11 +330,11 @@ GBitmap *gbitmap_create_blank(GSize size, GBitmapFormat format)
     GRect gr = { .size = size, .origin.x = 0, .origin.y = 0 };
     GBitmap *bitmap = gbitmap_create(gr);
     bitmap->format = format;
-    bitmap->addr = calloc(1, size.w * size.h);
+    bitmap->addr = app_calloc(1, size.w * size.h);
     
     if (bitmap->addr == NULL)
     {
-        printf("gbitmap_create_blank Malloc failed\n");
+        SYS_LOG("gbitmap", APP_LOG_LEVEL_ERROR, "gbitmap_create_blank Malloc failed");
         return NULL;
     }
     return bitmap;
@@ -357,7 +355,7 @@ GBitmap *gbitmap_create_blank_with_palette(GSize size, GBitmapFormat format, GCo
 /*
  * TODO
  */
-GBitmap *gbitmap_create_palettized_from_1bit(const GBitmap *src_bitmap)
+GBitmap *gbitmap_create_palettized_from_1bit(GBitmap *src_bitmap)
 {
     return NULL;
 }
@@ -377,7 +375,7 @@ void _gbitmap_set_size_pos(GBitmap *bitmap, GRect size)
  * Bitmaps will be clipped to rect
  * If rect > bitmap, bitmap will be tiled
  */
-void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect rect)
+void graphics_draw_bitmap_in_rect(GContext *ctx, GBitmap *bitmap, GRect rect)
 {
     _gbitmap_set_size_pos(bitmap, rect);
     
@@ -399,3 +397,12 @@ uint32_t gbitmap_sequence_get_play_count(GBitmapSequence * bitmap_sequence);
 void gbitmap_sequence_set_play_count(GBitmapSequence * bitmap_sequence, uint32_t play_count); GSize gbitmap_sequence_get_bitmap_size(GBitmapSequence * bitmap_sequence);
 GBitmapDataRowInfo gbitmap_get_data_row_info(const GBitmap * bitmap, uint16_t y);
 */
+
+
+bool grect_equal(const GRect *const rect_a, const GRect *const rect_b)
+{
+    return rect_a->origin.x == rect_b->origin.x &&
+           rect_a->origin.y == rect_b->origin.y &&
+           rect_a->size.w == rect_b->size.w &&
+           rect_a->size.h == rect_b->size.h;
+}

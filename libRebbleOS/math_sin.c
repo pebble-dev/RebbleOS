@@ -1,3 +1,10 @@
+/* math_sin.c
+ * LUT-based sine table
+ * libRebbleOS
+ *
+ * Author: Barry Carter <barry.carter@gmail.com>
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
