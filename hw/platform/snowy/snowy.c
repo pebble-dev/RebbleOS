@@ -11,6 +11,8 @@
 #include "stdio.h"
 #include "string.h"
 #include "snowy.h"
+#include "display.h"
+#include "driver.h"
 #include "log.h"
 #include "stm32_power.h"
 #include "stm32_buttons_platform.h"
@@ -153,6 +155,9 @@ void platform_init()
 
     // set the default pri groups for the interrupts
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
+    
+    // initialise any blob driver resources
+    driver_register_resource(HW_RESOURCE_FPGA, 1234, display_fpga_loader);
 }
 
 void platform_init_late()

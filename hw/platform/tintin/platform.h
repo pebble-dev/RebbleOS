@@ -3,6 +3,7 @@
 
 #include "tintin.h"
 #include "stm32_buttons.h"
+#include "driver.h"
 
 #define DISPLAY_ROWS 168
 #define DISPLAY_COLS 144

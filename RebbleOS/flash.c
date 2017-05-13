@@ -23,9 +23,19 @@ uint32_t _flash_get_app_slot_address(uint16_t slot_id);
 extern unsigned int _ram_top;
 #define portMPU_REGION_READ_WRITE (0x03UL << MPU_RASR_AP_Pos)
 
+static struct hw_driver_ext_flash_t *_flash_driver;
+
+// No ISR here (yet)
+static hw_driver_handler_t _callack_handler = {
+    .done_isr = NULL
+};
+
 void flash_init()
 {
-    hw_flash_init();
+    // initialise device specific flash
+    _flash_driver = (hw_driver_ext_flash_t *)driver_register((hw_driver_module_init_t)hw_flash_module_init, &_callack_handler);
+    assert(_flash_driver->read_bytes && "Read is invalid");
+    
 //     MPU->CTRL &= ~MPU_CTRL_ENABLE_Msk;
 //     MPU->RNR  = 0;
 //     MPU->RBAR = 0x20000000;
@@ -42,7 +52,9 @@ void flash_init()
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
 {
     xSemaphoreTake(_flash_mutex, portMAX_DELAY);
-    hw_flash_read_bytes(address, buffer, num_bytes);
+
+    _flash_driver->read_bytes(address, buffer, num_bytes);
+    
     xSemaphoreGive(_flash_mutex);
 }
 

@@ -15,15 +15,23 @@ static void _display_thread(void *pvParameters);
 static void _display_start_frame(uint8_t offset_x, uint8_t offset_y);
 static void _display_cmd(uint8_t cmd, char *data);
 
+static struct hw_driver_display_t *_display_driver;
+
+static hw_driver_handler_t _callack_handler = {
+    .done_isr = display_done_ISR
+};
+
 /*
  * Start the display driver and tasks. Show splash
  */
 void display_init(void)
-{      
+{   
     // initialise device specific display
-    hw_display_init();
-    hw_display_start();
-        
+    _display_driver = (hw_driver_display_t *)driver_register((hw_driver_module_init_t)hw_display_module_init, &_callack_handler);
+
+    assert(_display_driver->start && "Start is invalid");    
+    _display_driver->start();
+      
     // set up the RTOS tasks
     xTaskCreate(_display_thread, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_display_task);
     
@@ -33,6 +41,13 @@ void display_init(void)
     _display_cmd(DISPLAY_CMD_DRAW, NULL);
     
     KERN_LOG("Display", APP_LOG_LEVEL_INFO, "Display Tasks Created");
+}
+
+/* We know how to load the FPGA from flash. Lets get to it
+ */
+void display_fpga_loader(hw_resources_t resource_id, void *buffer, size_t offset, size_t sz)
+{
+    flash_read_bytes(REGION_FPGA_START + offset, buffer, sz);
 }
 
 /*
@@ -62,7 +77,9 @@ void display_done_ISR(uint8_t cmd)
  */
 void display_reset(uint8_t enabled)
 {
-    hw_display_reset();
+    assert(_display_driver->reset && "Reset is invalid");
+    
+    _display_driver->reset();
 }
 
 /*
@@ -71,7 +88,10 @@ void display_reset(uint8_t enabled)
 static void _display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
     xSemaphoreTake(_display_mutex, portMAX_DELAY);
-    hw_display_start_frame(xoffset, yoffset);
+    
+    assert(_display_driver->draw && "Draw is invalid");
+    
+    _display_driver->draw(xoffset, yoffset);
     
     // block wait for the draw to finish
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
@@ -85,7 +105,8 @@ static void _display_start_frame(uint8_t xoffset, uint8_t yoffset)
  */
 uint8_t *display_get_buffer(void)
 {
-    return hw_display_get_buffer();
+    assert(_display_driver->get_buffer && "Display buffer is invalid");
+    return _display_driver->get_buffer();
 }
 
 /*

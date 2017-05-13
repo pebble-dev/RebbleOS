@@ -6,12 +6,12 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-#define SYS_LOG(module, lvl, fmt, ...) \
-            log_printf(module, "SYS", lvl, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define KERN_LOG(module, lvl, fmt, ...) \
-            log_printf(module, "KERN", lvl, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
-#define DRV_LOG(module, lvl, fmt, ...) \
-            log_printf(module, "DRIVER", lvl, __FILE__, __LINE__, fmt, ##__VA_ARGS__)
+#define SYS_LOG(module_, lvl_, fmt_, ...) \
+            log_printf(module_, "SYS", lvl_, __FILE__, __LINE__, fmt_, ##__VA_ARGS__)
+#define KERN_LOG(module_, lvl_, fmt_, ...) \
+            log_printf(module_, "KERN", lvl_, __FILE__, __LINE__, fmt_, ##__VA_ARGS__)
+#define DRV_LOG(module_, lvl_, fmt_, ...) \
+            log_printf(module_, "DRIVER", lvl_, __FILE__, __LINE__, fmt_, ##__VA_ARGS__)
 
 
 typedef enum LogLevel {

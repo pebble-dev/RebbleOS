@@ -29,6 +29,11 @@
 #define REGION_RES_START        0x380000
 #define REGION_RES_SIZE         0x7D000 // TODO
 
+// FPGA
+#define REGION_FPGA_START       0xF0000
+#define REGION_FPGA_SIZE        0x7E2F
+
+
 #define REGION_APP_RES_START    0xB3A000
 #define REGION_APP_RES_SIZE     0x7D000
 

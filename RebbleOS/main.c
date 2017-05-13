@@ -73,6 +73,8 @@ void hardware_init(void)
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Watchdog Init");
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
+    flash_init();
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Flash Init");
     vibrate_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Vibro Init");
     display_init();
@@ -84,8 +86,6 @@ void hardware_init(void)
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Ambiance Init");
     backlight_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Backlight Init");
-    flash_init();
-    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Flash Init");
     platform_init_late();
 }
 

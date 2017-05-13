@@ -8,7 +8,7 @@
 
 #include "stm32f4xx.h"
 #include "platform.h"
-
+#include "driver.h"
 #define MAX_FRAMEBUFFER_SIZE DISPLAY_ROWS * DISPLAY_COLS
 
 // display command types
@@ -42,6 +42,8 @@ typedef struct {
 
 
 void hw_display_init(void);
+void hw_display_deinit(void);
+int hw_display_test(void);
 void hw_display_reset(void);
 void hw_display_start(void);
 void hw_backlight_init(void);
@@ -59,3 +61,5 @@ void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t
 void delay_us(uint16_t us);
 void delay_ms(uint16_t ms);
 
+
+void *hw_display_module_init(hw_driver_handler_t *handler);

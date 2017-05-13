@@ -55,8 +55,9 @@ void log_printf(const char *layer, const char *module, uint8_t level, const char
     
     printf("[%8s][%8s][%8s] %s:%d ", log_type, layer, module, filename, (int)line_no);
     
-    snprintf(buf, sizeof(buf), fmt, ar);
-    printf(buf);
+//     snprintf(buf, sizeof(buf), fmt, ar);
+    printf(fmt, ar);
+//     printf(buf);
     printf("\n");
 //     vprintf(fmt, ar); // TODO we don't have this
     va_end(ar);

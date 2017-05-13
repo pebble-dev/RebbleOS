@@ -13,20 +13,37 @@
 #include "platform.h"
 #include "stm32_power.h"
 #include "log.h"
+#include "appmanager.h"
+#include "flash.h"
+
 
 // base region
 #define Bank1_NOR_ADDR ((uint32_t)0x60000000)
 
-void _nor_gpio_config(void)
-;
+void _nor_gpio_config(void);
 void _nor_enter_read_mode(uint32_t address);
 void _nor_reset_region(uint32_t address);
 void _nor_reset_state(void);
-uint8_t _flash_test(void);
+int _flash_test(void);
 
 static uint16_t _nor_read16(uint32_t address);
 static void _nor_write16(uint32_t address, uint16_t data);
 
+hw_driver_ext_flash_t _hw_flash_driver = {
+    .common_info.module_name = "NOR Flash",
+    .common_info.init = hw_flash_init,
+    .common_info.deinit = hw_flash_deinit,
+    .common_info.test = _flash_test,
+    .read_bytes = hw_flash_read_bytes,
+};
+
+static hw_driver_handler_t *_handler;
+
+void *hw_flash_module_init(hw_driver_handler_t *handler)
+{
+    _handler = handler;
+    return &_hw_flash_driver;
+}
 
 /*
  * Initialise the flash hardware. 
@@ -100,6 +117,10 @@ void hw_flash_init(void)
     }
     
     stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
+}
+
+void hw_flash_deinit(void)
+{
 }
 
 void _nor_gpio_config(void)
@@ -203,7 +224,7 @@ inline void _nor_reset_state(void)
  * Call for a test. Unlocks the CFI ID region and reads the QRY section
  * NOTE: seems wonky on real hardware. works in emu!
  */
-uint8_t _flash_test(void)
+int _flash_test(void)
 {
     uint16_t nr, nr1, nr2;
     uint8_t result;

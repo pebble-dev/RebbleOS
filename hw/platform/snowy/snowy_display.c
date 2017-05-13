@@ -61,12 +61,30 @@ display_t display = {
     .pin_intn        = GPIO_Pin_10,
 };
 
+hw_driver_display_t _hw_display_driver = {
+    .common_info.module_name = "Display",
+    .common_info.init = hw_display_init,
+    .common_info.deinit = hw_display_deinit,
+    .common_info.test = hw_display_test,
+    .start = hw_display_start,
+    .draw = hw_display_start_frame,
+    .reset = hw_display_reset,
+    .get_buffer = hw_display_get_buffer,
+};
+
+static hw_driver_handler_t *_handler;
+
+void *hw_display_module_init(hw_driver_handler_t *handler)
+{
+    _handler = handler;
+    return &_hw_display_driver;
+}
 
 /*
  * Initialise the hardware. This means all GPIOs and SPI for the display
  */
 void hw_display_init(void)
-{   
+{
     display.power_on = 0;
     _display_ready = 0;
 
@@ -115,6 +133,16 @@ void hw_display_init(void)
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
+}
+
+void hw_display_deinit(void)
+{
+    //TODO
+}
+
+int hw_display_test(void)
+{
+    return 0;
 }
 
 /*
@@ -354,7 +382,7 @@ void DMA2_Stream5_IRQHandler()
         
         /* request_clocks in _snowy_display_start_frame */
         _snowy_display_release_clocks();
-        display_done_ISR(0);
+        _handler->done_isr(0);
     }
 }
 
@@ -725,16 +753,27 @@ void _snowy_display_full_init(void)
  */
 void _snowy_display_program_FPGA(void)
 {
-    unsigned char *fpga_blob = &_binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
+//     unsigned char *fpga_blob = &_binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
            
     // enter programming mode
     _snowy_display_cs(1);
     
     // Do this with good ol manual SPI for reliability
-    for (uint32_t i = 0; i < (uint32_t)&_binary_Resources_FPGA_4_3_snowy_dumped_bin_size; i++)
+    //     for (uint32_t i = 0; i < (uint32_t)&_binary_Resources_FPGA_4_3_snowy_dumped_bin_size; i++)
+    //     {
+    //         _snowy_display_SPI6_send(*(fpga_blob + i));
+    //     }
+    
+    // TODO Chunks. This is going to be hella slow
+    char buf[128];
+    for (uint32_t i = 0; i < (uint32_t)REGION_FPGA_SIZE; i+=128)
     {
-        _snowy_display_SPI6_send(*(fpga_blob + i));
+        // Request a chunk of data from the flash and send to the display
+        _handler->request_resource(HW_RESOURCE_FPGA, buf, i, 128);
+        for (int j = 0; j < 128; j++)
+            _snowy_display_SPI6_send(buf[j]);
     }
+    
     _snowy_display_cs(0);
     
     DRV_LOG("Display", APP_LOG_LEVEL_DEBUG, "FPGA bin uploaded");
