@@ -8,6 +8,11 @@ smartphone applications that are designed to work with Pebble.
 
 ## Hacking
 
+RebbleOS needs your help! This section discusses what you need to know to
+get started working on the project.
+
+### Building
+
 RebbleOS currently can be built for `snowy` (Pebble Time and Pebble Time
 Steel) and `tintin` (Pebble and Pebble Steel).  To build RebbleOS, follow
 these steps:
@@ -21,6 +26,46 @@ these steps:
 If you wish to build firmware to run on your device, you may also wish to
 consider a script like `buildfw.sh`.  Running RebbleOS on hardware is
 currently out of scope for this document.
+
+### Code structure
+
+_(This section is, admittedly, somewhat aspirational.  Do not be surprised
+if code within RebbleOS does not necessarily conform to this structure
+yet!)_
+
+RebbleOS is composed of four major components: the hardware abstraction
+layer, the core operating system, the PebbleOS compatibility layer, and
+system applications.  We break down these components as follows:
+
+* **Hardware abstraction layer.**  This subsystem provides a unified
+  interface for the rest of the system, and abstracts away platform-specific
+  elements.  The HAL lives in the directory `hw/`; symbols that the HAL
+  exports to the rest of the system are prefixed with `hw_`.  The main
+  entity that the HAL works on is a _"platform"_; for an example, take a
+  look at `hw/platform/snowy/config.mk`.  A platform depends on various chip
+  components, and potentially other driver components; it exports a
+  `platform.h` that includes all defines that the rest of the system may
+  need.  The HAL is, in theory, independent of the rest of the OS; it does
+  not call into the rest of the system other than through debugging
+  mechanisms and through callbacks that it is provided.
+
+* **Core OS.** This subsystem provides basic services that any smartwatch
+  OS, even if not implementing a Pebble-like API, might need.  HAL accesses
+  are marshalled through concurrency protection; higher-level power
+  management takes place; and, flash wear leveling and filesystem management
+  happens in the core OS.  The core OS lives in `RebbleOS/`, and symbols
+  exported from the core OS are prefixed with `rblcore_`.  It calls on
+  FreeRTOS, which lives in `FreeRTOS/`.
+
+* **Pebble compatibility layer.**  The core OS provides basic isolation
+  between threads and framebuffer management primitives, but the Pebble
+  compatibility layer provides higher level operations, like Pebble-style
+  layers, input management and routing, and UI services.  The Pebble
+  compatibility layer lives in `libRebbleOS/`, and symbols exported from it
+  are prefixed with `rblpbl_`.  (Functions that are exactly analogous to
+  Pebble APIs may be named with their exact name.)
+
+* **System applications.** We'll, uh, get there when we have some.  Yeah.
 
 ## Reuse and contact
 
