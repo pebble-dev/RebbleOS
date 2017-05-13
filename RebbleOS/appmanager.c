@@ -457,7 +457,7 @@ static void _appmanager_app_thread(void *parms)
             // Pebble has the GOT at the end of the app.
             // first get the GOT realloc table
             uint32_t *got = &app_stack_heap.word_buf[header.app_size / 4];
-            
+
             if (header.reloc_entries_count > 0)
             {                
                 // go through all of the reloc entries and do the reloc dance
@@ -471,10 +471,13 @@ static void _appmanager_app_thread(void *parms)
                     existing /= 4;
                     
                     // take the offset and add the apps base address
-                    existing += (uint32_t)app_stack_heap.word_buf;
+                    // We are doing some nasty things with pointers here, where we are getting the base address
+                    // adding the offset in the register and forcing its new adderss back in
+                    // here we are going to go through a uint pointer for type safety
+                    uintptr_t wb = (uintptr_t)(app_stack_heap.word_buf + existing);
                     
                     // write it back to the register
-                    app_stack_heap.word_buf[got[i]/4] = existing;
+                    app_stack_heap.word_buf[got[i]/4] = wb;
                 }
             }
             
