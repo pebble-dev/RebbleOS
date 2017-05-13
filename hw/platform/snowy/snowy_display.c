@@ -62,7 +62,7 @@ display_t display = {
 };
 
 hw_driver_display_t _hw_display_driver = {
-    .common_info.module_name = "Display",
+    .common_info.module_name = "Snowy Display",
     .common_info.init = hw_display_init,
     .common_info.deinit = hw_display_deinit,
     .common_info.test = hw_display_test,

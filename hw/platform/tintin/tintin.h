@@ -5,6 +5,10 @@
 #include <stdint.h>
 #include "rebble_time.h"
 #include "stm32f2xx.h"
+#include "driver.h"
+#include "appmanager.h"
+#include "display.h"
+#include "flash.h"
 
 extern int printf ( const char* , ... );
 
@@ -43,4 +47,11 @@ void hw_vibrate_init();
 void hw_vibrate_enable(uint8_t enabled);
 
 void ss_debug_write(const unsigned char *p, size_t len);
+
+void *hw_display_module_init(hw_driver_handler_t *handler);
+void *hw_flash_module_init(hw_driver_handler_t *handler);
+void hw_flash_init(void);
+void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len);
+#define REGION_FPGA_START       0x0
+#define REGION_FPGA_SIZE        0x0
 #endif
