@@ -63,5 +63,3 @@ void *layer_get_data(const Layer *layer); //TODO
 void walk_layers(/*const*/ Layer *layer);
 void layer_delete_tree(Layer *layer);
 
-// TODO: should go into neographics
-GPoint grect_center_point(GRect *rect);

@@ -67,7 +67,7 @@ bool grect_is_empty(const GRect *const rect);
 void grect_standardize(GRect *rect);
 void grect_clip(GRect *const rect_to_clip, const GRect *const rect_clipper);
 bool grect_contains_point(const GRect *rect, const GPoint *point);
-// GPoint grect_center_point(const GRect *rect);
+// GPoint n_graphics_center_point_rect(const GRect *rect);
 GRect grect_crop(GRect rect, const int32_t crop_size_px);
 uint16_t gbitmap_get_bytes_per_row(const GBitmap *bitmap);
 GBitmapFormat gbitmap_get_format(const GBitmap *bitmap);
