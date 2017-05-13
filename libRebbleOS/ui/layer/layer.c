@@ -263,12 +263,3 @@ void graphics_release_frame_buffer(GContext *context, GBitmap *bitmap)
     // rbl_unlock_frame_buffer
 }
 
-
-
-GPoint grect_center_point(GRect *rect)
-{
-    uint16_t x, y;
-    x = (rect->size.w - rect->origin.x) / 2;
-    y = (rect->size.h - rect->origin.y) / 2;
-    return GPoint(x, y);
-}
