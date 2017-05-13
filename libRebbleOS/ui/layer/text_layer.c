@@ -95,6 +95,7 @@ void text_layer_draw(struct Layer *layer, GContext *context)
 //            (tlayer->font)->codepoint_bytes,
 //            (tlayer->font)->fontinfo_size,
 //            (tlayer->font)->features);
+    context->text_color = tlayer->text_color;
     
     // we are goingto draw the text now
     graphics_draw_text(context, tlayer->text, tlayer->font,

@@ -397,3 +397,12 @@ uint32_t gbitmap_sequence_get_play_count(GBitmapSequence * bitmap_sequence);
 void gbitmap_sequence_set_play_count(GBitmapSequence * bitmap_sequence, uint32_t play_count); GSize gbitmap_sequence_get_bitmap_size(GBitmapSequence * bitmap_sequence);
 GBitmapDataRowInfo gbitmap_get_data_row_info(const GBitmap * bitmap, uint16_t y);
 */
+
+
+bool grect_equal(const GRect *const rect_a, const GRect *const rect_b)
+{
+    return rect_a->origin.x == rect_b->origin.x &&
+           rect_a->origin.y == rect_b->origin.y &&
+           rect_a->size.w == rect_b->size.w &&
+           rect_a->size.h == rect_b->size.h;
+}

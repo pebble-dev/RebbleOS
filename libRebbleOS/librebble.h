@@ -43,6 +43,7 @@
 #include "rebble_time.h"
 #include "tick_timer_service.h"
 #include "appmanager.h"
+#include "libros_graphics.h"
 
 
 void rbl_draw(void);

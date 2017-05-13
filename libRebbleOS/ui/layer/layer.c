@@ -47,7 +47,7 @@ void layer_destroy(Layer *layer)
 
 GRect layer_get_unobstructed_bounds(Layer *layer)
 {
-    return GRect(0, 0, 144, 168);
+    return layer->bounds;
 }
 
 void layer_set_update_proc(Layer *layer, void *proc)
@@ -199,6 +199,10 @@ void walk_layers(/*const*/ Layer *layer)
             if (layer->update_proc)
             {
                 GContext *context = neographics_get_global_context();
+                
+                // butcher the offset by adding the start of the framebuffer xy for the bitmap
+                context->offset = layer->frame;
+                
                 // call the callback
                 layer->update_proc(layer, context);
             }

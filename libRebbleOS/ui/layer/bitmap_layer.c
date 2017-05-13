@@ -76,7 +76,7 @@ static void _bitmap_update_proc(Layer *layer, GContext *nGContext)
     uint16_t lw = layer->bounds.size.w;
     uint16_t lh = layer->bounds.size.h;
     
-    
+//     printf("LX %d LY %d LW %d LH %d BW %d BH %d\n", lx, ly, lw, lh, bw, bh);
         
     switch (bitmap_layer->alignment)
     {

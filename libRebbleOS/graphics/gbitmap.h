@@ -88,6 +88,7 @@ GBitmap *gbitmap_create_palettized_from_1bit(GBitmap *src_bitmap);
 void gbitmap_destroy(GBitmap *bitmap);
 
 void gbitmap_draw(GBitmap *bitmap, GRect bounds);
+
 // void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect rect);
 /*
 

@@ -90,6 +90,7 @@ SRCS_all += libRebbleOS/ui/layer/scroll_layer.c
 SRCS_all += libRebbleOS/ui/layer/text_layer.c
 SRCS_all += libRebbleOS/ui/window.c
 SRCS_all += libRebbleOS/graphics/gbitmap.c
+SRCS_all += libRebbleOS/graphics/graphics.c
 SRCS_all += libRebbleOS/graphics/font_loader.c
 SRCS_all += libRebbleOS/event/tick_timer_service.c
 

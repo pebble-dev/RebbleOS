@@ -51,6 +51,7 @@ typedef struct n_GContext {
 #endif
     GBitmap * bitmap;
     uint8_t * fbuf;
+    n_GRect offset;
 } n_GContext;
 
 void n_graphics_context_set_stroke_color(n_GContext * ctx, n_GColor color);
