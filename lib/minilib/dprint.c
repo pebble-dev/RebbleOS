@@ -54,3 +54,17 @@ int printf(const char *ifmt, ...) {
 
 	return num_written;
 }
+
+int vprintf(const char *ifmt, va_list ap) {
+	struct fmtctx ctx;
+	int num_written;
+
+	ctx.str = ifmt;
+	ctx.out = _fmtout;
+	ctx.priv = NULL;
+
+	num_written = fmt(&ctx, ap);
+
+	return num_written;
+}
+
