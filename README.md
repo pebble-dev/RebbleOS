@@ -1,87 +1,31 @@
-A FreeRTOS implementation for the Pebble Time board (STM32F439)
+# RebbleOS
 
-Stage 1 Goals
+RebbleOS is an open-source reimplementation of the firmware for the devices
+formerly manufactured by Pebble Technologies, Inc.  The firmware is based on
+FreeRTOS, and aims to be binary-compatible with applications that were
+written for the original Pebble OS, as well as radio-compatible with
+smartphone applications that are designed to work with Pebble.
 
-* To create a new, unique operating system for the Pebble hardware.
-  - Reverse engineer and re-implement each piece of hardware on the device
-  - That includes the bluetooth stack!
-  - Create a new set of application APIs
-  - Obtain full integration with Rebble.io store
-* Re-implement all watchface functions either completely, or as stubs
-* Implement a new ecosystem of app/watchface development
+## Hacking
 
+RebbleOS currently can be built for `snowy` (Pebble Time and Pebble Time
+Steel) and `tintin` (Pebble and Pebble Steel).  To build RebbleOS, follow
+these steps:
 
-Stage 2 Goals (long ways off)
+* Obtain a checkout of the RebbleOS source code.
+* Create a `localconfig.mk` if your cross-compiler is in an unusual location.  For instance, if you have the SDK installed in `/home/me`, add the following line to your `localconfig.mk`: `PEBBLE_TOOLCHAIN_PATH=/home/me/Pebble/SDK/pebble-sdk-4.5-linux64/arm-cs-tools/bin`.  For more information on `localconfig.mk` variables, consult the `Makefile`.
+* Build the firmware: `make`
+* If you wish to run the firmware in `qemu`, copy the resources necessary into `Resources/`.  Take a look at `Utilities/mk_resources.sh` for more information on that.
+* To run the firmware in `qemu`, try `make snowy_qemu`.
 
-* Re-implement as much as possible of the Pebble api set as possible
-* Attempt to attain binary compatibility for apps and watchfaces
-* i8n
+If you wish to build firmware to run on your device, you may also wish to
+consider a script like `buildfw.sh`.  Running RebbleOS on hardware is
+currently out of scope for this document.
 
+## Reuse and contact
 
-Working:
-* CPU core / peripherals.
-* Interrupts
-* Buttons on PT (currently interrupt driven)
-* Display backlight fade (stays on for n millis and then fades out)
-* Vibrate (no control path yet)
-* Basic charge information
-* Real Time Clock
-* Watchdog
-* Smart Strap for debugging output
-* Display!
-  - Shows a Rebble OS splash (Thanks for the convert @XDJackieXD)
-  - Base support for text and graphics output using uGUI
-  - Display almost fully functional
-  - Non overlapped draw mode
-  - backbuffer for animations and transitions
-* Menu system for status/console and reboot etc
-* Simple animations
-* A basic gui
-* Basic API for watchfaces
-* A "simple.c" watchface using the API
-
-
-
-It will come
-
-Hardware TODO:
-* Gyro and Compass
-* More power management
-  - We need to turn clocks off when not in use etc
-* Flash memory
-* Microphone
-* Find the gpio for smart strap power
-
-OS TODO:
-* More API handles and drivers for specific functions (such as vibrate)
-* librebble/OS to have more APIs
-* loadable apps into a vTask
-* Fuller menu
-
-Instructions to compile:
-
-you must have the path in the PATH variable that includes the pebble sdk
-PATH=$PATH:/home/baz/Pebble/SDK/pebble-sdk-4.5-linux64/bin
-
-You will need to get the following packages:
-
- * Pebble Firmware Utils https://github.com/MarSoft/pebble-firmware-utils
- * Pebble firmware itself (link here)
- * (Optional) Pebble Qemu configured for PT
- 
- Edit the file buildfw.sh and change out paths and IP
- 
- run:
- 
- make
- 
- make {platform}_qemu   (i.e. snowy_qemu)
-
-
- 
-
-Barry Carter
-<barry.carter@gmail.com>
-
-Contributors:
-Joshua Wise <>
+RebbleOS is an open-source project licensed (primarily) under a BSD-style
+license.  For more information, please see the `LICENSE` and `AUTHORS`
+files.  Reuse of this project is not only permitted, but encouraged!  If you
+do something cool with RebbleOS, please get in touch with us.  The easiest
+way to do so is through the [Rebble Discord server](https://discordapp.com/invite/aRUAYFN), channel #firmware.  We look forward to meeting you!
