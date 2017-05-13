@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# obtain pebble-firmware-utils from https://github.com/MarSoft/pebble-firmware-utils
+
 PEBBLE_IMAGE_PATH=~/Pebble/Pebble-4.3-snowy_dvt
 PEBBLE_FIRMWARE_UTILS=~/Pebble/pebble-firmware-utils-master
 
