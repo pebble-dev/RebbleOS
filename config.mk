@@ -81,6 +81,7 @@ SRCS_all += RebbleOS/log.c
 SRCS_all += RebbleOS/resource.c
 SRCS_all += RebbleOS/heap_app.c
 SRCS_all += RebbleOS/driver.c
+SRCS_all += RebbleOS/watchdog.c
 
 SRCS_all += libRebbleOS/librebble.c
 SRCS_all += libRebbleOS/math_sin.c

@@ -6,8 +6,7 @@
  */
 
 #include "rebbleos.h"
-
-static void _watchdog_thread (void *pvParameters);
+#include "watchdog.h"
 
 int main(void)
 {
@@ -15,51 +14,15 @@ int main(void)
 
     hardware_init();
 
-    xTaskCreate(
-        _watchdog_thread,                 /* Function pointer */
-        "WWDGTask",                          /* Task name - for debugging only*/
-        configMINIMAL_STACK_SIZE,         /* Stack depth in words */
-        (void*) NULL,                     /* Pointer to tasks arguments (parameter) */
-        tskIDLE_PRIORITY + 5UL,           /* Task priority*/
-        NULL);
-
     rebbleos_init();
     
     KERN_LOG("main", APP_LOG_LEVEL_INFO, "RebbleOS %s", VERSION);
     
     vTaskStartScheduler();  // should never return
-    for (;;);
+    
+    panic("vTaskStartScheduler returned?");
 }
 
-
-/*
- * Initialise the system watchdog timer
- */
-void watchdog_init()
-{
-    hw_watchdog_init();
-    watchdog_reset();
-}
-
-/*
- * Reset the watchdog timer
- */
-void watchdog_reset(void)
-{
-    hw_watchdog_reset();
-}
-
-/*
- * A task to periodically reset the watchdog timer
- */
-static void _watchdog_thread(void *pvParameters)
-{
-    while(1)
-    {
-        watchdog_reset();
-        vTaskDelay(WATCHDOG_RESET_MS / portTICK_RATE_MS);
-    }
-}
 
 /*
  * Initialise the whole Rebble platform
@@ -69,7 +32,7 @@ void hardware_init(void)
     platform_init();
     debug_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Debug Init");
-    watchdog_init();
+    rblcore_watchdog_init_early();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Watchdog Init");
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
@@ -87,6 +50,8 @@ void hardware_init(void)
     backlight_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Backlight Init");
     platform_init_late();
+    rblcore_watchdog_init_late();
+    KERN_LOG("init", APP_LOG_LEVEL_INFO, "watchdog is ticking");
 }
 
 /*
