@@ -71,6 +71,10 @@ system applications.  We break down these components as follows:
 
 RebbleOS is an open-source project licensed (primarily) under a BSD-style
 license.  For more information, please see the `LICENSE` and `AUTHORS`
-files.  Reuse of this project is not only permitted, but encouraged!  If you
-do something cool with RebbleOS, please get in touch with us.  The easiest
-way to do so is through the [Rebble Discord server](https://discordapp.com/invite/aRUAYFN), channel #firmware.  We look forward to meeting you!
+files.  Additionally, contributors and members of the RebbleOS community are
+expected to abide by our code of conduct; for more information on that,
+please see the `CODE-OF-CONDUCT.md` file.  Reuse of this project is not only
+permitted, but encouraged!  If you do something cool with RebbleOS, please
+get in touch with us.  The easiest way to do so is through the [Rebble
+Discord server](https://discordapp.com/invite/aRUAYFN), channel #firmware. 
+We look forward to meeting you!
