@@ -8,6 +8,7 @@
 #include "rebbleos.h"
 
 static SemaphoreHandle_t _log_mutex = NULL;
+static StaticSemaphore_t _log_mutex_buf;
 static void _log_pad_string(const char *in_str, char *padded_str, uint16_t pad_len);
 
 /*
@@ -36,8 +37,10 @@ void log_printf(const char *layer, const char *module, uint8_t level, const char
     char log_type[12];
     char buf[16];
     
+    // XXX: this means that log_printf *must* be called first from a non-threaded context, for this check is not thread-safe!
+    // XXX: verify this here.
     if (_log_mutex == NULL)
-        _log_mutex = xSemaphoreCreateMutex();
+        _log_mutex = xSemaphoreCreateMutexStatic(&_log_mutex_buf);
     
     xSemaphoreTake(_log_mutex, portMAX_DELAY);
 

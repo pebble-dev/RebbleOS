@@ -10,6 +10,7 @@
 static TaskHandle_t _display_task;
 static xQueueHandle _display_queue;
 static SemaphoreHandle_t _display_mutex;
+static StaticSemaphore_t _display_mutex_buf;
 
 static void _display_thread(void *pvParameters);
 static void _display_start_frame(uint8_t offset_x, uint8_t offset_y);
@@ -36,7 +37,7 @@ void display_init(void)
     xTaskCreate(_display_thread, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_display_task);
     
     _display_queue = xQueueCreate(2, sizeof(uint8_t));
-    _display_mutex = xSemaphoreCreateMutex();      
+    _display_mutex = xSemaphoreCreateMutexStatic(&_display_mutex_buf);
     
     _display_cmd(DISPLAY_CMD_DRAW, NULL);
     

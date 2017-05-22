@@ -19,6 +19,7 @@ extern void hw_flash_read_bytes(uint32_t, uint8_t*, size_t);
 
 /// MUTEX
 static SemaphoreHandle_t _flash_mutex;
+static StaticSemaphore_t _flash_mutex_buf;
 uint32_t _flash_get_app_slot_address(uint16_t slot_id);
 extern unsigned int _ram_top;
 #define portMPU_REGION_READ_WRITE (0x03UL << MPU_RASR_AP_Pos)
@@ -43,7 +44,7 @@ void flash_init()
 //     SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA_Msk;
 //     MPU->CTRL |= MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
 
-    _flash_mutex = xSemaphoreCreateMutex();
+    _flash_mutex = xSemaphoreCreateMutexStatic(&_flash_mutex_buf);
 }
 
 /*
