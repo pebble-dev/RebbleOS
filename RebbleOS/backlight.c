@@ -6,6 +6,7 @@
  */
 
 #include "rebbleos.h"
+#include "ambient.h"
 
 static TaskHandle_t _backlight_task;
 static xQueueHandle _backlight_queue;
@@ -84,7 +85,7 @@ void backlight_set_from_ambient(void)
     backlight_set_raw(0);
     // give the led in the backlight time to de-energise
     delay_us(10);
-    amb = ambient_get();
+    amb = rblcore_ambient_get();
     
     // hacky brightness control here...
     // if amb is near 0, it is dark.

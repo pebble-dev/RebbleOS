@@ -6,6 +6,6 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-void ambient_init(void);
-uint16_t ambient_get(void);
+void rblcore_ambient_init(void);
+uint16_t rblcore_ambient_get(void);
 

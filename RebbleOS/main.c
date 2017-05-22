@@ -7,6 +7,7 @@
 
 #include "rebbleos.h"
 #include "watchdog.h"
+#include "ambient.h"
 
 int main(void)
 {
@@ -45,7 +46,7 @@ void hardware_init(void)
     buttons_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Buttons Init");
     rtc_init();
-    ambient_init();
+    rblcore_ambient_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Ambiance Init");
     backlight_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Backlight Init");
