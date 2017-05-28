@@ -38,7 +38,6 @@
 #include "window.h"
 #include "display.h"
 #include "animation.h"
-#include "neographics.h"
 #include "buttons.h"
 #include "rebble_time.h"
 #include "tick_timer_service.h"

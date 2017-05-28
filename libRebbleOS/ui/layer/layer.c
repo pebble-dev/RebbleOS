@@ -6,6 +6,7 @@
  */
 
 #include "librebble.h"
+#include "ngfxwrap.h"
 
 Layer *layer_find_parent(Layer *orig_layer, Layer *layer);
 void layer_remove_node(Layer *to_be_removed);
@@ -198,7 +199,7 @@ void walk_layers(/*const*/ Layer *layer)
         {
             if (layer->update_proc)
             {
-                GContext *context = neographics_get_global_context();
+                GContext *context = rwatch_neographics_get_global_context();
                 
                 // butcher the offset by adding the start of the framebuffer xy for the bitmap
                 context->offset = layer->frame;

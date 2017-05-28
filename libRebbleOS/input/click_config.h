@@ -6,7 +6,6 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-#include "neographics.h"
 #include "layer.h"
 #include "platform.h"
 #include "pebble_defines.h"

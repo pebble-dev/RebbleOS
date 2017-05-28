@@ -9,7 +9,6 @@
 #include "point.h"
 #include "rect.h"
 #include "size.h"
-#include "neographics.h"
 #include "gbitmap.h"
 
 struct Window;

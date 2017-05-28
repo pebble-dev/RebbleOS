@@ -9,7 +9,7 @@
 #include "task.h"
 #include "stdio.h"
 #include "rebbleos.h"
-#include "gui.h"
+#include "ngfxwrap.h"
 
 
 // current status of te system
@@ -21,7 +21,7 @@ void rebbleos_init(void)
     system_status.booted = 0;
     system_status.app_mode = SYSTEM_RUNNING_APP;
     
-    gui_init();
+    rwatch_neographics_init();
     appmanager_init();
 
     // set up main rebble task thread

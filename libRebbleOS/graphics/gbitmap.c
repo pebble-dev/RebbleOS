@@ -8,6 +8,7 @@
 #include "librebble.h"
 #include "upng.h"
 #include "png.h"
+#include "ngfxwrap.h"
 
 extern uint8_t *resource_fully_load_id_app(uint16_t, uint16_t);
 
@@ -176,7 +177,7 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
             // set the pixel in the buffer.
             if (argb.argb > 0)
             {
-                n_GContext *ctx = neographics_get_global_context();
+                n_GContext *ctx = rwatch_neographics_get_global_context();
                 n_graphics_set_pixel(ctx, n_GPoint(x + newx, y + newy), argb);
             }
         }

@@ -84,6 +84,7 @@ SRCS_all += RebbleOS/driver.c
 SRCS_all += RebbleOS/watchdog.c
 
 SRCS_all += libRebbleOS/librebble.c
+SRCS_all += libRebbleOS/ngfxwrap.c
 SRCS_all += libRebbleOS/math_sin.c
 SRCS_all += libRebbleOS/ui/layer/layer.c
 SRCS_all += libRebbleOS/ui/layer/bitmap_layer.c
@@ -100,9 +101,6 @@ SRCS_all += Watchfaces/nivz.c
 
 SRCS_all += Apps/System/systemapp.c
 SRCS_all += Apps/System/menu.c
-
-SRCS_all += RebbleOS/Gui/gui.c
-SRCS_all += RebbleOS/Gui/neographics.c
 
 include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk

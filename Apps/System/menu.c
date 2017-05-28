@@ -10,6 +10,7 @@
 #include "librebble.h"
 #include "menu.h"
 #include "appmanager.h"
+#include "ngfxwrap.h"
 
 extern void graphics_draw_bitmap_in_rect(GContext*, GBitmap*, GRect);
 extern void flash_dump(void);
@@ -69,7 +70,7 @@ void menu_draw_watch_list()
     // loop through all apps
     App *node = app_manager_get_apps_head();
     uint8_t i = 0;
-    n_GContext *nGContext = neographics_get_global_context();
+    n_GContext *nGContext = rwatch_neographics_get_global_context();
     
     graphics_context_set_fill_color(nGContext, GColorBlue);
     graphics_fill_rect(nGContext, GRect(0, 0, 144, 168), 0, GCornerNone);
@@ -108,7 +109,7 @@ void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offset
     // list item is a box
     // might have a type (has subtext etc)
 
-    n_GContext *nGContext = neographics_get_global_context();
+    n_GContext *nGContext = rwatch_neographics_get_global_context();
 
     // could be selected item eh
     if (selected)

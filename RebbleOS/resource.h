@@ -9,6 +9,7 @@
 #include "rebbleos.h"
 #include "platform.h"
 #include "flash.h"
+#include "graphics_reshandle.h"
 
 void resource_init();
 void resource_load_id(uint16_t resource_id, uint8_t *buffer);

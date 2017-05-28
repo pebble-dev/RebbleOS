@@ -9,7 +9,6 @@
 #include "point.h"
 #include "rect.h"
 #include "size.h"
-#include "neographics.h"
 
 struct Window;
 struct Layer;
