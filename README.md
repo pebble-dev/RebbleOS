@@ -54,7 +54,7 @@ system applications.  We break down these components as follows:
   are marshalled through concurrency protection; higher-level power
   management takes place; and, flash wear leveling and filesystem management
   happens in the core OS.  The core OS lives in `RebbleOS/`, and symbols
-  exported from the core OS are prefixed with `rblcore_`.  It calls on
+  exported from the core OS are prefixed with `rcore_`.  It calls on
   FreeRTOS, which lives in `FreeRTOS/`.
 
 * **Pebble compatibility layer.**  The core OS provides basic isolation
@@ -62,7 +62,7 @@ system applications.  We break down these components as follows:
   compatibility layer provides higher level operations, like Pebble-style
   layers, input management and routing, and UI services.  The Pebble
   compatibility layer lives in `libRebbleOS/`, and symbols exported from it
-  are prefixed with `rblpbl_`.  (Functions that are exactly analogous to
+  are prefixed with `rwatch_`.  (Functions that are exactly analogous to
   Pebble APIs may be named with their exact name.)
 
 * **System applications.** We'll, uh, get there when we have some.  Yeah.
