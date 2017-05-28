@@ -43,7 +43,7 @@ void hardware_init(void)
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Vibro Init");
     display_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Display Init");
-    buttons_init();
+    rblcore_buttons_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Buttons Init");
     rtc_init();
     rblcore_ambient_init();

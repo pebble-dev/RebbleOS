@@ -14,10 +14,24 @@
  * 
  * review task priorities
  */
-#include "rebbleos.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "buttons.h"
 
 static TaskHandle_t _button_debounce_task;
+static StaticTask_t _button_debounce_task_buf;
+static StackType_t _button_debounce_task_stack[configMINIMAL_STACK_SIZE];
+
+static TaskHandle_t _button_message_task;
+static StaticTask_t _button_message_task_buf;
+static StackType_t _button_message_task_stack[configMINIMAL_STACK_SIZE];
+
 static xQueueHandle _button_queue;
+static StaticQueue_t _button_queue_buf;
+#define BUTTON_QUEUE_SIZE 5
+static uint8_t _button_queue_contents[BUTTON_QUEUE_SIZE];
+
 static ButtonMessage _button_message;
 static uint8_t _last_press; // TODO
 static void _button_message_thread(void *pvParameters);
@@ -29,20 +43,22 @@ static ButtonHolder *_button_holders[NUM_BUTTONS];
 
 void button_send_app_click(void *callback, void *recognizer, void *context);
 
+static void _button_isr(hw_button_t button_id);
+static uint8_t _button_pressed(ButtonId button_id);
 
 /*
  * Start the button processor
  */
-void buttons_init(void)
+void rblcore_buttons_init(void)
 {
     hw_button_init();
     
-    xTaskCreate(_button_message_thread, "Button", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, NULL);
-    xTaskCreate(_button_debounce_thread, "Debounce", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, &_button_debounce_task);
+    _button_message_task = xTaskCreateStatic(_button_message_thread, "Button", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, _button_message_task_stack, &_button_message_task_buf);
+    _button_debounce_task = xTaskCreateStatic(_button_debounce_thread, "Debounce", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, _button_debounce_task_stack, &_button_debounce_task_buf);
     
-    _button_queue = xQueueCreate(5, sizeof(uint8_t));
+    _button_queue = xQueueCreateStatic(5, sizeof(uint8_t), _button_queue_contents, &_button_queue_buf);
     
-    hw_button_set_isr(button_isr);
+    hw_button_set_isr(_button_isr);
         
     // Initialise the button click configs
     for (uint8_t i = 0; i < NUM_BUTTONS; i++)
@@ -56,7 +72,7 @@ void buttons_init(void)
 /*
  * Callback function for the button ISR in hardware.
  */
-void button_isr(hw_button_t /* which is definitionally the same as a ButtonID */ button_id)
+static void _button_isr(hw_button_t /* which is definitionally the same as a ButtonID */ button_id)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     
@@ -180,7 +196,7 @@ static uint8_t _button_check_time(void)
     for (uint8_t i = 0; i < NUM_BUTTONS; i++)
     {
         button = _button_holders[i];
-        pressed = button_pressed(i);
+        pressed = _button_pressed(i);
                 
         if (!pressed)
         {
@@ -246,7 +262,7 @@ static void _button_message_thread(void *pvParameters)
     {
         if (xQueueReceive(_button_queue, &data, time_increment))
         {           
-            _button_update(data, button_pressed(data));
+            _button_update(data, _button_pressed(data));
         }
         
         time_increment = _button_check_time();
@@ -300,7 +316,7 @@ void button_send_app_click(void *callback, void *recognizer, void *context)
 /*
  * Check if a button is pressed
  */
-uint8_t button_pressed(ButtonId button_id)
+static uint8_t _button_pressed(ButtonId button_id)
 {   
     return hw_button_pressed(button_id);
 }
