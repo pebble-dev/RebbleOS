@@ -33,7 +33,7 @@ void hardware_init(void)
     platform_init();
     debug_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Debug Init");
-    rblcore_watchdog_init_early();
+    rcore_watchdog_init_early();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Watchdog Init");
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
@@ -43,15 +43,15 @@ void hardware_init(void)
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Vibro Init");
     display_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Display Init");
-    rblcore_buttons_init();
+    rcore_buttons_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Buttons Init");
     rtc_init();
-    rblcore_ambient_init();
+    rcore_ambient_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Ambiance Init");
-    rblcore_backlight_init();
+    rcore_backlight_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Backlight Init");
     platform_init_late();
-    rblcore_watchdog_init_late();
+    rcore_watchdog_init_late();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "watchdog is ticking");
 }
 

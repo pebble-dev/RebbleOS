@@ -36,7 +36,7 @@ static uint8_t _backlight_is_on;
 /*
  * Backlight is a go
  */
-void rblcore_backlight_init(void)
+void rcore_backlight_init(void)
 {
     hw_backlight_init();
     
@@ -48,14 +48,14 @@ void rblcore_backlight_init(void)
     _backlight_is_on = 0;
     _backlight_brightness = 0;
 
-    rblcore_backlight_on(100, 3000);
+    rcore_backlight_on(100, 3000);
 }
 
 // In here goes the functions to dim the backlight
 // on a timer
 
 // use the backlight as additional alert by flashing it
-void rblcore_backlight_on(uint16_t brightness_pct, uint16_t time)
+void rcore_backlight_on(uint16_t brightness_pct, uint16_t time)
 {
     backlight_message_t msg;
 
@@ -96,7 +96,7 @@ static void _backlight_set_from_ambient(void)
     _backlight_set_raw(0);
     // give the led in the backlight time to de-energise
     delay_us(10);
-    amb = rblcore_ambient_get();
+    amb = rcore_ambient_get();
     
     // hacky brightness control here...
     // if amb is near 0, it is dark.

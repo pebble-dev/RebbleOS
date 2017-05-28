@@ -14,13 +14,13 @@
 static SemaphoreHandle_t _ambient_mutex;
 static StaticSemaphore_t _ambient_mutex_buf;
 
-void rblcore_ambient_init(void)
+void rcore_ambient_init(void)
 {
     hw_ambient_init();
     _ambient_mutex = xSemaphoreCreateMutexStatic(&_ambient_mutex_buf);
 }
 
-uint16_t rblcore_ambient_get(void)
+uint16_t rcore_ambient_get(void)
 {
     // take multiple samples
     // use a simple moving average filter to get the settle

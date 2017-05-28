@@ -16,7 +16,7 @@ static void _threadmain_watchdog(void *pvParameters);
  * starts the watchdog timer counting, and resets it once to allow for a
  * small period of time to get the system up and running.
  */
-void rblcore_watchdog_init_early() {
+void rcore_watchdog_init_early() {
     hw_watchdog_init();
     hw_watchdog_reset();
 }
@@ -24,10 +24,10 @@ void rblcore_watchdog_init_early() {
 /* Late watchdog initialization -- call once the RTOS is ready to safely
  * start allocating memory and creating tasks.
  */
-void rblcore_watchdog_init_late() {
+void rcore_watchdog_init_late() {
     (void) xTaskCreateStatic(
         _threadmain_watchdog,             /* Function pointer */
-        "rblcore_watchdog",               /* Task name - for debugging only*/
+        "rcore_watchdog",               /* Task name - for debugging only*/
         configMINIMAL_STACK_SIZE,         /* Stack depth in words */
         (void*) NULL,                     /* Pointer to tasks arguments (parameter) */
         tskIDLE_PRIORITY + 5UL,           /* Task priority */

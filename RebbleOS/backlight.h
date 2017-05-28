@@ -12,5 +12,5 @@
 #define BACKLIGHT_ON   1
 #define BACKLIGHT_FADE 2
 
-void rblcore_backlight_init(void);
-void rblcore_backlight_on(uint16_t brightness_pct, uint16_t time);
+void rcore_backlight_init(void);
+void rcore_backlight_on(uint16_t brightness_pct, uint16_t time);

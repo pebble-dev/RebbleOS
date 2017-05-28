@@ -4,5 +4,5 @@
  * RebbleOS
  */
  
-extern void rblcore_watchdog_init_early();
-extern void rblcore_watchdog_init_late();
+extern void rcore_watchdog_init_early();
+extern void rcore_watchdog_init_late();
