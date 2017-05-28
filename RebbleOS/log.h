@@ -6,6 +6,8 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
+#include <stdarg.h>
+
 #define SYS_LOG(module_, lvl_, fmt_, ...) \
             log_printf_to_ar(module_, "SYS", lvl_, __FILE__, __LINE__, fmt_, ##__VA_ARGS__)
 #define KERN_LOG(module_, lvl_, fmt_, ...) \

@@ -48,7 +48,7 @@ void hardware_init(void)
     rtc_init();
     rblcore_ambient_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Ambiance Init");
-    backlight_init();
+    rblcore_backlight_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Backlight Init");
     platform_init_late();
     rblcore_watchdog_init_late();

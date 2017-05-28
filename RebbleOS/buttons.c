@@ -291,7 +291,7 @@ void button_send_app_click(void *callback, void *recognizer, void *context)
     _button_message.clickref = recognizer; // TODO
     _button_message.context  = context;
 
-    backlight_on(100, 3000);
+    rblcore_backlight_on(100, 3000);
     
     appmanager_post_button_message(&_button_message);
 }
