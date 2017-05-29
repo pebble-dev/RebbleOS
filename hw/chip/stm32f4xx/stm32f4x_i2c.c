@@ -1,20 +1,10 @@
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* stm32f4x_i2c.c
+ * STM I2c wrapper driver
+ * RebbleOS
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * Author: Barry Carter <barry.carter@gmail.com>
  */
+
 #include "stdio.h"
 #include "string.h"
 #include "stm32f4xx.h"
@@ -70,7 +60,7 @@ void I2C_init(I2C_conf_t *I2C_conf)
     I2C_InitStructure.I2C_OwnAddress1 = 0x00; //We are the master. We don't need this
     I2C_InitStructure.I2C_Ack = I2C_Ack_Enable;
     I2C_InitStructure.I2C_AcknowledgedAddress = I2C_AcknowledgedAddress_7bit;
-    I2C_InitStructure.I2C_ClockSpeed = 50000;  //400kHz (Fast Mode) (
+    I2C_InitStructure.I2C_ClockSpeed = 100000;  //400kHz (Fast Mode) (
 
     // Initialize the I2C Peripheral
     I2C_Init(I2C_conf->I2Cx, &I2C_InitStructure);
@@ -192,6 +182,7 @@ static uint32_t I2C_write_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf
 
 static uint32_t I2C_read_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf, uint16_t cnt)
 {
+//     stm32_power_request(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
     I2C_start(I2C_conf);
   
     // Send I2C Device Address
@@ -287,7 +278,7 @@ static uint32_t I2C_read_bytes(I2C_conf_t *I2C_conf, uint8_t addr, uint8_t *buf,
         // Enable ack
         I2C_conf->I2Cx->CR1 |= ((uint16_t)I2C_CR1_ACK);
     }
-  
+//     stm32_power_release(STM32_POWER_APB1, I2C_conf->RCC_APB1Periph_I2Cx);
     return 0;
 }
 

@@ -98,9 +98,6 @@ void gpath_draw_app(n_GContext * ctx, n_GPath * path)
     path->offset = off;
 }
 
-void n_gpath_rotate_to(n_GPath * path, int32_t angle);
-void n_gpath_move_to(n_GPath * path, n_GPoint offset);
-
 void gpath_rotate_to_app(n_GPath * path, int32_t angle)
 {
 //     GPoint off = path->offset;
