@@ -131,7 +131,7 @@ static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, 
 void _appmanager_flash_load_app_manifest(void)
 {
     ApplicationHeader header;
-    
+    char buf[16];
     // super cheesy
     // 8 app slots
     for(uint8_t i = 0; i < 32; i++)
@@ -145,6 +145,10 @@ void _appmanager_flash_load_app_manifest(void)
             // TODO
             // crc32....(header.header)
             KERN_LOG("app", APP_LOG_LEVEL_INFO, "VALID App Found %s", header.name);
+            
+            // get the app's resources. we have to go and look for it.
+            // Get the app's id. that's just before the app in flash
+            //flash_get_app_id(i, buf);
 
             // main gets set later
             _appmanager_add_to_manifest(_appmanager_create_app(header.name, APP_TYPE_FACE, NULL, false, i));
@@ -630,7 +634,7 @@ GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id)
     return gbitmap_create_with_resource_app(resource_id, _running_app->slot_id);
 }
 
-ResHandle *resource_get_handle_proxy(uint32_t resource_id)
+ResHandle resource_get_handle(uint16_t resource_id)
 {
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "ResH %d %d", resource_id, _running_app->slot_id);
 
@@ -639,7 +643,7 @@ ResHandle *resource_get_handle_proxy(uint32_t resource_id)
     ResHandle y = resource_get_handle_app(resource_id, _running_app->slot_id);
     memcpy(x, &y, sizeof(ResHandle));
      
-    return x;
+    return *x;
 }
 
 GFont *fonts_load_custom_font_proxy(ResHandle *handle)

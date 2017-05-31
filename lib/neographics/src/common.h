@@ -22,13 +22,9 @@
 #pragma once
 
 #include <pebble.h>
-#include "pebble_defines.h"
 #include "types.h"
 #include "macros.h"
 #include "context.h"
-
-extern size_t resource_size(ResHandle);
-extern void resource_load_app(ResHandle, uint8_t *, uint16_t );
 
 /*-----------------------------------------------------------------------------.
 |                                                                              |

@@ -15,6 +15,7 @@
 #include <inttypes.h>
 #include "rebble_memory.h"
 #include "log.h"
+#include "resource.h"
 #include <stdlib.h>
 
 

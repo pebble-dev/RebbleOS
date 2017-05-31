@@ -3,7 +3,7 @@
 #include "librebble.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
-ResHandle *resource_get_handle_proxy(uint32_t resource_id);
+ResHandle resource_get_handle(uint16_t resource_id);
 GFont *fonts_load_custom_font_proxy(ResHandle *handle);
 bool persist_exists(void);
 bool persist_exists(void) { return false; }
@@ -918,7 +918,7 @@ unalloc203,
 unalloc204,
 unalloc205,
 (VoidFunc)rand,
-(VoidFunc)resource_get_handle_proxy,
+(VoidFunc)resource_get_handle,
 unalloc208,
 unalloc209,
 unalloc210,
@@ -1119,9 +1119,9 @@ unalloc404,
 unalloc405,
 unalloc406,
 unalloc407,
-gbitmap_get_bounds,
-gbitmap_get_bytes_per_row,
-gbitmap_get_data,
+(VoidFunc)gbitmap_get_bounds,
+(VoidFunc)gbitmap_get_bytes_per_row,
+(VoidFunc)gbitmap_get_data,
 unalloc411,
 unalloc412,
 unalloc413,

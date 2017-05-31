@@ -26,3 +26,7 @@ void gpath_move_to_app(n_GPath * path, n_GPoint offset);
 // n_GPath * gpath_create_app(n_GPathInfo * path_info);
 n_GRect _jimmy_layer_offset(n_GContext *ctx, n_GRect rect);
 n_GPoint _jimmy_layer_point_offset(n_GContext *ctx, n_GPoint point);
+
+GBitmap *graphics_capture_frame_buffer(n_GContext *context);
+GBitmap *graphics_capture_frame_buffer_format(n_GContext *context, GBitmap format);
+void graphics_release_frame_buffer(n_GContext *context, GBitmap *bitmap);

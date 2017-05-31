@@ -77,6 +77,27 @@ void graphics_draw_rect_app(n_GContext * ctx, n_GRect rect, uint16_t radius, n_G
 }
 
 
+
+GBitmap *graphics_capture_frame_buffer(n_GContext *context)
+{
+    // TODO Honestly not entirely sure what is expected here
+    // rbl_lock_frame_buffer
+    return (GBitmap *)display_get_buffer();
+}
+
+GBitmap *graphics_capture_frame_buffer_format(n_GContext *context, GBitmap format)
+{
+    // TODO Honestly not entirely sure what is expected here
+    // rbl_lock_frame_buffer
+    return (GBitmap *)display_get_buffer();
+}
+
+void graphics_release_frame_buffer(n_GContext *context, GBitmap *bitmap)
+{
+    // rbl_unlock_frame_buffer
+}
+
+
 void gpath_fill_app(n_GContext * ctx, n_GPath * path)
 {
     GPoint off = path->offset;

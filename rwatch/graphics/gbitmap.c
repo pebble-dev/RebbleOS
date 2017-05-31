@@ -258,8 +258,8 @@ void gbitmap_set_palette(GBitmap *bitmap, GColor *palette, bool free_on_destroy)
  */
 GBitmap *gbitmap_create_with_resource(uint32_t resource_id)
 {
-    uint8_t *png_data = resource_fully_load_id(resource_id);
-    ResHandle res_handle = resource_get_handle(resource_id);
+    uint8_t *png_data = resource_fully_load_id_system(resource_id);
+    ResHandle res_handle = resource_get_handle_system(resource_id);
     size_t png_data_size = resource_size(res_handle);
         
     return gbitmap_create_from_png_data(png_data, png_data_size);

@@ -78,7 +78,7 @@ GBitmap * n_graphics_capture_frame_buffer(n_GContext * ctx) {
 #ifndef NGFX_IS_CORE
     return graphics_capture_frame_buffer(ctx->underlying_context);
 #else
-    return NULL;
+    return graphics_capture_frame_buffer(ctx);
 #endif
 }
 
@@ -86,7 +86,7 @@ GBitmap * n_graphics_capture_frame_buffer_format(n_GContext * ctx, GBitmapFormat
 #ifndef NGFX_IS_CORE
     return graphics_capture_frame_buffer_format(ctx->underlying_context, format);
 #else
-    return NULL;
+    return graphics_capture_frame_buffer_format(ctx, format);
 #endif
 }
 
@@ -94,7 +94,7 @@ bool n_graphics_release_frame_buffer(n_GContext * ctx, GBitmap * bitmap) {
 #ifndef NGFX_IS_CORE
     return graphics_release_frame_buffer(ctx->underlying_context, bitmap);
 #else
-    return NULL;
+    return graphics_release_frame_buffer(ctx, bitmap);
 #endif
 }
 
@@ -102,7 +102,9 @@ bool n_graphics_release_frame_buffer(n_GContext * ctx, GBitmap * bitmap) {
 
 static n_GContext * n_graphics_context_create() {
     n_GContext * out = (n_GContext *)malloc(sizeof(n_GContext));
-    //out->underlying_context = NULL;
+#ifndef NGFX_IS_CORE
+    out->underlying_context = NULL;
+#endif
     if (out == NULL)
         printf("NG: NO HEAP FREE\n");
     n_graphics_context_set_stroke_color(out, (n_GColor) {.argb = 0b11000000});

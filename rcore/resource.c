@@ -21,7 +21,7 @@ void resource_init()
 /*
  * Load up a resource for the resource ID into the given buffer
  */
-void resource_load_id(uint16_t resource_id, uint8_t *buffer)
+void resource_load_id_system(uint16_t resource_id, uint8_t *buffer)
 {
     ResHandle handle;
     if (resource_id > 65000) // arbitary
@@ -29,7 +29,7 @@ void resource_load_id(uint16_t resource_id, uint8_t *buffer)
         buffer = NULL;
         return;
     }
-    handle = resource_get_handle(resource_id);
+    handle = resource_get_handle_system(resource_id);
 
     flash_read_bytes(REGION_RES_START + RES_START + handle.offset, buffer, handle.size);
 }
@@ -37,7 +37,7 @@ void resource_load_id(uint16_t resource_id, uint8_t *buffer)
 /*
  * Load up a handle for the resource by ID
  */
-ResHandle resource_get_handle(uint16_t resource_id)
+ResHandle resource_get_handle_system(uint16_t resource_id)
 {
     ResHandle resHandle;
 
@@ -136,7 +136,7 @@ size_t resource_size(ResHandle handle)
  * By resource handle
  * 
  */
-void resource_load(ResHandle resource_handle, uint8_t *buffer)
+void resource_load_system(ResHandle resource_handle, uint8_t *buffer)
 {
     
     if (resource_handle.size > xPortGetFreeAppHeapSize())
@@ -152,10 +152,10 @@ void resource_load(ResHandle resource_handle, uint8_t *buffer)
  * By resource ID
  * 
  */
-uint8_t *resource_fully_load_id(uint16_t resource_id)
+uint8_t *resource_fully_load_id_system(uint16_t resource_id)
 {
-    ResHandle res = resource_get_handle(resource_id);
-    return resource_fully_load_res(res);
+    ResHandle res = resource_get_handle_system(resource_id);
+    return resource_fully_load_res_system(res);
 }
 
 uint8_t *resource_fully_load_id_app(uint16_t resource_id, uint16_t slot_id)
@@ -196,7 +196,7 @@ bool _resource_is_sane(ResHandle res_handle)
  * By resource handle
  * 
  */
-uint8_t *resource_fully_load_res(ResHandle res_handle)
+uint8_t *resource_fully_load_res_system(ResHandle res_handle)
 {
     if (!_resource_is_sane(res_handle))
         return NULL;
@@ -211,7 +211,7 @@ uint8_t *resource_fully_load_res(ResHandle res_handle)
         return NULL;
     }
 
-    resource_load(res_handle, buffer);
+    resource_load_system(res_handle, buffer);
 
     return buffer;
 }

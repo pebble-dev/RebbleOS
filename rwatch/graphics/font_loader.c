@@ -54,7 +54,7 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
         }
     }
 
-    uint8_t *buffer = resource_fully_load_id(resource_id);
+    uint8_t *buffer = resource_fully_load_id_system(resource_id);
 
     GFont font = (GFont)buffer;
 

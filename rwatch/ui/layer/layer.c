@@ -251,16 +251,4 @@ void layer_delete_tree(Layer *layer)
 }
 
 
-// move me
-GBitmap *graphics_capture_frame_buffer(GContext *context)
-{
-    //GBitmap bitmap;
-    // rbl_lock_frame_buffer
-    return NULL;
-}
-
-void graphics_release_frame_buffer(GContext *context, GBitmap *bitmap)
-{
-    // rbl_unlock_frame_buffer
-}
 

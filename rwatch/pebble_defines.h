@@ -1,5 +1,5 @@
 #pragma once
-/* pebble-defined.h
+/* pebble-defines.h
  * Pebble defined header stuff
  * libRebbleOS
  *
