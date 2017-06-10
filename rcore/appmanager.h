@@ -88,11 +88,19 @@ typedef struct App {
     uint8_t type; // this will be in flags I presume <-- it is. TODO. Hook flags up
     bool is_internal; // is the app baked into flash
     uint8_t slot_id;
+    uint32_t resource_address; // the address where we are keeping the resources for this app
     char *name;
     ApplicationHeader *header;
     AppMainHandler main; // A shortcut to main
     struct App *next;
 } App;
+
+typedef struct AppTypeHeader {
+    char at;
+    char address[8];
+    char delim;
+    char type[3];
+} AppTypeHeader;
 
 
 #define APP_BUTTON       0

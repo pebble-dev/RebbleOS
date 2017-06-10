@@ -71,7 +71,7 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 GFont *fonts_load_custom_font(ResHandle *handle, uint16_t slot_id)
 {
     // The font is offset. account for it.
-    handle->offset += APP_FONT_START;
+    //handle->offset += APP_FONT_START;
     
     uint8_t *buffer = resource_fully_load_res_app(*handle, slot_id);
 

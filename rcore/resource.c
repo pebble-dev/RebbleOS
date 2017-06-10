@@ -64,9 +64,14 @@ ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id)
     ResHandle resHandle;
 
      if (resource_id == 0)
-//          return resHandle;
-        while(1);
-    uint32_t res_base = _resource_get_app_res_slot_address(slot_id) +  ((resource_id - 1) * sizeof(ResHandle));
+     {
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "App asked for resource 0. I don't know what that means");
+        return resHandle;
+     }
+        
+    App *app = appmanager_get_running_app();
+    
+    uint32_t res_base = app->resource_address +  ((resource_id - 1) * sizeof(ResHandle)) + 0xC;
     
     KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource base %x %d", res_base, resource_id);
     
@@ -95,15 +100,21 @@ void resource_load_app(ResHandle resource_handle, uint8_t *buffer, uint16_t slot
         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", resource_handle.size);
         return;
     }
-    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Res: Start %p", _resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset);
-    uint16_t ofs = 0;
-    if (resource_handle.index > 1)
-        ofs = 0x1C;
-    flash_read_bytes(_resource_get_app_res_slot_address(slot_id) + APP_RES_START + resource_handle.offset + ofs, buffer, resource_handle.size);
+    
+    App *app = appmanager_get_running_app();
+    
+    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Res: Start %p", app->resource_address + APP_RES_START + resource_handle.offset);
+    
+    uint16_t ofs = 0xC;
+    
+//     if (resource_handle.index > 1)
+//         ofs += 0x1C;
+//     
+    flash_read_bytes(app->resource_address + APP_RES_START + resource_handle.offset + ofs, buffer, resource_handle.size);
     return;
 }
 
-
+/*
 uint32_t _resource_get_app_res_slot_address(uint16_t slot_id)
 {
     uint32_t res_addr = 0;
@@ -120,7 +131,7 @@ uint32_t _resource_get_app_res_slot_address(uint16_t slot_id)
     res_addr += APP_HEADER_BIN_OFFSET + RES_TABLE_START - APP_RES_TABLE_OFFSET;
     
     return res_addr;
-}
+}*/
 
 
 /*
