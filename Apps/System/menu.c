@@ -28,6 +28,7 @@ coded up
 static int8_t _menu_index = 0;
 MenuItem _main_menu[4];
 static char *_selected_menu_name;
+static uint8_t _app_count = 0;
 
 #define MENU_MAIN       0
 #define MENU_WATCH      1
@@ -69,8 +70,9 @@ void menu_draw_watch_list()
 {
     // loop through all apps
     App *node = app_manager_get_apps_head();
-    uint8_t i = 0;
     n_GContext *nGContext = rwatch_neographics_get_global_context();
+    
+    _app_count = 0;
     
     graphics_context_set_fill_color(nGContext, GColorBlue);
     graphics_fill_rect(nGContext, GRect(0, 0, 144, 168), 0, GCornerNone);
@@ -79,6 +81,7 @@ void menu_draw_watch_list()
     {
         if ((!strcmp(node->name, "System")) ||
             (!strcmp(node->name, "TrekV2")) ||
+//             (!strcmp(node->name, "91 Dub 4.0")) ||
             (!strcmp(node->name, "watchface")))
         {
             node = node->next;
@@ -88,18 +91,18 @@ void menu_draw_watch_list()
         mi.text = node->name;
         mi.sub_text = 0;
         mi.image_res_id = 25;
-        menu_draw_list_item(0, i * 42, 0, 0, &mi, (_menu_index == i ? 1 : 0));
+        menu_draw_list_item(0, _app_count * 42, 0, 0, &mi, (_menu_index == _app_count ? 1 : 0));
 
-        if (_menu_index == i)
+        if (_menu_index == _app_count)
             _selected_menu_name = node->name;
         
         node = node->next;
 
         // we show 4 for now
-        if (i >= 3)
+        if (_app_count >= 3)
             break;
         
-        i++;
+        _app_count++;
     }
 }
 
@@ -183,6 +186,9 @@ void menu_select()
 {
     if (_menu_type == MENU_WATCH)
     {
+        if (_menu_index > _app_count)
+            return;
+        
         appmanager_app_start(_selected_menu_name);
         return;
     }
@@ -196,10 +202,6 @@ void menu_select()
     {
         // dump flash
         flash_dump();
-    }
-    else if (_menu_index > 1)
-    {
-        appmanager_app_start(_main_menu[_menu_index].text);
     }
 }
 
