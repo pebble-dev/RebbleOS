@@ -101,3 +101,29 @@ uint32_t _flash_get_app_slot_address(uint16_t slot_id)
     return 0;
 }
 
+uint32_t flash_get_resource_address(uint16_t slot_id)
+{
+    // get the address for this slot, then work backwards in 0x2000 block 
+    // increments looking for the resources
+    uint32_t faddr = _flash_get_app_slot_address(slot_id);
+    uint32_t block_size = 0x2000;
+    
+    // get the header identifier. it sits before the app
+    AppTypeHeader app_header, fr;
+    flash_read_bytes(faddr - sizeof(AppTypeHeader), (uint8_t *)&app_header, sizeof(AppTypeHeader));
+    KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "%s", app_header.address);
+    
+    for (uint32_t i = faddr - block_size; i > (faddr - (block_size * 10)); i -= block_size)
+    {
+        flash_read_bytes(i - 13, (uint8_t *)&fr, sizeof(AppTypeHeader));
+        KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "Resource %s %x", fr.address, i);
+        // check to see if this block contains our header
+        if (!strncmp(app_header.address, fr.address, 8))
+        {
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "Found Resource %s %x", fr.address, i);
+            return i;
+        }
+    }
+    
+    return 0;
+}
