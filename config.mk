@@ -87,6 +87,7 @@ SRCS_all += rwatch/ngfxwrap.c
 SRCS_all += rwatch/math_sin.c
 SRCS_all += rwatch/ui/layer/layer.c
 SRCS_all += rwatch/ui/layer/bitmap_layer.c
+SRCS_all += rwatch/ui/layer/menu_layer.c
 SRCS_all += rwatch/ui/layer/scroll_layer.c
 SRCS_all += rwatch/ui/layer/text_layer.c
 SRCS_all += rwatch/ui/window.c

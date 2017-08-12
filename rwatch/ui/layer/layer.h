@@ -60,5 +60,9 @@ void *layer_get_data(const Layer *layer); //TODO
 
 
 void walk_layers(/*const*/ Layer *layer, GContext *context);
+
+// updates context offset based on layer frame, used to properly adjust layer drawing calls
+void layer_apply_frame_offset(const Layer *layer, GContext *context);
+
 void layer_delete_tree(Layer *layer);
 
