@@ -59,6 +59,6 @@ bool layer_get_clips(const Layer *layer); //TODO
 void *layer_get_data(const Layer *layer); //TODO
 
 
-void walk_layers(/*const*/ Layer *layer);
+void walk_layers(/*const*/ Layer *layer, GContext *context);
 void layer_delete_tree(Layer *layer);
 

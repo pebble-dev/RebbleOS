@@ -6,7 +6,7 @@
  */
 
 #include "librebble.h"
-#include "ngfxwrap.h"
+#include "utils.h"
 
 Layer *layer_find_parent(Layer *orig_layer, Layer *layer);
 void layer_remove_node(Layer *to_be_removed);
@@ -90,6 +90,8 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
     
     child->sibling = child_layer;
     child_layer->parent = parent_layer;
+
+    layer_mark_dirty(parent_layer);
 }
 
 void layer_mark_dirty(Layer *layer)
@@ -100,7 +102,10 @@ void layer_mark_dirty(Layer *layer)
 
 void layer_set_bounds(Layer *layer, GRect bounds)
 {
-    layer->bounds = bounds;
+    if (!RECT_EQ(layer->bounds, bounds)) {
+        layer->bounds = bounds;
+        layer_mark_dirty(layer);
+    }
 }
 
 GRect layer_get_bounds(Layer *layer)
@@ -110,7 +115,10 @@ GRect layer_get_bounds(Layer *layer)
 
 void layer_set_frame(Layer *layer, GRect frame)
 {
-    layer->frame = frame;
+    if (!RECT_EQ(layer->frame, frame)) {
+        layer->frame = frame;
+        layer_mark_dirty(layer);
+    }
 }
 
 GRect layer_get_frame(const Layer *layer)
@@ -191,27 +199,27 @@ void layer_remove_node(Layer *to_be_removed)
  * When exhaused it will walk the siblings of the parent, etc etc until
  * either 1) no more ram 2) completion
  */
-void walk_layers(/*const*/ Layer *layer)
+void walk_layers(/*const*/ Layer *layer, GContext *context)
 {
     if (layer)
     {
         if (layer->hidden == false) // we don't draw hidden layers or their children
         {
+            GRect previous_offset = context->offset;
+            context->offset.origin.x += layer->frame.origin.x;
+            context->offset.origin.y += layer->frame.origin.y;
+            context->offset.size.w = MAX(0, context->offset.size.w - layer->frame.origin.x);
+            context->offset.size.h = MAX(0, context->offset.size.h - layer->frame.origin.y);
+
             if (layer->update_proc)
-            {
-                GContext *context = rwatch_neographics_get_global_context();
-                
-                // butcher the offset by adding the start of the framebuffer xy for the bitmap
-                context->offset = layer->frame;
-                
-                // call the callback
                 layer->update_proc(layer, context);
-            }
-            
+
             // walk this elements sub elements recursively before moving on to the next element
-            walk_layers(layer->child);
+            walk_layers(layer->child, context);
+
+            context->offset = previous_offset; // restore offset
         }        
-        walk_layers(layer->sibling);
+        walk_layers(layer->sibling, context);
     }
 }
 
