@@ -38,3 +38,5 @@ void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
 void button_unsubscribe_all(void);
 
 ButtonHolder *button_add_click_config(ButtonId button_id, ClickConfig click_config);
+
+void button_set_click_context(ButtonId button_id, void *context);

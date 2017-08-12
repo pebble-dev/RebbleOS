@@ -160,6 +160,7 @@ void window_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
 
 void window_set_click_context(ButtonId button_id, void *context)
 {
+    button_set_click_context(button_id, context);
 }
 
 
