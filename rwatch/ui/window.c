@@ -160,6 +160,7 @@ void window_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
 
 void window_set_click_context(ButtonId button_id, void *context)
 {
+    button_set_click_context(button_id, context);
 }
 
 
@@ -178,6 +179,8 @@ void rbl_window_load_proc(void)
 
 void rbl_window_load_click_config(void)
 {
-    if (top_window->click_config_provider)
-        top_window->click_config_provider(top_window);
+    if (top_window->click_config_provider) {
+        void* context = top_window->click_config_context ? top_window->click_config_context : top_window;
+        top_window->click_config_provider(context);
+    }
 }

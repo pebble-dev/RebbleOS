@@ -382,3 +382,12 @@ void button_unsubscribe_all(void)
         memset(holder, 0, sizeof(ClickConfig));
     }
 }
+
+void button_set_click_context(ButtonId button_id, void *context)
+{
+    if (button_id >= NUM_BUTTONS)
+        return;
+
+    _button_holders[button_id]->click_config.context = context;
+}
+
