@@ -33,6 +33,9 @@ typedef struct ScrollLayer
 } ScrollLayer;
 
 
+ScrollLayer *scroll_layer_create(GRect frame);
+void scroll_layer_destroy(ScrollLayer *layer);
+Layer *scroll_layer_get_layer(ScrollLayer *scroll_layer);
 
 void scroll_layer_add_child(ScrollLayer *scroll_layer, Layer *child);
 void scroll_layer_set_click_config_onto_window(ScrollLayer *scroll_layer, struct Window *window);

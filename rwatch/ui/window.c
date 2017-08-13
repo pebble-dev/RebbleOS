@@ -6,6 +6,7 @@
  */
 
 #include "librebble.h"
+#include "ngfxwrap.h"
 
 // TODO uh, oh. Maybe we need a linked list of windows. Check the api and infer
 Window *top_window;
@@ -80,7 +81,10 @@ Layer *window_get_root_layer(Window *window)
 void window_dirty(bool is_dirty)
 {
     top_window->is_render_scheduled = is_dirty;
-    walk_layers(top_window->root_layer);
+
+    GContext *context = rwatch_neographics_get_global_context();
+    context->offset = layer_get_frame(top_window->root_layer);
+    walk_layers(top_window->root_layer, context);
     
     // TODO: shortcut, for now just draw directly
     rbl_draw();

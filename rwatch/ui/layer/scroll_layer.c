@@ -7,17 +7,24 @@
 
 #include "librebble.h"
 #include "scroll_layer.h"
-#include "text.h"
+#include "utils.h"
 
-ScrollLayer *scroll_layer_create(GRect bounds)
+#define BUTTON_REPEAT_INTERVAL_MS 600
+#define CLICK_SCROLL_AMOUNT 16
+#define ANIMATE_ON_CLICK true
+
+ScrollLayer *scroll_layer_create(GRect frame)
 {
     ScrollLayer* slayer = (ScrollLayer*)calloc(1, sizeof(ScrollLayer));
-    Layer* layer = layer_create(GRect(0, 0, 144, 168));  // TODO: size of the actual window 
-    Layer* sublayer = layer_create(bounds);
+    Layer* layer = layer_create(frame);
+    Layer* sublayer = layer_create(frame);
     // give the layer a reference back to us
     layer->container = slayer;
     slayer->layer = layer;
     slayer->content_sublayer = sublayer;
+    slayer->context = slayer;
+
+    layer_add_child(layer, sublayer);
 
     return slayer;
 }
@@ -26,6 +33,38 @@ void scroll_layer_destroy(ScrollLayer *layer)
 {
     layer_destroy(layer->layer);
     free(layer);
+}
+
+static void scroll_layer_add_content_offset(ScrollLayer *layer, GPoint offset, bool animate) {
+    GPoint current = layer_get_frame(layer->content_sublayer).origin;
+    offset.x += current.x;
+    offset.y += current.y;
+
+    scroll_layer_set_content_offset(layer, offset, animate);
+}
+
+static void down_single_click_handler(ClickRecognizerRef _, void *context)
+{
+    scroll_layer_add_content_offset(context, GPoint(0, -CLICK_SCROLL_AMOUNT), ANIMATE_ON_CLICK);
+}
+
+static void up_single_click_handler(ClickRecognizerRef _, void *context)
+{
+    scroll_layer_add_content_offset(context, GPoint(0, CLICK_SCROLL_AMOUNT), ANIMATE_ON_CLICK);
+}
+
+
+static void scroll_layer_click_config_provider(ScrollLayer *layer)
+{
+    window_single_repeating_click_subscribe(BUTTON_ID_DOWN, BUTTON_REPEAT_INTERVAL_MS, down_single_click_handler);
+    window_single_repeating_click_subscribe(BUTTON_ID_UP, BUTTON_REPEAT_INTERVAL_MS, up_single_click_handler);
+    window_set_click_context(BUTTON_ID_DOWN, layer);
+    window_set_click_context(BUTTON_ID_UP, layer);
+
+    if (layer->callbacks.click_config_provider) {
+       layer->callbacks.click_config_provider(layer->context);
+       window_set_click_context(BUTTON_ID_SELECT, layer->context);
+    }
 }
 
 Layer *scroll_layer_get_layer(ScrollLayer *scroll_layer)
@@ -40,7 +79,7 @@ void scroll_layer_add_child(ScrollLayer *scroll_layer, Layer *child)
 
 void scroll_layer_set_click_config_onto_window(ScrollLayer *scroll_layer, struct Window *window)
 {
-    // TODO
+    window_set_click_config_provider_with_context(window, (ClickConfigProvider)scroll_layer_click_config_provider, scroll_layer);
 }
 
 void scroll_layer_set_callbacks(ScrollLayer *scroll_layer, ScrollLayerCallbacks callbacks)
@@ -50,36 +89,48 @@ void scroll_layer_set_callbacks(ScrollLayer *scroll_layer, ScrollLayerCallbacks 
 
 void scroll_layer_set_context(ScrollLayer *scroll_layer, void *context)
 {
-//    layer_set_context(scroll_layer->layer, context);
+    scroll_layer->context = context ? context : scroll_layer;
 }
 
 void scroll_layer_set_content_offset(ScrollLayer *scroll_layer, GPoint offset, bool animated)
 {
-    GRect bounds = layer_get_bounds(scroll_layer->content_sublayer);
-    layer_set_bounds(scroll_layer->content_sublayer, GRect(offset.x, offset.y, bounds.size.w, bounds.size.h));
+    GSize slayer_size = layer_get_frame(scroll_layer->layer).size;
+    GRect frame = layer_get_frame(scroll_layer->content_sublayer);
+    layer_set_frame(scroll_layer->content_sublayer,
+                    GRect(CLAMP(offset.x, slayer_size.w - frame.size.w, 0),
+                          CLAMP(offset.y, slayer_size.h - frame.size.h, 0),
+                          frame.size.w,
+                          frame.size.h));
     // TODO animate to new offset
 }
 
 GPoint scroll_layer_get_content_offset(ScrollLayer *scroll_layer)
 {
-    GRect bounds = layer_get_bounds(scroll_layer->content_sublayer);
-    return bounds.origin;
+    GRect frame = layer_get_frame(scroll_layer->content_sublayer);
+    return frame.origin;
 }
 
 void scroll_layer_set_content_size(ScrollLayer *scroll_layer, GSize size)
 {
-    GRect bounds = layer_get_bounds(scroll_layer->content_sublayer);
-    layer_set_bounds(scroll_layer->content_sublayer, GRect(bounds.origin.x, bounds.origin.y, size.w, size.h));
+    GRect frame = layer_get_frame(scroll_layer->content_sublayer);
+    layer_set_frame(scroll_layer->content_sublayer, GRect(frame.origin.x, frame.origin.y, size.w, size.h));
+    // calling set_offset to ensure that offset is clamped to current size
+    scroll_layer_set_content_offset(scroll_layer, frame.origin, false);
 }
 
 GSize scroll_layer_get_content_size(const ScrollLayer *scroll_layer)
 {
-    GRect bounds = layer_get_bounds(scroll_layer->content_sublayer);
+    GRect bounds = layer_get_frame(scroll_layer->content_sublayer);
     return bounds.size;
 }
 
 void scroll_layer_set_frame(ScrollLayer *scroll_layer, GRect frame)
 {
+    layer_set_frame(scroll_layer->layer, frame);
+
+    // clamp content offset to new size
+    GPoint offset = layer_get_frame(scroll_layer->content_sublayer).origin;
+    scroll_layer_set_content_offset(scroll_layer, offset, false);
 }
 
 void scroll_layer_scroll_up_click_handler(ClickRecognizerRef recognizer, void *context)
