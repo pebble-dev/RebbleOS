@@ -64,6 +64,11 @@ void graphics_draw_text_app(
                             text_attributes);
 }
 
+void graphics_draw_bitmap_in_rect_app(GContext *ctx, GBitmap *bitmap, GRect rect)
+{
+    graphics_draw_bitmap_in_rect(ctx, bitmap, _jimmy_layer_offset(ctx, rect));
+}
+
 
 void graphics_draw_pixel_app(n_GContext * ctx, n_GPoint p)
 {

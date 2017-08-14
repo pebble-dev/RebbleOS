@@ -16,6 +16,7 @@ void graphics_draw_text_app(
     n_GTextAttributes * text_attributes);
 void graphics_draw_pixel_app(n_GContext * ctx, n_GPoint p);
 void graphics_draw_rect_app(n_GContext * ctx, n_GRect rect, uint16_t radius, n_GCornerMask mask);
+void graphics_draw_bitmap_in_rect_app(GContext *ctx, GBitmap *bitmap, GRect rect);
 void gpath_fill_app(n_GContext * ctx, n_GPath * path);
 void gpath_draw_app(n_GContext * ctx, n_GPath * path);
 void gpath_rotate_to_app(n_GPath * path, int32_t angle);

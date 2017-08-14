@@ -394,7 +394,7 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
     if (icon)
     {
         GSize icon_size = icon->raw_bitmap_size;
-        graphics_draw_bitmap_in_rect(ctx, icon, GRect(x, (frame.size.h - icon_size.h) / 2, icon_size.w, icon_size.h));
+        graphics_draw_bitmap_in_rect_app(ctx, icon, GRect(x, (frame.size.h - icon_size.h) / 2, icon_size.w, icon_size.h));
         x = icon_size.w + 10;
     }
 
