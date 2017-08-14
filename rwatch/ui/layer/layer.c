@@ -206,10 +206,7 @@ void walk_layers(/*const*/ Layer *layer, GContext *context)
         if (layer->hidden == false) // we don't draw hidden layers or their children
         {
             GRect previous_offset = context->offset;
-            context->offset.origin.x += layer->frame.origin.x;
-            context->offset.origin.y += layer->frame.origin.y;
-            context->offset.size.w = MAX(0, context->offset.size.w - layer->frame.origin.x);
-            context->offset.size.h = MAX(0, context->offset.size.h - layer->frame.origin.y);
+            layer_apply_frame_offset(layer, context);
 
             if (layer->update_proc)
                 layer->update_proc(layer, context);
@@ -222,6 +219,15 @@ void walk_layers(/*const*/ Layer *layer, GContext *context)
         walk_layers(layer->sibling, context);
     }
 }
+
+void layer_apply_frame_offset(const Layer *layer, GContext *context)
+{
+    context->offset.origin.x += layer->frame.origin.x;
+    context->offset.origin.y += layer->frame.origin.y;
+    context->offset.size.w = MAX(0, context->offset.size.w - layer->frame.origin.x);
+    context->offset.size.h = MAX(0, context->offset.size.h - layer->frame.origin.y);
+}
+
 
 Layer *layer_find_parent(Layer *orig_layer, Layer *layer)
 {

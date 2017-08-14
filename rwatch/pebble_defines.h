@@ -23,8 +23,10 @@
 
 // text redefines
 #define GTextOverflowMode n_GTextOverflowMode
+#define GTextOverflowModeTrailingEllipsis n_GTextOverflowModeTrailingEllipsis
 #define GFont n_GFont
 #define GTextAlignment n_GTextAlignment
+#define GTextAlignmentLeft n_GTextAlignmentLeft
 #define GTextAttributes n_GTextAttributes
 #define graphics_draw_text n_graphics_draw_text
 
