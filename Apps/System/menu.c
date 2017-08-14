@@ -1,222 +1,138 @@
 /* menu.c
- * Poor mans menu to stop gap us
- * 
+ *
+ * Generic menu component.
+ *
  * RebbleOS
  * 
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
 
 #include "rebbleos.h"
-#include "librebble.h"
 #include "menu.h"
-#include "appmanager.h"
-#include "ngfxwrap.h"
 
-extern void graphics_draw_bitmap_in_rect(GContext*, GBitmap*, GRect);
-extern void flash_dump(void);
-
-/*
-// menu
-
-This is teh suckiest. All hard coded (in the worst way) until we get proper menu support
-coded up
-
-*/
-
-#define STANDARD_MENU_COUNT 4
-
-static int8_t _menu_index = 0;
-MenuItem _main_menu[4];
-static char *_selected_menu_name;
-static uint8_t _app_count = 0;
-
-#define MENU_MAIN       0
-#define MENU_WATCH      1
-#define MENU_CONSOLE    2
-
-uint8_t _menu_type = MENU_MAIN;
-
-void menu_init(void)
+MenuItems* menu_items_create(uint16_t capacity)
 {
-    
-    printf("menu init\n");
-    _main_menu[0].text       = "Watchfaces";
-    _main_menu[0].sub_text   = "Will scan flash";
-    _main_menu[0].image_res_id = 25;
-    _main_menu[1].text       = "Dump Flash";
-    _main_menu[1].sub_text   = "Device will lock";
-    _main_menu[1].image_res_id = 24;
-    _main_menu[2].text       = "RebbleOS";
-    _main_menu[2].sub_text   = "... v0.0.0.1";
-    _main_menu[2].image_res_id = 24;
-    _main_menu[3].text       = "... Soon (TM)";
-    _main_menu[3].sub_text   = "";
-    _main_menu[3].image_res_id = 25;
+    MenuItems *result = (MenuItems *) calloc(1, sizeof(MenuItems)); // XXX: use app heap allocator
+    result->capacity = capacity;
+    result->count = 0;
+    if (capacity > 0)
+        result->items = (MenuItem *) calloc(capacity, sizeof(MenuItem)); // XXX: use app heap allocator
+    return result;
 }
 
-void menu_draw_list(MenuItem menu[], uint8_t offsetx, uint8_t offsety)
+void menu_items_destroy(MenuItems *items)
 {
-    // Draw the standard apps
-    for (uint8_t i = 0; i < STANDARD_MENU_COUNT; i++)
-    {
-        if (_menu_index == i)
-            _selected_menu_name = menu[i].text;
-        menu_draw_list_item(0, i * 42, offsetx, offsety, &menu[i], (_menu_index == i ? 1 : 0));
-    }
-     
+    if (items->back)
+        menu_items_destroy(items->back);
+    if (items->capacity > 0)
+        free(items->items);
+    free(items);
 }
 
-void menu_draw_watch_list()
+void menu_items_add(MenuItems *items, MenuItem item)
 {
-    // loop through all apps
-    App *node = app_manager_get_apps_head();
-    n_GContext *nGContext = rwatch_neographics_get_global_context();
-    
-    _app_count = 0;
-    
-    graphics_context_set_fill_color(nGContext, GColorBlue);
-    graphics_fill_rect(nGContext, GRect(0, 0, 144, 168), 0, GCornerNone);
-    
-    while(node)
+    if (items->capacity == items->count)
+        return; // TODO: should we grow, or report error here?
+
+    items->items[items->count++] = item;
+}
+
+static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, Menu *menu)
+{
+    return menu->items->count;
+}
+
+static void select_click_callback(MenuLayer *menu_layer, MenuIndex *index, Menu *menu)
+{
+    MenuItem item = menu->items->items[index->row];
+    if (item.on_select)
     {
-        if ((!strcmp(node->name, "System")) ||
-            (!strcmp(node->name, "TrekV2")) ||
-//             (!strcmp(node->name, "91 Dub 4.0")) ||
-            (!strcmp(node->name, "watchface")))
+        MenuItems *submenu = item.on_select(&item);
+        if (submenu)
         {
-            node = node->next;
-            continue;
+            submenu->back = menu->items;
+            submenu->back_index = *index;
+            menu->items = submenu;
+            menu_layer_reload_data(menu->layer);
+            menu_layer_set_selected_index(menu->layer, MenuIndex(0, 0), MenuRowAlignTop, false);
         }
-        MenuItem mi;
-        mi.text = node->name;
-        mi.sub_text = 0;
-        mi.image_res_id = 25;
-        menu_draw_list_item(0, _app_count * 42, 0, 0, &mi, (_menu_index == _app_count ? 1 : 0));
-
-        if (_menu_index == _app_count)
-            _selected_menu_name = node->name;
-        
-        node = node->next;
-
-        // we show 4 for now
-        if (_app_count >= 3)
-            break;
-        
-        _app_count++;
     }
 }
 
-void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offsety, MenuItem* menu, uint8_t selected)
+static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *index, Menu *menu)
 {
-    GColor bg;
-    // list item is a box
-    // might have a type (has subtext etc)
-
-    n_GContext *nGContext = rwatch_neographics_get_global_context();
-
-    // could be selected item eh
-    if (selected)
-    {
-        bg = GColorRed;
-        graphics_context_set_text_color(nGContext, GColorWhite);
-    }
-    else
-    {
-        bg = GColorWhite;
-        graphics_context_set_text_color(nGContext, GColorBlack);
-    }
-
-    graphics_context_set_fill_color(nGContext, bg);
-    graphics_fill_rect(nGContext, GRect(x, y, x + 144, y + 42), 0, GCornerNone);
-    
-    // and an icon
-    if (menu->image_res_id > 0)
-    {
-        GBitmap *gbitmap = gbitmap_create_with_resource(menu->image_res_id);
-        graphics_draw_bitmap_in_rect(nGContext, gbitmap, GRect(x + 5, y + 5, 25,25));
-        gbitmap_destroy(gbitmap);
-    }
-
-    // these will get cached out so meh
-    GFont font1 = fonts_get_system_font(FONT_KEY_GOTHIC_14);
-    GFont font2 = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-    
-    // and text/subtext
-    if (menu->sub_text != NULL && strlen(menu->sub_text) > 0)
-    {
-        graphics_draw_text(nGContext, menu->sub_text, font1,
-                       GRect(x + 45, y + 18, 100,25), 0,
-                       0, 0);
-
-        graphics_draw_text(nGContext, menu->text, font2,
-                       GRect(x + 40, y + 0, 100,20), 0,
-                       0, 0);
-    }
-    else
-    {
-        graphics_draw_text(nGContext, menu->text, font2,
-                       GRect(x + 40, y + 0, 100,25), 0,
-                       0, 0);
-    }
+    MenuItem *item = &menu->items->items[index->row];
+    GBitmap *gbitmap = gbitmap_create_with_resource(item->image_res_id);
+    menu_cell_basic_draw(ctx, cell_layer, item->text, item->sub_text, gbitmap);
+    gbitmap_destroy(gbitmap);
 }
 
-uint16_t fl_idx = 7;
 
-void menu_show(uint8_t offsetx, uint8_t offsety)
+Menu* menu_create(GRect frame)
 {
-    if (_menu_type == MENU_MAIN)
-        menu_draw_list(_main_menu, offsetx, offsety);
-    else if (_menu_type == MENU_WATCH)
-        menu_draw_watch_list();
+    Menu *menu = (Menu *) calloc(1, sizeof(Menu)); // XXX: use app heap allocator
+    menu->items = menu_items_create(0);
+    menu->layer = menu_layer_create(frame);
+    menu_layer_set_highlight_colors(menu->layer, GColorRed, GColorWhite);
+    menu_layer_set_callbacks(menu->layer, menu, (MenuLayerCallbacks) {
+        .get_num_rows = (MenuLayerGetNumberOfRowsInSectionsCallback) get_num_rows_callback,
+        .draw_row = (MenuLayerDrawRowCallback) draw_row_callback,
+        .select_click = (MenuLayerSelectCallback) select_click_callback,
+    });
+
+    return menu;
 }
 
-void menu_up()
+void menu_destroy(Menu *menu)
 {
-    if (_menu_index > 0)
-       _menu_index--;
+    if (menu->items)
+        menu_items_destroy(menu->items);
+    menu_layer_destroy(menu->layer);
+    free(menu);
 }
 
-void menu_down()
-{        
-    if (_menu_index < 3)
-        _menu_index++;
-}
-
-void menu_select()
+Layer* menu_get_layer(Menu *menu)
 {
-    if (_menu_type == MENU_WATCH)
-    {
-        if (_menu_index > _app_count)
-            return;
-        
-        appmanager_app_start(_selected_menu_name);
-        return;
-    }
-    
-    if (_menu_index == 0)
-    {
-        // submenu watchfaces
-        _menu_type = MENU_WATCH;
-    }
-    else if (_menu_index == 1)
-    {
-        // dump flash
-        flash_dump();
-    }
+    return menu_layer_get_layer(menu->layer);
 }
 
-void menu_back()
+void menu_set_items(Menu *menu, MenuItems *items)
 {
-    if (_menu_type == MENU_WATCH)
-    {
-        _menu_type = MENU_MAIN;
-    }        
-    else
-    {
-        appmanager_app_start("Simple");
-        return;
-    }
-
-    // TODO quit back to watchface
+    menu_items_destroy(menu->items);
+    menu->items = items;
+    menu_layer_reload_data(menu->layer);
+    menu_layer_set_selected_index(menu->layer, MenuIndex(0, 0), MenuRowAlignTop, false);
 }
 
+void menu_set_callbacks(Menu *menu, void *context, MenuCallbacks callbacks)
+{
+    menu->callbacks = callbacks;
+    menu->context = context;
+}
+
+static void back_single_click_handler(ClickRecognizerRef _, Menu *menu)
+{
+    if (menu->items->back)
+    {
+        MenuItems *prev = menu->items;
+        menu->items = prev->back;
+        menu_layer_reload_data(menu->layer);
+        menu_layer_set_selected_index(menu->layer, prev->back_index, MenuRowAlignTop, false);
+        prev->back = NULL; // so we don't free that
+        menu_items_destroy(prev);
+    }
+    else if (menu->callbacks.on_menu_exit)
+        menu->callbacks.on_menu_exit(menu, menu->context);
+}
+
+static void menu_click_config_provider(Menu *menu)
+{
+    window_single_click_subscribe(BUTTON_ID_BACK, (ClickHandler) back_single_click_handler);
+    window_set_click_context(BUTTON_ID_BACK, menu);
+}
+
+void menu_set_click_config_onto_window(Menu *menu, Window *window)
+{
+    menu_layer_set_click_config_provider(menu->layer, (ClickConfigProvider) menu_click_config_provider);
+    menu_layer_set_click_config_onto_window(menu->layer, window);
+}
