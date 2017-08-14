@@ -1,35 +1,65 @@
 #pragma once
-/* 
- * This file is part of the RebbleOS distribution.
- *   (https://github.com/pebble-dev)
- * Copyright (c) 2017 Barry Carter <barry.carter@gmail.com>.
- * 
- * RebbleOS is free software: you can redistribute it and/or modify  
- * it under the terms of the GNU Lesser General Public License as   
- * published by the Free Software Foundation, version 3.
+/* menu.h
  *
- * RebbleOS is distributed in the hope that it will be useful, but 
- * WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * Lesser General Public License for more details.
+ * Generic menu component.
  *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * RebbleOS
+ *
+ * Author: Barry Carter <barry.carter@gmail.com>.
  */
- #include "librebble.h"
- 
-typedef struct MenuItem {
+
+#include "librebble.h"
+#include "menu_layer.h"
+
+struct MenuItem;
+struct MenuItems;
+
+typedef struct MenuItems* (*MenuItemCallback)(const struct MenuItem *item);
+
+typedef struct MenuItem
+{
     char *text;
     char *sub_text;
     uint16_t image_res_id;
-    
+    MenuItemCallback on_select;
 } MenuItem;
 
-void menu_init(void);
-void menu_draw_list(MenuItem menu[], uint8_t offsetx, uint8_t offsety);
-void menu_draw_list_item(uint16_t x, uint16_t y, uint8_t offsetx, uint8_t offsety, MenuItem* menu, uint8_t selected);
-void menu_show(uint8_t offsetx, uint8_t offsety);
-void menu_up(void);
-void menu_down(void);
-void menu_back(void);
-void menu_select(void);
+#define MenuItem(text, sub_text, image, on_select) ((MenuItem) { text, sub_text, image, on_select })
+
+typedef struct MenuItems
+{
+    uint16_t count;
+    uint16_t capacity;
+    MenuItem *items;
+
+    struct MenuItems *back;
+    MenuIndex back_index;
+} MenuItems;
+
+MenuItems* menu_items_create(uint16_t capacity);
+void menu_items_destroy(MenuItems *items);
+void menu_items_add(MenuItems *items, MenuItem item);
+
+// called when back is pressed while in top menu
+typedef void (*MenuExitCallback)(struct Menu *menu, void *context);
+
+typedef struct MenuCallbacks
+{
+    MenuExitCallback on_menu_exit;
+} MenuCallbacks;
+
+typedef struct Menu
+{
+    MenuItems *items;
+    MenuLayer *layer;
+    MenuCallbacks callbacks;
+    void *context;
+} Menu;
+
+
+Menu* menu_create(GRect frame);
+void menu_destroy(Menu *menu);
+void menu_set_items(Menu *menu, MenuItems *items);
+Layer* menu_get_layer(Menu *menu);
+void menu_set_callbacks(Menu *menu, void *context, MenuCallbacks callbacks);
+void menu_set_click_config_onto_window(Menu *menu, struct Window *window);

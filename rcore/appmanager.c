@@ -590,9 +590,6 @@ void app_select_single_click_handler(ClickRecognizerRef recognizer, void *contex
         case APP_TYPE_FACE:
             appmanager_app_start("System");
             break;
-        case APP_TYPE_SYSTEM:
-            menu_select();
-            break;
     }
 }
 
