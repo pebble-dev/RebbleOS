@@ -106,6 +106,7 @@ typedef struct AppTypeHeader {
 #define APP_BUTTON       0
 #define APP_QUIT         1
 #define APP_TICK         2
+#define APP_DRAW         3
 
 #define APP_TYPE_SYSTEM  0
 #define APP_TYPE_FACE    1
@@ -115,6 +116,7 @@ typedef struct AppTypeHeader {
 void appmanager_init(void);
 void appmanager_post_button_message(ButtonMessage *bmessage);
 void appmanager_post_tick_message(TickMessage *tmessage, BaseType_t *pxHigherPri);
+void appmanager_post_draw_message(void);
 void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
 App *appmanager_get_app(char *app_name);
