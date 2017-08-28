@@ -31,7 +31,7 @@ enum seek {
 
 void fs_init();
 int fs_find_file(struct file *file, const char *name);
-void fs_open(struct fd *fd, struct file *file);
+void fs_open(struct fd *fd, const struct file *file);
 int fs_read(struct fd *fd, void *p, size_t n);
 long fs_seek(struct fd *fd, long ofs, enum seek whence);
 

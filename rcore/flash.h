@@ -41,6 +41,4 @@ typedef struct hw_driver_ext_flash_t {
 void flash_test(uint16_t resource_id);
 void flash_init(void);
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes);
-void flash_load_app(uint16_t app_id, uint8_t *buffer, size_t count);
-void flash_load_app_header(uint16_t app_id, ApplicationHeader *header);
 void flash_dump(void);

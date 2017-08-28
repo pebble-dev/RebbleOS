@@ -239,7 +239,7 @@ int fs_find_file(struct file *file, const char *name)
     return -1;
 }
 
-void fs_open(struct fd *fd, struct file *file)
+void fs_open(struct fd *fd, const struct file *file)
 {
     fd->file = *file;
     

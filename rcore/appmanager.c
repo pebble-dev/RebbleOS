@@ -23,10 +23,11 @@
  */
 
 extern void appHeapInit(size_t, uint8_t*);
-extern  GFont *fonts_load_custom_font(ResHandle*, uint16_t);
+extern  GFont *fonts_load_custom_font(ResHandle*, struct file *file);
 
 static void _appmanager_flash_load_app_manifest();
-static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id);
+static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal,
+                                   const struct file *app_file, const struct file *resource_file);
 static void _appmanager_app_thread(void *parameters);
 static void _appmanager_add_to_manifest(App *app);
 
@@ -64,12 +65,12 @@ void nivz_main(void);
  */
 void appmanager_init(void)
 {
+    struct file empty = { 0, 0, 0 }; // TODO: make files optional in `App` to avoid this
    
     // load the baked in 
-    _appmanager_add_to_manifest(_appmanager_create_app("System", APP_TYPE_SYSTEM, systemapp_main, true, 0));
-    _appmanager_add_to_manifest(_appmanager_create_app("Simple", APP_TYPE_FACE, simple_main, true, 0));
-    _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", APP_TYPE_FACE, nivz_main, true, 0));
-    
+    _appmanager_add_to_manifest(_appmanager_create_app("System", APP_TYPE_SYSTEM, systemapp_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Simple", APP_TYPE_FACE, simple_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", APP_TYPE_FACE, nivz_main, true, &empty, &empty));
     _app_task_handle = NULL;
     
     // now load the ones on flash
@@ -99,7 +100,8 @@ void appmanager_init(void)
  * Generate an entry in the application manifest for each found app.
  * 
  */
-static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal, uint8_t slot_id)
+static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal,
+                                   const struct file *app_file, const struct file *resource_file)
 {
     App *app = calloc(1, sizeof(App));
     if (app == NULL)
@@ -115,29 +117,77 @@ static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, 
     app->type = type;
     app->header = NULL;
     app->next = NULL;
-    app->slot_id = slot_id;
+    app->app_file = *app_file;
+    app->resource_file = *resource_file;
     app->is_internal = is_internal;
     
     return app;
 }
 
 
+struct appdb
+{
+    uint32_t paged_incr;  //0x58F6AExx
+    uint16_t app_cache_id; //  B5 3E trek v2 also appears in app cache
+    uint16_t unk;  // 0x0FC13Exx
+    uint32_t application_id; // in app as @000037f
+    Uuid app_uuid;  // 16 bytes
+    uint32_t unk_13;
+    uint32_t unk_17;
+    uint16_t sdk_version;
+    uint16_t app_version;
+    uint16_t zeros;
+    uint8_t app_name[32];
+    uint8_t unk_arr_company[32];  // always blank
+    uint8_t unk_arr[32]; // always blank
+} __attribute__((__packed__));
+
+
 /*
  * Load the list of apps and faces from flash
  * The app manifest is a list of all known applications we found in flash
- * We scan all block regions and look for app signatures.
- * TODO The real app likely does nothing quite so crude. We need to find the app table!
+ * We load all entries from `appdb` file.
+ * TODO: appdb seems to have duplicates (in my case), maybe we should use `pmap`, but it was missing some entries for me
  */
 void _appmanager_flash_load_app_manifest(void)
 {
-    ApplicationHeader header;
-    char buf[16];
-    // super cheesy
-    // 8 app slots
-    for(uint8_t i = 0; i < 32; i++)
+    struct file file;
+    if (fs_find_file(&file, "appdb") < 0)
     {
-        flash_load_app_header(i, &header);
-        
+        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "APPDB file not found");
+        return;
+    }
+
+    char buffer[14];
+    struct appdb appdb;
+    struct fd fd;
+    struct file app_file;
+    struct file res_file;
+    struct fd app_fd;
+    ApplicationHeader header;
+
+    fs_open(&fd, &file);
+
+    // skipping 8 bytes for appdb file header
+    fs_seek(&fd, 8, FS_SEEK_SET);
+    for (int i = 0; i < file.size / sizeof(struct appdb); ++i) {
+        fs_read(&fd, &appdb, sizeof(appdb)); // TODO: check return value once fs_read returns something sensible
+
+        if (appdb.application_id == 0xFFFFFFFFu)
+            break;
+
+        snprintf(buffer, 14, "@%08" PRIu32 "/app", appdb.application_id);
+        if (fs_find_file(&app_file, buffer) < 0)
+            continue;
+
+        snprintf(buffer, 14, "@%08" PRIu32 "/res", appdb.application_id);
+        if (fs_find_file(&res_file, buffer) < 0)
+            continue;
+
+        fs_open(&app_fd, &app_file);
+
+        fs_read(&app_fd, &header, sizeof(ApplicationHeader)); // TODO: check error
+
         // sanity check the hell out of this to make sure it's a real app
         if (!strncmp(header.header, "PBLAPP", 6))
         {
@@ -145,9 +195,14 @@ void _appmanager_flash_load_app_manifest(void)
             // TODO
             // crc32....(header.header)
             KERN_LOG("app", APP_LOG_LEVEL_INFO, "VALID App Found %s", header.name);
-            
+
             // main gets set later
-            _appmanager_add_to_manifest(_appmanager_create_app(header.name, APP_TYPE_FACE, NULL, false, i));
+            _appmanager_add_to_manifest(_appmanager_create_app(header.name,
+                                                               APP_TYPE_FACE,
+                                                               NULL,
+                                                               false,
+                                                               &app_file,
+                                                               &res_file));
         }
     }
 }
@@ -367,11 +422,6 @@ static void _appmanager_app_thread(void *parms)
         if (_app_task_handle != NULL)
             vTaskDelete(_app_task_handle);
         
-        // get the app's resources. we have to go and look for it.
-        // Get the app's id. that's just before the app in flash
-        app->resource_address = flash_get_resource_address(app->slot_id);
-        
-        
         // If the app is running off RAM (i.e it's a PIC loaded app...) and not system, we need to patch it
         if (!app->is_internal)
         {
@@ -450,11 +500,14 @@ static void _appmanager_app_thread(void *parms)
                  
              */
             uint32_t total_app_size = 0;
-            flash_load_app_header(app->slot_id, &header);
+            struct fd fd;
+            fs_open(&fd, &app->app_file);
+            fs_read(&fd, &header, sizeof(ApplicationHeader));
         
             // load the app from flash
             // and any reloc entries too.
-            flash_load_app(app->slot_id, app_stack_heap.byte_buf, header.app_size + (header.reloc_entries_count * 4));
+            fs_seek(&fd, 0, FS_SEEK_SET);
+            fs_read(&fd, app_stack_heap.byte_buf, header.app_size + (header.reloc_entries_count * 4));
             
             
             // re-allocate the GOT for -fPIC
@@ -633,22 +686,28 @@ void p_n_grect_standardize(n_GRect r)
  */
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id)
 {
-    return gbitmap_create_with_resource_app(resource_id, _running_app->slot_id);
+    return gbitmap_create_with_resource_app(resource_id, &_running_app->resource_file);
 }
 
 ResHandle resource_get_handle(uint16_t resource_id)
 {
-    return resource_get_handle_app(resource_id, _running_app->slot_id);
+    return resource_get_handle_app(resource_id, &_running_app->resource_file);
+}
+
+void resource_load(ResHandle resource_handle, uint8_t *buffer, uint32_t size)
+{
+    // TODO: respect passed size, should we include file in ResHandle?
+    return resource_load_app(resource_handle, buffer, &_running_app->resource_file);
 }
 
 // app proxies by pointer
 ResHandle *resource_get_handle_proxy(uint16_t resource_id)
 {
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "ResH %d %d", resource_id, _running_app->slot_id);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "ResH %d %s", resource_id, _running_app->header->name);
 
     // push to the heap.
     ResHandle *x = app_malloc(sizeof(ResHandle));
-    ResHandle y = resource_get_handle_app(resource_id, _running_app->slot_id);
+    ResHandle y = resource_get_handle_app(resource_id, &_running_app->resource_file);
     memcpy(x, &y, sizeof(ResHandle));
      
     return x;
@@ -656,14 +715,6 @@ ResHandle *resource_get_handle_proxy(uint16_t resource_id)
 
 GFont *fonts_load_custom_font_proxy(ResHandle *handle)
 {
-    return (GFont *)fonts_load_custom_font(handle, _running_app->slot_id);
+    return (GFont *)fonts_load_custom_font(handle, &_running_app->resource_file);
 }
-
-
-
-
-
-
-
-
 

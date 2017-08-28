@@ -11,7 +11,7 @@
 
 extern size_t xPortGetFreeAppHeapSize(void);
 
-uint32_t _resource_get_app_res_slot_address(uint16_t slot_id);
+uint32_t _resource_get_app_res_slot_address(const struct file *file);
 
 void resource_init()
 {
@@ -59,7 +59,7 @@ ResHandle resource_get_handle_system(uint16_t resource_id)
 /*
  * Load up a handle for the resource by ID
  */
-ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id)
+ResHandle resource_get_handle_app(uint32_t resource_id, const struct file *file)
 {
     ResHandle resHandle;
 
@@ -68,18 +68,19 @@ ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id)
         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "App asked for resource 0. I don't know what that means");
         return resHandle;
      }
-        
-    App *app = appmanager_get_running_app();
-    
-    uint32_t res_base = app->resource_address +  ((resource_id - 1) * sizeof(ResHandle)) + 0xC;
-    
+
+    uint32_t res_base = ((resource_id - 1) * sizeof(ResHandle)) + 0xC;
+
     KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource base %x %d", res_base, resource_id);
-    
-    
+
+    struct fd fd;
+    fs_open(&fd, file);
+    fs_seek(&fd, res_base, FS_SEEK_SET);
+
     // get the resource from the flash.
     // each resource is in a big array in the flash, so we get the offsets for the resouce
     // by multiplying out by the size of each resource
-    flash_read_bytes(res_base, (uint8_t *)&resHandle, sizeof(ResHandle));
+    fs_read(&fd, &resHandle, sizeof(ResHandle));
     
     KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource %d %x %x", resHandle.index, resHandle.offset, resHandle.size);
 
@@ -93,7 +94,7 @@ ResHandle resource_get_handle_app(uint32_t resource_id, uint16_t slot_id)
     return resHandle;
 }
 
-void resource_load_app(ResHandle resource_handle, uint8_t *buffer, uint16_t slot_id)
+void resource_load_app(ResHandle resource_handle, uint8_t *buffer, const struct file *file)
 {
     if (resource_handle.size > xPortGetFreeAppHeapSize())
     {
@@ -101,16 +102,18 @@ void resource_load_app(ResHandle resource_handle, uint8_t *buffer, uint16_t slot
         return;
     }
     
-    App *app = appmanager_get_running_app();
-    
-    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Res: Start %p", app->resource_address + APP_RES_START + resource_handle.offset);
+    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Res: Start %p", APP_RES_START + resource_handle.offset);
     
     uint16_t ofs = 0xC;
     
 //     if (resource_handle.index > 1)
 //         ofs += 0x1C;
-//     
-    flash_read_bytes(app->resource_address + APP_RES_START + resource_handle.offset + ofs, buffer, resource_handle.size);
+//
+
+    struct fd fd;
+    fs_open(&fd, file);
+    fs_seek(&fd, APP_RES_START + resource_handle.offset + ofs, FS_SEEK_SET);
+    fs_read(&fd, buffer, resource_handle.size);
     return;
 }
 
@@ -169,10 +172,10 @@ uint8_t *resource_fully_load_id_system(uint16_t resource_id)
     return resource_fully_load_res_system(res);
 }
 
-uint8_t *resource_fully_load_id_app(uint16_t resource_id, uint16_t slot_id)
+uint8_t *resource_fully_load_id_app(uint16_t resource_id, const struct file *file)
 {
-    ResHandle res = resource_get_handle_app(resource_id, slot_id);
-    return resource_fully_load_res_app(res, slot_id);
+    ResHandle res = resource_get_handle_app(resource_id, file);
+    return resource_fully_load_res_app(res, file);
 }
 
 
@@ -227,7 +230,7 @@ uint8_t *resource_fully_load_res_system(ResHandle res_handle)
     return buffer;
 }
 
-uint8_t *resource_fully_load_res_app(ResHandle res_handle, uint16_t slot_id)
+uint8_t *resource_fully_load_res_app(ResHandle res_handle, const struct file *file)
 {
     if (!_resource_is_sane(res_handle))
         return NULL;
@@ -241,7 +244,7 @@ uint8_t *resource_fully_load_res_app(ResHandle res_handle, uint16_t slot_id)
         KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource alloc failed");
         return NULL;
     }
-    resource_load_app(res_handle, buffer, slot_id);
+    resource_load_app(res_handle, buffer, file);
     return buffer;
 }
     
