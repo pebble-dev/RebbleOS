@@ -41,3 +41,13 @@ void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes);
 void flash_load_app(uint16_t app_id, uint8_t *buffer, size_t count);
 void flash_load_app_header(uint16_t app_id, ApplicationHeader *header);
 void flash_dump(void);
+
+
+typedef struct File {
+    uint16_t page;
+    uint16_t next_page;
+    uint32_t size;
+    uint32_t offset; // offset in page where file data starts
+} File;
+
+bool fs_find_file(File *file, const char *name);

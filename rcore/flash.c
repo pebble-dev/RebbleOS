@@ -117,34 +117,65 @@ struct page_hdr {
 /* flag values are *cleared* to mean "true" */
 #define FLASHFLAG(val, flag) (((val) & (flag)) == 0)
 
-static void _fs_read_page_hdr(int pg, struct page_hdr *p) {
-    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct page_hdr));
+/* assuming that no longer files are possible, just a guess */
+#define MAX_FILENAME_LEN 32
+
+struct page_hdr_with_name {
+    struct page_hdr hdr;
+    char name[MAX_FILENAME_LEN + 1];
+};
+
+static void _fs_read_page_hdr(int pg, struct page_hdr_with_name *p) {
+    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct page_hdr_with_name));
+    p->name[(MAX_FILENAME_LEN < p->hdr.filename_len) ? MAX_FILENAME_LEN : p->hdr.filename_len] = 0;
 }
 
 static void _fs_read_page_ofs(int pg, size_t ofs, void *p, size_t n) {
     flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE + ofs, (uint8_t *)p, n);
 }
 
-
 static uint8_t _fs_valid = 1;
+
+enum page_state {
+    PageStateUnallocated = 0,
+    PageStateFileStart = 1,
+    PageStateFileCont = 2,
+    PageStateInvalid = 3
+};
+
+static uint8_t _fs_page_flags[(REGION_FS_N_PAGES + 3) >> 2];
+
+static void _fs_set_page_state(uint16_t pg, enum page_state state)
+{
+    int offset = 6 - 2 * (pg & 3);
+    _fs_page_flags[pg >> 2] &= ~(3 << offset); // clear flag bits
+    _fs_page_flags[pg >> 2] |= (state << offset); // set flag bits
+}
+
+static enum page_state _fs_get_page_state(uint16_t pg)
+{
+    return (_fs_page_flags[pg >> 2] >> (6  - 2 * (pg & 3))) & 3;
+}
 
 static void _fs_init()
 {
     /* Do a basic integrity check to see if there's any cleanup that needs
      * to be done that we don't know how to do yet.
      */
-    struct page_hdr hdr;
+    struct page_hdr_with_name buffer;
+    struct page_hdr *hdr = &buffer.hdr;
     int pg;
     
     KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "doing basic filesystem check");
     _fs_valid = 1;
-    
+    memset(&_fs_page_flags, 0, sizeof(_fs_page_flags));
+
     /* Make sure that at least the first page has the header of the right
      * version.  There might be pages with missing headers later, and we can
      * squawk about that, but the first page has to be good for there to be
      * a fileystem here.  */
-    _fs_read_page_hdr(0, &hdr);
-    if (hdr.v_0x5001 != 0x5001) {
+    _fs_read_page_hdr(0, &buffer);
+    if (hdr->v_0x5001 != 0x5001) {
         KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "this doesn't appear to be a Pebble filesystem");
         _fs_valid = 0;
         return;
@@ -158,54 +189,58 @@ static void _fs_init()
     uint8_t saw_page_in_outer_space = 0;
     for (pg = 0; pg < REGION_FS_N_PAGES; pg++)
     {
-        _fs_read_page_hdr(pg, &hdr);
-        if (hdr.v_0x5001 == 0xFFFF) {
+        _fs_read_page_hdr(pg, &buffer);
+        if (hdr->v_0x5001 == 0xFFFF) {
             if (!saw_blank_page)
                 KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "this filesystem has a blank page in it... hmm...");
             saw_blank_page = 1;
             continue;
         }
-        if (hdr.v_0x5001 != 0x5001) {
-            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d has bad header version 0x%04x; I give up", pg, hdr.v_0x5001);
+        if (hdr->v_0x5001 != 0x5001) {
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d has bad header version 0x%04x; I give up", pg, hdr->v_0x5001);
             _fs_valid = 0;
             return;
         }
-        if (hdr.status == 0xFE && lastpg != -1) {
+        if (hdr->status == 0xFE && lastpg != -1) {
             lastpg = pg;
         }
-        if ((lastpg != -1) && FLASHFLAG(hdr.empty, HDR_EMPTY_ALLOCATED)) {
+        if ((lastpg != -1) && FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED)) {
             if (!saw_page_in_outer_space)
                 KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d is marked as allocated, but page %d had the last page marker... hmm...", pg, lastpg);
             saw_page_in_outer_space = 1;
         }
         
         /* The rest of the checks only apply to an allocated page. */
-        if (!FLASHFLAG(hdr.empty, HDR_EMPTY_ALLOCATED))
+        if (!FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED))
             continue;
-        if (!FLASHFLAG(hdr.status, HDR_STATUS_FILE_START))
+
+        if (FLASHFLAG(hdr->status, HDR_STATUS_FILE_CONT))
+            _fs_set_page_state(pg, PageStateFileCont);
+
+        if (!FLASHFLAG(hdr->status, HDR_STATUS_FILE_START))
             continue;
-        if (!FLASHFLAG(hdr.status, HDR_STATUS_DEAD) && hdr.st_create_complete) {
+
+        if (!FLASHFLAG(hdr->status, HDR_STATUS_DEAD) && hdr->st_create_complete) {
             KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d creation not complete; I can't deal with this; go boot PebbleOS to clean up first", pg);
             _fs_valid = 0;
             return;
         }
-        if (FLASHFLAG(hdr.status, HDR_STATUS_DEAD) && hdr.st_delete_complete) {
+        if (FLASHFLAG(hdr->status, HDR_STATUS_DEAD) && hdr->st_delete_complete) {
             KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d deletion not complete; I can't deal with this; go boot PebbleOS to clean up first", pg);
             _fs_valid = 0;
             return;
         }
-        
-        if (hdr.filename_len == 2) {
-            /* Uh oh. */
-            char c[3];
-            c[2] = 0;
-            _fs_read_page_ofs(pg, sizeof(struct page_hdr), c, 2);
-            if (!strcmp(c, "GC")) {
-                KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d has a GC file; I can't deal with this; go boot PebbleOS to clean up first", pg);
-                _fs_valid = 0;
-                return;
-            }
+
+        if (hdr->filename_len > MAX_FILENAME_LEN)
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d has unexpectedly long file name: %d; it may cause further errors", pg, hdr->filename_len);
+
+        if (!strcmp(buffer.name, "GC")) {
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d has a GC file; I can't deal with this; go boot PebbleOS to clean up first", pg);
+            _fs_valid = 0;
+            return;
         }
+
+        _fs_set_page_state(pg, PageStateFileStart);
     }
     
     KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "checked %d pages, and it's good enough to read, at least", pg);
@@ -239,16 +274,16 @@ uint32_t _flash_get_app_slot_address(uint16_t slot_id)
 
 uint32_t flash_get_resource_address(uint16_t slot_id)
 {
-    // get the address for this slot, then work backwards in 0x2000 block 
+    // get the address for this slot, then work backwards in 0x2000 block
     // increments looking for the resources
     uint32_t faddr = _flash_get_app_slot_address(slot_id);
     uint32_t block_size = 0x2000;
-    
+
     // get the header identifier. it sits before the app
     AppTypeHeader app_header, fr;
     flash_read_bytes(faddr - sizeof(AppTypeHeader), (uint8_t *)&app_header, sizeof(AppTypeHeader));
     KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "%s", app_header.address);
-    
+
     for (uint32_t i = faddr - block_size; i > (faddr - (block_size * 10)); i -= block_size)
     {
         flash_read_bytes(i - 13, (uint8_t *)&fr, sizeof(AppTypeHeader));
@@ -260,6 +295,35 @@ uint32_t flash_get_resource_address(uint16_t slot_id)
             return i;
         }
     }
-    
+
     return 0;
+}
+
+bool fs_find_file(File *file, const char *name)
+{
+    if (!_fs_valid)
+    {
+        KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "fs_find_file used with invalid fs; ignoring request");
+        return false;
+    }
+
+    struct page_hdr_with_name buffer;
+    struct page_hdr *hdr = &buffer.hdr;
+
+    for (uint16_t pg = 0; pg < REGION_FS_N_PAGES; pg++)
+    {
+        if (_fs_get_page_state(pg) == PageStateFileStart)
+        {
+            _fs_read_page_hdr(pg, &buffer);
+            if (!strcmp(name, buffer.name)) {
+                file->page = pg;
+                file->next_page = hdr->next_page;
+                file->size = hdr->file_size;
+                file->offset = sizeof(struct page_hdr) + hdr->filename_len;
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
