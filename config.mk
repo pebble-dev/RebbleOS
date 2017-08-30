@@ -76,6 +76,7 @@ SRCS_all += rcore/rebble_time.c
 SRCS_all += rcore/rebble_memory.c
 SRCS_all += rcore/vibrate.c
 SRCS_all += rcore/flash.c
+SRCS_all += rcore/fs.c
 SRCS_all += rcore/log.c
 SRCS_all += rcore/resource.c
 SRCS_all += rcore/heap_app.c
