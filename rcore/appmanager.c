@@ -171,7 +171,8 @@ void _appmanager_flash_load_app_manifest(void)
     // skipping 8 bytes for appdb file header
     fs_seek(&fd, 8, FS_SEEK_SET);
     for (int i = 0; i < file.size / sizeof(struct appdb); ++i) {
-        fs_read(&fd, &appdb, sizeof(appdb)); // TODO: check return value once fs_read returns something sensible
+        if (fs_read(&fd, &appdb, sizeof(appdb)) != sizeof(appdb))
+            break;
 
         if (appdb.application_id == 0xFFFFFFFFu)
             break;
@@ -186,7 +187,8 @@ void _appmanager_flash_load_app_manifest(void)
 
         fs_open(&app_fd, &app_file);
 
-        fs_read(&app_fd, &header, sizeof(ApplicationHeader)); // TODO: check error
+        if (fs_read(&app_fd, &header, sizeof(ApplicationHeader)) != sizeof(ApplicationHeader))
+            break;
 
         // sanity check the hell out of this to make sure it's a real app
         if (!strncmp(header.header, "PBLAPP", 6))

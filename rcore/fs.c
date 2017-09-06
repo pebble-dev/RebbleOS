@@ -257,7 +257,7 @@ int fs_read(struct fd *fd, void *p, size_t bytes)
         bytes = fd->file.size - fd->offset;
     bytesrem = bytes;
 
-    while (bytes)
+    while (bytesrem)
     {
         size_t n = bytesrem;
         
@@ -268,7 +268,7 @@ int fs_read(struct fd *fd, void *p, size_t bytes)
         
         fd->curpofs += n;
         fd->offset += n;
-        bytes -= n;
+        bytesrem -= n;
         p += n;
         
         if (fd->curpofs == REGION_FS_PAGE_SIZE)
