@@ -26,6 +26,7 @@ Window *window_create()
     GRect bounds = GRect(0, 0, 144, 168);
     
     window->root_layer = layer_create(bounds);
+    window->background_color = GColorWhite;
         
     return window;
 }
@@ -93,7 +94,11 @@ void window_draw() {
     if (top_window && top_window->is_render_scheduled)
     {
         GContext *context = rwatch_neographics_get_global_context();
-        context->offset = layer_get_frame(top_window->root_layer);
+        GRect frame = layer_get_frame(top_window->root_layer);
+        context->offset = frame;
+        context->fill_color = top_window->background_color;
+        graphics_fill_rect_app(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
+
         walk_layers(top_window->root_layer, context);
 
         rbl_draw();
