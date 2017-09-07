@@ -234,7 +234,7 @@ int _flash_test(void)
     _nor_reset_state();
     // Write CFI command to enter ID region
     _nor_write16(0xAAA, 0x98);
-    // 0x20-0x24 are the "Qrery header QRY"
+    // 0x20-0x24 are the "Query header QRY"
     nr = _nor_read16(0x20);
     nr1 = _nor_read16(0x22);
     nr2 = _nor_read16(0x24);
@@ -255,11 +255,14 @@ int _flash_test(void)
 }
 
 /*
- * Issue a CFI region read request and reset the flash state
+ * Issue a CFI region write request and reset the flash state
+ * XXX we really should be unlocking the region properly using CFI
+ * http://www.cypress.com/file/218866/download Section 8.1
+ * This allows us to hard lock pages in flash so they are not writeable. 
  */
-void _nor_enter_read_mode(uint32_t address)
+void _nor_enter_write_mode(uint32_t address)
 {
-    // CFI start read unlock
+    // CFI start write unlock
     _nor_write16(0xAAA, 0xAA);
     _nor_write16(0x554, 0x55);
     // unlock the address
@@ -281,8 +284,6 @@ static uint16_t _nor_read16(uint32_t address)
     
     stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 
-    _nor_enter_read_mode(address);
-
     rv = *(__IO uint16_t *)(Bank1_NOR_ADDR + address);
     
     stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
@@ -294,12 +295,10 @@ void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length)
 {
     stm32_power_request(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 
-    _nor_enter_read_mode(address);
     for(uint32_t i = 0; i < length; i++)
     {
         buffer[i] = *(__IO uint8_t *)((Bank1_NOR_ADDR + address + i));
     }
-    _nor_reset_region(0xAAA);
 
     stm32_power_release(STM32_POWER_AHB3, RCC_AHB3Periph_FMC);
 }
