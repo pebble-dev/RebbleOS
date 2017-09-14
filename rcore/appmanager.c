@@ -300,6 +300,14 @@ void appmanager_post_tick_message(TickMessage *tmessage, BaseType_t *pxHigherPri
     xQueueSendToBackFromISR(_app_message_queue, &am, pxHigherPri);
 }
 
+void appmanager_post_draw_message(void)
+{
+    AppMessage am = (AppMessage) {
+        .message_type_id = APP_DRAW
+    };
+    xQueueSendToBack(_app_message_queue, &am, (TickType_t)10);
+}
+
 /*
  * 
  * Once an application is spawned, it calls into app_event_loop
@@ -332,7 +340,7 @@ void app_event_loop(void)
 //         window_single_click_subscribe(BUTTON_ID_BACK, back_long_click_handler);
     
     // redraw
-    window_dirty(true);
+    window_draw();
     
     // block forever
     for ( ;; )
@@ -366,6 +374,10 @@ void app_event_loop(void)
                 vTaskDelete(_app_task_handle);
                 // app was quit, break out of this loop into the main handler
                 break;
+            }
+            else if (data.message_type_id == APP_DRAW)
+            {
+                window_draw();
             }
         }
     }

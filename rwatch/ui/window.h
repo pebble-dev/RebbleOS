@@ -76,6 +76,8 @@ void window_set_click_context(ButtonId button_id, void *context);
 void window_stack_push(Window *window, bool something);
 void window_dirty(bool is_dirty);
 
+void window_draw();
+
 
 void rbl_window_load_proc(void);
 void rbl_window_load_click_config(void);
