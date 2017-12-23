@@ -80,7 +80,6 @@ SRCS_all += rcore/fs.c
 SRCS_all += rcore/log.c
 SRCS_all += rcore/resource.c
 SRCS_all += rcore/heap_app.c
-SRCS_all += rcore/driver.c
 SRCS_all += rcore/watchdog.c
 
 SRCS_all += rwatch/librebble.c

@@ -56,4 +56,10 @@ static inline void stm32_power_release(stm32_power_register_t reg, uint32_t doma
     stm32_power_incr(reg, domain, -1);
 }
 
+static inline uint8_t is_interrupt_set(void)
+{
+    return ((volatile int)(SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk)) != 0 ;
+}
+
+
 #endif

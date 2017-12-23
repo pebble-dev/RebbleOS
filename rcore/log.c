@@ -6,6 +6,7 @@
  */
 
 #include "rebbleos.h"
+#include "stm32_power.h"
 
 static SemaphoreHandle_t _log_mutex = NULL;
 static StaticSemaphore_t _log_mutex_buf;
@@ -34,58 +35,91 @@ void log_printf_to_ar(const char *layer, const char *module, uint8_t level, cons
 
 void log_printf(const char *layer, const char *module, uint8_t level, const char *filename, uint32_t line_no, const char *fmt, va_list ar)
 {
-    char log_type[12];
-    char buf[16];
+    uint8_t interrupt_set = 0;
+    static BaseType_t xHigherPriorityTaskWoken;
+    char buf[128];
+    char tbuf[16];
     
     // XXX: this means that log_printf *must* be called first from a non-threaded context, for this check is not thread-safe!
     // XXX: verify this here.
     if (_log_mutex == NULL)
         _log_mutex = xSemaphoreCreateMutexStatic(&_log_mutex_buf);
     
-    xSemaphoreTake(_log_mutex, portMAX_DELAY);
+    if(is_interrupt_set())
+    {
+        xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreTakeFromISR(_log_mutex, &xHigherPriorityTaskWoken);
+        interrupt_set = 1;
+    }
+    else
+    {
+        xSemaphoreTake(_log_mutex, portMAX_DELAY);
+    }
 
+    log_clock_enable();
+ 
+    
+#define INT_LEN 3
+#define LEVEL_LEN 3
+#define LAYER_LEN 8
+#define MODULE_LEN 8
+#define FILENM_LEN 15
+#define LINENO_LEN 5
+ 
+    snprintf(buf, INT_LEN + 1, "[%d]", interrupt_set);
+    
     // This is pretty cheesy. We print the sections in chunks back to back
     // This is becuase there is no %8d equiv in fmt.c so we hacky it up ourself
     switch(level)
     {
         case APP_LOG_LEVEL_ERROR:
-            snprintf(log_type, sizeof(log_type), "[ERROR]");
+            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[E]");
             break;
         case APP_LOG_LEVEL_WARNING:
-            snprintf(log_type, sizeof(log_type), "[WARN ]");
+            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[W]");
             break;
         case APP_LOG_LEVEL_INFO:
-            snprintf(log_type, sizeof(log_type), "[INFO ]");
+            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[I]");
             break;
         case APP_LOG_LEVEL_DEBUG:
-            snprintf(log_type, sizeof(log_type), "[DEBUG]");
+            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[D]");
             break;
         case APP_LOG_LEVEL_DEBUG_VERBOSE:
-            snprintf(log_type, sizeof(log_type), "[DEBUV]");
+            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[V]");
             break;
         default:
-            snprintf(log_type, sizeof(log_type), "[UNK  ]");
+            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[?]");
     }
+       
+    _log_pad_string(layer, tbuf, LAYER_LEN - 2);
+    snprintf(buf + INT_LEN + LEVEL_LEN, LAYER_LEN + 1, "[%s]", tbuf);
+    
+    _log_pad_string(module, tbuf, MODULE_LEN - 2);
+    snprintf(buf + INT_LEN + LEVEL_LEN + LAYER_LEN, MODULE_LEN + 1, "[%s]", tbuf);
 
-    printf(log_type);
-    
-    _log_pad_string(layer, buf, 6);
-    printf("[%s]", buf);
-    
-    _log_pad_string(module, buf, 6);
-    printf("[%s]", buf);
-    
-    _log_pad_string(filename, buf, 15);
-    printf("[%s", buf);
-    snprintf(log_type, 5, ":%d", (int)line_no);
-    
-    _log_pad_string(log_type, buf, 4);
-    printf("%s] ", buf);
-    
-    vprintf(fmt, ar);
+    _log_pad_string(filename, tbuf, FILENM_LEN - 2);
+    snprintf(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN, FILENM_LEN + 2, "[%s", tbuf);
+
+    snprintf(tbuf, LINENO_LEN + 2, ":%d", (int)line_no);
+    _log_pad_string(tbuf, buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN - 1, LINENO_LEN + 1);
+    snprintf(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN - 1, 3, "] ");
+
+    vsfmt(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN + 1, 128, fmt, ar);
+
+    printf(buf);
     printf("\n");
     
-    xSemaphoreGive(_log_mutex);
+    log_clock_disable();
+    
+    if (interrupt_set)
+    {
+        xSemaphoreGiveFromISR(_log_mutex, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+    else 
+    {
+        xSemaphoreGive(_log_mutex);
+    }
 }
 
 
@@ -97,14 +131,14 @@ static void _log_pad_string(const char *in_str, char *padded_str, uint16_t pad_l
     if (len > pad_len)
     {
         // truncate left
-        snprintf(padded_str, len, in_str + len - pad_len - 1);
+        snprintf(padded_str, len, in_str + len - pad_len);
     }
     else
     {
         strcat(padded_str, in_str);
         // pad
         uint16_t i;
-        for (i = len; i <= pad_len; i++)
+        for (i = len; i < pad_len; i++)
         {
             padded_str[i] = ' ';
         }

@@ -27,39 +27,33 @@ extern unsigned int _ram_top;
 
 static struct hw_driver_ext_flash_t *_flash_driver;
 
-// No ISR here (yet)
-static hw_driver_handler_t _callack_handler = {
-    .done_isr = NULL
-};
-
 void flash_init()
 {
     // initialise device specific flash
-    _flash_driver = (hw_driver_ext_flash_t *)driver_register((hw_driver_module_init_t)hw_flash_module_init, &_callack_handler);
-    assert(_flash_driver->read_bytes && "Read is invalid");
+    hw_flash_init();
     
-//     MPU->CTRL &= ~MPU_CTRL_ENABLE_Msk;
-//     MPU->RNR  = 0;
-//     MPU->RBAR = 0x20000000;
-//     MPU->RASR = _ram_top | portMPU_REGION_READ_WRITE  | MPU_RASR_XN_Msk;
-//     SCB->SHCSR |= SCB_SHCSR_MEMFAULTENA_Msk;
-//     MPU->CTRL |= MPU_CTRL_PRIVDEFENA_Msk | MPU_CTRL_ENABLE_Msk;
-
     _flash_mutex = xSemaphoreCreateMutexStatic(&_flash_mutex_buf);
-    
     fs_init();
 }
 
 /*
  * Read a given number of bytes SAFELY from the flash chip
+ * DO NOT use from an ISR
  */
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
 {
-    xSemaphoreTake(_flash_mutex, portMAX_DELAY);
-
-    _flash_driver->read_bytes(address, buffer, num_bytes);
+    uint8_t should_mutex = 0;
     
-    xSemaphoreGive(_flash_mutex);
+    if(rebbleos_get_system_status() == SYSTEM_STATUS_STARTED)
+    {
+        should_mutex = 1;
+        xSemaphoreTake(_flash_mutex, portMAX_DELAY);
+    }
+
+    hw_flash_read_bytes(address, buffer, num_bytes);
+    
+    if (should_mutex)
+        xSemaphoreGive(_flash_mutex);
 }
 
 void flash_dump(void)

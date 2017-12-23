@@ -77,7 +77,8 @@ struct file_hdr_with_name {
 };
 
 static void _fs_read_file_hdr(int pg, struct file_hdr_with_name *p) {
-    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct file_hdr_with_name));
+    hw_flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct file_hdr_with_name));
+
     p->name[(MAX_FILENAME_LEN < p->hdr.filename_len) ? MAX_FILENAME_LEN : p->hdr.filename_len] = 0;
 }
 
@@ -131,7 +132,7 @@ void fs_init()
         _fs_valid = 0;
         return;
     }
-    
+
     /* Make sure that all pages have headers of the right version and are "in
      * the right order", and aren't half-dead.
      */

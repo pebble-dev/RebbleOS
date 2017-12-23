@@ -91,7 +91,7 @@ SECTIONS
   . += 0x3000;
   _estack = .;
   _end = .;
-  _ram_top = 0x20000000 + 256*1024;
+  _ram_top = 0x20000000 + 192*1024;
   _flash_top = 0x08000000 + 1*1024*1024;
 
   /DISCARD/ :

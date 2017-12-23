@@ -27,3 +27,5 @@ void init_USART8(void);
 // implementation
 void hw_watchdog_init(void);
 void hw_watchdog_reset(void);
+void log_clock_enable(void);
+void log_clock_disable(void);

@@ -14,10 +14,10 @@
 /* Size of the app + stack + heap of the running app. 
    IN BYTES
  */ 
-#define MAX_APP_MEMORY_SIZE     90000
+#define MAX_APP_MEMORY_SIZE     60000
 
 /* Size of the stack in WORDS */
-#define MAX_APP_STACK_SIZE      4000
+#define MAX_APP_STACK_SIZE      5000
 
 // flash regions
 #define REGION_PRF_START        0x200000
@@ -28,10 +28,6 @@
 // Resource start
 #define REGION_RES_START        0x380000
 #define REGION_RES_SIZE         0x7D000 // TODO
-
-// FPGA
-#define REGION_FPGA_START       0xF0004
-#define REGION_FPGA_SIZE        0x7E2F
 
 
 #define REGION_FS_START         0x400000
@@ -71,3 +67,5 @@
 // Some fonts? confused
 //#define APP_FONT_START          0x1C
 #define APP_FONT_START          0x00
+
+#define Bank1_NOR_ADDR ((uint32_t)0x60000000)

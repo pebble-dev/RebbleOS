@@ -348,6 +348,7 @@ void app_event_loop(void)
         // we are inside the apps main loop event handler now
         if (xQueueReceive(_app_message_queue, &data, xMaxBlockTime))
         {
+            KERN_LOG("app", APP_LOG_LEVEL_INFO, "Queue Receive");
             if (data.message_type_id == APP_BUTTON)
             {
                 // execute the button's callback
@@ -398,7 +399,7 @@ static void _appmanager_app_thread(void *parms)
     ApplicationHeader header;   // TODO change to malloc so we can free after load?
     char *app_name;
     AppMessage am;
-        
+       
     for( ;; )
     {
         // Sleep waiting for the go signal. The app to start will be the parameter
@@ -428,7 +429,7 @@ static void _appmanager_app_thread(void *parms)
         App *app = appmanager_get_app(app_name);
         
         if (app == NULL)
-            return;
+            continue;
 
         // it's the one
         _running_app = app;
@@ -616,7 +617,7 @@ static void _appmanager_app_thread(void *parms)
             appHeapInit(MAX_APP_MEMORY_SIZE - (MAX_APP_STACK_SIZE * 4), app_stack_heap.byte_buf);
              
             uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - MAX_APP_STACK_SIZE];
-             
+             printf("LAUNCHING\n");
             _app_task_handle = xTaskCreateStatic((TaskFunction_t)_running_app->main, 
                                                   "dynapp", 
                                                   MAX_APP_STACK_SIZE, 

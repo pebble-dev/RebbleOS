@@ -47,6 +47,28 @@ void _snowy_display_init_dma(void);
 extern unsigned char _binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
 extern unsigned char _binary_Resources_FPGA_4_3_snowy_dumped_bin_size;
 
+/*
+ * Generic functional notes 
+ * 
+ * Bootloader:
+ *  The pebble bootloader flash is a basic scene selection arrangement.
+ *  (It is not implemented here)
+ *  The bootloader on the Pebble device will initialise the FPGA
+ *  First it checks to see if there is an updated version of the 
+ *  display's FPGA code on the flash at 0xF0004
+ *  The first two bytes at 0xF0000 are the FPGA ROM size.
+ *  
+ *  If this fails, it falls back to using the NVCM (Non-Volatile Configuration Memory)
+ *  on the FPGA. This is known to have bugs, hence the on chip bootloader update.
+ *
+ * Main Image
+ *  The Pebble firmware itself contains another FPGA flash that has a raw draw mode
+ *  On init, it resets the FPGA into "programming" mode, and uploads the image.
+ * 
+ *  There is one known command for this ROM, "Draw frame". Which it duly does.
+ */
+
+
 // Display configuration for the Pebble TIME
 display_t display = {
     .port_display    = GPIOG,
@@ -61,25 +83,6 @@ display_t display = {
     .pin_intn        = GPIO_Pin_10,
 };
 
-hw_driver_display_t _hw_display_driver = {
-    .common_info.module_name = "Snowy Display",
-    .common_info.init = hw_display_init,
-    .common_info.deinit = hw_display_deinit,
-    .common_info.test = hw_display_test,
-    .start = hw_display_start,
-    .draw = hw_display_start_frame,
-    .reset = hw_display_reset,
-    .get_buffer = hw_display_get_buffer,
-};
-
-static hw_driver_handler_t *_handler;
-
-void *hw_display_module_init(hw_driver_handler_t *handler)
-{
-    _handler = handler;
-    return &_hw_display_driver;
-}
-
 /*
  * Initialise the hardware. This means all GPIOs and SPI for the display
  */
@@ -90,11 +93,8 @@ void hw_display_init(void)
 
     // init display variables
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
-        
+    
     //GPIO_InitTypeDef gpio_init_structure;
     GPIO_InitTypeDef gpio_init_disp;
     GPIO_InitTypeDef gpio_init_disp_o;
@@ -118,9 +118,9 @@ void hw_display_init(void)
     
     // init the portG display pins (outputs)
     gpio_init_disp_o.GPIO_Mode = GPIO_Mode_OUT;
-    gpio_init_disp_o.GPIO_Pin =  display.pin_reset;
+    gpio_init_disp_o.GPIO_Pin =  display.pin_reset | display.pin_cs;
     gpio_init_disp_o.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    gpio_init_disp_o.GPIO_Speed = GPIO_Speed_25MHz;
+    gpio_init_disp_o.GPIO_Speed = GPIO_Speed_100MHz;
     gpio_init_disp_o.GPIO_OType = GPIO_OType_PP;
     GPIO_Init(display.port_display, &gpio_init_disp_o);       
         
@@ -129,21 +129,9 @@ void hw_display_init(void)
     _snowy_display_init_dma();
 
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOD);
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
 
-void hw_display_deinit(void)
-{
-    //TODO
-}
-
-int hw_display_test(void)
-{
-    return 0;
-}
 
 /*
  * We use the Done INTn for the display. This is asserted
@@ -161,6 +149,7 @@ void _snowy_display_init_intn(void)
     NVIC_InitTypeDef NVIC_InitStruct;
     
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
         
     // Wait for external interrupts when the FPGA is done with a command
     SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOG, EXTI_PinSource10);
@@ -173,12 +162,13 @@ void _snowy_display_init_intn(void)
 
     // display used PinSource10 which is connected to EXTI15_10
     NVIC_InitStruct.NVIC_IRQChannel = EXTI15_10_IRQn;
-    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 6;  // must be > 5
+    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 7;  // must be > 5
     NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x00;
     NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&NVIC_InitStruct);
 
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
 
 /*
@@ -209,12 +199,6 @@ void _snowy_display_init_SPI6(void)
     GPIO_PinAFConfig(display.port_display, GPIO_PinSource12, GPIO_AF_SPI6);
     GPIO_PinAFConfig(display.port_display, GPIO_PinSource14, GPIO_AF_SPI6);
 
-    gpio_init_struct.GPIO_Pin = display.pin_cs;
-    gpio_init_struct.GPIO_Mode = GPIO_Mode_OUT;
-    gpio_init_struct.GPIO_OType = GPIO_OType_PP;
-    gpio_init_struct.GPIO_Speed = GPIO_Speed_25MHz;
-    gpio_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(display.port_display, &gpio_init_struct);
 
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 
@@ -242,12 +226,14 @@ static void _snowy_display_request_clocks()
 {
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
 
 static void _snowy_display_release_clocks()
 {
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
 
 /*
@@ -351,7 +337,6 @@ void DMA2_Stream5_IRQHandler()
     
     if (DMA_GetITStatus(DMA2_Stream5, DMA_IT_TCIF5))
     {
-        //printf("DMA BEGIN end frame\n");
         DMA_ClearITPendingBit(DMA2_Stream5, DMA_IT_TCIF5);
 
         // check the tx finished
@@ -373,7 +358,6 @@ void DMA2_Stream5_IRQHandler()
             return;
         }
                 
-                
         // done. We are still in control of the SPI select, so lets let go
         col_index = 0;
         
@@ -382,7 +366,8 @@ void DMA2_Stream5_IRQHandler()
         
         /* request_clocks in _snowy_display_start_frame */
         _snowy_display_release_clocks();
-        _handler->done_isr(0);
+        
+        display_done_ISR(0);
     }
 }
 
@@ -396,8 +381,6 @@ void EXTI15_10_IRQHandler(void)
 {
     if (EXTI_GetITStatus(EXTI_Line10) != RESET)
     {   
-        //display_done_ISR(1);
-       
         EXTI_ClearITPendingBit(EXTI_Line10);
     }
 }
@@ -417,7 +400,7 @@ void _snowy_display_cs(uint8_t enabled)
         GPIO_SetBits(display.port_display, display.pin_cs);
     else
         GPIO_ResetBits(display.port_display, display.pin_cs);
-    
+
     stm32_power_release(STM32_POWER_AHB1, display.clock_display);
 }
 
@@ -452,7 +435,6 @@ void _snowy_display_next_column(uint8_t col_index)
 {   
     // set the content
     scanline_convert_column(_column_buffer, display.frame_buffer, col_index);
-    
     _snowy_display_dma_send(_column_buffer, COLUMN_LENGTH);
 }
 
@@ -482,22 +464,18 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
     uint8_t g9 = 0;
 
     _snowy_display_request_clocks();
-    
+
+    // Pull out reset
     _snowy_display_cs(mode);
-    //_snowy_display_cs(1);
+    delay_ms(1);
     _snowy_display_reset(0);
     _snowy_display_cs(1);
-    delay_us(1);
+
+    delay_ms(1);
+    
     _snowy_display_reset(1);
     delay_us(1);
     
-    // don't wait when we are not in bootloader mode
-    // qemu doesn't like this, real pebble behaves
-    //if (mode == 1) {
-        _snowy_display_release_clocks();
-        return 1;
-    //}
-   
     // The real pebble at this point will pull reset done once it has reset
     // it also (probably dangerously) "just works" without.
     // it probably isn't the danger zone, but it's the highway
@@ -505,14 +483,14 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
     {
         g9 = GPIO_ReadInputDataBit(display.port_display, display.pin_reset_done);
         
-        if (g9 > 0)
+        if (g9 == 0)
         {
             DRV_LOG("FPGA", APP_LOG_LEVEL_DEBUG, "FPGA Reset");
             _snowy_display_release_clocks();
             return 1;
         }
         
-        delay_ms(100);
+        delay_us(100);
             
         k++;
         
@@ -563,36 +541,23 @@ void _snowy_display_SPI_end(void)
 }
 
 /*
- * BOOTLOADER MODE ONLY:
- * When in this mode, we can request a pre-baked scene be drawn
- * Interesting but of little utiity
- */
-void _snowy_display_drawscene(uint8_t scene)
-{
-    _snowy_display_SPI_start();
-    _snowy_display_SPI6_send(DISPLAY_CTYPE_SCENE); // set cmdset (select scene)
-    _snowy_display_SPI6_send(scene); // set the scene id
-    _snowy_display_SPI_end();
-}
-
-/*
  * Start to send a frame to the display driver
  * If it says yes, then we can then tell someone to fill the buffer
  */
 void _snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
+    stm32_power_request(STM32_POWER_AHB1, display.clock_display);
     _snowy_display_request_clocks();
 
     _snowy_display_cs(1);
-    delay_us(80);
+    delay_us(10);
     _snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
     _snowy_display_cs(0);
-    delay_us(100);
+    delay_us(10);
 
     _display_ready = 0;
 
     _snowy_display_send_frame();
-    
     /* release_clocks in DMA2_Stream5_IRQHandler */
 }
 
@@ -609,7 +574,6 @@ void _snowy_display_send_frame()
     // we are only going to send one single column at a time
     // the dma engine completion will trigger the next lot of data to go
     _snowy_display_next_column(0);
-    
     // we return immediately and let the system take care of the rest
 }
 
@@ -638,7 +602,17 @@ void _snowy_display_send_frame_slow()
  */
 uint8_t _snowy_display_wait_FPGA_ready(void)
 {
-    uint16_t i = 1000;
+    uint16_t i = 100;
+    
+    GPIO_InitTypeDef gpio_init_disp;
+    
+    // init the portG display pins (inputs)
+    gpio_init_disp.GPIO_Mode = GPIO_Mode_IN;
+    gpio_init_disp.GPIO_Pin =  display.pin_intn;
+    gpio_init_disp.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    gpio_init_disp.GPIO_Speed = GPIO_Speed_25MHz;
+    gpio_init_disp.GPIO_OType = GPIO_OType_PP;
+    GPIO_Init(GPIOG, &gpio_init_disp);
     
     while(GPIO_ReadInputDataBit(display.port_display, display.pin_intn) != 0)
     {
@@ -646,73 +620,13 @@ uint8_t _snowy_display_wait_FPGA_ready(void)
         {
             char *err = "Timed out waiting for ready";
             DRV_LOG("FPGA", APP_LOG_LEVEL_ERROR, err);
-            assert(!err);
             return 0;
         }        
-        delay_us(200);
+        delay_us(100);
     }
     DRV_LOG("FPGA", APP_LOG_LEVEL_DEBUG, "FPGA Ready");
     
     return 1;
-}
-
-/*
- * Master initiation of the display. it will got through all steps
- * needed to make the screen come on. Reset it, download the firmware
- * and also kick a scene into view
- */
-void _snowy_display_splash(uint8_t scene)
-{  
-    _snowy_display_request_clocks();
-
-    if (!_snowy_display_FPGA_reset(0)) // mode bootloader
-    {
-        _snowy_display_release_clocks();
-
-        return;
-    }
-  
-        
-    // Get the version of the FPGA.
-    // This is done in bootloader at least once. But we are skipping this for now
-    //     display_cs(1);
-    //     for(int i = 0; i < 1000; i++)
-    //         ;;
-    //     display_SPI6_getver(0);
-    //     
-    //     display_cs(0);
-    //     
-        
-    // once a scene is selected, we need to wait for the FPGA to respond.
-    // it seems like sometimes it doesn't behave, so we reset it until it does 
-    // I have one device that requires 5 cycles before it is alive!
-    // known issue apparently (Katharine Berry confirmed)
-    for (uint8_t i = 0; i < 10; i++)
-    {
-        delay_us(1);
-        _snowy_display_cs(1);
-        delay_us(100);
-        _snowy_display_SPI6_send(DISPLAY_CTYPE_SCENE); // Scene select
-        _snowy_display_SPI6_send(scene); // Select scene
-        _snowy_display_cs(0);
-        
-        IWDG_ReloadCounter();
-        delay_us(100);
-        
-        if (_snowy_display_wait_FPGA_ready())
-        {
-            hw_display_on();
-            DRV_LOG("Display", APP_LOG_LEVEL_INFO, "Display is ready");
-            
-            break;
-        }
-        
-        _snowy_display_FPGA_reset(0);
-    }
-    
-    _snowy_display_release_clocks();
-
-    return;                
 }
 
 /*
@@ -723,29 +637,25 @@ void _snowy_display_full_init(void)
 {
     DRV_LOG("Display", APP_LOG_LEVEL_INFO, "Init full driver mode");
     
-    _snowy_display_request_clocks();
+    _snowy_display_request_clocks();    
+    hw_display_on();
     
-    if (!_snowy_display_FPGA_reset(1)) // full fat
+    if (!_snowy_display_FPGA_reset(0)) // full fat
     {
         _snowy_display_release_clocks();
-
-        return;
+        assert(!"FGPA Init FAILED!!");
     }
     
     _snowy_display_program_FPGA();
     
-    delay_us(100);
-    _snowy_display_start_frame(0, 0);
-    delay_us(10);
-        
-    IWDG_ReloadCounter();
+    if (_snowy_display_wait_FPGA_ready())
+    {
+        DRV_LOG("Display", APP_LOG_LEVEL_INFO, "Display is ready");
+    }
     
     // enable interrupts now we have the splash up
-    _snowy_display_init_intn();
-    
+    _snowy_display_init_intn();   
     _snowy_display_release_clocks();
-
-    return;
 }
 
 /*
@@ -753,25 +663,14 @@ void _snowy_display_full_init(void)
  */
 void _snowy_display_program_FPGA(void)
 {
-//     unsigned char *fpga_blob = &_binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
+    unsigned char *fpga_blob = &_binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
            
-    // enter programming mode
     _snowy_display_cs(1);
     
     // Do this with good ol manual SPI for reliability
-    //     for (uint32_t i = 0; i < (uint32_t)&_binary_Resources_FPGA_4_3_snowy_dumped_bin_size; i++)
-    //     {
-    //         _snowy_display_SPI6_send(*(fpga_blob + i));
-    //     }
-    
-    // TODO Chunks. This is going to be hella slow
-    char buf[128];
-    for (uint32_t i = 0; i < (uint32_t)REGION_FPGA_SIZE; i+=128)
+    for (uint32_t i = 0; i < (uint32_t)&_binary_Resources_FPGA_4_3_snowy_dumped_bin_size; i++)
     {
-        // Request a chunk of data from the flash and send to the display
-        _handler->request_resource(HW_RESOURCE_FPGA, buf, i, 128);
-        for (int j = 0; j < 128; j++)
-            _snowy_display_SPI6_send(buf[j]);
+        _snowy_display_SPI6_send(*(fpga_blob + i));
     }
     
     _snowy_display_cs(0);
@@ -822,9 +721,6 @@ uint8_t hw_display_is_ready()
  */
 void hw_display_reset(void)
 {
-    // disable interrupts
-    // TODO
-    // go for it
     hw_display_start();
 }
 
@@ -833,9 +729,6 @@ void hw_display_reset(void)
  */
 void hw_display_start(void)
 {
-    // begin the init
-    _snowy_display_splash(2);
-    delay_us(100);
     _snowy_display_full_init();
 }
 

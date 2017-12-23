@@ -47,7 +47,6 @@ void hw_backlight_set(uint16_t pwmValue)
     
     // Pebble Time has backlight control driven by TIM12
     // It is set to PWM mode 2 and will count up to n
-    
     stm32_power_request(STM32_POWER_AHB1, BL_PORT);
     
     GPIO_PinAFConfig(GPIOB, BL_PIN_SOURCE, GPIO_AF_TIM12);
@@ -61,6 +60,10 @@ void hw_backlight_set(uint16_t pwmValue)
     GPIO_Init(GPIOB, &GPIO_InitStruct);
     
     stm32_power_release(STM32_POWER_AHB1, BL_PORT);
+        
+    // now the OC timer
+    if (!_backlight_clocks_on)
+        stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_TIM12);
     
     TIM_BaseStruct.TIM_Prescaler = 0;
     TIM_BaseStruct.TIM_CounterMode = TIM_CounterMode_Up;
@@ -69,14 +72,10 @@ void hw_backlight_set(uint16_t pwmValue)
     TIM_BaseStruct.TIM_RepetitionCounter = 0;
 
     TIM_TimeBaseInit(TIM12, &TIM_BaseStruct);
-
-    // now the OC timer
-    if (!_backlight_clocks_on)
-        stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_TIM12);
-    
+   
     // This shouldn't be here, but for some reason in QEMU, setting
     // the TIM clocks in RCC turns off UART8. weird.
-    //RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
 
     TIM_OCStruct.TIM_OCMode = TIM_OCMode_PWM2;  // set on compare
     TIM_OCStruct.TIM_OutputState = TIM_OutputState_Enable;

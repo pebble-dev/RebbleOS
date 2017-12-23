@@ -12,10 +12,12 @@
 #include "string.h"
 #include "snowy.h"
 #include "display.h"
-#include "driver.h"
 #include "log.h"
 #include "stm32_power.h"
 #include "stm32_buttons_platform.h"
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
 
 // ENABLE this if you want smartstrap debugging output. For now if you do this qemu might not work
 #define DEBUG_UART_SMARTSTRAP
@@ -38,6 +40,7 @@ void debug_write(const unsigned char *p, size_t len)
     int i;
     
     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
     
     for (i = 0; i < len; i++) {
         while (!(USART3->SR & USART_SR_TC));
@@ -45,32 +48,47 @@ void debug_write(const unsigned char *p, size_t len)
     }
     
     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 
-// #ifdef DEBUG_UART_SMARTSTRAP
-//     RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
-//     
-//     for (i = 0; i < len; i++) {
-//         while (!(UART8->SR & USART_SR_TC));
-//         UART8->DR = p[i];
-//     }
-// #endif
+#ifdef DEBUG_UART_SMARTSTRAP
+    ss_debug_write(p, len);
+#endif
 }
 
 /* note that locking needs to be handled by external entity here */
 void ss_debug_write(const unsigned char *p, size_t len)
 {
-    int i;
-    
 #ifdef DEBUG_UART_SMARTSTRAP
-    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+    int i;
+    UBaseType_t saved_int_status;
 
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+    
+    RCC_APB1PeriphClockCmd(RCC_APB1Periph_UART8, ENABLE);
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+
+    
     for (i = 0; i < len; i++) {
         while (!(UART8->SR & USART_SR_TC));
-        UART8->DR = p[i];
+        USART_SendData(UART8, p[i]);
     }
-
+    
     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
 #endif
+}
+
+void log_clock_enable(void)
+{
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+}
+
+void log_clock_disable(void)
+{
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
 }
 
 /*
@@ -115,17 +133,17 @@ void init_USART8(void)
     GPIO_InitTypeDef GPIO_InitStruct;
     USART_InitTypeDef USART_InitStruct;
 
-    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8);
 
-    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0 | GPIO_Pin_1;
+    GPIO_InitStruct.GPIO_Pin = /*GPIO_Pin_0 |*/ GPIO_Pin_1;
     GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
     GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
     GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
     GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
     GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-    GPIO_PinAFConfig(GPIOE, GPIO_PinSource0, GPIO_AF_UART8);
+    //GPIO_PinAFConfig(GPIOE, GPIO_PinSource0, GPIO_AF_UART8);
     GPIO_PinAFConfig(GPIOE, GPIO_PinSource1, GPIO_AF_UART8);
 
     USART_InitStruct.USART_BaudRate = 115200;
@@ -133,11 +151,11 @@ void init_USART8(void)
     USART_InitStruct.USART_StopBits = USART_StopBits_1;
     USART_InitStruct.USART_Parity = USART_Parity_No;
     USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
+    USART_InitStruct.USART_Mode = USART_Mode_Tx /* | USART_Mode_Rx */;
     USART_Init(UART8, &USART_InitStruct);
     USART_Cmd(UART8, ENABLE);
 
-    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
+    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_UART8);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
 }
 
@@ -156,8 +174,7 @@ void platform_init()
     // set the default pri groups for the interrupts
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
     
-    // initialise any blob driver resources
-    driver_register_resource(HW_RESOURCE_FPGA, 1234, display_fpga_loader);
+    RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 }
 
 void platform_init_late()
