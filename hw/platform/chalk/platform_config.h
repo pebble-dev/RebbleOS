@@ -3,7 +3,8 @@
  * Configuration file for Snowy
  * RebbleOS
  *
- * Author: Barry Carter <barry.carter@gmail.com> + Carson Katri <me@carsonkatri.com>
+ * Authors: Barry Carter <barry.carter@gmail.com>
+ *          Carson Katri <me@carsonkatri.com>
  */
 
 #include "stm32f4xx.h"

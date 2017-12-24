@@ -3,7 +3,8 @@
  * Includes for rebble platform hardware
  * RebbleOS
  *
- * Author: Barry Carter <barry.carter@gmail.com> + Carson Katri <me@carsonkatri.com>
+ * Authors: Barry Carter <barry.carter@gmail.com>
+ *          Carson Katri <me@carsonkatri.com>
  */
 
 #include "platform_config.h"
