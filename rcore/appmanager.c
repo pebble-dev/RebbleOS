@@ -619,7 +619,9 @@ static void _appmanager_app_thread(void *parms)
             appHeapInit(MAX_APP_MEMORY_SIZE - (MAX_APP_STACK_SIZE * 4), app_stack_heap.byte_buf);
              
             uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - MAX_APP_STACK_SIZE];
-             printf("LAUNCHING\n");
+            
+            DRV_LOG("app", APP_LOG_LEVEL_DEBUG, "Launching To the Moon!");
+            
             _app_task_handle = xTaskCreateStatic((TaskFunction_t)_running_app->main, 
                                                   "dynapp", 
                                                   MAX_APP_STACK_SIZE, 

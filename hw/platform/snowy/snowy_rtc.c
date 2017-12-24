@@ -260,7 +260,7 @@ void RTC_WKUP_IRQHandler(void)
     if(RTC_GetITStatus(RTC_IT_WUT) != RESET)
     {
         RTC_ClearITPendingBit(RTC_IT_WUT);
-        printf("RTC WAKE IRQ");
+        DRV_LOG("RTC", APP_LOG_LEVEL_DEBUG, "RTC WAKE IRQ");
         EXTI_ClearITPendingBit(EXTI_Line22);
     } 
 }
@@ -269,10 +269,8 @@ void RTC_Alarm_IRQHandler(void)
 {    
     if(RTC_GetITStatus(RTC_IT_ALRA) != RESET)
     {
-        // call the handler
-       
+        // call the handler      
         rebble_time_rtc_isr();
-        printf("RTC AL IRQ");
         RTC_ClearITPendingBit(RTC_IT_ALRA);
         EXTI_ClearITPendingBit(EXTI_Line17);
     } 
