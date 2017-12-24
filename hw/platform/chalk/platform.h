@@ -3,11 +3,11 @@
  * Includes for rebble platform hardware
  * RebbleOS
  *
- * Author: Barry Carter <barry.carter@gmail.com>
+ * Author: Barry Carter <barry.carter@gmail.com> + Carson Katri <me@carsonkatri.com>
  */
 
 #include "platform_config.h"
-#include "snowy.h"
+#include "chalk.h"
 #include "../snowy-family/snowy_backlight.h"
 #include "../snowy-family/snowy_power.h"
 #include "../snowy-family/snowy_vibrate.h"

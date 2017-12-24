@@ -108,3 +108,4 @@ include hw/drivers/stm32_buttons/config.mk
 include hw/drivers/stm32_power/config.mk
 include hw/platform/snowy/config.mk
 include hw/platform/tintin/config.mk
+include hw/platform/chalk/config.mk

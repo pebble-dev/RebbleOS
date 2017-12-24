@@ -2,7 +2,7 @@
  * Miscellaneous platform routines for Pebble Time (snowy)
  * RebbleOS
  *
- * Author: Barry Carter <barry.carter@gmail.com>
+ * Author: Barry Carter <barry.carter@gmail.com> + Carson Katri <me@carsonkatri.com>
  */
 
 #include "stm32f4xx.h"
@@ -10,7 +10,7 @@
 #include "../snowy-family/snowy_rtc.h"
 #include "stdio.h"
 #include "string.h"
-#include "snowy.h"
+#include "chalk.h"
 #include "display.h"
 #include "log.h"
 #include "stm32_power.h"
