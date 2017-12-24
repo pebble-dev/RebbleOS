@@ -44,7 +44,6 @@ static MenuItems* watch_list_item_selected(const MenuItem *item) {
     while(node)
     {
         if ((!strcmp(node->name, "System")) ||
-            (!strcmp(node->name, "TrekV2")) ||
             //             (!strcmp(node->name, "91 Dub 4.0")) ||
             (!strcmp(node->name, "watchface")))
         {
@@ -73,8 +72,8 @@ static void systemapp_window_load(Window *window)
     menu_set_click_config_onto_window(s_menu, window);
 
     MenuItems *items = menu_items_create(4);
-    menu_items_add(items, MenuItem("Watchfaces", "Will scan flash", 25, watch_list_item_selected));
-    menu_items_add(items, MenuItem("Dump Flash", "Device will lock", 24, flash_dump_item_selected));
+    menu_items_add(items, MenuItem("Watchfaces", "All your faces", 25, watch_list_item_selected));
+    menu_items_add(items, MenuItem("Settings", "Move Along", 24, flash_dump_item_selected));
     menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", 24, NULL));
     menu_items_add(items, MenuItem("... Soon (TM)", NULL, 25, NULL));
     menu_set_items(s_menu, items);

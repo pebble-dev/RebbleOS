@@ -152,6 +152,7 @@ struct appdb
 void _appmanager_flash_load_app_manifest(void)
 {
     struct file file;
+
     if (fs_find_file(&file, "appdb") < 0)
     {
         KERN_LOG("app", APP_LOG_LEVEL_ERROR, "APPDB file not found");
@@ -177,11 +178,12 @@ void _appmanager_flash_load_app_manifest(void)
         if (appdb.application_id == 0xFFFFFFFFu)
             break;
 
-        snprintf(buffer, 14, "@%08" PRIu32 "/app", appdb.application_id);
+        
+        snprintf(buffer, 14, "@%08lx/app", appdb.application_id);
         if (fs_find_file(&app_file, buffer) < 0)
             continue;
 
-        snprintf(buffer, 14, "@%08" PRIu32 "/res", appdb.application_id);
+        snprintf(buffer, 14, "@%08lx/res", appdb.application_id);
         if (fs_find_file(&res_file, buffer) < 0)
             continue;
 
@@ -189,7 +191,7 @@ void _appmanager_flash_load_app_manifest(void)
 
         if (fs_read(&app_fd, &header, sizeof(ApplicationHeader)) != sizeof(ApplicationHeader))
             break;
-
+       
         // sanity check the hell out of this to make sure it's a real app
         if (!strncmp(header.header, "PBLAPP", 6))
         {

@@ -172,6 +172,9 @@ void fs_init()
         if (!FLASHFLAG(hdr->status, HDR_STATUS_FILE_START))
             continue;
 
+        if (FLASHFLAG(hdr->status, HDR_STATUS_DEAD))
+            continue;
+
         if (!FLASHFLAG(hdr->status, HDR_STATUS_DEAD) && hdr->st_create_complete) {
             KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d creation not complete; I can't deal with this; go boot PebbleOS to clean up first", pg);
             _fs_valid = 0;
