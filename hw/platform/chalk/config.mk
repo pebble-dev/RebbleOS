@@ -7,11 +7,11 @@ CFLAGS_chalk += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=chalk -DREBBLE_PLATFORM_c
 SRCS_chalk = $(SRCS_stm32f4xx)
 SRCS_chalk += $(SRCS_driver_stm32_buttons)
 SRCS_chalk += $(SRCS_driver_stm32_power)
-SRCS_chalk += hw/platform/snowy-family/snowy_display.c
-SRCS_chalk += hw/platform/snowy-family/snowy_backlight.c
+SRCS_chalk += hw/platform/chalk/chalk_display.c
+SRCS_chalk += hw/platform/chalk/chalk_backlight.c
 SRCS_chalk += hw/platform/snowy-family/snowy_power.c
 SRCS_chalk += hw/platform/snowy-family/snowy_rtc.c
-SRCS_chalk += hw/platform/snowy-family/snowy_scanlines.c
+SRCS_chalk += hw/platform/chalk/chalk_scanlines.c
 SRCS_chalk += hw/platform/snowy-family/snowy_vibrate.c
 SRCS_chalk += hw/platform/snowy-family/snowy_ambient.c
 SRCS_chalk += hw/platform/snowy-family/snowy_ext_flash.c

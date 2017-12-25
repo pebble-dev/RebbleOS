@@ -1,5 +1,5 @@
-/* snowy_display.c
- * Color display over FPGA implementation for Pebble Time (snowy)
+/* chalk_display.c
+ * Color display over FPGA implementation for Pebble Time (chalk)
  * Start frame is called, which processed, and then yields to the master isr
  * 
  * RebbleOS
@@ -13,7 +13,7 @@
 #include "display.h"
 #include "log.h"
 #include "vibrate.h"
-#include "snowy_display.h"
+#include "chalk_display.h"
 #include <stm32f4xx_spi.h>
 #include <stm32f4xx_tim.h>
 #include "stm32_power.h"
@@ -23,25 +23,25 @@
 static uint8_t _column_buffer[COLUMN_LENGTH];
 static uint8_t _display_ready;
 
-void _snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset);
-uint8_t _snowy_display_wait_FPGA_ready(void);
-void _snowy_display_splash(uint8_t scene);
-void _snowy_display_full_init(void);
-void _snowy_display_program_FPGA(void);
-void _snowy_display_send_frame(void);
-void _snowy_display_init_SPI6(void);
-void _snowy_display_cs(uint8_t enabled);
-uint8_t _snowy_display_SPI6_getver(uint8_t data);
-uint8_t _snowy_display_SPI6_send(uint8_t data);
-uint8_t _snowy_display_FPGA_reset(uint8_t mode);
-void _snowy_display_reset(uint8_t enabled);
-void _snowy_display_SPI_start(void);
-void _snowy_display_SPI_end(void);
-void _snowy_display_drawscene(uint8_t scene);
-void _snowy_display_init_intn(void);
-void _snowy_display_dma_send(uint8_t *data, uint32_t len);
-void _snowy_display_next_column(uint8_t col_index);
-void _snowy_display_init_dma(void);
+void _chalk_display_start_frame(uint8_t xoffset, uint8_t yoffset);
+uint8_t _chalk_display_wait_FPGA_ready(void);
+void _chalk_display_splash(uint8_t scene);
+void _chalk_display_full_init(void);
+void _chalk_display_program_FPGA(void);
+void _chalk_display_send_frame(void);
+void _chalk_display_init_SPI6(void);
+void _chalk_display_cs(uint8_t enabled);
+uint8_t _chalk_display_SPI6_getver(uint8_t data);
+uint8_t _chalk_display_SPI6_send(uint8_t data);
+uint8_t _chalk_display_FPGA_reset(uint8_t mode);
+void _chalk_display_reset(uint8_t enabled);
+void _chalk_display_SPI_start(void);
+void _chalk_display_SPI_end(void);
+void _chalk_display_drawscene(uint8_t scene);
+void _chalk_display_init_intn(void);
+void _chalk_display_dma_send(uint8_t *data, uint32_t len);
+void _chalk_display_next_column(uint8_t col_index);
+void _chalk_display_init_dma(void);
 
 // pointer to the place in flash where the FPGA image resides
 extern unsigned char _binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
@@ -125,8 +125,8 @@ void hw_display_init(void)
     GPIO_Init(display.port_display, &gpio_init_disp_o);       
         
     // start SPI
-    _snowy_display_init_SPI6();   
-    _snowy_display_init_dma();
+    _chalk_display_init_SPI6();   
+    _chalk_display_init_dma();
 
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
@@ -138,9 +138,9 @@ void hw_display_init(void)
  * after every successful command write. I.t. 0x5 to star a frame 
  * will assert done
  */
-void _snowy_display_init_intn(void)
+void _chalk_display_init_intn(void)
 {
-    // Snowy uses two interrupts for the display
+    // chalk uses two interrupts for the display
     // Done (G10) signals the drawing is done
     // INTn (G9) I suspect is for device readyness after flash
     //
@@ -174,7 +174,7 @@ void _snowy_display_init_intn(void)
 /*
  * The display hangs off SPI6. Initialise it
  */
-void _snowy_display_init_SPI6(void)
+void _chalk_display_init_SPI6(void)
 {
     GPIO_InitTypeDef gpio_init_struct;
     SPI_InitTypeDef spi_init_struct;
@@ -222,14 +222,14 @@ void _snowy_display_init_SPI6(void)
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
 }
 
-static void _snowy_display_request_clocks()
+static void _chalk_display_request_clocks()
 {
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
 
-static void _snowy_display_release_clocks()
+static void _chalk_display_release_clocks()
 {
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
@@ -241,12 +241,12 @@ static void _snowy_display_release_clocks()
  * DMA is only used for doing a full frame transfer
  * once frame mode select is sent
  */
-void _snowy_display_init_dma(void)
+void _chalk_display_init_dma(void)
 {
     NVIC_InitTypeDef nvic_init_struct;
     DMA_InitTypeDef dma_init_struct;
     
-    _snowy_display_request_clocks();
+    _chalk_display_request_clocks();
     
     // spi6 dma config:
     // SPI6 	DMA2 	DMA Stream 5 	DMA Channel 1 	DMA Stream 6 	DMA Channel 0
@@ -281,7 +281,7 @@ void _snowy_display_init_dma(void)
     // Enable dma
     SPI_I2S_DMACmd(SPI6, SPI_I2S_DMAReq_Tx, ENABLE);
     
-    _snowy_display_release_clocks();
+    _chalk_display_release_clocks();
     
     // tell the NVIC to party
     nvic_init_struct.NVIC_IRQChannel = DMA2_Stream5_IRQn;
@@ -296,7 +296,7 @@ void _snowy_display_init_dma(void)
  *
  * Expects clocks to already be running!
  */
-void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
+void chalk_display_reinit_dma(uint32_t *data, uint32_t length)
 {
     DMA_InitTypeDef dma_init_struct;
 
@@ -354,18 +354,18 @@ void DMA2_Stream5_IRQHandler()
         {
             ++col_index;
             // ask for convert and display the next column
-            _snowy_display_next_column(col_index);
+            _chalk_display_next_column(col_index);
             return;
         }
                 
         // done. We are still in control of the SPI select, so lets let go
         col_index = 0;
         
-        _snowy_display_cs(0);
+        _chalk_display_cs(0);
         _display_ready = 1;
         
-        /* request_clocks in _snowy_display_start_frame */
-        _snowy_display_release_clocks();
+        /* request_clocks in _chalk_display_start_frame */
+        _chalk_display_release_clocks();
         
         display_done_ISR(0);
     }
@@ -391,7 +391,7 @@ void EXTI15_10_IRQHandler(void)
  * 
  *  *NOTE* CS is inverted below
  */
-void _snowy_display_cs(uint8_t enabled)
+void _chalk_display_cs(uint8_t enabled)
 {
     stm32_power_request(STM32_POWER_AHB1, display.clock_display);
 
@@ -407,7 +407,7 @@ void _snowy_display_cs(uint8_t enabled)
 /*
  * Request the version from the FPGA in bootloader mode
  */
-uint8_t _snowy_display_SPI6_getver(uint8_t data)
+uint8_t _chalk_display_SPI6_getver(uint8_t data)
 {
     while( !(SPI6->SR & SPI_I2S_FLAG_TXE) ); // wait until send complete
     SPI6->DR = data; // write data to be transmitted to the SPI data register
@@ -419,7 +419,7 @@ uint8_t _snowy_display_SPI6_getver(uint8_t data)
 /*
  * Send one byte over the SPI
  */
-uint8_t _snowy_display_SPI6_send(uint8_t data)
+uint8_t _chalk_display_SPI6_send(uint8_t data)
 {
     SPI6->DR = data; // write data to be transmitted to the SPI data register
     while( !(SPI6->SR & SPI_I2S_FLAG_TXE) ); // wait until transmit complete
@@ -431,21 +431,21 @@ uint8_t _snowy_display_SPI6_send(uint8_t data)
 /*
  * Given a column index, start the conversion of the display data and dma it
  */
-void _snowy_display_next_column(uint8_t col_index)
+void _chalk_display_next_column(uint8_t col_index)
 {   
     // set the content
     scanline_convert_column(_column_buffer, display.frame_buffer, col_index);
-    _snowy_display_dma_send(_column_buffer, COLUMN_LENGTH);
+    _chalk_display_dma_send(_column_buffer, COLUMN_LENGTH);
 }
 
 /*
  * Send n bytes over SPI using the DMA engine.
  * This will async run and call the ISR when complete
  */
-void _snowy_display_dma_send(uint8_t *data, uint32_t length)
+void _chalk_display_dma_send(uint8_t *data, uint32_t length)
 {
     // re-initialise the DMA controller. prep for send
-    snowy_display_reinit_dma((uint32_t *)data, length);
+    chalk_display_reinit_dma((uint32_t *)data, length);
     DMA_Cmd(DMA2_Stream5, ENABLE);
     
     return;
@@ -458,22 +458,22 @@ void _snowy_display_dma_send(uint8_t *data, uint32_t length)
  * reeeeboot. Over and over until it works.
  * Yay
  */
-uint8_t _snowy_display_FPGA_reset(uint8_t mode)
+uint8_t _chalk_display_FPGA_reset(uint8_t mode)
 {
     uint16_t k = 0;
     uint8_t g9 = 0;
 
-    _snowy_display_request_clocks();
+    _chalk_display_request_clocks();
 
     // Pull out reset
-    _snowy_display_cs(mode);
+    _chalk_display_cs(mode);
     delay_ms(1);
-    _snowy_display_reset(0);
-    _snowy_display_cs(1);
+    _chalk_display_reset(0);
+    _chalk_display_cs(1);
 
     delay_ms(1);
     
-    _snowy_display_reset(1);
+    _chalk_display_reset(1);
     delay_us(1);
     
     // The real pebble at this point will pull reset done once it has reset
@@ -486,7 +486,7 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
         if (g9 == 0)
         {
             DRV_LOG("FPGA", APP_LOG_LEVEL_DEBUG, "FPGA Reset");
-            _snowy_display_release_clocks();
+            _chalk_display_release_clocks();
             return 1;
         }
         
@@ -498,7 +498,7 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
         {
             char *err = "Timed out waiting for reset";
             DRV_LOG("FPGA", APP_LOG_LEVEL_ERROR, err);
-            _snowy_display_release_clocks();
+            _chalk_display_release_clocks();
             assert(!err);
             return 0;
         }
@@ -508,7 +508,7 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
 /*
  * Do a hard reset on the display. Make sure to init it!
  */
-void _snowy_display_reset(uint8_t enabled)
+void _chalk_display_reset(uint8_t enabled)
 {
     stm32_power_request(STM32_POWER_AHB1, display.clock_display);
 
@@ -526,38 +526,38 @@ void _snowy_display_reset(uint8_t enabled)
  * Shortcut function to address the display device using its
  * Chip Select and wait the "proper" amount of time for engagement
  */
-void _snowy_display_SPI_start(void)
+void _chalk_display_SPI_start(void)
 {
-    _snowy_display_cs(1);
+    _chalk_display_cs(1);
     delay_us(100);
 }
 
 /*
  * We're done with this device. Drop the line
  */
-void _snowy_display_SPI_end(void)
+void _chalk_display_SPI_end(void)
 {
-    _snowy_display_cs(0);
+    _chalk_display_cs(0);
 }
 
 /*
  * Start to send a frame to the display driver
  * If it says yes, then we can then tell someone to fill the buffer
  */
-void _snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
+void _chalk_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
     stm32_power_request(STM32_POWER_AHB1, display.clock_display);
-    _snowy_display_request_clocks();
+    _chalk_display_request_clocks();
 
-    _snowy_display_cs(1);
+    _chalk_display_cs(1);
     delay_us(10);
-    _snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
-    _snowy_display_cs(0);
+    _chalk_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
+    _chalk_display_cs(0);
     delay_us(10);
 
     _display_ready = 0;
 
-    _snowy_display_send_frame();
+    _chalk_display_send_frame();
     /* release_clocks in DMA2_Stream5_IRQHandler */
 }
 
@@ -565,24 +565,24 @@ void _snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
  * We can fill the framebuffer now. Depending on mode, we will DMA
  * the data directly over to the display
  */
-void _snowy_display_send_frame()
+void _chalk_display_send_frame()
 {
-//     return _snowy_display_send_frame_slow();
-    _snowy_display_cs(1);
+//     return _chalk_display_send_frame_slow();
+    _chalk_display_cs(1);
     delay_us(80);
     // send over DMA
     // we are only going to send one single column at a time
     // the dma engine completion will trigger the next lot of data to go
-    _snowy_display_next_column(0);
+    _chalk_display_next_column(0);
     // we return immediately and let the system take care of the rest
 }
 
 /*
  * Bang the SPI bit by bit
  */
-void _snowy_display_send_frame_slow()
+void _chalk_display_send_frame_slow()
 {
-    _snowy_display_cs(1);
+    _chalk_display_cs(1);
     delay_us(50);
       
     // send via standard SPI
@@ -590,17 +590,17 @@ void _snowy_display_send_frame_slow()
     {
         scanline_convert_column(_column_buffer, display.frame_buffer, x);
         for (uint8_t j = 0; j < DISPLAY_ROWS; j++)
-            _snowy_display_SPI6_send(_column_buffer[j]);
+            _chalk_display_SPI6_send(_column_buffer[j]);
     }   
     
-    _snowy_display_cs(0);
+    _chalk_display_cs(0);
 }
 
 /*
  * Once we reset the FPGA, it takes some time to wake up
  * let's have a tea party and wait for it
  */
-uint8_t _snowy_display_wait_FPGA_ready(void)
+uint8_t _chalk_display_wait_FPGA_ready(void)
 {
     uint16_t i = 100;
     
@@ -633,47 +633,47 @@ uint8_t _snowy_display_wait_FPGA_ready(void)
  * Reset the FPGA and send the display engine into full frame mode
  * This will allow raw frame dumps to work
  */
-void _snowy_display_full_init(void)
+void _chalk_display_full_init(void)
 {
     DRV_LOG("Display", APP_LOG_LEVEL_INFO, "Init full driver mode");
     
-    _snowy_display_request_clocks();    
+    _chalk_display_request_clocks();    
     hw_display_on();
     
-    if (!_snowy_display_FPGA_reset(0)) // full fat
+    if (!_chalk_display_FPGA_reset(0)) // full fat
     {
-        _snowy_display_release_clocks();
+        _chalk_display_release_clocks();
         assert(!"FGPA Init FAILED!!");
     }
     
-    _snowy_display_program_FPGA();
+    _chalk_display_program_FPGA();
     
-    if (_snowy_display_wait_FPGA_ready())
+    if (_chalk_display_wait_FPGA_ready())
     {
         DRV_LOG("Display", APP_LOG_LEVEL_INFO, "Display is ready");
     }
     
     // enable interrupts now we have the splash up
-    _snowy_display_init_intn();   
-    _snowy_display_release_clocks();
+    _chalk_display_init_intn();   
+    _chalk_display_release_clocks();
 }
 
 /*
  * Get the source for the display's FPGA, and download it to the device
  */
-void _snowy_display_program_FPGA(void)
+void _chalk_display_program_FPGA(void)
 {
     unsigned char *fpga_blob = &_binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
            
-    _snowy_display_cs(1);
+    _chalk_display_cs(1);
     
     // Do this with good ol manual SPI for reliability
     for (uint32_t i = 0; i < (uint32_t)&_binary_Resources_FPGA_4_3_snowy_dumped_bin_size; i++)
     {
-        _snowy_display_SPI6_send(*(fpga_blob + i));
+        _chalk_display_SPI6_send(*(fpga_blob + i));
     }
     
-    _snowy_display_cs(0);
+    _chalk_display_cs(0);
     
     DRV_LOG("Display", APP_LOG_LEVEL_DEBUG, "FPGA bin uploaded");
 }
@@ -687,13 +687,13 @@ void _snowy_display_program_FPGA(void)
  */
 void hw_display_on()
 {
-    _snowy_display_request_clocks();
+    _chalk_display_request_clocks();
 
-    _snowy_display_SPI_start();
-    _snowy_display_SPI6_send(DISPLAY_CTYPE_DISPLAY_ON); // Power on
-    _snowy_display_SPI_end();
+    _chalk_display_SPI_start();
+    _chalk_display_SPI6_send(DISPLAY_CTYPE_DISPLAY_ON); // Power on
+    _chalk_display_SPI_end();
     
-    _snowy_display_release_clocks();
+    _chalk_display_release_clocks();
 }
 
 /*
@@ -701,7 +701,7 @@ void hw_display_on()
  */
 void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
-    _snowy_display_start_frame(xoffset, yoffset);
+    _chalk_display_start_frame(xoffset, yoffset);
 }
 
 uint8_t *hw_display_get_buffer(void)
@@ -729,7 +729,7 @@ void hw_display_reset(void)
  */
 void hw_display_start(void)
 {
-    _snowy_display_full_init();
+    _chalk_display_full_init();
 }
 
 
