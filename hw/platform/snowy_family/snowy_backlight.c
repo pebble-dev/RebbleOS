@@ -92,5 +92,5 @@ void hw_backlight_set(uint16_t pwmValue)
     if (!_backlight_clocks_on)
         stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_TIM12);
     
-    DRV_LOG("backl", APP_LOG_LEVEL_DEBUG, "Backlight Set: %d", pwmValue);
+    //DRV_LOG("backl", APP_LOG_LEVEL_DEBUG, "Backlight Set: %d", pwmValue);
 }

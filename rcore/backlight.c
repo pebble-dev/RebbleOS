@@ -84,7 +84,7 @@ static void _backlight_set(uint16_t brightness_pct)
     uint16_t brightness;
     
     brightness = 8499 / (100 / brightness_pct);
-    KERN_LOG("backl", APP_LOG_LEVEL_DEBUG, "Brightness %d", brightness);
+    //KERN_LOG("backl", APP_LOG_LEVEL_DEBUG, "Brightness %d", brightness);
 
     _backlight_set_raw(brightness);
 }
