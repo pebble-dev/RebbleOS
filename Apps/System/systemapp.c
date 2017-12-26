@@ -23,10 +23,9 @@ typedef struct {
 
 static Time s_last_time;
 
-static MenuItems* settings_item_selected(const MenuItem *item)
+static MenuItems* flash_dump_item_selected(const MenuItem *item)
 {
-    //flash_dump();
-    appmanager_app_start(item->text);
+    flash_dump();
     return NULL;
 }
 
@@ -74,7 +73,7 @@ static void systemapp_window_load(Window *window)
 
     MenuItems *items = menu_items_create(4);
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", 25, watch_list_item_selected));
-    menu_items_add(items, MenuItem("Settings", "Move Along", 24, settings_item_selected));
+    menu_items_add(items, MenuItem("Settings", "Move Along", 24, flash_dump_item_selected));
     menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", 24, NULL));
     menu_items_add(items, MenuItem("... Soon (TM)", NULL, 25, NULL));
     menu_set_items(s_menu, items);

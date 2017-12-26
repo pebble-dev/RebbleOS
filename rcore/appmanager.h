@@ -13,7 +13,7 @@
 #include <stdbool.h>
 
 // TODO     Make this dynamic. hacky 
-#define NUM_APPS 4
+#define NUM_APPS 3
 #define MAX_APP_STR_LEN 32
 
 typedef struct AppMessage
