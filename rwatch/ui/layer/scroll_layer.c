@@ -9,7 +9,7 @@
 #include "scroll_layer.h"
 #include "utils.h"
 
-#define BUTTON_REPEAT_INTERVAL_MS 600
+#define BUTTON_REPEAT_INTERVAL_MS 100
 #define CLICK_SCROLL_AMOUNT 16
 #define ANIMATE_ON_CLICK true
 

@@ -59,6 +59,7 @@ void layer_set_update_proc(Layer *layer, void *proc)
 void layer_add_child(Layer *parent_layer, Layer *child_layer)
 {   
     if (parent_layer == NULL || child_layer == NULL)
+        //SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "LAYERS ARE NULL");
         return;
 
     if(parent_layer->child == child_layer)

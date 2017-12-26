@@ -69,7 +69,7 @@ extern unsigned char _binary_Resources_FPGA_4_3_snowy_dumped_bin_size;
  */
 
 
-// Display configuration for the Pebble TIME
+// Display configuration for the Pebble TIME Round
 display_t display = {
     .port_display    = GPIOG,
     .clock_display   = RCC_AHB1Periph_GPIOG,
@@ -125,7 +125,7 @@ void hw_display_init(void)
     GPIO_Init(display.port_display, &gpio_init_disp_o);       
         
     // start SPI
-    _chalk_display_init_SPI6();   
+    _chalk_display_init_SPI6();
     _chalk_display_init_dma();
 
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
@@ -178,7 +178,7 @@ void _chalk_display_init_SPI6(void)
 {
     GPIO_InitTypeDef gpio_init_struct;
     SPI_InitTypeDef spi_init_struct;
-
+    
     // enable clock for used IO pins
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 

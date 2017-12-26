@@ -25,14 +25,14 @@ extern display_t display;
  */
 void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t column_index)
 {
-    int i = 0;
     uint16_t pos_half_lsb = 0;
     uint16_t pos_half_msb = 0;
     
     uint16_t y;
     uint8_t r0_fullbyte, r1_fullbyte, lsb, msb;
     uint16_t halfrows = DISPLAY_ROWS / 2;
-    
+    int i = 0;
+
     // from    (Backbuffer)
     // y0: [x0,x1,x2,x3,x4..]. y1: [x1,x2,x3,x4..]..
     // to    (nativebuffer, stored in columns order)
@@ -57,7 +57,6 @@ void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t
         out_buffer[pos_half_msb] = msb;
         
         // skip the next y column as we processed it already
-        i += 1.6 * DISPLAY_COLS;
+        i += 288;
     }
 }
-
