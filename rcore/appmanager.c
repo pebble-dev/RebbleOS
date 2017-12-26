@@ -11,6 +11,7 @@
 #include "rebbleos.h"
 #include "appmanager.h"
 #include "systemapp.h"
+#include "test.h"
 #include "notification.h"
 #include "api_func_symbols.h"
 
@@ -72,6 +73,7 @@ void appmanager_init(void)
     _appmanager_add_to_manifest(_appmanager_create_app("System", APP_TYPE_SYSTEM, systemapp_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Simple", APP_TYPE_FACE, simple_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", APP_TYPE_FACE, nivz_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Settings", APP_TYPE_SYSTEM, test_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Notification", APP_TYPE_SYSTEM, notif_main, true, &empty, &empty));
     _app_task_handle = NULL;
     

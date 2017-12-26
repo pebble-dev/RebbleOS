@@ -37,6 +37,12 @@ static MenuItems* app_item_selected(const MenuItem *item)
     return NULL;
 }
 
+static MenuItems* test_item_selected(const MenuItem *item)
+{
+    appmanager_app_start("Settings");
+    return NULL;
+}
+
 static MenuItems* notification_item_selected(const MenuItem *item)
 {
     appmanager_app_start("Notification");
@@ -79,7 +85,7 @@ static void systemapp_window_load(Window *window)
 
     MenuItems *items = menu_items_create(4);
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", 25, watch_list_item_selected));
-    menu_items_add(items, MenuItem("Settings", "Move Along", 24, flash_dump_item_selected));
+    menu_items_add(items, MenuItem("Settings", "Move Along", 24, test_item_selected));
     menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", 24, NULL));
     menu_items_add(items, MenuItem("... Soon (TM)", NULL, 25, notification_item_selected));
     menu_set_items(s_menu, items);
