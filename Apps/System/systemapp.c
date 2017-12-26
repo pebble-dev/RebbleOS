@@ -37,6 +37,12 @@ static MenuItems* app_item_selected(const MenuItem *item)
     return NULL;
 }
 
+static MenuItems* notification_item_selected(const MenuItem *item)
+{
+    appmanager_app_start("Notification");
+    return NULL;
+}
+
 static MenuItems* watch_list_item_selected(const MenuItem *item) {
     MenuItems *items = menu_items_create(16);
     // loop through all apps
@@ -75,7 +81,7 @@ static void systemapp_window_load(Window *window)
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", 25, watch_list_item_selected));
     menu_items_add(items, MenuItem("Settings", "Move Along", 24, flash_dump_item_selected));
     menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", 24, NULL));
-    menu_items_add(items, MenuItem("... Soon (TM)", NULL, 25, NULL));
+    menu_items_add(items, MenuItem("... Soon (TM)", NULL, 25, notification_item_selected));
     menu_set_items(s_menu, items);
 
     //tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_handler);
