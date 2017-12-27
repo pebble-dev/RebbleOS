@@ -8,6 +8,7 @@
 #include "rebbleos.h"
 #include "systemapp.h"
 #include "menu.h"
+#include "status_bar_layer.h"
 
 extern void flash_dump(void);
 
@@ -15,6 +16,8 @@ const char *systemapp_name = "System";
 
 static Window *s_main_window;
 static Menu *s_menu;
+
+StatusBarLayer *status_bar;
 
 typedef struct {
     uint8_t hours;
@@ -90,6 +93,12 @@ static void systemapp_window_load(Window *window)
     menu_items_add(items, MenuItem("... Soon (TM)", NULL, 25, notification_item_selected));
     menu_set_items(s_menu, items);
 
+    // Status Bar
+    status_bar = status_bar_layer_create();
+    layer_add_child(menu_get_layer(s_menu), status_bar_layer_get_layer(status_bar));
+    
+    // TODO: Offset the menu:
+    
     //tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_handler);
 }
 

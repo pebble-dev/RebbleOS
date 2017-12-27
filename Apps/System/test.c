@@ -10,12 +10,14 @@
 #include "librebble.h"
 #include "bitmap_layer.h"
 #include "action_bar_layer.h"
+#include "status_bar_layer.h"
 
 const char *test_name = "Test";
 
 static Window *s_main_window;
 
 ActionBarLayer *action_bar;
+StatusBarLayer *status_bar;
 
 typedef struct {
     uint8_t hours;
@@ -74,6 +76,10 @@ static void test_window_load(Window *window)
     
     // Make it red:
     action_bar_layer_set_background_color(action_bar, GColorRed);
+    
+    // Status Bar
+    status_bar = status_bar_layer_create();
+    layer_add_child(main, status_bar_layer_get_layer(status_bar));
 }
 
 static void test_window_unload(Window *window)
