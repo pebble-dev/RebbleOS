@@ -7,7 +7,7 @@
 
 #include "stm32f4xx.h"
 #include "stm32f4xx_usart.h"
-#include "../snowy-family/snowy_rtc.h"
+#include "snowy_rtc.h"
 #include "stdio.h"
 #include "string.h"
 #include "snowy.h"

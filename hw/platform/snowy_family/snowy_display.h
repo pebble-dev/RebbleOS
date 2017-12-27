@@ -1,5 +1,5 @@
 #pragma once
-/* chalk_display.h
+/* snowy_display.h
  * 
  * RebbleOS
  *
@@ -36,7 +36,7 @@ typedef struct {
     uint16_t pin_intn;
     
     //state
-    uint8_t power_on;
+    uint8_t power_on;   
     uint8_t frame_buffer[DISPLAY_ROWS * DISPLAY_COLS];
 } display_t;
 
@@ -55,7 +55,7 @@ void hw_display_on();
 void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset);
 
 // TODO: move to scanline
-void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t column_index);
+void scanline_convert(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t column_index);
 // void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
 
 void delay_us(uint16_t us);

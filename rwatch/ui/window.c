@@ -23,7 +23,7 @@ Window *window_create()
         return NULL;
     }
     // and it's root layer
-    GRect bounds = GRect(0, 0, 181, 181);
+    GRect bounds = GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS);
     
     window->root_layer = layer_create(bounds);
     window->background_color = GColorWhite;

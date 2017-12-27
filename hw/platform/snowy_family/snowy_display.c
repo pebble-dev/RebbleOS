@@ -434,7 +434,7 @@ uint8_t _snowy_display_SPI6_send(uint8_t data)
 void _snowy_display_next_column(uint8_t col_index)
 {   
     // set the content
-    scanline_convert_column(_column_buffer, display.frame_buffer, col_index);
+    scanline_convert(_column_buffer, display.frame_buffer, col_index);
     _snowy_display_dma_send(_column_buffer, COLUMN_LENGTH);
 }
 
@@ -588,7 +588,7 @@ void _snowy_display_send_frame_slow()
     // send via standard SPI
     for(uint8_t x = 0; x < DISPLAY_COLS; x++)
     {
-        scanline_convert_column(_column_buffer, display.frame_buffer, x);
+        scanline_convert(_column_buffer, display.frame_buffer, x);
         for (uint8_t j = 0; j < DISPLAY_ROWS; j++)
             _snowy_display_SPI6_send(_column_buffer[j]);
     }   
