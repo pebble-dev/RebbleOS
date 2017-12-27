@@ -150,7 +150,7 @@ void _snowy_display_init_intn(void)
     
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
-        
+    
     // Wait for external interrupts when the FPGA is done with a command
     SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOG, EXTI_PinSource10);
     
@@ -175,7 +175,7 @@ void _snowy_display_init_intn(void)
  * The display hangs off SPI6. Initialise it
  */
 void _snowy_display_init_SPI6(void)
-{	
+{
     GPIO_InitTypeDef gpio_init_struct;
     SPI_InitTypeDef spi_init_struct;
 

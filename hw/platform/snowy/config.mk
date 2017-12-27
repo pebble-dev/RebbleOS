@@ -7,14 +7,14 @@ CFLAGS_snowy += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=snowy -DREBBLE_PLATFORM_S
 SRCS_snowy = $(SRCS_stm32f4xx)
 SRCS_snowy += $(SRCS_driver_stm32_buttons)
 SRCS_snowy += $(SRCS_driver_stm32_power)
-SRCS_snowy += hw/platform/snowy/snowy_display.c
-SRCS_snowy += hw/platform/snowy/snowy_backlight.c
-SRCS_snowy += hw/platform/snowy/snowy_power.c
-SRCS_snowy += hw/platform/snowy/snowy_rtc.c
-SRCS_snowy += hw/platform/snowy/snowy_scanlines.c
-SRCS_snowy += hw/platform/snowy/snowy_vibrate.c
-SRCS_snowy += hw/platform/snowy/snowy_ambient.c
-SRCS_snowy += hw/platform/snowy/snowy_ext_flash.c
+SRCS_snowy += hw/platform/snowy-family/snowy_display.c
+SRCS_snowy += hw/platform/snowy-family/snowy_backlight.c
+SRCS_snowy += hw/platform/snowy-family/snowy_power.c
+SRCS_snowy += hw/platform/snowy-family/snowy_rtc.c
+SRCS_snowy += hw/platform/snowy-family/snowy_scanlines.c
+SRCS_snowy += hw/platform/snowy-family/snowy_vibrate.c
+SRCS_snowy += hw/platform/snowy-family/snowy_ambient.c
+SRCS_snowy += hw/platform/snowy-family/snowy_ext_flash.c
 SRCS_snowy += hw/platform/snowy/snowy.c
 SRCS_snowy += Resources/FPGA_4.3_snowy_dumped.bin
 
