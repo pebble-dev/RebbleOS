@@ -46,6 +46,7 @@ SRCS_all += lib/minilib/minilib.c
 SRCS_all += lib/minilib/sbrk.c
 SRCS_all += lib/minilib/dprint.c
 SRCS_all += lib/minilib/fmt.c
+SRCS_all += lib/minilib/unfmt.c
 SRCS_all += lib/minilib/rand.c
 
 SRCS_all += lib/neographics/src/common.c

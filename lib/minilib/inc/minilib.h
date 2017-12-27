@@ -42,6 +42,8 @@ struct fmtctx {
 	const char *str;
 	unsigned int state;
 	int num_written;
+	unsigned char ungetbuf;
+	int (*in)(void *priv, char *c); /* 1 if character available, 0 if EOF */
 	void (*out)(void *priv, char c);
 	void *priv;
 };
@@ -49,5 +51,10 @@ struct fmtctx {
 int fmt(struct fmtctx *ctx, va_list args);
 int vsfmt(char *buf, unsigned int len, const char *ifmt, va_list ap);
 int sfmt(char *buf, unsigned int len, const char *ifmt, ...);
+
+/* unfmt.c */
+int unfmt(struct fmtctx *ctx, va_list args);
+int unvsfmt(const char *buf, const char *ifmt, va_list ap);
+int unsfmt(const char *buf, const char *ifmt, ...);
 
 #endif
