@@ -6,9 +6,6 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-// This is for neographics so it can set the screen size properly
-// TODO cange this to automatic variables
-#define PBL_RECT
 #include "FreeRTOS.h"
 #include "rebble_memory.h"
 #include "pebble_defines.h"
