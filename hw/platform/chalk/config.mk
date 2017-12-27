@@ -4,6 +4,7 @@ CFLAGS_chalk += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=chalk -DREBBLE_PLATFORM_C
 
 SRCS_chalk = $(SRCS_snowy_family)
 SRCS_chalk += hw/platform/chalk/chalk.c
+SRCS_chalk += Resources/chalk_fpga.bin
 
 LDFLAGS_chalk = $(LDFLAGS_snowy_family)
 LIBS_chalk = $(LIBS_snowy_family)
