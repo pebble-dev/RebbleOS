@@ -61,10 +61,14 @@ static void select_click_callback(MenuLayer *menu_layer, MenuIndex *index, Menu 
 
 static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *index, Menu *menu)
 {
+#ifdef PBL_RECT
     MenuItem *item = &menu->items->items[index->row];
     GBitmap *gbitmap = gbitmap_create_with_resource(item->image_res_id);
     menu_cell_basic_draw(ctx, cell_layer, item->text, item->sub_text, gbitmap);
     gbitmap_destroy(gbitmap);
+#else
+    menu_cell_chalk_draw(ctx, menu_get_layer(menu), menu->items->items[(index->row) - 1].text, &menu->items->items[index->row], menu->items->items[(index->row) + 1].text);
+#endif
 }
 
 
