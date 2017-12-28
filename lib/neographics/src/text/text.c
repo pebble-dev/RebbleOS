@@ -80,7 +80,7 @@ void n_graphics_draw_text(
     n_GTextAttributes * text_attributes) {
     //TODO alignment
     //TODO attributes
-
+    
     // Rendering of text is done as follows:
     // - We store the index of the beginning of the line.
     // - We iterate over characters in the line.
@@ -216,4 +216,27 @@ void n_graphics_draw_text(
         n_GPoint end = n_graphics_prv_draw_text_line(ctx, text,
             line_begin, index, font, line_origin);
     }
+}
+
+n_GSize n_graphics_text_layout_get_content_size(const char * text, n_GFont const font)
+{
+    double width = 0;
+    double height = 0;
+    int i = 0;
+    while (text[i] != '\0')
+    {
+        if (text[i] == '\n' || text[i] == '\0') {
+            i++;
+            continue;
+        }
+        n_GGlyphInfo *glyph = n_graphics_font_get_glyph_info(font, text[i]);
+        width += glyph->width;
+        height += glyph->height;
+        
+        i++;
+    }
+    
+    n_GSize size = { .w = width, .h = height };
+    
+    return size;
 }
