@@ -14,7 +14,7 @@ ActionBarLayer *action_bar_layer_create()
 {
     ActionBarLayer *action_bar = (ActionBarLayer*)calloc(1, sizeof(ActionBarLayer));
     
-    GRect frame = GRect(144-ACTION_BAR_WIDTH, 0, ACTION_BAR_WIDTH, 168);
+    GRect frame = GRect(DISPLAY_COLS-ACTION_BAR_WIDTH, 0, ACTION_BAR_WIDTH, DISPLAY_ROWS);
     
     Layer* layer = layer_create(frame);
     // give the layer a reference back to us
@@ -99,7 +99,11 @@ static void draw(Layer *layer, GContext *context)
     // Draw the background
     GColor background_color = (GColor) action_bar->background_color;
     graphics_context_set_fill_color(context, background_color);
+#ifdef PBL_RECT
     graphics_fill_rect(context, full_bounds, 0, GCornerNone);
+#else
+    n_graphics_fill_circle(context, GPoint(full_bounds.origin.x + DISPLAY_COLS + 7, full_bounds.origin.y + (DISPLAY_COLS / 2)), DISPLAY_COLS + 20);
+#endif
     
     // Draw the icons
     int y = 0;
@@ -112,7 +116,29 @@ static void draw(Layer *layer, GContext *context)
             // Draw the icon:
             GSize icon_size = action_bar->icons[i]->raw_bitmap_size;
             printf(action_bar->icons[i]);
+#ifdef PBL_RECT
             graphics_draw_bitmap_in_rect_app(context, action_bar->icons[i], GRect(full_bounds.size.w - icon_size.w - 2, y - (increment / 2) - (icon_size.h / 2), icon_size.w, icon_size.h));
+#else
+            int offsetx = 0;
+            int offsety = 0;
+            switch (i) {
+                case 1:
+                    offsetx = 10;
+                    offsety = -30;
+                    break;
+                case 2:
+                    offsetx = 10;
+                    offsety = -6;
+                    break;
+                case 3:
+                    offsetx = 10;
+                    offsety = 20;
+                    break;
+                default:
+                    break;
+            }
+            graphics_draw_bitmap_in_rect_app(context, action_bar->icons[i], GRect(full_bounds.size.w - icon_size.w - offsetx, y - (increment / 2) - (icon_size.h / 2) - offsety, icon_size.w, icon_size.h));
+#endif
         }
         
         y += increment;
