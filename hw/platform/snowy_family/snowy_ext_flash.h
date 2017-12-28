@@ -10,5 +10,6 @@
 
 void hw_flash_init(void);
 void hw_flash_deinit(void);
+uint16_t hw_flash_read16(uint32_t address);
 void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length);
-void *hw_flash_module_init(hw_driver_handler_t *handler);
+

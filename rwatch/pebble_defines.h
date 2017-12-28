@@ -1,4 +1,5 @@
 #pragma once
+#include "platform_config.h"
 /* pebble-defines.h
  * Pebble defined header stuff
  * libRebbleOS
@@ -27,6 +28,8 @@
 #define GFont n_GFont
 #define GTextAlignment n_GTextAlignment
 #define GTextAlignmentLeft n_GTextAlignmentLeft
+#define GTextAlignmentCenter n_GTextAlignmentCenter
+#define GTextAlignmentRight n_GTextAlignmentRight
 #define GTextAttributes n_GTextAttributes
 #define graphics_draw_text n_graphics_draw_text
 

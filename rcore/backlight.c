@@ -12,6 +12,7 @@
 #include "log.h" /* KERN_LOG */
 #include "backlight.h"
 #include "ambient.h"
+#include "rebble_memory.h"
 
 static TaskHandle_t _backlight_task;
 static StaticTask_t _backlight_task_buf;
@@ -42,8 +43,7 @@ void rcore_backlight_init(void)
     
     _backlight_task = xTaskCreateStatic(_backlight_thread, "Bl", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, _backlight_task_stack, &_backlight_task_buf);
     
-    _backlight_queue = xQueueCreateStatic(2, sizeof(backlight_message_t), (uint8_t *)&_backlight_queue_contents, &_backlight_queue_buf);
-        
+    _backlight_queue = xQueueCreateStatic(2, sizeof(backlight_message_t *), (uint8_t *)&_backlight_queue_contents, &_backlight_queue_buf);
     KERN_LOG("backl", APP_LOG_LEVEL_INFO, "Backlight Tasks Created");
     _backlight_is_on = 0;
     _backlight_brightness = 0;
@@ -57,13 +57,15 @@ void rcore_backlight_init(void)
 // use the backlight as additional alert by flashing it
 void rcore_backlight_on(uint16_t brightness_pct, uint16_t time)
 {
-    backlight_message_t msg;
+    // create the message, malloc some memory for it. 
+    // We then add the pointer to this message into the queue
+    backlight_message_t *msg = malloc(sizeof(backlight_message_t));
 
     //  send the queue the backlight on task
-    msg.cmd = BACKLIGHT_ON;
-    msg.val1 = brightness_pct;
-    msg.val2 = time;
-    xQueueSendToBack(_backlight_queue, (uint8_t *) &msg, 0);
+    msg->cmd = BACKLIGHT_ON;
+    msg->val1 = brightness_pct;
+    msg->val2 = time;
+    xQueueSendToBack(_backlight_queue, (void *)&msg, 0);
 }
 
 /*
@@ -118,13 +120,12 @@ static void _backlight_set_from_ambient(void)
 static void _backlight_thread(void *pvParameters)
 {
     backlight_message_t *message;
-//     const TickType_t xMaxBlockTime = pdMS_TO_TICKS(1000);
-    uint8_t wait = 0;
-    TickType_t on_expiry_time;
-    uint8_t backlight_status;
-    uint16_t bri_scale;
-    uint16_t bri_it;
-    
+    uint8_t wait = 0;  
+    TickType_t on_expiry_time = xTaskGetTickCount();
+    uint8_t backlight_status = BACKLIGHT_OFF;
+    uint16_t bri_scale = 100;
+    uint16_t bri_it = 50;
+
     while(1)
     {
         if (backlight_status == BACKLIGHT_FADE)
@@ -179,7 +180,10 @@ static void _backlight_thread(void *pvParameters)
                     on_expiry_time = xTaskGetTickCount() + (message->val2 / portTICK_RATE_MS);
                     _backlight_set(message->val1);
                     break;
+                ;
             }
+            // Free memory allocated for this message (we only queue pointers)
+            free(message);
         }
     }
 }

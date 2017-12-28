@@ -2,14 +2,16 @@
  * Miscellaneous platform routines for Pebble Time (snowy)
  * RebbleOS
  *
- * Author: Barry Carter <barry.carter@gmail.com>
+ * Authors: Barry Carter <barry.carter@gmail.com>
+ *          Carson Katri <me@carsonkatri.com>
  */
+
 #include "stm32f4xx.h"
 #include "stm32f4xx_usart.h"
 #include "snowy_rtc.h"
 #include "stdio.h"
 #include "string.h"
-#include "snowy.h"
+#include "chalk.h"
 #include "display.h"
 #include "log.h"
 #include "stm32_power.h"
@@ -70,4 +72,3 @@ STM32_BUTTONS_MK_IRQ_HANDLER(1)
 STM32_BUTTONS_MK_IRQ_HANDLER(2)
 STM32_BUTTONS_MK_IRQ_HANDLER(3)
 STM32_BUTTONS_MK_IRQ_HANDLER(4)
-

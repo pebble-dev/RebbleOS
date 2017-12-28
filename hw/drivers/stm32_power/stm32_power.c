@@ -34,6 +34,8 @@
  * more power with.
  */
 
+// #define STM32_POWER_USE_MUTEX
+
 #if defined(STM32F4XX)
 #    include "stm32f4xx.h"
 #elif defined(STM32F2XX)
@@ -73,11 +75,23 @@ void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr) {
     void (*clkcmd)(uint32_t periph, FunctionalState state);
     
 #ifdef STM32_POWER_USE_MUTEX
-    xSemaphoreTake(stm32_power_mutex, portMAX_DELAY);
+    static BaseType_t xHigherPriorityTaskWoken;
+    uint8_t interrupt_set = 0;
+
+    if(is_interrupt_set())
+    {
+        xHigherPriorityTaskWoken = pdFALSE;
+        xSemaphoreTakeFromISR(stm32_power_mutex, &xHigherPriorityTaskWoken);
+        interrupt_set = 1;
+    }
+    else
+    {
+        xSemaphoreTake(stm32_power_mutex, portMAX_DELAY);
+    }
 #else
     uint32_t critical_state = taskENTER_CRITICAL_FROM_ISR();
 #endif
-    
+
     switch (reg) {
 #define MK_CASE(n, b) case STM32_POWER_##n: statep = _power_state_##n; bits = b; clkcmd = RCC_##n##PeriphClockCmd; break;
     STM32_POWER_EXPANDO(MK_CASE)
@@ -100,8 +114,17 @@ void stm32_power_incr(stm32_power_register_t reg, uint32_t domain, int incr) {
         clkcmd(1 << i, statep[i] ? ENABLE : DISABLE);
     }
 
+//    clkcmd(domain, ENABLE);
 #ifdef STM32_POWER_USE_MUTEX
-    xSemaphoreGive(stm32_power_mutex);
+    if (interrupt_set)
+    {
+        xSemaphoreGiveFromISR(stm32_power_mutex, &xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+    else
+    {
+        xSemaphoreGive(stm32_power_mutex);
+    }
 #else
     taskEXIT_CRITICAL_FROM_ISR(critical_state);
 #endif

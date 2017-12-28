@@ -172,7 +172,7 @@ static void _set_frequency(uint16_t frequency)
 static void _vibrate_thread(void *pvParameters)
 {
     static VibratePattern_t *current_pattern = &_default_vibrate_patterns[VIBRATE_CMD_STOP];
-    
+
     while(1)
     {
         if (!xQueueReceive(_vibrate_queue, &current_pattern, portMAX_DELAY))

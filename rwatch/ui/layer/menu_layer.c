@@ -399,21 +399,26 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
     }
 
     GRect title_rect = GRect(x, frame.size.h / 2 - 16, frame.size.w - x - 5, 24);
-
+    
+#ifdef PBL_RECT
+    GTextAlignment align = GTextAlignmentLeft;
+#else
+    GTextAlignment align = GTextAlignmentRight;
+#endif
     if (subtitle)
     {
         title_rect.origin.y = 0;
 
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
         graphics_draw_text_app(ctx, subtitle, font, GRect(x, 24, frame.size.w - x - 5, 18),
-                               GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+                               GTextOverflowModeTrailingEllipsis, align, 0);
     }
 
     if (title)
     {
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
         graphics_draw_text_app(ctx, title, title_font, title_rect, GTextOverflowModeTrailingEllipsis,
-                               GTextAlignmentLeft, 0);
+                               align, 0);
     }
 }
 
@@ -421,10 +426,15 @@ void menu_cell_title_draw(GContext *ctx, const Layer *layer, const char *title)
 {
     if (title)
     {
+#ifdef PBL_RECT
+        GTextAlignment align = GTextAlignmentLeft;
+#else
+        GTextAlignment align = GTextAlignmentCenter;
+#endif
         GRect frame = layer_get_frame(layer);
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
         graphics_draw_text_app(ctx, title, font, GRect(5, frame.size.h / 2 - 18, frame.size.w - 10, 28),
-                               GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+                               GTextOverflowModeTrailingEllipsis, align, 0);
     }
 }
 
@@ -432,9 +442,14 @@ void menu_cell_basic_header_draw(GContext *ctx, const Layer *layer, const char *
 {
     if (title)
     {
+#ifdef PBL_RECT
+        GTextAlignment align = GTextAlignmentLeft;
+#else
+        GTextAlignment align = GTextAlignmentCenter;
+#endif
         GRect frame = layer_get_frame(layer);
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
         graphics_draw_text_app(ctx, title, font, GRect(5, frame.size.h / 2 - 7, frame.size.w - 10, 14),
-                               GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+                               GTextOverflowModeTrailingEllipsis, align, 0);
     }
 }

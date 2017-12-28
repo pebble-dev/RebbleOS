@@ -37,6 +37,7 @@ void watchdog_reset(void);
 #define SYSTEM_RUNNING_APP   1
 #define SYSTEM_IN_MAIN_MENU  2
 
+#define SYSTEM_STATUS_STARTED 1
 
 typedef struct SystemStatus {
     uint8_t booted;
@@ -54,3 +55,4 @@ typedef struct SystemSettings {
 
 
 void rebbleos_init(void);
+uint8_t rebbleos_get_system_status(void);

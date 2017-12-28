@@ -83,6 +83,12 @@ $(BUILD)/$(1)/%.o: %.s
 	$(call SAY,[$(1)] AS $$<)
 	@mkdir -p $$(dir $$@)
 	$(QUIET)$(CC) $(CFLAGS_$(1)) -c -o $$@ $$< 
+	
+$(BUILD)/$(1)/Resources/%_fpga.o: Resources/%_fpga.bin
+	$(call SAY,[$(1)] FPGA $$<)
+	@mkdir -p $$(dir $$@)
+	$(QUIET)$(OBJCOPY) --rename-section .data=.rodata,contents,alloc,load,readonly,data -I binary -O elf32-littlearm -B armv5te $$< $$@
+
 
 $(BUILD)/$(1)/fw.qemu_flash.bin: Resources/$(1)_boot.bin $(BUILD)/$(1)/tintin_fw.bin
 	$(call SAY,[$(1)] QEMU-BIN $$<)

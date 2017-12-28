@@ -20,10 +20,35 @@ extern display_t display;
  * (y0: xxxxxxx
  *  y1: xxxxxxx)
  * to
- * (x0: yyyyyyy
- *  x1: yyyyyyy)
+ * (y0: xxxxxxx
+ *  y1: xxxxxxx)
+ * In LSB / MSB format
  */
-void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t column_index)
+void _scanline_convert_row(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t row_index)
+{
+    uint8_t r0_fullbyte, r1_fullbyte, lsb, msb;
+    uint32_t row_offset = row_index * DISPLAY_COLS;
+
+    // For each column in the row, grab two consecutive bytes
+    // Each pair of bytes is then or'd to form a pair of formatted values
+    // suitable for the FPGA.
+    // They are then pushed into the row buffer. 
+    // LSB block filling the first half, MSB the second half
+    // [LSB0 LSB1..... | half | MSB0 MSB1.....]
+    for (uint16_t xi = 0; xi < DISPLAY_COLS; xi+=2)
+    {
+        r1_fullbyte = frame_buffer[row_offset + xi];
+        r0_fullbyte = frame_buffer[row_offset + xi + 1];
+        
+        lsb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
+        msb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
+            
+        out_buffer[xi/2] = lsb;
+        out_buffer[(xi/2) + DISPLAY_COLS / 2] = msb;
+    }
+}
+
+void _scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t column_index)
 {
     int i = 0;
     uint16_t pos_half_lsb = 0;
@@ -59,4 +84,15 @@ void scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t
         // skip the next y column as we processed it already
         i += 2 * DISPLAY_COLS;
     }
+}
+
+void scanline_convert(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t index)
+{
+#if defined(REBBLE_PLATFORM_CHALK)
+    _scanline_convert_row(out_buffer, frame_buffer, index);
+#elif defined(REBBLE_PLATFORM_SNOWY)
+    _scanline_convert_column(out_buffer, frame_buffer, index);
+#else
+    assert(!"I don't know how to drive this platform!");
+#endif
 }

@@ -269,10 +269,8 @@ void RTC_Alarm_IRQHandler(void)
 {    
     if(RTC_GetITStatus(RTC_IT_ALRA) != RESET)
     {
-        // call the handler
-       
+        // call the handler      
         rebble_time_rtc_isr();
-        
         RTC_ClearITPendingBit(RTC_IT_ALRA);
         EXTI_ClearITPendingBit(EXTI_Line17);
     } 

@@ -81,7 +81,6 @@ SRCS_all += rcore/fs.c
 SRCS_all += rcore/log.c
 SRCS_all += rcore/resource.c
 SRCS_all += rcore/heap_app.c
-SRCS_all += rcore/driver.c
 SRCS_all += rcore/watchdog.c
 
 SRCS_all += rwatch/librebble.c
@@ -108,5 +107,7 @@ include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk
 include hw/drivers/stm32_buttons/config.mk
 include hw/drivers/stm32_power/config.mk
+include hw/platform/snowy_family/config.mk
 include hw/platform/snowy/config.mk
 include hw/platform/tintin/config.mk
+include hw/platform/chalk/config.mk

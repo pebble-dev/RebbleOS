@@ -34,7 +34,6 @@ static Time s_last_time;
 
 static void simple_window_load(Window *window)
 {
-    printf("WF load\n");
     Layer *window_layer = window_get_root_layer(s_main_window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
@@ -50,6 +49,7 @@ static void simple_window_load(Window *window)
 
     tick_timer_service_subscribe(SECOND_UNIT, simple_tick);
     layer_mark_dirty(s_canvas_layer);
+    printf("WF load done\n");
 }
 
 

@@ -68,7 +68,7 @@ void max14690_init(void)
     */
     GPIO_InitTypeDef GPIO_InitStructure;
     
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
+//     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     
     GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
     GPIO_InitStructure.GPIO_Pin = GPIO_Pin_8 | GPIO_Pin_2 | GPIO_Pin_3;
@@ -80,7 +80,7 @@ void max14690_init(void)
     GPIO_SetBits(GPIOF, GPIO_Pin_3);
     GPIO_SetBits(GPIOF, GPIO_Pin_2);
 
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
+//     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOF);
     
     uint8_t buf[0x1F];
     I2C_read_reg(&I2C_conf, 0x50, 0x00, buf, 0x1F + 1);

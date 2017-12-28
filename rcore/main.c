@@ -17,7 +17,7 @@ int main(void)
 
     rebbleos_init();
     
-    KERN_LOG("main", APP_LOG_LEVEL_INFO, "RebbleOS %s", VERSION);
+    KERN_LOG("main", APP_LOG_LEVEL_INFO, "RebbleOS", VERSION);
     
     vTaskStartScheduler();  // should never return
     
@@ -39,14 +39,15 @@ void hardware_init(void)
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     flash_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Flash Init");
-    vibrate_init();
-    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Vibro Init");
-    display_init();
+    //vibrate_init();
+//     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Vibro Init");
+        display_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Display Init");
+    hw_display_start();
     rcore_buttons_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Buttons Init");
     rtc_init();
-    rcore_ambient_init();
+//     rcore_ambient_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Ambiance Init");
     rcore_backlight_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Backlight Init");
