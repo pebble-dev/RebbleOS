@@ -33,3 +33,4 @@ void rcore_time_ms(time_t *tutc, uint16_t *ms);
 void rebble_time_rtc_isr(void);
 struct tm *rebble_time_get_tm(void);
 int pbl_clock_is_24h_style();
+uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms);
