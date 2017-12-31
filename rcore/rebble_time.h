@@ -24,6 +24,10 @@ void rebble_time_service_subscribe(TimeUnits tick_units, TickHandler handler);
 void rebble_time_service_unsubscribe(void);
 void rebble_time_service_disable_timer();
 
+void rcore_time_init(void);
+time_t rcore_mktime(struct tm *tm);
+void rcore_localtime(struct tm *tm, time_t time);
+void rcore_time_ms(time_t *tutc, uint16_t *ms);
 
 // private
 void rebble_time_rtc_isr(void);

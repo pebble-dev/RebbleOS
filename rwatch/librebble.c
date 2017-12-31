@@ -9,11 +9,6 @@
 #include "platform.h"
 // #include "ugui.h"
 
-void rbl_get_time(char *buf)
-{
-    hw_get_time_str(buf);
-}
-
 struct tm *rbl_get_tm(void)
 {
     return rebble_time_get_tm();

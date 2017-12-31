@@ -47,6 +47,7 @@ void hardware_init(void)
     rcore_buttons_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Buttons Init");
     rtc_init();
+    rcore_time_init();
 //     rcore_ambient_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Ambiance Init");
     rcore_backlight_init();
