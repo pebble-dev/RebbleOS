@@ -781,7 +781,7 @@ unalloc66,
 unalloc67,
 unalloc68,
 unalloc69,
-unalloc70,                   //clock_is_24h_style
+(VoidFunc)pbl_clock_is_24h_style,                   //clock_is_24h_style
 (VoidFunc)cos_lookup,
 unalloc72,
 unalloc73,

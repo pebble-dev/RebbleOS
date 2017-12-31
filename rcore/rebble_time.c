@@ -73,6 +73,13 @@ uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms)
     return _ms;
 }
 
+int pbl_clock_is_24h_style()
+{
+    // XXX: Obviously, everybody wants 24h time.  Why would they use a
+    // developer operating system if not?
+    return 1;
+}
+
 /*
  * Set the handler and unit type to the global handler
  */
