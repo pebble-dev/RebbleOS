@@ -1,0 +1,7 @@
+This directory contains modified excerpts and derivatives of the musl C
+library.  musl routines are used for C library routines that are somewhat
+complex, but not terribly Linux-specific.
+
+They have often been ruthlessly hacked to fit the constraints of the
+RebbleOS platform.
+

@@ -48,6 +48,13 @@ SRCS_all += lib/minilib/dprint.c
 SRCS_all += lib/minilib/fmt.c
 SRCS_all += lib/minilib/unfmt.c
 SRCS_all += lib/minilib/rand.c
+SRCS_all += lib/musl/time/localtime.c
+SRCS_all += lib/musl/time/localtime_r.c
+SRCS_all += lib/musl/time/mktime.c
+SRCS_all += lib/musl/time/__secs_to_tm.c
+SRCS_all += lib/musl/time/__tm_to_secs.c
+SRCS_all += lib/musl/time/__year_to_secs.c
+SRCS_all += lib/musl/time/__month_to_secs.c
 
 SRCS_all += lib/neographics/src/common.c
 SRCS_all += lib/neographics/src/context.c

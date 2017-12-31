@@ -35,3 +35,7 @@ Portions of this codebase are instead made available under other licenses:
  
  * upng, in lib/png/, is available under a BSD-style license.  Please see
    lib/png/upng.c for more information.
+
+ * musl, which is excerpted in lib/musl, is available under the terms of
+   various permissive licenses.  Please see lib/musl/COPYRIGHT for more
+   information.
