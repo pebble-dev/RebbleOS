@@ -7,12 +7,6 @@
 
 #include "rebbleos.h"
 
-static TimeUnits _time_units;
-static TickHandler _tick_handler;
-static TickMessage _tick_message;
-
-void rebble_time_callback_trigger(struct tm *tick_time, TimeUnits tick_units, BaseType_t *xHigherPriorityTaskWoken);
-
 static TickType_t _boot_ticks;
 static time_t _boot_time_t;
 

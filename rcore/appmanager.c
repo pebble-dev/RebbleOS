@@ -296,16 +296,6 @@ void appmanager_post_button_message(ButtonMessage *bmessage)
     xQueueSendToBack(_app_message_queue, &am, (TickType_t)10);
 }
 
-void appmanager_post_tick_message(TickMessage *tmessage, BaseType_t *pxHigherPri)
-{
-    AppMessage am = (AppMessage) {
-        .message_type_id = APP_TICK,
-        .payload = (void *)tmessage
-    };
-    // Note the from ISR. The tic comes direct to the app event handler
-    xQueueSendToBackFromISR(_app_message_queue, &am, pxHigherPri);
-}
-
 void appmanager_post_draw_message(void)
 {
     AppMessage am = (AppMessage) {
@@ -409,13 +399,6 @@ void app_event_loop(void)
                 ButtonMessage *message = (ButtonMessage *)data.payload;
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
             }
-            else if (data.message_type_id == APP_TICK)
-            {
-                // execute the timers's callback
-                TickMessage *message = (TickMessage *)data.payload;
-                
-                ((TickHandler)(message->callback))(message->tick_time, (TimeUnits)message->tick_units);
-            }
             else if (data.message_type_id == APP_QUIT)
             {
                 // remove all of the clck handlers
@@ -483,7 +466,6 @@ static void _appmanager_app_thread(void *parms)
       
         // TODO reset clicks
         tick_timer_service_unsubscribe();
-
         
         if (_app_manifest_head == NULL)
         {

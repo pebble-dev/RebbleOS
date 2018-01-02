@@ -37,13 +37,6 @@ typedef struct ButtonMessage
     void *context;
 } ButtonMessage;
 
-typedef struct TickMessage
-{
-    void *callback;
-    struct tm* tick_time;
-    TimeUnits tick_units;
-} TickMessage;
-
 typedef void (*AppMainHandler)(void);
 
 
@@ -127,7 +120,6 @@ void appmanager_init(void);
 void appmanager_timer_add(AppTimer *timer);
 void appmanager_timer_remove(AppTimer *timer);
 void appmanager_post_button_message(ButtonMessage *bmessage);
-void appmanager_post_tick_message(TickMessage *tmessage, BaseType_t *pxHigherPri);
 void appmanager_post_draw_message(void);
 void appmanager_app_start(char *name);
 void appmanager_app_quit(void);

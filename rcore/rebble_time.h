@@ -18,11 +18,7 @@ typedef enum {
     MONTH_UNIT  = 1 << 4, 
     YEAR_UNIT   = 1 << 5
 } TimeUnits;
-
 typedef void(*TickHandler)(struct tm *tick_time, TimeUnits units_changed);
-void rebble_time_service_subscribe(TimeUnits tick_units, TickHandler handler);
-void rebble_time_service_unsubscribe(void);
-void rebble_time_service_disable_timer();
 
 void rcore_time_init(void);
 time_t rcore_mktime(struct tm *tm);
@@ -31,7 +27,6 @@ void rcore_time_ms(time_t *tutc, uint16_t *ms);
 TickType_t rcore_time_to_ticks(time_t t, uint16_t ms);
 
 // private
-void rebble_time_rtc_isr(void);
 struct tm *rebble_time_get_tm(void);
 int pbl_clock_is_24h_style();
 uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms);
