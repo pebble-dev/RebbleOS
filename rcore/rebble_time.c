@@ -45,6 +45,12 @@ void rcore_time_ms(time_t *tutc, uint16_t *ms)
     *ms = (ticks_since_boot % configTICK_RATE_HZ) * 1000 / configTICK_RATE_HZ;
 }
 
+TickType_t rcore_time_to_ticks(time_t t, uint16_t ms) {
+    if (t < _boot_time_t)
+        return 0;
+    return (t - _boot_time_t) * configTICK_RATE_HZ + pdMS_TO_TICKS(ms);
+}
+
 /*
  * Get the time as a tm struct
  */

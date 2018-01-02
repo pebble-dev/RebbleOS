@@ -28,6 +28,7 @@ void rcore_time_init(void);
 time_t rcore_mktime(struct tm *tm);
 void rcore_localtime(struct tm *tm, time_t time);
 void rcore_time_ms(time_t *tutc, uint16_t *ms);
+TickType_t rcore_time_to_ticks(time_t t, uint16_t ms);
 
 // private
 void rebble_time_rtc_isr(void);
