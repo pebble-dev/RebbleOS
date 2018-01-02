@@ -421,7 +421,7 @@ void app_event_loop(void)
                 // remove all of the clck handlers
                 button_unsubscribe_all();
                 // remove the ticktimer service handler and stop it
-                rebble_time_service_unsubscribe();
+                tick_timer_service_unsubscribe();
 
                 KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Quit");
                 // The task will die hard.
@@ -482,6 +482,7 @@ static void _appmanager_app_thread(void *parms)
         xQueueReset(_app_message_queue);            
       
         // TODO reset clicks
+        tick_timer_service_unsubscribe();
 
         
         if (_app_manifest_head == NULL)

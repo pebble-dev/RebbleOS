@@ -61,87 +61,8 @@ void rtc_init(void)
     // Enable Wakeup Counter
     RTC_WakeUpCmd(ENABLE);
     
-    // Configure the alarm A to wake up via the interrupt
-    EXTI_ClearITPendingBit(EXTI_Line17);
-    EXTI_InitStruct.EXTI_Line = EXTI_Line17;
-    EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
-    EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;
-    EXTI_InitStruct.EXTI_LineCmd = ENABLE;
-    EXTI_Init(&EXTI_InitStruct);
-    
-    // Enable the RTC Alarm Interrupt
-    NVIC_InitStruct.NVIC_IRQChannel = RTC_Alarm_IRQn;
-    NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 9;
-    NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0;
-    NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&NVIC_InitStruct);  
-
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
 }
-
-/* 
- * We are using the RTC alarm A as the tick timer for the system apps/faces
- */
-void rtc_set_timer_interval(TimeUnits tick_units)
-{
-    RTC_AlarmTypeDef RTC_AlarmStructure;
-    
-    if (tick_units == 0)
-    {
-        rtc_disable_timer_interval();
-        return;
-    }
-    
-    // Configure the wakeup alarm itself
-    RTC_AlarmStructure.RTC_AlarmTime.RTC_H12     = RTC_H12_AM;
-    RTC_AlarmStructure.RTC_AlarmTime.RTC_Hours   = 0x00;
-    RTC_AlarmStructure.RTC_AlarmTime.RTC_Minutes = 0x00;
-    RTC_AlarmStructure.RTC_AlarmTime.RTC_Seconds = 0x00;
-    RTC_AlarmStructure.RTC_AlarmDateWeekDay = 0x0;
-    RTC_AlarmStructure.RTC_AlarmDateWeekDaySel = RTC_AlarmDateWeekDaySel_Date;
-
-    // set the mask based on the units
-    // We will start with all enabled, and then
-    // remove the stm rtc mask
-    // we will roll over minutes on the bottom (0) of the seconds
-    // and hours at the bottom of minutes. etc
-    uint32_t mask = RTC_AlarmMask_All;
-    
-    if (tick_units & SECOND_UNIT)
-        ; //mask &= ~RTC_AlarmMask_Seconds;
-
-    if (tick_units & MINUTE_UNIT)
-        mask &= ~RTC_AlarmMask_Seconds;
-        
-    if (tick_units & HOUR_UNIT)
-        mask &= ~RTC_AlarmMask_Minutes;
-    
-    if (tick_units & DAY_UNIT)
-        mask &= ~RTC_AlarmMask_Hours;
-    
-    RTC_AlarmStructure.RTC_AlarmMask = mask;
-    
-    // Configure the RTC Alarm A register
-    RTC_SetAlarm(RTC_Format_BCD, RTC_Alarm_A, &RTC_AlarmStructure);
-  
-    //  Enable RTC Alarm A Interrupt
-    RTC_ITConfig(RTC_IT_ALRA, ENABLE);
-  
-    // Enable the alarm
-    RTC_AlarmCmd(RTC_Alarm_A, ENABLE);
-  
-    RTC_ClearFlag(RTC_FLAG_ALRAF);
-}
-
-void rtc_disable_timer_interval(void)
-{
-    //  Enable RTC Alarm A Interrupt
-    RTC_ITConfig(RTC_IT_ALRA, DISABLE);
-  
-    // Enable the alarm
-    RTC_AlarmCmd(RTC_Alarm_A, DISABLE);
-}
-
 void rtc_config(void)
 {
     RTC_InitTypeDef  RTC_InitStructure;
@@ -264,15 +185,3 @@ void RTC_WKUP_IRQHandler(void)
         EXTI_ClearITPendingBit(EXTI_Line22);
     } 
 }
-
-void RTC_Alarm_IRQHandler(void)
-{    
-    if(RTC_GetITStatus(RTC_IT_ALRA) != RESET)
-    {
-        // call the handler      
-        rebble_time_rtc_isr();
-        RTC_ClearITPendingBit(RTC_IT_ALRA);
-        EXTI_ClearITPendingBit(EXTI_Line17);
-    } 
-}
-
