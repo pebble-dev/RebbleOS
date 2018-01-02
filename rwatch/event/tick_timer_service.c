@@ -29,16 +29,29 @@ static void _tick_timer_update_next(TickTimerState *state)
         appmanager_timer_remove(&state->timer);
     }
     
-    /* Figure out the desired time.  XXX: always ticks in one second right now */
+    /* Figure out the desired time. */
     time_t dtime;
+    struct tm nexttm;
     
-    rcore_time_ms(&dtime, NULL);
-    dtime = dtime + 1;
-    
-    /* Figure out how long until then. */
-    time_t time;
-    uint16_t ms;
-    rcore_time_ms(&time, &ms);
+    dtime = rcore_mktime(&state->lasttm);
+
+    if (state->units & SECOND_UNIT) {
+        dtime = dtime + 1;
+    } else if (state->units & MINUTE_UNIT) {
+        dtime = dtime + 60;
+
+        rcore_localtime(&nexttm, dtime);
+        nexttm.tm_sec = 0;
+        dtime = rcore_mktime(&nexttm);
+    } else if (state->units & (HOUR_UNIT | DAY_UNIT | MONTH_UNIT | YEAR_UNIT)) {
+        /* Everyone else gets woken up hourly, and we'll just cancel it
+         * later if it wasn't requested.  */
+        dtime = dtime + 60 * 60;
+        
+        rcore_localtime(&nexttm, dtime);
+        nexttm.tm_min = nexttm.tm_sec = 0;
+        dtime = rcore_mktime(&nexttm);
+    }
     
     state->timer.when = rcore_time_to_ticks(dtime, 0);
     state->timer.callback = _tick_timer_callback;
@@ -72,7 +85,8 @@ static void _tick_timer_callback(AppTimer *timer)
     memcpy(&state->lasttm, &tm, sizeof(tm));
     _tick_timer_update_next(state);
     
-    state->handler(&tm, units);
+    if (units & state->units)
+        state->handler(&tm, units);
 }
 
 void tick_timer_service_subscribe(TimeUnits tick_units, TickHandler handler)
