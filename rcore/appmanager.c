@@ -314,6 +314,41 @@ void appmanager_post_draw_message(void)
     xQueueSendToBack(_app_message_queue, &am, (TickType_t)10);
 }
 
+/* Always adds to the running app's queue.  Note that this is only
+ * reasonable to do from the app thread: otherwise, you can race with the
+ * check for the timer head.  */
+void appmanager_timer_add(AppTimer *timer)
+{
+    AppTimer **tnext = &_running_app->timer_head;
+    
+    /* until either the next pointer is null (i.e., we have hit the end of
+     * the list), or the thing that the next pointer points to is further in
+     * the future than we are (i.e., we want to insert before the thing that
+     * the next pointer points to)
+     */
+    while (*tnext && (timer->when < (*tnext)->when)) {
+        tnext = &((*tnext)->next);
+    }
+    
+    timer->next = *tnext;
+    *tnext = timer;
+}
+
+void appmanager_timer_remove(AppTimer *timer)
+{
+    AppTimer **tnext = &_running_app->timer_head;
+    
+    while (*tnext) {
+        if (*tnext == timer) {
+            *tnext = timer->next;
+            return;
+        }
+        tnext = &(*tnext)->next;
+    }
+    
+    assert(!"appmanager_timer_remove did not find timer in list");
+}
+
 /*
  * 
  * Once an application is spawned, it calls into app_event_loop
@@ -323,7 +358,6 @@ void appmanager_post_draw_message(void)
  */
 void app_event_loop(void)
 {
-    uint32_t xMaxBlockTime = 1000 / portTICK_RATE_MS;
     AppMessage data;
     
     KERN_LOG("app", APP_LOG_LEVEL_INFO, "App entered mainloop");
@@ -351,9 +385,23 @@ void app_event_loop(void)
     // block forever
     for ( ;; )
     {
+        /* Is there something queued up to do?  If so, we have the potential to do it. */
+        TickType_t next_timer;
+        
+        if (_running_app->timer_head) {
+            TickType_t curtime = xTaskGetTickCount();
+            if (curtime > _running_app->timer_head->when)
+                next_timer = 0;
+            else
+                next_timer = _running_app->timer_head->when - curtime;
+        } else {
+            next_timer = portMAX_DELAY; /* Just block forever. */
+        }
+        
         // we are inside the apps main loop event handler now
-        if (xQueueReceive(_app_message_queue, &data, xMaxBlockTime))
+        if (xQueueReceive(_app_message_queue, &data, next_timer))
         {
+            /* We woke up for some kind of event that someone posted.  But what? */
             KERN_LOG("app", APP_LOG_LEVEL_INFO, "Queue Receive");
             if (data.message_type_id == APP_BUTTON)
             {
@@ -386,6 +434,18 @@ void app_event_loop(void)
             {
                 window_draw();
             }
+        } else {
+            /* We woke up because we hit a timer expiry.  Dequeue first,
+             * then invoke -- otherwise someone else could insert themselves
+             * at the head, and we would wrongfully dequeue them!  */
+            AppTimer *timer = _running_app->timer_head;
+            assert(timer);
+            
+            KERN_LOG("app", APP_LOG_LEVEL_INFO, "woke up for a timer");
+
+            _running_app->timer_head = timer->next;
+            
+            timer->callback(timer);
         }
     }
     // the app itself will quit now
@@ -440,8 +500,11 @@ static void _appmanager_app_thread(void *parms)
         // it's the one
         _running_app = app;
         
-        if (_app_task_handle != NULL)
+        if (_app_task_handle != NULL) {
             vTaskDelete(_app_task_handle);
+            _app_task_handle = NULL;
+        }
+        _running_app->timer_head = NULL;
         
         // If the app is running off RAM (i.e it's a PIC loaded app...) and not system, we need to patch it
         if (!app->is_internal)
