@@ -89,6 +89,8 @@ $(BUILD)/$(1)/Resources/%_fpga.o: Resources/%_fpga.bin
 	@mkdir -p $$(dir $$@)
 	$(QUIET)$(OBJCOPY) --rename-section .data=.rodata,contents,alloc,load,readonly,data -I binary -O elf32-littlearm -B armv5te $$< $$@
 
+Resources/$(1)_fpga.bin:
+	@echo "${RED}Error: platform '$(1)' needs an FPGA binary file in order to build.  Please extract or download one, and put it in $$@. ${STOP}"; exit 1
 
 $(BUILD)/$(1)/fw.qemu_flash.bin: Resources/$(1)_boot.bin $(BUILD)/$(1)/tintin_fw.bin
 	$(call SAY,[$(1)] QEMU-BIN $$<)
