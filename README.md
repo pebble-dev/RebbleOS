@@ -23,6 +23,13 @@ these steps:
 * If you wish to run the firmware in `qemu`, copy the resources necessary into `Resources/`.  Take a look at [Utilities/mk_resources.sh](Utilities/mk_resources.sh) for more information on that.
 * To run the firmware in `qemu`, try `make snowy_qemu`.
 
+For example, the following bulids RebbleOS on Debian Stretch:
+
+    apt install -y gcc-arm-none-eabi
+    git clone https://github.com/ginge/FreeRTOS-Pebble.git
+    cd FreeRTOS-Pebble
+    make
+
 If you wish to build firmware to run on your device, you may also wish to
 consider a script like [buildfw.sh](buildfw.sh).  Running RebbleOS on hardware is
 currently out of scope for this document.
