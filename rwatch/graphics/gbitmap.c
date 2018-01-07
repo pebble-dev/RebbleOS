@@ -79,6 +79,14 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
     int16_t clip_x = clipping_bounds.origin.x > bitmap->bounds.origin.x 
             ? clipping_bounds.origin.x - bitmap->bounds.origin.x
             : 0;
+    
+    if ((clip_y + clipping_bounds.origin.y) < 0) {
+        int16_t adj = -clip_y - clipping_bounds.origin.y;
+        clip_y -= adj;
+        if (adj > h)
+           return;
+        h -= adj;
+    }
             
     uint8_t bpp = 8;
     switch (bitmap->format)
