@@ -1031,7 +1031,6 @@ upng_error upng_header(upng_t* upng)
 
         /* determine our color format */
         upng->format = determine_format(upng);
-        printf("COLF %d\n", upng->format);
         if (upng->format == UPNG_BADFORMAT) {
                 SET_ERROR(upng, UPNG_EUNFORMAT);
                 return upng->error;
