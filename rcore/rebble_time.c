@@ -58,6 +58,19 @@ struct tm *rebble_time_get_tm(void)
     return &_global_tm;
 }
 
+uint16_t pbl_time_deprecated(time_t *tloc)
+{
+    /* XXX time zones: utc vs local time */
+    uint16_t _ms;
+    time_t _tm;
+    
+    rcore_time_ms(&_tm, &_ms);
+    if (tloc)
+        *tloc = _tm;
+    
+    return _ms;
+}
+
 uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms)
 {
     /* XXX time zones: utc vs local time */

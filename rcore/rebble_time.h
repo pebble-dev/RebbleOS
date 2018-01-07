@@ -29,4 +29,5 @@ TickType_t rcore_time_to_ticks(time_t t, uint16_t ms);
 // private
 struct tm *rebble_time_get_tm(void);
 int pbl_clock_is_24h_style();
+uint16_t pbl_time_deprecated(time_t *tloc);
 uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms);
