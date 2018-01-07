@@ -316,7 +316,7 @@ void appmanager_timer_add(AppTimer *timer)
      * the future than we are (i.e., we want to insert before the thing that
      * the next pointer points to)
      */
-    while (*tnext && (timer->when < (*tnext)->when)) {
+    while (*tnext && (timer->when > (*tnext)->when)) {
         tnext = &((*tnext)->next);
     }
     
