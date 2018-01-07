@@ -72,6 +72,12 @@ static MenuItems* watch_list_item_selected(const MenuItem *item) {
     return items;
 }
 
+static void exit_to_watchface(struct Menu *menu, void *context)
+{
+    // Exit to watchface
+    appmanager_app_start("Simple");
+}
+
 static void systemapp_window_load(Window *window)
 {
     printf("WF load\n");
@@ -80,7 +86,7 @@ static void systemapp_window_load(Window *window)
 
     s_menu = menu_create(bounds);
     menu_set_callbacks(s_menu, s_menu, (MenuCallbacks) {
-        .on_menu_exit = NULL // TODO: exit to watchface
+        .on_menu_exit = exit_to_watchface
     });
     layer_add_child(window_layer, menu_get_layer(s_menu));
 
