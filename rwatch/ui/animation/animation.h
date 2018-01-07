@@ -1,15 +1,23 @@
 #pragma once
 /* animation.h
- * routines for [...]
+ * declarations for animations
  * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
+#include "FreeRTOS.h"
+
 #include "librebble.h"
 #include "point.h"
 #include "rect.h"
 #include "size.h"
+
+#include "appmanager.h"
+
+#define ANIMATION_DURATION_INFINITE UINT32_MAX
+#define ANIMATION_NORMALIZED_MIN 0 
+#define ANIMATION_NORMALIZED_MAX 65535
 
 struct Animation;
 
@@ -42,6 +50,13 @@ typedef void (*AnimationStoppedHandler)(struct Animation *animation, bool finish
 // animation
 typedef struct Animation
 {
+    AppTimer timer;
+    
+    int scheduled;
+    int onqueue;
+    TickType_t duration;
+    TickType_t startticks;
+    AnimationImplementation impl;
     struct AnimationHandler *anim_handlers;
 } Animation;
 
@@ -79,7 +94,7 @@ bool animation_set_implementation(Animation *animation, const AnimationImplement
 const AnimationImplementation *animation_get_implementation(Animation *animation);
 void animation_set_handlers(Animation *anim, AnimationHandler anim_handler);
 void *animation_get_context(Animation *animation);
-void animation_schedule(Animation *anim);
+bool animation_schedule(Animation *anim);
 bool animation_unschedule(Animation *animation);
 void animation_unschedule_all(void);
 bool animation_is_scheduled(Animation *animation);

@@ -106,6 +106,7 @@ SRCS_all += rwatch/graphics/graphics.c
 SRCS_all += rwatch/graphics/font_loader.c
 SRCS_all += rwatch/event/tick_timer_service.c
 SRCS_all += rwatch/ui/layer/status_bar_layer.c
+SRCS_all += rwatch/ui/animation/animation.c
 
 SRCS_all += Watchfaces/simple.c
 SRCS_all += Watchfaces/nivz.c

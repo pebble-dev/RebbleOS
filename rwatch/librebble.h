@@ -38,6 +38,7 @@
 #include "buttons.h"
 #include "rebble_time.h"
 #include "tick_timer_service.h"
+#include "animation.h"
 #include "appmanager.h"
 #include "libros_graphics.h"
 

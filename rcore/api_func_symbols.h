@@ -1092,17 +1092,17 @@ unalloc377,
 unalloc378,
 unalloc379,
 unalloc380,
-unalloc381, // animation_destroy
-unalloc382,
+(VoidFunc)animation_create, // animation_create
+(VoidFunc)animation_destroy, // animation_destroy
 unalloc383,
 unalloc384,
-unalloc385, // animation_schedule
+(VoidFunc)animation_schedule,
 unalloc386,
 unalloc387,
 unalloc388,
-unalloc389, // animation_set_handlers
+(VoidFunc)animation_set_duration,
 unalloc390,
-unalloc391, // animation_unschedule
+(VoidFunc)animation_set_implementation,
 unalloc392,
 unalloc393,
 unalloc394,
