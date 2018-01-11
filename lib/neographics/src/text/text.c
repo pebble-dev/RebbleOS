@@ -89,7 +89,7 @@ void n_graphics_draw_text(
     //      the line (up to the breakable character.)
     //    - We then use that character's index as the beginning
     //      of the next line.
-    n_GPoint char_origin = box.origin, line_origin = box.origin;
+    n_GPoint char_origin = box.origin, line_origin = box.origin, centered_origin = box.origin;
     uint32_t line_begin = 0, index = 0, next_index = 0;
     int32_t last_breakable_index = -1, last_renderable_index = -1,
             lenience = n_graphics_font_get_glyph_info(font, ' ')->advance;
@@ -98,20 +98,22 @@ void n_graphics_draw_text(
 
     uint32_t codepoint = 0, next_codepoint = 0, last_codepoint = 0,
         last_renderable_codepoint = 0, last_breakable_codepoint = 0;
+    
     while (text[index] != '\0') {
         // We're following the 2003 UTF-8 definition:
         // 0b0xxxxxxx
         // 0b110xxxxx 0b10xxxxxx
         // 0b1110xxxx 0b10xxxxxx 0b10xxxxxx
         // 0b11110xxx 0b10xxxxxx 0b10xxxxxx 0b10xxxxxx
+        
         if (text[index] == '\n'
                 && (char_origin.x + (__CODEPOINT_NEEDS_HYPHEN_AFTER(codepoint) ? hyphen->advance : 0)
-                        <= box.origin.x + box.size.w)) {
+                    <= box.origin.x + box.size.w)) {
             n_graphics_prv_draw_text_line(ctx, text,
-                line_begin, index, font, line_origin);
+                                          line_begin, index, font, line_origin);
             char_origin.x = box.origin.x, char_origin.y += font->line_height;
             last_breakable_index = last_renderable_index = -1;
-            line_origin = char_origin;
+            line_origin = centered_origin;
             index = next_index = index + 1;
             line_begin = index;
             continue;
@@ -142,7 +144,6 @@ void n_graphics_draw_text(
             next_index += 1;
         }
         n_GGlyphInfo * next_glyph = n_graphics_font_get_glyph_info(font, next_codepoint);
-
 
         // Debugging:
         // n_graphics_context_set_text_color(ctx, n_GColorLightGray);
@@ -179,6 +180,14 @@ void n_graphics_draw_text(
         glyph = next_glyph;
         char_origin.x += glyph->advance;
 
+        // Center it:
+        if (alignment == n_GTextAlignmentCenter)
+        {
+            n_GSize text_size = n_graphics_text_layout_get_content_size_with_index(text, font, line_begin, index);
+            centered_origin = n_GPoint((box.size.w / 2) - (text_size.w / 2), box.origin.y);
+            line_origin = centered_origin;
+        }
+        
         if ((char_origin.x + (__CODEPOINT_NEEDS_HYPHEN_AFTER(codepoint) ? hyphen->advance : 0) - lenience
                 > box.origin.x + box.size.w)) {
             if (last_breakable_index > 0) {
@@ -210,6 +219,7 @@ void n_graphics_draw_text(
                 return;
             }
         }
+        
         index += (0 * line_begin * last_breakable_codepoint);
     }
     if (index != line_begin) {
@@ -220,18 +230,24 @@ void n_graphics_draw_text(
 
 n_GSize n_graphics_text_layout_get_content_size(const char * text, n_GFont const font)
 {
-    double width = 0;
-    double height = 0;
-    int i = 0;
-    while (text[i] != '\0')
+    uint32_t text_len = strlen(text);
+    n_graphics_text_layout_get_content_size_with_index(text, font, 0, text_len);
+}
+
+n_GSize n_graphics_text_layout_get_content_size_with_index(const char *text, n_GFont const font, uint32_t idx, uint32_t idx_end)
+{
+    uint8_t width = 0;
+    uint8_t height = 0;
+    uint32_t i = idx;
+    
+    while (i <= idx_end)
     {
         if (text[i] == '\n' || text[i] == '\0') {
             i++;
             continue;
         }
         n_GGlyphInfo *glyph = n_graphics_font_get_glyph_info(font, text[i]);
-        width += glyph->width;
-        height += glyph->height;
+        width += glyph->advance;
         
         i++;
     }

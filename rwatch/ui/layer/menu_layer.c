@@ -406,8 +406,7 @@ void menu_cell_chalk_draw(GContext *ctx, const Layer *layer, const char *previou
     if (selected_title)
     {
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-        n_GSize text_size = n_graphics_text_layout_get_content_size(selected_title, title_font);
-        GRect title_rect = GRect((frame.size.w / 2) - (text_size.w / 2) - 10, has_icon ? (frame.size.h / 2) - 12 : (frame.size.h / 2) - 20, frame.size.w, 24);
+        GRect title_rect = GRect(0, has_icon ? (frame.size.h / 2) - 12 : (frame.size.h / 2) - 20, frame.size.w, 24);
         graphics_draw_text_app(ctx, selected_title, title_font, title_rect, GTextOverflowModeTrailingEllipsis,
                                GTextAlignmentCenter, 0);
     }
@@ -416,7 +415,7 @@ void menu_cell_chalk_draw(GContext *ctx, const Layer *layer, const char *previou
     {
         GFont subtitle_font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
         n_GSize text_size = n_graphics_text_layout_get_content_size(selected_subtitle, subtitle_font);
-        GRect subtitle_rect = GRect((frame.size.w / 2) - (text_size.w / 2) - 15, has_icon ? (frame.size.h / 2) + 12 : (frame.size.h / 2), frame.size.w, 24);
+        GRect subtitle_rect = GRect(0, has_icon ? (frame.size.h / 2) + 12 : (frame.size.h / 2), frame.size.w, 24);
         graphics_draw_text_app(ctx, selected_subtitle, subtitle_font, subtitle_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
     }
     
@@ -433,7 +432,7 @@ void menu_cell_chalk_draw(GContext *ctx, const Layer *layer, const char *previou
     {
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
         n_GSize text_size = n_graphics_text_layout_get_content_size(previous, font);
-        GRect subtitle_rect = GRect((frame.size.w / 2) - (text_size.w / 2) - 10, 20, frame.size.w, 24);
+        GRect subtitle_rect = GRect(0, 20, frame.size.w, 24);
         graphics_draw_text_app(ctx, previous, font, subtitle_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
     }
     

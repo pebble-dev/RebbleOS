@@ -81,6 +81,8 @@ n_GSize n_graphics_text_layout_get_content_size_with_attributes(
 
 n_GSize n_graphics_text_layout_get_content_size(const char * text, n_GFont const font);
 
+n_GSize n_graphics_text_layout_get_content_size_with_index(const char *text, n_GFont const font, uint32_t idx, uint32_t idx_end);
+
 /*
 #define n_graphics_text_layout_get_content_size(a, b, c, d)\
         (n_graphics_text_layout_get_content_size_with_attributes((a), (b), (c), (d), NULL));
