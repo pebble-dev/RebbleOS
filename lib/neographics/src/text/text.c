@@ -89,7 +89,7 @@ void n_graphics_draw_text(
     //      the line (up to the breakable character.)
     //    - We then use that character's index as the beginning
     //      of the next line.
-    n_GPoint char_origin = box.origin, line_origin = box.origin, centered_origin = box.origin;
+    n_GPoint char_origin = box.origin, line_origin = box.origin, centered_origin = box.origin, right_origin = box.origin;
     uint32_t line_begin = 0, index = 0, next_index = 0;
     int32_t last_breakable_index = -1, last_renderable_index = -1,
             lenience = n_graphics_font_get_glyph_info(font, ' ')->advance;
@@ -186,6 +186,11 @@ void n_graphics_draw_text(
             n_GSize text_size = n_graphics_text_layout_get_content_size_with_index(text, font, line_begin, index);
             centered_origin = n_GPoint((box.size.w / 2) - (text_size.w / 2), box.origin.y);
             line_origin = centered_origin;
+        } else if (alignment == n_GTextAlignmentRight)
+        {
+            n_GSize text_size = n_graphics_text_layout_get_content_size_with_index(text, font, line_begin, index);
+            right_origin = n_GPoint(box.size.w - text_size.w, box.origin.y);
+            line_origin = right_origin;
         }
         
         if ((char_origin.x + (__CODEPOINT_NEEDS_HYPHEN_AFTER(codepoint) ? hyphen->advance : 0) - lenience
