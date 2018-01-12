@@ -128,19 +128,30 @@ static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, 
     return app;
 }
 
+/* note that these flags are inverted */
+#define APPDB_DBFLAGS_WRITTEN 1
+#define APPDB_DBFLAGS_OVERWRITING 2
+#define APPDB_DBFLAGS_DEAD 4
+
+#define APPDB_IS_EOF(ent) (((ent).last_modified == 0xFFFFFFFF) && ((ent).hash == 0xFF) && ((ent).dbflags == 0x3F) && ((ent).key_length == 0x7F) && ((ent).value_length == 0x7FF))
 
 struct appdb
 {
-    uint32_t paged_incr;  //0x58F6AExx
-    uint16_t app_cache_id; //  B5 3E trek v2 also appears in app cache
-    uint16_t unk;  // 0x0FC13Exx
-    uint32_t application_id; // in app as @000037f
+    /* below is common to all settings DB entries */
+    uint32_t last_modified;  //0x58F6AExx
+    uint8_t hash;
+    uint8_t dbflags:6;
+    uint32_t key_length:7;
+    uint32_t value_length:11;
+
+    uint32_t application_id;
+    
     Uuid app_uuid;  // 16 bytes
-    uint32_t unk_13;
-    uint32_t unk_17;
-    uint16_t sdk_version;
-    uint16_t app_version;
-    uint16_t zeros;
+    uint32_t flags; /* pebble_process_info.h, PebbleProcessInfoFlags in the SDK */
+    uint32_t icon;
+    uint8_t app_version_major, app_version_minor;
+    uint8_t sdk_version_major, sdk_version_minor;
+    uint8_t app_face_bg_color, app_face_template_id;
     uint8_t app_name[32];
     uint8_t unk_arr_company[32];  // always blank
     uint8_t unk_arr[32]; // always blank
@@ -179,9 +190,24 @@ void _appmanager_flash_load_app_manifest(void)
         if (fs_read(&fd, &appdb, sizeof(appdb)) != sizeof(appdb))
             break;
 
-        if (appdb.application_id == 0xFFFFFFFFu)
+        if (APPDB_IS_EOF(appdb))
             break;
 
+        if (appdb.dbflags & APPDB_DBFLAGS_WRITTEN) {
+            KERN_LOG("app", APP_LOG_LEVEL_WARNING, "appdb: file that is not written before eof, at index %d", i);
+            continue;
+        }
+        
+        if ((appdb.dbflags & APPDB_DBFLAGS_DEAD) == 0)
+            continue;
+        
+        if ((appdb.dbflags & APPDB_DBFLAGS_OVERWRITING) == 0)
+            KERN_LOG("app", APP_LOG_LEVEL_WARNING, "appdb: file %08x is mid-overwrite; I feel nervous", appdb.application_id);
+
+        if (appdb.application_id == 0xFFFFFFFFu) {
+            KERN_LOG("app", APP_LOG_LEVEL_WARNING, "appdb: file is written, but has no contents?");
+            break;
+        }
         
         snprintf(buffer, 14, "@%08lx/app", appdb.application_id);
         if (fs_find_file(&app_file, buffer) < 0)
@@ -202,7 +228,7 @@ void _appmanager_flash_load_app_manifest(void)
             // it's real... so far. Lets crc check to make sure
             // TODO
             // crc32....(header.header)
-            KERN_LOG("app", APP_LOG_LEVEL_INFO, "VALID App Found %s", header.name);
+            KERN_LOG("app", APP_LOG_LEVEL_INFO, "appdb: app \"%s\" found, flags %08x, icon %08x", header.name, appdb.flags, appdb.icon);
 
             // main gets set later
             _appmanager_add_to_manifest(_appmanager_create_app(header.name,
