@@ -9,7 +9,7 @@
 #include "appmanager.h"
 
 typedef struct TickTimerState {
-    AppTimer timer; /* must be at the start of the struct! */
+    CoreTimer timer; /* must be at the start of the struct! */
     int onqueue;
     TimeUnits units;
     TickHandler handler;
@@ -19,7 +19,7 @@ typedef struct TickTimerState {
 /* XXX: this should probably be per-app.  oh, well */
 static TickTimerState _state = {.onqueue = 0};
 
-static void _tick_timer_callback(AppTimer *timer);
+static void _tick_timer_callback(CoreTimer *timer);
 
 /* Updates the timer interval to fire for the next smallest requested unit,
  * then add to the timer queue.  */
@@ -59,7 +59,7 @@ static void _tick_timer_update_next(TickTimerState *state)
     state->onqueue = 1;
 }
 
-static void _tick_timer_callback(AppTimer *timer)
+static void _tick_timer_callback(CoreTimer *timer)
 {
     TickTimerState *state = (TickTimerState *) timer;
     

@@ -17,12 +17,12 @@
 #define NUM_APPS 3
 #define MAX_APP_STR_LEN 32
 
-typedef struct AppTimer
+typedef struct CoreTimer
 {
     TickType_t when; /* ticks when this should fire, in ticks since boot */
-    void (*callback)(struct AppTimer *); /* always called back on the app thread */
-    struct AppTimer *next;
-} AppTimer;
+    void (*callback)(struct CoreTimer *); /* always called back on the app thread */
+    struct CoreTimer *next;
+} CoreTimer;
 
 typedef struct AppMessage
 {
@@ -94,7 +94,7 @@ typedef struct App {
     char *name;
     ApplicationHeader *header;
     AppMainHandler main; // A shortcut to main
-    struct AppTimer *timer_head;
+    struct CoreTimer *timer_head;
     struct App *next;
 } App;
 
@@ -117,8 +117,8 @@ typedef struct AppTypeHeader {
 
 
 void appmanager_init(void);
-void appmanager_timer_add(AppTimer *timer);
-void appmanager_timer_remove(AppTimer *timer);
+void appmanager_timer_add(CoreTimer *timer);
+void appmanager_timer_remove(CoreTimer *timer);
 void appmanager_post_button_message(ButtonMessage *bmessage);
 void appmanager_post_draw_message(void);
 void appmanager_app_start(char *name);

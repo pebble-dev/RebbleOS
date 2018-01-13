@@ -50,7 +50,7 @@ typedef void (*AnimationStoppedHandler)(struct Animation *animation, bool finish
 // animation
 typedef struct Animation
 {
-    AppTimer timer;
+    CoreTimer timer;
     
     int scheduled;
     int onqueue;

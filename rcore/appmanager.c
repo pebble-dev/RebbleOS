@@ -333,9 +333,9 @@ void appmanager_post_draw_message(void)
 /* Always adds to the running app's queue.  Note that this is only
  * reasonable to do from the app thread: otherwise, you can race with the
  * check for the timer head.  */
-void appmanager_timer_add(AppTimer *timer)
+void appmanager_timer_add(CoreTimer *timer)
 {
-    AppTimer **tnext = &_running_app->timer_head;
+    CoreTimer **tnext = &_running_app->timer_head;
     
     /* until either the next pointer is null (i.e., we have hit the end of
      * the list), or the thing that the next pointer points to is further in
@@ -350,9 +350,9 @@ void appmanager_timer_add(AppTimer *timer)
     *tnext = timer;
 }
 
-void appmanager_timer_remove(AppTimer *timer)
+void appmanager_timer_remove(CoreTimer *timer)
 {
-    AppTimer **tnext = &_running_app->timer_head;
+    CoreTimer **tnext = &_running_app->timer_head;
     
     while (*tnext) {
         if (*tnext == timer) {
@@ -447,7 +447,7 @@ void app_event_loop(void)
             /* We woke up because we hit a timer expiry.  Dequeue first,
              * then invoke -- otherwise someone else could insert themselves
              * at the head, and we would wrongfully dequeue them!  */
-            AppTimer *timer = _running_app->timer_head;
+            CoreTimer *timer = _running_app->timer_head;
             assert(timer);
             
             KERN_LOG("app", APP_LOG_LEVEL_INFO, "woke up for a timer");

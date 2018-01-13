@@ -77,7 +77,7 @@ void _animation_update(Animation *anim)
     appmanager_timer_add(&anim->timer);
 }
 
-void _anim_callback(AppTimer *timer)
+void _anim_callback(CoreTimer *timer)
 {
     Animation *anim = (Animation *) timer;
     
