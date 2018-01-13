@@ -122,11 +122,11 @@ bool animation_set_implementation(Animation *anim, const AnimationImplementation
     
     anim->impl = *impl;
     if (anim->impl.setup)
-        anim->impl.setup = (void *)(((uint32_t)anim->impl.setup) + 1);
+        anim->impl.setup = (void *)(((uint32_t)anim->impl.setup) | 1);
     if (anim->impl.update)
-        anim->impl.update = (void *)(((uint32_t)anim->impl.update) + 1);
+        anim->impl.update = (void *)(((uint32_t)anim->impl.update) | 1);
     if (anim->impl.teardown)
-        anim->impl.teardown = (void *)(((uint32_t)anim->impl.teardown) + 1);
+        anim->impl.teardown = (void *)(((uint32_t)anim->impl.teardown) | 1);
 
     return true;
 }
