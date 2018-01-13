@@ -41,7 +41,7 @@
 #include "animation.h"
 #include "appmanager.h"
 #include "libros_graphics.h"
-
+#include "app_timer.h"
 
 void rbl_draw(void);
 struct tm *rbl_get_tm(void);

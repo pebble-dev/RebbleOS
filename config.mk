@@ -105,6 +105,7 @@ SRCS_all += rwatch/graphics/gbitmap.c
 SRCS_all += rwatch/graphics/graphics.c
 SRCS_all += rwatch/graphics/font_loader.c
 SRCS_all += rwatch/event/tick_timer_service.c
+SRCS_all += rwatch/event/app_timer.c
 SRCS_all += rwatch/ui/layer/status_bar_layer.c
 SRCS_all += rwatch/ui/animation/animation.c
 
