@@ -36,6 +36,7 @@ static void _appmanager_add_to_manifest(App *app);
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context);
+void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
 
 static TaskHandle_t _app_task_handle;
 static TaskHandle_t _app_thread_manager_task_handle;
@@ -68,7 +69,7 @@ void nivz_main(void);
 void appmanager_init(void)
 {
     struct file empty = { 0, 0, 0 }; // TODO: make files optional in `App` to avoid this
-   
+    
     // load the baked in 
     _appmanager_add_to_manifest(_appmanager_create_app("System", APP_TYPE_SYSTEM, systemapp_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Simple", APP_TYPE_FACE, simple_main, true, &empty, &empty));
@@ -377,6 +378,13 @@ void app_event_loop(void)
     AppMessage data;
     
     KERN_LOG("app", APP_LOG_LEVEL_INFO, "App entered mainloop");
+    
+    // Do this before window load, that way they have a chance to override
+    if (_running_app->type != APP_TYPE_FACE)
+    {
+        // Enables default closing of windows, and through that, apps
+        window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
+    }
     
     // we assume they are configured now
     rbl_window_load_proc();
@@ -739,6 +747,18 @@ void app_select_single_click_handler(ClickRecognizerRef recognizer, void *contex
             appmanager_app_start("System");
             break;
     }
+}
+
+void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    // Pop windows off
+    Window *popped = window_stack_pop(true);
+    printf("POPPED! WAS THIS THE ROOT? %d\n", popped->node->previous == NULL);
+    if (popped->node->previous == NULL)
+    {
+        appmanager_app_start("System");
+    }
+    window_dirty(true);
 }
 
 /*

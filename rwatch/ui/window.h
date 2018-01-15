@@ -4,6 +4,7 @@
  * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
+ *         Carson Katri <me@carsonkatri.com>
  */
 
 #include <stdbool.h>
@@ -14,10 +15,10 @@
 struct Layer;
 
 // typedef void (*WindowButtonEventHandler)(AppContextRef app_ctx, struct Window *window, PebbleButtonEvent *event);
-// 
+//
 // typedef struct WindowInputHandlers
 // {
-//     struct 
+//     struct
 //     {
 //         WindowButtonEventHandler up;
 //         WindowButtonEventHandler down;
@@ -34,7 +35,9 @@ typedef struct WindowHandlers
     WindowHandler unload;
 } WindowHandlers;
 
-typedef struct Window 
+typedef struct window_node window_node;
+
+typedef struct Window
 {
     Layer *root_layer;
     const GBitmap *status_bar_icon;
@@ -47,10 +50,17 @@ typedef struct Window
     bool is_render_scheduled;
     //bool on_screen : 1;
     bool is_loaded;
+    window_node *node;
     //bool overrides_back_button : 1;
     //bool is_fullscreen : 1;
     //const char *debug_name;
 } Window;
+
+struct window_node {
+    Window *window;
+    struct window_node *previous;
+    struct window_node *next;
+};
 
 
 // Window management
@@ -73,11 +83,16 @@ void window_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHan
 void window_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, ClickHandler up_handler, void * context);
 void window_set_click_context(ButtonId button_id, void *context);
 
-void window_stack_push(Window *window, bool something);
-void window_dirty(bool is_dirty);
+void window_stack_push(Window *window, bool animated);
+Window * window_stack_pop(bool animated);
+void window_stack_pop_all(const bool animated);
+bool window_stack_remove(Window *window, bool animated);
+bool window_stack_contains_window(Window *window);
+Window * window_stack_get_top_window(void);
 
 void window_draw();
 
 
 void rbl_window_load_proc(void);
 void rbl_window_load_click_config(void);
+
