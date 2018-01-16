@@ -1,14 +1,132 @@
-/* window.h
- * routines for [...]
- * libRebbleOS
+/* notification_window.c
+ *
+ * Displays notifications sent to the watch from the phone.
  *
  * Author: Carson Katri <me@carsonkatri.com>
  */
 
 #include <stdbool.h>
 #include "notification_window.h"
+#include "action_menu.h"
+#include "status_bar_layer.h"
 #include "librebble.h"
 #include "ngfxwrap.h"
+
+static NotificationWindow *notification_window;
+static StatusBarLayer *status_bar;
+
+static void scroll_up_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    Notification *notification = notification_window->active;
+    
+    if (notification_window->offset == 0 && notification->next != NULL)
+    {
+        // Show the next notification on the stack
+        notification_window->active = notification->next;
+        
+        // Scroll to bottom
+        notification_window->offset = DISPLAY_ROWS;
+        
+#ifdef PBL_RECT
+        status_bar_layer_set_colors(status_bar, notification_window->active->color, GColorWhite);
+#else
+        status_bar_layer_set_colors(status_bar, GColorWhite, GColorBlack);
+#endif
+    }
+    else
+    {
+        notification_window->offset = 0;
+        status_bar_layer_set_colors(status_bar, notification_window->active->color, GColorWhite);
+    }
+    
+    window_dirty(true);
+}
+
+static void scroll_down_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    Notification *notification = notification_window->active;
+    
+    if (notification_window->offset == DISPLAY_ROWS && notification->previous != NULL)
+    {
+        // Show the previous notification on the stack
+        notification_window->active = notification->previous;
+        SYS_LOG("notification_window", APP_LOG_LEVEL_DEBUG, notification->previous->app_name);
+        
+        // Scroll to top
+        notification_window->offset = 0;
+        status_bar_layer_set_colors(status_bar, notification_window->active->color, GColorWhite);
+    }
+    else
+    {
+        notification_window->offset = DISPLAY_ROWS;
+        
+#ifndef PBL_RECT
+        status_bar_layer_set_colors(status_bar, GColorWhite, GColorBlack);
+#endif
+    }
+    
+    window_dirty(true);
+}
+
+static void action_performed_callback(ActionMenu *action_menu, const ActionMenuItem *action, void *context) {
+    // ACTION!
+}
+
+static void show_options_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    Notification *notification = (Notification *) context;
+    
+    // Make + show the ActionMenu
+    ActionMenuLevel *root_level = action_menu_level_create(3);
+    ActionMenuLevel *reply_level = action_menu_level_create(3);
+    
+    action_menu_level_add_child(root_level, reply_level, "Reply");
+    action_menu_level_add_action(root_level, "Dismiss", action_performed_callback, NULL);
+    action_menu_level_add_action(root_level, "Dismiss All", action_performed_callback, NULL);
+    
+    action_menu_level_add_action(reply_level, "Dictate", action_performed_callback, NULL);
+    action_menu_level_add_action(reply_level, "Canned Response", action_performed_callback, NULL);
+    action_menu_level_add_action(reply_level, "Emoji", action_performed_callback, NULL);
+    
+    ActionMenuConfig config = (ActionMenuConfig)
+    {
+        .root_level = root_level,
+        .colors = {
+            .background = notification_window->active->color,
+            .foreground = GColorWhite,
+        },
+        .align = ActionMenuAlignCenter
+    };
+    
+    action_menu_open(&config);
+}
+
+static void pop_notification_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    /* Close the NotificationWindows (ALL OF THEM)
+    if (notification_window->active == notification)
+    {
+        appmanager_app_start("System");
+    }
+    else
+    {
+        // Pop windows off the stack
+        window_stack_pop(true);
+        window_dirty(true);
+    } */
+}
+
+static void click_config_provider(void *context)
+{
+    window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) scroll_down_click_handler);
+    window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) scroll_up_click_handler);
+    window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) show_options_click_handler);
+    window_single_click_subscribe(BUTTON_ID_BACK, (ClickHandler) pop_notification_click_handler);
+    
+    window_set_click_context(BUTTON_ID_DOWN, context);
+    window_set_click_context(BUTTON_ID_UP, context);
+    window_set_click_context(BUTTON_ID_SELECT, context);
+}
 
 void notification_window_load(Window *window)
 {
@@ -16,12 +134,17 @@ void notification_window_load(Window *window)
     
     GRect bounds = layer_get_unobstructed_bounds(layer);
     
-    NotificationWindow *notification = (NotificationWindow *) window->user_data;
-    
     Layer *main = layer_create(bounds);
-    main->container = notification;
     layer_set_update_proc(main, notification_window_update_proc);
     layer_add_child(layer, main);
+    
+    // Set the click config provider
+    window_set_click_config_provider_with_context(window, (ClickConfigProvider) click_config_provider, notification_window);
+    
+    // Status Bar
+    status_bar = status_bar_layer_create();
+    status_bar_layer_set_colors(status_bar, notification_window->active->color, GColorWhite);
+    layer_add_child(main, status_bar_layer_get_layer(status_bar));
     
     layer_mark_dirty(layer);
     window_dirty(true);
@@ -29,8 +152,8 @@ void notification_window_load(Window *window)
 
 void notification_window_update_proc(Layer *layer, GContext *ctx)
 {
-    NotificationWindow *notification = (NotificationWindow *) layer->container;
-    int offset = notification->offset;
+    Notification *notification = notification_window->active;
+    int offset = -4 + notification_window->offset; // -4 because of the status_bar
     GRect bounds = layer_get_unobstructed_bounds(layer);
     
     GBitmap *icon = notification->icon;
@@ -38,15 +161,15 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
     char *title = notification->title;
     char *body = notification->body;
     
-    printf(app);
+    SYS_LOG("notification_window", APP_LOG_LEVEL_DEBUG, app);
     
     // Draw the background:
-    graphics_context_set_fill_color(ctx, GColorRed);
+    graphics_context_set_fill_color(ctx, notification->color);
 #ifdef PBL_RECT
-    GRect rect_bounds = GRect(0, 0 - offset, bounds.size.w, 50);
+    GRect rect_bounds = GRect(0, 0 - offset, bounds.size.w, 35);
     graphics_fill_rect_app(ctx, rect_bounds, 0, GCornerNone);
 #else
-    n_graphics_fill_circle(ctx, GPoint(DISPLAY_COLS / 2, -DISPLAY_COLS + 50), DISPLAY_COLS);
+    n_graphics_fill_circle(ctx, GPoint(DISPLAY_COLS / 2, (-DISPLAY_COLS + 35) - offset), DISPLAY_COLS);
 #endif
     
     // Draw the icon:
@@ -54,38 +177,48 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
     {
         GSize icon_size = icon->raw_bitmap_size;
         graphics_draw_bitmap_in_rect_app(ctx, icon, GRect(bounds.size.w / 2 - (icon_size.w / 2), 17 - offset - (icon_size.h / 2), icon_size.w, icon_size.h));
-        gbitmap_destroy(icon);
     }
     
-    GFont app_font = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
-    GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-    GFont body_font = fonts_get_system_font(FONT_KEY_GOTHIC_24);
-    
 #ifdef PBL_RECT
-    GRect app_rect = GRect(10, 27 - offset, bounds.size.w - 20, 20);
-    GRect title_rect = GRect(10, 50 - offset, bounds.size.w - 20, 30);
-    GRect body_rect = GRect(10, 67 - offset, bounds.size.w - 20, 200);
-#else
-    GSize app_size = n_graphics_text_layout_get_content_size(app, app_font);
-    GRect app_rect = GRect((bounds.size.w / 2) - (app_size.w / 2) - 10, 27 - offset, bounds.size.w - 20, 20);
+    GRect app_rect = GRect(10, 35 - offset, bounds.size.w - 20, 20);
+    GRect title_rect = GRect(10, 52 - offset, bounds.size.w - 20, 30);
+    GRect body_rect = GRect(10, 67 - offset, bounds.size.w - 20, (DISPLAY_ROWS * 2) - 67);
     
-    GSize title_size = n_graphics_text_layout_get_content_size(title, title_font);
-    GRect title_rect = GRect((bounds.size.w / 2) - (title_size.w / 2) - 12, 50 - offset, bounds.size.w - 20, 20);
+    GTextAlignment alignment = GTextAlignmentLeft;
+#else
+    GRect app_rect = GRect(0, 35 - offset, bounds.size.w, 20);
+    
+    GRect title_rect = GRect(0, 52 - offset, bounds.size.w, 20);
     
     //GSize body_size = n_graphics_text_layout_get_content_size(body, body_font);
-    GRect body_rect = GRect(30, 67 - offset, bounds.size.w - 20, 200);
+    GRect body_rect = GRect(0, 67 - offset, bounds.size.w, (DISPLAY_ROWS * 2) - 50);
+    
+    GTextAlignment alignment = GTextAlignmentCenter;
 #endif
     
     // Draw the app:
-    ctx->text_color = GColorWhite;
-    graphics_draw_text_app(ctx, app, app_font, app_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+    ctx->text_color = notification->color;
+    graphics_draw_text_app(ctx, app, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), app_rect, GTextOverflowModeTrailingEllipsis, alignment, 0);
     
     // Draw the title:
     ctx->text_color = GColorBlack;
-    graphics_draw_text_app(ctx, title, title_font, title_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+    graphics_draw_text_app(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), title_rect, GTextOverflowModeTrailingEllipsis, alignment, 0);
     
     // Draw the body:
-    graphics_draw_text_app(ctx, body, body_font, body_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+    graphics_draw_text_app(ctx, body, fonts_get_system_font(FONT_KEY_GOTHIC_24), body_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+    
+    // Draw the indicator:
+    graphics_context_set_fill_color(ctx, GColorBlack);
+    n_graphics_fill_circle(ctx, GPoint(DISPLAY_COLS + 2, DISPLAY_ROWS / 2), 10);
+    
+    // And the other one:
+#ifndef PBL_RECT
+    if (notification->previous != NULL && notification_window->offset > 0)
+    {
+        graphics_context_set_fill_color(ctx, notification->previous->color);
+        n_graphics_fill_circle(ctx, GPoint(DISPLAY_COLS / 2, DISPLAY_ROWS - 2), 10);
+    }
+#endif
 }
 
 void notification_window_unload(Window *window)
@@ -93,13 +226,13 @@ void notification_window_unload(Window *window)
     
 }
 
-NotificationWindow* notification_window_create(const char *app_name, const char *title, const char *body, GBitmap *icon)
+Notification* notification_create(const char *app_name, const char *title, const char *body, GBitmap *icon, GColor color)
 {
-    NotificationWindow *notification = calloc(1, sizeof(NotificationWindow));
+    Notification *notification = calloc(1, sizeof(Notification));
     
     if (notification == NULL)
     {
-        SYS_LOG("notification_window", APP_LOG_LEVEL_ERROR, "No memory for NotificationWindow");
+        SYS_LOG("notification_window", APP_LOG_LEVEL_ERROR, "No memory for Notification");
         return NULL;
     }
     
@@ -107,23 +240,38 @@ NotificationWindow* notification_window_create(const char *app_name, const char 
     notification->title = title;
     notification->body = body;
     notification->icon = icon;
-    notification->offset = 0;
-    
-    notification->window = window_create();
-    notification->window->user_data = notification;
-    
-    window_set_window_handlers(notification->window, (WindowHandlers) {
-        .load = notification_window_load,
-        .unload = notification_window_unload,
-    });
+    notification->color = color;
     
     return notification;
 }
 
-void window_stack_push_notification(NotificationWindow *notification)
+void window_stack_push_notification(Notification *notification)
 {
-    Window *window = notification_window_get_window(notification);
-    window_stack_push(window, true);
+    if (notification_window == NULL || notification_window->window == NULL)
+    {
+        // Make the window
+        notification_window = calloc(1, sizeof(NotificationWindow));
+        notification_window->window = window_create();
+        
+        window_set_window_handlers(notification_window->window, (WindowHandlers) {
+            .load = notification_window_load,
+            .unload = notification_window_unload,
+        });
+    }
+    
+    notification->previous = notification_window->active;
+    notification_window->active->next = notification;
+    notification_window->active = notification;
+    
+    SYS_LOG("notification_window", APP_LOG_LEVEL_DEBUG, "PUSHING NOTIF %s ON TOP OF %s", notification->app_name, notification->previous->app_name);
+    
+    // Show the notification_window if not already pushed
+    if (!window_stack_contains_window(notification_window->window))
+    {
+        window_stack_push(notification_window->window, true);
+    }
+    
+    window_dirty(true);
 }
 
 Window* notification_window_get_window(NotificationWindow *notification_window)
