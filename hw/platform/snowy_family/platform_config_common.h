@@ -36,7 +36,7 @@
 
 /* System resource table offset */
 #define RES_START               0x200C
-
+#define SPLASH_RESOURCE_ID      474
 /* When we load a font from flash, is it offset from the given offset in the header? Seems so */
 // Some fonts? confused
 //#define APP_FONT_START          0x1C
