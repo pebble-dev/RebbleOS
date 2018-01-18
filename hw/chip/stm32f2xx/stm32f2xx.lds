@@ -67,7 +67,11 @@ SECTIONS
     *(.jcr);
     *(.tm_clone_table);
     *(.igot.plt);
-    . = ALIGN(4);
+    . = ALIGN(16);
+    *(.version_string.1);
+    . = ALIGN(16);
+    *(.version_string.2);
+    . = ALIGN(16);
   }
   _edata = .;
   _data_size = SIZEOF(.data);
