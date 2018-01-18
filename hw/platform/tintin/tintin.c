@@ -146,26 +146,6 @@ STM32_BUTTONS_MK_IRQ_HANDLER(1)
 static uint8_t _display_fb[168][20];
 
 
-hw_driver_display_t _hw_display_driver = {
-    .common_info.module_name = "Tintin Display",
-    .common_info.init = hw_display_init,
-    .common_info.deinit = NULL,
-    .common_info.test = NULL,
-    .start = hw_display_start,
-    .draw = hw_display_start_frame,
-    .reset = hw_display_reset,
-    .get_buffer = hw_display_get_buffer,
-};
-
-static hw_driver_handler_t *_handler;
-
-void *hw_display_module_init(hw_driver_handler_t *handler)
-{
-    _handler = handler;
-    return &_hw_display_driver;
-}
-
-
 void hw_display_init() {
     printf("tintin: hw_display_init\n");
 
@@ -346,23 +326,6 @@ static void _hw_flash_wfidle() {
 }
 
 
-hw_driver_ext_flash_t _hw_flash_driver = {
-    .common_info.module_name = "Tintin Flash",
-    .common_info.init = hw_flash_init,
-    .common_info.deinit = NULL,
-    .common_info.test = NULL,
-    .read_bytes = hw_flash_read_bytes,
-};
-
-static hw_driver_handler_t *_handler;
-
-void *hw_flash_module_init(hw_driver_handler_t *handler)
-{
-    _handler = handler;
-    return &_hw_flash_driver;
-}
-
-
 void hw_flash_init(void) {
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
     
@@ -469,4 +432,9 @@ void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
 void ss_debug_write(const unsigned char *p, size_t len)
 {
     // unsupported on this platform
+}
+
+void log_clock_enable() {
+}
+void log_clock_disable() {
 }
