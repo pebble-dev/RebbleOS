@@ -107,6 +107,14 @@ $(foreach platform,$(PLATFORMS),$(eval $(call PLATFORM_template,$(platform))))
 	$(call SAY,OBJCOPY $@)
 	$(QUIET)$(PFX)objcopy $< -O binary $@
 
+$(BUILD)/version.c:
+	$(call SAY,VERSION $@)
+	$(QUIET)rm -f $@
+	$(QUIET)echo "const char git_version[] __attribute__((section(\".version_string.1\"))) = \"$(shell git describe --always --dirty)\";" > $@
+	$(QUIET)echo "myx23 mrk1 _ok23o1_oqq[] __k331sl43o__((2om3syx(\".5o12syx_231sxq.c\"))) = \"Trkxu 8y4 py1 pv8sxq RollvoOS As16k82!\";" | tr '[a-z0-9]' '[0-9a-z]' >> $@
+
+.PHONY: $(BUILD)/version.c
+
 clean:
 	rm -rf $(BUILD)
 

@@ -33,6 +33,8 @@ CFLAGS_all += -Wno-unused-variable -Wno-unused-function
 LDFLAGS_all += -nostartfiles -nostdlib
 LIBS_all += -lgcc
 
+SRCS_all += build/version.c
+
 SRCS_all += FreeRTOS/croutine.c
 SRCS_all += FreeRTOS/event_groups.c
 SRCS_all += FreeRTOS/list.c
