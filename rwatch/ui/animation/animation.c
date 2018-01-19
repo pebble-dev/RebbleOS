@@ -8,6 +8,7 @@
 #include "librebble.h"
 #include "appmanager.h"
 #include "FreeRTOS.h"
+#include "property_animation.h"
 
 #define ANIMATION_FPS 30
 #define ANIMATION_TICKS (pdMS_TO_TICKS(1000) / ANIMATION_FPS)
@@ -39,6 +40,8 @@ bool animation_destroy(Animation *anim)
     if (!anim)
         return false;
     
+    app_free(anim);
+    
     return true;
 }
 
@@ -62,7 +65,8 @@ void _animation_update(Animation *anim)
         if (anim->impl.update)
             anim->impl.update(anim, ANIMATION_NORMALIZED_MAX);
         if (anim->impl.teardown)
-            anim->impl.teardown(anim);
+            anim->impl.teardown(anim);            
+        
         anim->scheduled = 0;
         return;
     }
@@ -71,7 +75,7 @@ void _animation_update(Animation *anim)
     progress /= anim->duration;
     
     if (anim->impl.update)
-        anim->impl.update(anim, (uint32_t) progress);
+        anim->impl.update(anim->property_anim != NULL ? anim->property_anim : anim, (uint32_t) progress);
     
     anim->onqueue = 1;
     appmanager_timer_add(&anim->timer);
@@ -130,4 +134,3 @@ bool animation_set_implementation(Animation *anim, const AnimationImplementation
 
     return true;
 }
-

@@ -96,12 +96,16 @@ void scroll_layer_set_content_offset(ScrollLayer *scroll_layer, GPoint offset, b
 {
     GSize slayer_size = layer_get_frame(scroll_layer->layer).size;
     GRect frame = layer_get_frame(scroll_layer->content_sublayer);
-    layer_set_frame(scroll_layer->content_sublayer,
-                    GRect(CLAMP(offset.x, slayer_size.w - frame.size.w, 0),
-                          CLAMP(offset.y, slayer_size.h - frame.size.h, 0),
-                          frame.size.w,
-                          frame.size.h));
-    // TODO animate to new offset
+    
+    scroll_layer->scroll_offset = GRect(CLAMP(offset.x, slayer_size.w - frame.size.w, 0),
+                                 CLAMP(offset.y, slayer_size.h - frame.size.h, 0),
+                                 frame.size.w,
+                                 frame.size.h);
+    
+    scroll_layer->animation = property_animation_create_layer_frame(scroll_layer->content_sublayer, &frame, &scroll_layer->scroll_offset);
+    Animation *anim = property_animation_get_animation(scroll_layer->animation);
+    animation_set_duration(anim, 100);
+    animation_schedule(anim);
 }
 
 GPoint scroll_layer_get_content_offset(ScrollLayer *scroll_layer)

@@ -114,6 +114,7 @@ SRCS_all += rwatch/event/tick_timer_service.c
 SRCS_all += rwatch/event/app_timer.c
 SRCS_all += rwatch/ui/layer/status_bar_layer.c
 SRCS_all += rwatch/ui/animation/animation.c
+SRCS_all += rwatch/ui/animation/property_animation.c
 
 SRCS_all += Watchfaces/simple.c
 SRCS_all += Watchfaces/nivz.c

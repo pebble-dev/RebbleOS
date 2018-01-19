@@ -20,6 +20,7 @@
 #define ANIMATION_NORMALIZED_MAX 65535
 
 struct Animation;
+typedef struct PropertyAnimation PropertyAnimation;
 
 typedef enum {
     AnimationCurveLinear,
@@ -58,6 +59,8 @@ typedef struct Animation
     TickType_t startticks;
     AnimationImplementation impl;
     struct AnimationHandler *anim_handlers;
+    
+    PropertyAnimation *property_anim;
 } Animation;
 
 typedef struct AnimationHandler
@@ -98,55 +101,3 @@ bool animation_schedule(Animation *anim);
 bool animation_unschedule(Animation *animation);
 void animation_unschedule_all(void);
 bool animation_is_scheduled(Animation *animation);
-
-typedef GPoint GPointReturn;
-typedef GRect GRectReturn;
-typedef void (*Int16Setter)(void *subject, int16_t int16);
-typedef void (*GPointSetter)(void *subject, GPoint gpoint);
-typedef void (*GRectSetter)(void *subject, GRect grect);
-typedef int16_t (*Int16Getter)(void *subject);
-typedef GPointReturn (*GPointGetter)(void *subject);
-typedef GRectReturn (*GRectGetter)(void *subject);
-
-typedef struct PropertyAnimationAccessors
-{
-    union 
-    {
-        Int16Setter int16;
-        GPointSetter gpoint;
-        GRectSetter grect;
-    } setter;
-    union 
-    {
-        Int16Getter int16;
-        GPointGetter gpoint;
-        GRectGetter grect;
-    } getter;
-} PropertyAnimationAccessors;
-
-typedef struct PropertyAnimationImplementation
-{
-    AnimationImplementation base;
-    PropertyAnimationAccessors accessors;
-} PropertyAnimationImplementation;
-
-typedef struct PropertyAnimation
-{
-    Animation animation;
-    struct 
-    {
-        union 
-        {
-            GRect grect;
-            GPoint gpoint;
-            int16_t int16;
-        } to;
-        union 
-        {
-            GRect grect;
-            GPoint gpoint;
-            int16_t int16;
-        } from;
-    } values;
-    void *subject;
-} PropertyAnimation;
