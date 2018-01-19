@@ -1,24 +1,48 @@
 #pragma once
-/* window.c
- * routines for [...]
- * libRebbleOS
+/* notification_window.h
+ *
+ * Displays notifications sent to the watch from the phone.
  *
  * Author: Carson Katri <me@carsonkatri.com>
  */
 
 #include "librebble.h"
 
-typedef struct NotificationWindow
+typedef enum NotificationAction
 {
-    Window *window;
+    NotificationActionDismiss = 0,
+    NotificationActionDismissAll = 1,
+    NotificationActionReply = 2,
+    NotificationActionCustom = 3
+} NotificationAction;
+
+typedef struct NotificationWindow NotificationWindow;
+
+typedef struct Notification Notification;
+
+struct Notification
+{
     GBitmap *icon;
     const char *app_name;
     const char *title;
     const char *body;
-    int *offset;
-} NotificationWindow;
+    char *custom_actions;
+    GColor color;
+    
+    // Doubly linked list
+    Notification *next;
+    Notification *previous;
+};
 
-NotificationWindow* notification_window_create(const char *app_name, const char *title, const char *body, GBitmap *icon);
+struct NotificationWindow
+{
+    Window *window;
+    int *offset;
+    NotificationAction *actions;
+    Notification *active;
+};
+
+Notification* notification_window_create(const char *app_name, const char *title, const char *body, GBitmap *icon, GColor color);
 
 Window* notification_window_get_window(NotificationWindow *notification_window);
 

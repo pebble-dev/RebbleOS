@@ -23,9 +23,12 @@ void notif_init(void)
     char *title = "Test Alert";
     char *body = "Testing a basic notification on RebbleOS. Create it using notification_window_create, with an app_name, title, body, and optional icon.";
     
-    NotificationWindow *notification_window = notification_window_create(app, title, body, gbitmap_create_with_resource(23));
+    Notification *notification = notification_create(app, title, body, gbitmap_create_with_resource(77), GColorRed);
     
-    window_stack_push_notification(notification_window);
+    window_stack_push_notification(notification);
+    
+    Notification *notification_two = notification_create("Discord", "Join Us", "Join us on the Pebble Discord in the #firmware channel", gbitmap_create_with_resource(20), GColorFromRGB(85, 0, 170));
+    window_stack_push_notification(notification_two);
 }
 
 void notif_deinit(void)
