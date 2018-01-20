@@ -21,7 +21,7 @@ MenuLayer *menu_layer_create(GRect frame)
 {
     MenuLayer *mlayer = (MenuLayer *) calloc(1, sizeof(MenuLayer));
     mlayer->layer = layer_create(frame);
-    mlayer->scroll_layer = scroll_layer_create(frame);
+    mlayer->scroll_layer = scroll_layer_create(GRect(0, 0, frame.size.w, frame.size.h));
     mlayer->layer->container = mlayer;
 
     mlayer->cells_count = 0;
