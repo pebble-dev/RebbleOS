@@ -205,7 +205,7 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
     graphics_draw_text_app(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), title_rect, GTextOverflowModeTrailingEllipsis, alignment, 0);
     
     // Draw the body:
-    graphics_draw_text_app(ctx, body, fonts_get_system_font(FONT_KEY_GOTHIC_24), body_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+    graphics_draw_text_app(ctx, body, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), body_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
     
     // Draw the indicator:
     graphics_context_set_fill_color(ctx, GColorBlack);

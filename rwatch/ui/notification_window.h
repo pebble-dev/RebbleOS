@@ -37,7 +37,7 @@ struct Notification
 struct NotificationWindow
 {
     Window *window;
-    int *offset;
+    int offset;
     NotificationAction *actions;
     Notification *active;
 };
