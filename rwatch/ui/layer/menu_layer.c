@@ -227,7 +227,7 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
 
     // generate cells
     size_t cell = 0;
-    int16_t y = 16; // STATUS_BAR_LAYER_HEIGHT
+    int16_t y = 0;
     int16_t h = 0;
     for (uint16_t section = 0; section < sections; ++section)
     {

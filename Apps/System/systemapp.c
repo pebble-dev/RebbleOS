@@ -9,6 +9,7 @@
 #include "systemapp.h"
 #include "menu.h"
 #include "status_bar_layer.h"
+#include "platform_config.h"
 
 extern void flash_dump(void);
 
@@ -82,9 +83,10 @@ static void systemapp_window_load(Window *window)
 {
     printf("WF load\n");
     Layer *window_layer = window_get_root_layer(s_main_window);
-    GRect bounds = layer_get_unobstructed_bounds(window_layer);
-
-    s_menu = menu_create(bounds);
+    //GRect bounds = layer_get_unobstructed_bounds(window_layer);
+    
+    // TODO find out why the menu gets offset double in the y direction (x is affected too)
+    s_menu = menu_create(GRect(0, 8, DISPLAY_COLS, DISPLAY_ROWS - 16));
     menu_set_callbacks(s_menu, s_menu, (MenuCallbacks) {
         .on_menu_exit = exit_to_watchface
     });
@@ -101,7 +103,7 @@ static void systemapp_window_load(Window *window)
 
     // Status Bar
     status_bar = status_bar_layer_create();
-    layer_add_child(menu_get_layer(s_menu), status_bar_layer_get_layer(status_bar));
+    layer_add_child(window_layer, status_bar_layer_get_layer(status_bar));
     
     // TODO: Offset the menu:
     
