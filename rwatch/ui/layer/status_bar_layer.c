@@ -41,8 +41,8 @@ StatusBarLayer *status_bar_layer_create(void)
     
     layer_set_update_proc(layer, draw);
     
-    tick_timer_service_subscribe(SECOND_UNIT, status_tick);
-    
+    tick_timer_service_subscribe(MINUTE_UNIT, status_tick);
+
     layer_mark_dirty(layer);
     
     return status_bar;
@@ -95,8 +95,8 @@ static void draw(Layer *layer, GContext *context)
     
     char time_string[8] = "";
     
-    printf("%d:%d", s_last_time.hours, s_last_time.minutes);
-    snprintf(time_string, 8, "%d:%d", s_last_time.hours, s_last_time.minutes);
+    printf("%d:%02d", s_last_time.hours, s_last_time.minutes);
+    snprintf(time_string, 8, "%d:%02d", s_last_time.hours, s_last_time.minutes);
     
     GRect text_bounds = GRect((full_bounds.size.w / 2) - 10, 0, 100, 10);
     graphics_draw_text_app(context, time_string, time_font, text_bounds, GTextOverflowModeTrailingEllipsis, n_GTextAlignmentLeft, 0);
