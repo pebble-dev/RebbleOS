@@ -103,17 +103,27 @@ static void show_options_click_handler(ClickRecognizerRef recognizer, void *cont
 
 static void pop_notification_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    /* Close the NotificationWindows (ALL OF THEM)
-    if (notification_window->active == notification)
+    // Free the Notifications (ALL OF THEM)
+    
+    // Follow the chain to the bottom
+    while (notification_window->active->previous != NULL)
     {
-        appmanager_app_start("System");
+        notification_window->active = notification_window->active->previous;
     }
-    else
-    {
-        // Pop windows off the stack
-        window_stack_pop(true);
-        window_dirty(true);
-    } */
+    
+    // Free the chain
+    Notification *tmp;
+    while (notification_window->active->next != NULL) {
+        tmp = notification_window->active;
+        notification_window->active = notification_window->active->next;
+        app_free(tmp);
+    }
+    
+    app_free(notification_window->active);
+    
+    window_stack_pop(true);
+    window_dirty(true);
+    appmanager_app_start("System");
 }
 
 static void click_config_provider(void *context)
@@ -205,7 +215,7 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
     graphics_draw_text_app(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), title_rect, GTextOverflowModeTrailingEllipsis, alignment, 0);
     
     // Draw the body:
-    graphics_draw_text_app(ctx, body, fonts_get_system_font(FONT_KEY_GOTHIC_24), body_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+    graphics_draw_text_app(ctx, body, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), body_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
     
     // Draw the indicator:
     graphics_context_set_fill_color(ctx, GColorBlack);
@@ -224,11 +234,12 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
 void notification_window_unload(Window *window)
 {
     
+    app_free(notification_window);
 }
 
 Notification* notification_create(const char *app_name, const char *title, const char *body, GBitmap *icon, GColor color)
 {
-    Notification *notification = calloc(1, sizeof(Notification));
+    Notification *notification = app_calloc(1, sizeof(Notification));
     
     if (notification == NULL)
     {
@@ -250,7 +261,7 @@ void window_stack_push_notification(Notification *notification)
     if (notification_window == NULL || notification_window->window == NULL)
     {
         // Make the window
-        notification_window = calloc(1, sizeof(NotificationWindow));
+        notification_window = app_calloc(1, sizeof(NotificationWindow));
         notification_window->window = window_create();
         
         window_set_window_handlers(notification_window->window, (WindowHandlers) {
@@ -278,4 +289,3 @@ Window* notification_window_get_window(NotificationWindow *notification_window)
 {
     return notification_window->window;
 }
-
