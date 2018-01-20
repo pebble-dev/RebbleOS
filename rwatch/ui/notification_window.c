@@ -12,6 +12,7 @@
 #include "librebble.h"
 #include "ngfxwrap.h"
 
+// XXX TODO nofifications don't free memory
 static NotificationWindow *notification_window;
 static StatusBarLayer *status_bar;
 
@@ -228,7 +229,7 @@ void notification_window_unload(Window *window)
 
 Notification* notification_create(const char *app_name, const char *title, const char *body, GBitmap *icon, GColor color)
 {
-    Notification *notification = calloc(1, sizeof(Notification));
+    Notification *notification = app_calloc(1, sizeof(Notification));
     
     if (notification == NULL)
     {
@@ -250,7 +251,7 @@ void window_stack_push_notification(Notification *notification)
     if (notification_window == NULL || notification_window->window == NULL)
     {
         // Make the window
-        notification_window = calloc(1, sizeof(NotificationWindow));
+        notification_window = app_calloc(1, sizeof(NotificationWindow));
         notification_window->window = window_create();
         
         window_set_window_handlers(notification_window->window, (WindowHandlers) {

@@ -17,7 +17,7 @@ window_node *top_window;
  */
 Window *window_create()
 {
-    Window *window = calloc(1, sizeof(Window));
+    Window *window = app_calloc(1, sizeof(Window));
     if (window == NULL)
     {
         SYS_LOG("window", APP_LOG_LEVEL_ERROR, "No memory for Window");
@@ -78,7 +78,7 @@ static void push_animation_teardown(Animation *animation) {
 void window_stack_push(Window *window, bool animated)
 {
     // Make it's node in the doubly linked list
-    window_node *node = calloc(1, sizeof(window_node));
+    window_node *node = app_calloc(1, sizeof(window_node));
     if (node == NULL)
     {
         SYS_LOG("window", APP_LOG_LEVEL_ERROR, "No memory for window_node");
@@ -145,7 +145,7 @@ bool window_stack_remove(Window *window, bool animated)
         top_window = window->node->previous;
     }
     
-    free(window->node);
+    app_free(window->node);
     
     return true;
 }
@@ -186,7 +186,7 @@ void window_destroy(Window *window)
     // free all of the layers
     layer_destroy(window->root_layer);
     // and now the window
-    free(window);
+    app_free(window);
 }
 
 /*

@@ -50,7 +50,7 @@ void * action_menu_item_get_action_data(const ActionMenuItem * item)
 
 ActionMenuLevel * action_menu_level_create(uint16_t max_items)
 {
-    ActionMenuLevel *level = (ActionMenuLevel *) calloc(1, sizeof(ActionMenuLevel) + (sizeof(ActionMenuItem) * max_items));
+    ActionMenuLevel *level = (ActionMenuLevel *)app_calloc(1, sizeof(ActionMenuLevel) + (sizeof(ActionMenuItem) * max_items));
     level->capacity = max_items;
     level->count = 0;
     level->index = 0;
@@ -67,7 +67,7 @@ ActionMenuItem * action_menu_level_add_action(ActionMenuLevel * level, const cha
 {
     ActionMenuItem *items = level->items;
     
-    ActionMenuItem *new_item = (ActionMenuItem *) calloc(1, sizeof(ActionMenuItem));
+    ActionMenuItem *new_item = (ActionMenuItem *)app_calloc(1, sizeof(ActionMenuItem));
     new_item->label = label;
     new_item->level = level;
     new_item->cb = cb;
@@ -93,10 +93,10 @@ ActionMenuItem * action_menu_level_add_child(ActionMenuLevel * level, ActionMenu
 
 void action_menu_hierarchy_destroy(const ActionMenuLevel * root, ActionMenuEachItemCb each_cb, void * context)
 {
-    free(root->display_mode);
-    free(root->items);
+    app_free(root->display_mode);
+    app_free(root->items);
     
-    free(root);
+    app_free(root);
 }
 
 void * action_menu_get_context(ActionMenu * action_menu)
@@ -222,7 +222,7 @@ static void action_menu_window_unload(Window *window)
 
 ActionMenu * action_menu_open(ActionMenuConfig * config)
 {
-    ActionMenu *action_menu = (ActionMenu *) calloc(1, sizeof(ActionMenu));
+    ActionMenu *action_menu = (ActionMenu *)app_calloc(1, sizeof(ActionMenu));
     action_menu->config = config;
     action_menu->level_index = 0;
     

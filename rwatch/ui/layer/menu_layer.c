@@ -19,7 +19,7 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext);
 
 MenuLayer *menu_layer_create(GRect frame)
 {
-    MenuLayer *mlayer = (MenuLayer *) calloc(1, sizeof(MenuLayer));
+    MenuLayer *mlayer = (MenuLayer *)app_calloc(1, sizeof(MenuLayer));
     mlayer->layer = layer_create(frame);
     mlayer->scroll_layer = scroll_layer_create(GRect(0, 0, frame.size.w, frame.size.h));
     mlayer->layer->container = mlayer;
@@ -43,8 +43,8 @@ void menu_layer_destroy(MenuLayer *menu)
 {
     scroll_layer_destroy(menu->scroll_layer);
     if (menu->cells_count > 0)
-        free(menu->cells);
-    free(menu);
+        app_free(menu->cells);
+    app_free(menu);
 }
 
 int16_t menu_index_compare(const MenuIndex *a, const MenuIndex *b)
@@ -222,7 +222,7 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
 
         menu_layer->cells_count = cells;
         if (cells > 0)
-           menu_layer->cells = (MenuCellSpan *) calloc(cells, sizeof(MenuCellSpan));
+           menu_layer->cells = (MenuCellSpan *)app_calloc(cells, sizeof(MenuCellSpan));
     }
 
     // generate cells
@@ -469,7 +469,7 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
         has_subtitle = true;
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
         GRect subtitle_rect;
-        subtitle_rect = GRect(x, 24, frame.size.w - x - 5, 18);
+        subtitle_rect = GRect(x, 20, frame.size.w - x - 5, 18);
         graphics_draw_text_app(ctx, subtitle, font, subtitle_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
@@ -477,7 +477,7 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
     if (title)
     {
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-        GRect title_rect = GRect(x, has_subtitle ? 0 : frame.size.h / 2 - 16, frame.size.w - x - 5, 24);
+        GRect title_rect = GRect(x, has_subtitle ? -6 : frame.size.h / 2 - 16, frame.size.w - x - 5, 20);
         graphics_draw_text_app(ctx, title, title_font, title_rect, GTextOverflowModeTrailingEllipsis,
                                align, 0);
     }

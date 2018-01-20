@@ -12,7 +12,7 @@
 
 ActionBarLayer *action_bar_layer_create()
 {
-    ActionBarLayer *action_bar = (ActionBarLayer*)calloc(1, sizeof(ActionBarLayer));
+    ActionBarLayer *action_bar = (ActionBarLayer*)app_calloc(1, sizeof(ActionBarLayer));
     
     GRect frame = GRect(DISPLAY_COLS-ACTION_BAR_WIDTH, 0, ACTION_BAR_WIDTH, DISPLAY_ROWS);
     
@@ -31,7 +31,7 @@ void action_bar_layer_destroy(ActionBarLayer *action_bar)
 {
     layer_destroy(action_bar);
     
-    free(action_bar);
+    app_free(action_bar);
 }
 
 Layer *action_bar_layer_get_layer(ActionBarLayer *action_bar)

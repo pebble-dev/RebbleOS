@@ -15,7 +15,7 @@
 
 ScrollLayer *scroll_layer_create(GRect frame)
 {
-    ScrollLayer* slayer = (ScrollLayer*)calloc(1, sizeof(ScrollLayer));
+    ScrollLayer* slayer = (ScrollLayer*)app_calloc(1, sizeof(ScrollLayer));
     Layer* layer = layer_create(frame);
     Layer* sublayer = layer_create(frame);
     // give the layer a reference back to us
@@ -32,7 +32,7 @@ ScrollLayer *scroll_layer_create(GRect frame)
 void scroll_layer_destroy(ScrollLayer *layer)
 {
     layer_destroy(layer->layer);
-    free(layer);
+    app_free(layer);
 }
 
 static void scroll_layer_add_content_offset(ScrollLayer *layer, GPoint offset, bool animate) {

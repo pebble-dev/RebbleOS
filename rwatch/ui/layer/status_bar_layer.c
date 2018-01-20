@@ -27,7 +27,7 @@ static void status_tick(struct tm *tick_time, TimeUnits tick_units)
 
 StatusBarLayer *status_bar_layer_create(void)
 {
-    StatusBarLayer *status_bar = (StatusBarLayer*)calloc(1, sizeof(StatusBarLayer));
+    StatusBarLayer *status_bar = (StatusBarLayer*)app_calloc(1, sizeof(StatusBarLayer));
     
     GRect frame = GRect(0, 0, 144, STATUS_BAR_LAYER_HEIGHT);
     
@@ -51,7 +51,7 @@ StatusBarLayer *status_bar_layer_create(void)
 void status_bar_layer_destroy(StatusBarLayer *status_bar)
 {
     layer_destroy(status_bar);
-    free(status_bar);
+    app_free(status_bar);
 }
 
 Layer *status_bar_layer_get_layer(StatusBarLayer *status_bar)

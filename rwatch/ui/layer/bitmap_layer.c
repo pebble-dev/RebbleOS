@@ -31,7 +31,7 @@ BitmapLayer *bitmap_layer_create(GRect frame)
 void bitmap_layer_destroy(BitmapLayer *bitmap_layer)
 {
     gbitmap_destroy(bitmap_layer->bitmap);
-    free(bitmap_layer);
+    app_free(bitmap_layer);
     bitmap_layer = NULL;
 }
 
