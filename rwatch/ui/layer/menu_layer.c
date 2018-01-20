@@ -469,7 +469,7 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
         has_subtitle = true;
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
         GRect subtitle_rect;
-        subtitle_rect = GRect(x, 20, frame.size.w - x - 5, 18);
+        subtitle_rect = GRect(x, 24, frame.size.w - x - 5, 18);
         graphics_draw_text_app(ctx, subtitle, font, subtitle_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
@@ -477,7 +477,7 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
     if (title)
     {
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-        GRect title_rect = GRect(x, has_subtitle ? - 3 : frame.size.h / 2 - 16, frame.size.w - x - 5, 24);
+        GRect title_rect = GRect(x, has_subtitle ? 0 : frame.size.h / 2 - 16, frame.size.w - x - 5, 24);
         graphics_draw_text_app(ctx, title, title_font, title_rect, GTextOverflowModeTrailingEllipsis,
                                align, 0);
     }
