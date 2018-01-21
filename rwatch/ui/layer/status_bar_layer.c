@@ -10,6 +10,7 @@
 #include "status_bar_layer.h"
 #include "bitmap_layer.h"
 #include "graphics.h"
+#include "platform.h"
 
 typedef struct {
     int hours;
@@ -29,14 +30,14 @@ StatusBarLayer *status_bar_layer_create(void)
 {
     StatusBarLayer *status_bar = (StatusBarLayer*)app_calloc(1, sizeof(StatusBarLayer));
     
-    GRect frame = GRect(0, 0, 144, STATUS_BAR_LAYER_HEIGHT);
+    GRect frame = GRect(0, 0, DISPLAY_COLS, STATUS_BAR_LAYER_HEIGHT);
     
     Layer* layer = layer_create(frame);
     // give the layer a reference back to us
     layer->container = status_bar;
     status_bar->layer = layer;
-    status_bar->background_color = GColorWhite;
-    status_bar->text_color = GColorBlack;
+    status_bar->background_color = GColorDarkGray;
+    status_bar->text_color = GColorWhite;
     status_bar->separator_mode = StatusBarLayerSeparatorModeDotted;
     
     layer_set_update_proc(layer, draw);

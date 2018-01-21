@@ -83,8 +83,12 @@ static void systemapp_window_load(Window *window)
 {
     printf("WF load\n");
     Layer *window_layer = window_get_root_layer(s_main_window);
-    
+#ifdef PBL_RECT
     s_menu = menu_create(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16));
+#else
+    // Let the menu draw behind the statusbar so it is perfectly centered
+    s_menu = menu_create(GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS));
+#endif
     menu_set_callbacks(s_menu, s_menu, (MenuCallbacks) {
         .on_menu_exit = exit_to_watchface
     });

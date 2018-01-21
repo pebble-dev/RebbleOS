@@ -118,6 +118,7 @@ static void scroll_to_visible(MenuLayer *menu_layer, int16_t y_position, bool an
 {
     GSize size = layer_get_frame(menu_layer->layer).size;
     GPoint offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
+#ifdef PBL_RECT
     if (y_position + offset.y - (size.h) / 4  < 0)
     {
         offset.y += (size.h) / 4;
@@ -125,6 +126,15 @@ static void scroll_to_visible(MenuLayer *menu_layer, int16_t y_position, bool an
     {
         offset.y = size.h - y_position - (size.h) / 4;
     }
+#else
+    if (y_position + offset.y < 0)
+    {
+        offset.y += size.h;
+    } else if (y_position + offset.y >= size.h)
+    {
+        offset.y = size.h - y_position;
+    }
+#endif
     scroll_layer_set_content_offset(menu_layer->scroll_layer, offset, animated);
 }
 
@@ -248,7 +258,7 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
                 //: 44;
             h = layer_get_frame(menu_layer->layer).size.h / 4;
 #else
-            h = 180;
+            h = layer_get_frame(menu_layer->layer).size.h;
 #endif
             menu_layer->cells[cell++] = MenuRow(section, row, y, h);
             y += h;
