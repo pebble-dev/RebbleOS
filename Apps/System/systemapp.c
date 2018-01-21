@@ -81,6 +81,11 @@ static MenuItems* notification_item_selected(const MenuItem *item)
 static MenuItems* about_item_selected(const MenuItem *item)
 {
     window_stack_push(s_about_window, false);
+}
+
+static MenuItems* music_item_selected(const MenuItem *item)
+{
+    appmanager_app_start("Music");
     return NULL;
 }
 
@@ -167,7 +172,8 @@ static void systemapp_window_load(Window *window)
 
     menu_set_click_config_onto_window(s_menu, window);
 
-    items = menu_items_create(7);
+    MenuItems *items = menu_items_create(7);
+    menu_items_add(items, MenuItem("Music", "Maxwell's Silver Hammer", 71, music_item_selected));
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", RESOURCE_ID_CLOCK, watch_list_item_selected));
     menu_items_add(items, MenuItem("Apps", "Get appy", RESOURCE_ID_CLOCK, app_list_item_selected));
     menu_items_add(items, MenuItem("Music", "No Music",  RESOURCE_ID_SPANNER, music_item_selected));

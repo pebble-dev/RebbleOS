@@ -15,6 +15,8 @@
 #include "test_defs.h"
 #include "node_list.h"
 #include "rdb.h"
+#include "blobdb.h"
+#include "music.h"
 
 static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
@@ -106,6 +108,7 @@ void appmanager_app_loader_init()
     _appmanager_add_to_manifest(_appmanager_create_app("TestApp", 
                                                        NULL, 9995, 
                                                        AppTypeSystem, testapp_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Music", APP_TYPE_SYSTEM, music_main, true, &empty, &empty));
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
