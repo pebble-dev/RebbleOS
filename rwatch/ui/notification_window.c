@@ -104,17 +104,27 @@ static void show_options_click_handler(ClickRecognizerRef recognizer, void *cont
 
 static void pop_notification_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    /* Close the NotificationWindows (ALL OF THEM)
-    if (notification_window->active == notification)
+    // Free the Notifications (ALL OF THEM)
+    
+    // Follow the chain to the bottom
+    while (notification_window->active->previous != NULL)
     {
-        appmanager_app_start("System");
+        notification_window->active = notification_window->active->previous;
     }
-    else
-    {
-        // Pop windows off the stack
-        window_stack_pop(true);
-        window_dirty(true);
-    } */
+    
+    // Free the chain
+    Notification *tmp;
+    while (notification_window->active->next != NULL) {
+        tmp = notification_window->active;
+        notification_window->active = notification_window->active->next;
+        app_free(tmp);
+    }
+    
+    app_free(notification_window->active);
+    
+    window_stack_pop(true);
+    window_dirty(true);
+    appmanager_app_start("System");
 }
 
 static void click_config_provider(void *context)
@@ -225,6 +235,7 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
 void notification_window_unload(Window *window)
 {
     
+    app_free(notification_window);
 }
 
 Notification* notification_create(const char *app_name, const char *title, const char *body, GBitmap *icon, GColor color)
@@ -279,4 +290,3 @@ Window* notification_window_get_window(NotificationWindow *notification_window)
 {
     return notification_window->window;
 }
-
