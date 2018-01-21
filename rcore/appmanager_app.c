@@ -14,6 +14,7 @@
 #include "notification.h"
 #include "test_defs.h"
 #include "node_list.h"
+#include "music.h"
 
 static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
@@ -70,6 +71,7 @@ void appmanager_app_loader_init()
     _appmanager_add_to_manifest(_appmanager_create_app("Settings", APP_TYPE_SYSTEM, test_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Notification", APP_TYPE_SYSTEM, notif_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("TestApp", APP_TYPE_SYSTEM, testapp_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Music", APP_TYPE_SYSTEM, music_main, true, &empty, &empty));
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
