@@ -1214,6 +1214,7 @@ int width_aligned_bytes = (upng->width * upng_get_bpp(upng) + 7) / 8;
         /* decompress image data */
         error = uz_inflate(upng, inflated, inflated_size, compressed, compressed_size);
         if (error != UPNG_EOK) {
+                app_free(inflated);
                 app_free(compressed);
                 //free(inflated);
                 return upng->error;
@@ -1356,13 +1357,9 @@ upng_t* upng_new_from_file(const char *filename)
 
 void upng_free(upng_t* upng)
 {
-        /* deallocate image buffer */
-//         if (upng->buffer != NULL) {
-//     //Hack to use CCM
-//                 //free(upng->buffer);
-//                 free(upng->buffer);
-//         }
-// 
+    /* We don't deallocate upng->buffer, because that gets handed off to the
+     * user (in this case, png_to_gbitmap).  */
+
     /* deallocate palette buffer, if necessary */
     if (upng->palette) {
         app_free(upng->palette);
@@ -1375,8 +1372,6 @@ void upng_free(upng_t* upng)
 
     /* deallocate source buffer, if necessary */
     upng_free_source(upng);
-
-
     
     if (upng->text_count) {
         for(unsigned int i = 0; i < upng->text_count; i++){

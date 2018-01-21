@@ -21,6 +21,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
       upng_get_error(upng), upng_get_error_line(upng));
     }
 
+    /* XXX: this leaks the buffer if we don't take this codepath */
     if (upng_get_format(upng) >= UPNG_INDEXED1 || upng_get_format(upng) <= UPNG_INDEXED8)
     {
         //Decode paletized image to raw rgb values
@@ -48,7 +49,6 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
                 uint8_t alpha_val = (i >= alen ? 0xFF : alpha[i]);
                 conv_palettes[i].argb = n_GColorFromRGBA(palette[i].r, palette[i].g, palette[i].b, alpha_val).argb;
             }
-            free(bitmap->palette);
     
             bitmap->palette = conv_palettes;
             bitmap->palette_size = plen;
