@@ -92,11 +92,15 @@ static void systemapp_window_load(Window *window)
 
     menu_set_click_config_onto_window(s_menu, window);
 
-    MenuItems *items = menu_items_create(4);
+    MenuItems *items = menu_items_create(8);
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", 25, watch_list_item_selected));
     menu_items_add(items, MenuItem("Settings", "Move Along", 24, test_item_selected));
     menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", 24, NULL));
     menu_items_add(items, MenuItem("... Soon (TM)", NULL, 25, notification_item_selected));
+    menu_items_add(items, MenuItem("You", NULL, 23, NULL));
+    menu_items_add(items, MenuItem("guys", NULL, 23, NULL));
+    menu_items_add(items, MenuItem("are", NULL, 23, NULL));
+    menu_items_add(items, MenuItem("awesome!", NULL, 20, NULL));
     menu_set_items(s_menu, items);
 
     // Status Bar

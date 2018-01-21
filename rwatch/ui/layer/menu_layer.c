@@ -118,13 +118,12 @@ static void scroll_to_visible(MenuLayer *menu_layer, int16_t y_position, bool an
 {
     GSize size = layer_get_frame(menu_layer->layer).size;
     GPoint offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
-    printf("Scroll TO VISIBLE");
-    if (y_position + offset.y < 0)
+    if (y_position + offset.y - (size.h) / 4  < 0)
     {
-        offset.y = y_position;
+        offset.y += (size.h) / 4;
     } else if (y_position + offset.y >= size.h)
     {
-        offset.y = size.h - y_position - 1;
+        offset.y = size.h - y_position - (size.h) / 4;
     }
     scroll_layer_set_content_offset(menu_layer->scroll_layer, offset, animated);
 }
@@ -247,7 +246,7 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
             //h = menu_layer->callbacks.get_cell_height
                 //? menu_layer->callbacks.get_cell_height(menu_layer, &index, menu_layer->context)
                 //: 44;
-            h = 44;
+            h = layer_get_frame(menu_layer->layer).size.h / 4;
 #else
             h = 180;
 #endif
@@ -370,10 +369,6 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
 {
     MenuLayer *menu_layer = (MenuLayer *) layer->container;
     GRect frame = layer_get_frame(layer);
-    
-    // TODO: clear background outside of visible items only, maybe use draw_background callback
-    graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
-    graphics_fill_rect_app(nGContext, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
 
     for (size_t cell = 0; cell < menu_layer->cells_count; ++cell)
     {
@@ -469,7 +464,7 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
         has_subtitle = true;
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
         GRect subtitle_rect;
-        subtitle_rect = GRect(x, 20, frame.size.w - x - 5, 18);
+       subtitle_rect = GRect(x, frame.size.h / 2 - (18 * (2 / 3)) - 3, frame.size.w - x - 5, 18);
         graphics_draw_text_app(ctx, subtitle, font, subtitle_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
@@ -477,7 +472,7 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
     if (title)
     {
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-        GRect title_rect = GRect(x, has_subtitle ? -6 : frame.size.h / 2 - 16, frame.size.w - x - 5, 20);
+        GRect title_rect = GRect(x, has_subtitle ? - frame.size.h / 2 + 16 - 3 : frame.size.h / 2 - 16, frame.size.w - x - 5, 20);
         graphics_draw_text_app(ctx, title, title_font, title_rect, GTextOverflowModeTrailingEllipsis,
                                align, 0);
     }
