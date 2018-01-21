@@ -1363,11 +1363,11 @@ void upng_free(upng_t* upng)
 //                 free(upng->buffer);
 //         }
 // 
-// /* deallocate palette buffer, if necessary */
-// if (upng->palette) {
-//     free(upng->palette);
-// }
-// 
+    /* deallocate palette buffer, if necessary */
+    if (upng->palette) {
+        app_free(upng->palette);
+    }
+
     /* deallocate alpha buffer, we rolled all alphas into the palette */
     if (upng->alpha) {
         app_free(upng->alpha);
