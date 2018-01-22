@@ -6,6 +6,7 @@
  */
 
 #include "rebbleos.h"
+#include "strftime.h"
 
 static TickType_t _boot_ticks;
 static time_t _boot_time_t;
@@ -43,6 +44,10 @@ TickType_t rcore_time_to_ticks(time_t t, uint16_t ms) {
     if (t < _boot_time_t)
         return 0;
     return (t - _boot_time_t) * configTICK_RATE_HZ + pdMS_TO_TICKS(ms);
+}
+
+size_t rcore_strftime(char* buffer, size_t maxSize, const char* format, const struct tm* tm) {
+    return strftime(buffer, maxSize, format, tm);
 }
 
 /*

@@ -12,18 +12,12 @@
 #include "graphics.h"
 #include "platform.h"
 
-typedef struct {
-    int hours;
-    int minutes;
-} Time;
-
-static Time s_last_time;
+static struct tm s_last_time;
 
 static void status_tick(struct tm *tick_time, TimeUnits tick_units)
 {
     // Store time
-    s_last_time.hours = tick_time->tm_hour % 12;
-    s_last_time.minutes = tick_time->tm_min;
+    memcpy(&s_last_time, tick_time, sizeof(struct tm));
 }
 
 StatusBarLayer *status_bar_layer_create(void)
@@ -96,8 +90,8 @@ static void draw(Layer *layer, GContext *context)
     
     char time_string[8] = "";
     
-    printf("%d:%02d", s_last_time.hours, s_last_time.minutes);
-    snprintf(time_string, 8, "%d:%02d", s_last_time.hours, s_last_time.minutes);
+    rcore_strftime(time_string, 8, "%R", &s_last_time);
+    printf("%s", time_string);
     
     GRect text_bounds = GRect((full_bounds.size.w / 2) - 10, 0, 100, 10);
     graphics_draw_text_app(context, time_string, time_font, text_bounds, GTextOverflowModeTrailingEllipsis, n_GTextAlignmentLeft, 0);

@@ -25,6 +25,7 @@ time_t rcore_mktime(struct tm *tm);
 void rcore_localtime(struct tm *tm, time_t time);
 void rcore_time_ms(time_t *tutc, uint16_t *ms);
 TickType_t rcore_time_to_ticks(time_t t, uint16_t ms);
+size_t rcore_strftime(char* buffer, size_t maxSize, const char* format, const struct tm* tm);
 
 // private
 struct tm *rebble_time_get_tm(void);
