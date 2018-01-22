@@ -165,9 +165,11 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
             }
             else if (bitmap->format == GBitmapFormat8Bit)
             {
-                // straight up copy.
-                // TODO memcpy this out of the loop. for now, lazy
-                argb = (n_GColor)buffer[bitmap_row_start + x];
+                pal_idx = buffer[bitmap_row_start + x];
+                if (bitmap->palette[pal_idx].a > 0)
+                    argb = bitmap->palette[pal_idx];
+                else
+                    argb.argb = 0;
             }
             else if (bitmap->format == GBitmapFormat1Bit)
             {

@@ -40,15 +40,19 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         // convert the palettes and alphas from 8 bit (requiring 4 bytes) to 2 bit rgba (1 byte)
         if (plen > 0)
         {
-            n_GColor *conv_palettes = app_calloc(1, plen * sizeof(n_GColor));
-            
+             n_GColor *conv_palettes = app_calloc(1, plen * sizeof(n_GColor));
             for (uint8_t i = 0; i < plen; i++)
             {
                 // png spec says there can be less alphas than palette
                 // we should assume that it is full opaque
                 uint8_t alpha_val = (i >= alen ? 0xFF : alpha[i]);
-                conv_palettes[i].argb = n_GColorFromRGBA(palette[i].r, palette[i].g, palette[i].b, alpha_val).argb;
+                uint8_t pal = n_GColorFromRGBA(palette[i].r, palette[i].g, palette[i].b, alpha_val).argb;
+                
+                // bits are different endian. quickly swap the bits
+                pal = (((uint8_t)pal & 0x55) << 1) | (((uint8_t)pal & 0xAA) >> 1);
+                conv_palettes[i].argb = pal;
             }
+            free(bitmap->palette);
     
             bitmap->palette = conv_palettes;
             bitmap->palette_size = plen;
