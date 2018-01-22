@@ -59,11 +59,9 @@ void gbitmap_draw(GBitmap *bitmap, GRect bounds)
  */
 void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
 {
+    uint32_t pal_idx;
     //Decode paletized image to raw rgb values
     uint8_t *buffer = (uint8_t*)bitmap->addr;
-
-    uint8_t alpha_offset = (bitmap->palette_size > 0) && (bitmap->palette[0].a == 0);
-    uint32_t pal_idx;
     
     // clip to the smallest real size of the image
     uint16_t ctmp = (bitmap->bounds.size.w > bitmap->raw_bitmap_size.w) ? bitmap->raw_bitmap_size.w : bitmap->bounds.size.w;
@@ -120,7 +118,7 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
                 // alpha offset 0 means we have an 255 alpha so skip
                 if (bitmap->palette[pal_idx].a > 0)
                 {
-                    argb = bitmap->palette[pal_idx - alpha_offset];
+                    argb = bitmap->palette[pal_idx];
                     // TODO compositing
                 }
                 else
@@ -141,7 +139,7 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
                 // alpha offset 0 means we have an alpha
                 if (bitmap->palette[pal_idx].a > 0)
                 {
-                    argb = bitmap->palette[pal_idx - alpha_offset];
+                    argb = bitmap->palette[pal_idx];
                 }
                 else
                 {
@@ -156,7 +154,7 @@ void _gbitmap_draw(GBitmap *bitmap, GRect clipping_bounds)
                 // alpha offset 0 means we have an 255 alpha so skip
                 if (bitmap->palette[pal_idx].a > 0)
                 {
-                    argb = bitmap->palette[pal_idx - alpha_offset];
+                    argb = bitmap->palette[pal_idx];
                 }
                 else
                 {
