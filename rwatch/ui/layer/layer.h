@@ -45,7 +45,7 @@ void layer_set_update_proc(Layer *layer, void *proc);
 void layer_add_child(Layer *parent_layer, Layer *child_layer);
 void layer_mark_dirty(Layer *layer);
 GRect layer_get_bounds(Layer *layer);
-GPoint layer_convert_point_to_screen(const Layer *layer, GPoint point); //TODO
+GPoint layer_convert_point_to_screen(const Layer *layer, GPoint point);
 GRect layer_convert_rect_to_screen(const Layer *layer, GRect rect); //TODO
 struct Window *layer_get_window(const Layer *layer);
 void layer_remove_from_parent(Layer *child);

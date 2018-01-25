@@ -113,6 +113,18 @@ GRect layer_get_bounds(Layer *layer)
     return layer->bounds;
 }
 
+GPoint layer_convert_point_to_screen(const Layer *layer, GPoint point)
+{
+    const Layer *current_layer = layer;
+    while (current_layer != NULL)
+    {
+        point = GPoint(point.x + current_layer->frame.origin.x,
+                       point.y + current_layer->frame.origin.y);
+        current_layer = layer->parent;
+    } 
+    return point;
+}
+
 void layer_set_frame(Layer *layer, GRect frame)
 {
     if (!RECT_EQ(layer->frame, frame)) {
