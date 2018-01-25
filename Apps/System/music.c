@@ -110,6 +110,12 @@ static void main_layer_update_proc(Layer *layer, GContext *ctx) {
     // TODO Draw these as seperate layers, not all in one
     // eg void _draw_deck(); void _draw_progress()
 
+    graphics_context_set_fill_color(ctx, GColorDarkGray);
+    graphics_fill_circle(ctx, RECORD_CENTER, 34);
+
+    graphics_context_set_fill_color(ctx, GColorLightGray);
+    graphics_fill_circle(ctx, RECORD_CENTER, 7);
+
     // Draw pin
     graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_circle(ctx, RECORD_CENTER, 1);
