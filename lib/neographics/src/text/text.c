@@ -189,7 +189,7 @@ void n_graphics_draw_text(
         } else if (alignment == n_GTextAlignmentRight)
         {
             n_GSize text_size = n_graphics_text_layout_get_content_size_with_index(text, font, line_begin, index);
-            right_origin = n_GPoint(box.size.w - text_size.w, box.origin.y);
+            right_origin = n_GPoint(box.origin.x + box.size.w - text_size.w, box.origin.y);
             line_origin = right_origin;
         }
         
