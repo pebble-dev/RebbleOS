@@ -12,7 +12,7 @@
 #include "property_animation.h"
 
 #define RECORD_CENTER_X 56
-#define RECORD_CENTER_Y 60
+#define RECORD_CENTER_Y 57
 #define RECORD_CENTER GPoint(RECORD_CENTER_X, RECORD_CENTER_Y)
 #define RECORD_SWOOSH_DISTANCE 130
 #define RECORD_SWOOSH_SPEED 500
@@ -27,6 +27,8 @@ GBitmap *s_select_bitmap;
 int progress_pixels;
 char *curr_artist;
 char *curr_track;
+char *curr_progress;
+char *curr_length;
 GColor curr_disk_color;
 GColor next_disk_color;
 GPoint curr_disk_pos;
@@ -129,26 +131,29 @@ static void main_layer_update_proc(Layer *layer, GContext *ctx) {
     graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_circle(ctx, RECORD_CENTER, 1);
     
+    // Draw text
+    graphics_context_set_text_color(ctx, GColorBlack);
+    graphics_draw_text(ctx, curr_artist, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(4, 108, 105, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+    graphics_draw_text(ctx, curr_track, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(4, 117, 110, 50), n_GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
+    
+    graphics_draw_text(ctx, curr_progress, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect( 4, 84, (144 - 30) / 2 + 4, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
+    graphics_draw_text(ctx, curr_length, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect((144 - 30) / 2, 84, (144 - 30) / 2 - 4, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
+    
+    char time_string[8] = "";
+    rcore_strftime(time_string, 8, "%R", &s_last_time);
+
+    graphics_draw_text(ctx, time_string, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(0, 0, 113, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    
     if (animating_disk_change) {
         draw_record(ctx, next_disk_pos, next_disk_color);
     }
     draw_record(ctx, curr_disk_pos, curr_disk_color);
 
     // Draw bar
-    graphics_fill_rect(ctx, GRect(4, 116, 105, 6), 1, n_GCornersAll);
+    #define BAR_HEIGHT 102
+    graphics_fill_rect(ctx, GRect(4, BAR_HEIGHT, 105, 6), 1, n_GCornersAll);
     graphics_context_set_fill_color(ctx, curr_disk_color);
-    graphics_fill_rect(ctx, GRect(5,117, progress_pixels, 4), 0, GCornerNone);
-    graphics_context_set_text_color(ctx, GColorBlack);
-
-    // Draw text
-    graphics_draw_text(ctx, curr_artist, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(4, 97, 105, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-    graphics_draw_text(ctx, curr_track, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(4, 117, 110, 50), n_GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    
-    
-    char time_string[8] = "";
-    rcore_strftime(time_string, 8, "%R", &s_last_time);
-
-    graphics_draw_text(ctx, time_string, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(0, 0, 113, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    graphics_fill_rect(ctx, GRect(5,BAR_HEIGHT + 1, progress_pixels, 4), 0, GCornerNone);
 }
 
 static void music_window_load(Window *window) {
@@ -162,7 +167,9 @@ static void music_window_load(Window *window) {
     progress_pixels = 25;
     curr_artist = "The Beatles";
     curr_track = "Maxwell's Silver Hammer";
-    
+    curr_length = "3:27";
+    curr_progress = "0:44";
+
     s_main_layer = layer_create(bounds);
     layer_add_child(window_layer, s_main_layer);
 
