@@ -33,6 +33,15 @@ GPoint curr_disk_pos;
 GPoint next_disk_pos;
 bool animating_disk_change;
 
+static struct tm s_last_time;
+
+static void status_tick(struct tm *tick_time, TimeUnits tick_units)
+{
+    // Store time
+    memcpy(&s_last_time, tick_time, sizeof(struct tm));
+    layer_mark_dirty(s_main_layer);
+}
+
 static void implementation_setup(Animation *animation) {
     animating_disk_change = true;
     // TODO set next_disk_color based on title + artist,
@@ -134,7 +143,12 @@ static void main_layer_update_proc(Layer *layer, GContext *ctx) {
     // Draw text
     graphics_draw_text(ctx, curr_artist, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(4, 97, 105, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
     graphics_draw_text(ctx, curr_track, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(4, 117, 110, 50), n_GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    graphics_draw_text(ctx, "9:36", fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD), GRect(0, 4, 113, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    
+    
+    char time_string[8] = "";
+    rcore_strftime(time_string, 8, "%R", &s_last_time);
+
+    graphics_draw_text(ctx, time_string, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(0, 0, 113, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 }
 
 static void music_window_load(Window *window) {
@@ -164,7 +178,7 @@ static void music_window_load(Window *window) {
     action_bar_layer_set_background_color(s_action_bar, GColorLightGray);
     
     layer_set_update_proc(s_main_layer, main_layer_update_proc);
-    layer_mark_dirty(s_main_layer);
+    tick_timer_service_subscribe(MINUTE_UNIT, status_tick);
 }
 
 static void music_window_unload(Window *window) {
