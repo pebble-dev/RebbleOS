@@ -81,6 +81,7 @@ static MenuItems* notification_item_selected(const MenuItem *item)
 static MenuItems* about_item_selected(const MenuItem *item)
 {
     window_stack_push(s_about_window, false);
+    return NULL;
 }
 
 static MenuItems* music_item_selected(const MenuItem *item)
