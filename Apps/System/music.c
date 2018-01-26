@@ -54,6 +54,7 @@ GBitmap *s_down_bitmap;
 GBitmap *s_select_bitmap;
 
 int progress_pixels;
+int32_t skip_value;
 char *curr_artist;
 char *curr_track;
 char *curr_progress;
@@ -63,7 +64,7 @@ GColor next_disk_color;
 GPoint curr_disk_pos;
 GPoint next_disk_pos;
 bool animating_disk_change;
-bool next_track_animation;
+bool animating_arm_change;
 Animation *s_animation_record_ptr;
 Animation *s_animation_arm_ptr;
 uint32_t arm_angle;
@@ -83,25 +84,44 @@ static void implementation_setup(Animation *animation) {
     animating_disk_change = true;
     // TODO set next_disk_color based on title + artist,
     // to let each track have the same color between sessions
+    // Avoid color black and white (Changing the stroke color would be an alternative)
     next_disk_color =  (GColor8) { .argb = ((rand() % 0b00111111) + 0b11000000)  };
-    next_disk_pos = GPoint(RECORD_CENTER_X + RECORD_SWOOSH_DISTANCE, RECORD_CENTER_Y);
+    if(skip_value > 0){
+        next_disk_pos = GPoint(RECORD_CENTER_X + RECORD_SWOOSH_DISTANCE, RECORD_CENTER_Y);
+    } else {
+        next_disk_pos = GPoint(RECORD_CENTER_X - RECORD_SWOOSH_DISTANCE, RECORD_CENTER_Y);
+    }
 }
 
 static void implementation_update(Animation *animation, 
                                   const AnimationProgress distance_normalized) {
 
-    curr_disk_pos = GPoint(ANIM_LERP(curr_disk_pos.x, RECORD_CENTER_X - RECORD_SWOOSH_DISTANCE, distance_normalized), RECORD_CENTER_Y);
-    next_disk_pos = GPoint(ANIM_LERP(next_disk_pos.x, RECORD_CENTER_X, distance_normalized),                          RECORD_CENTER_Y);
+    if(skip_value > 0) {
+        curr_disk_pos = GPoint(ANIM_LERP(curr_disk_pos.x, RECORD_CENTER_X - RECORD_SWOOSH_DISTANCE, distance_normalized), RECORD_CENTER_Y);
+        next_disk_pos = GPoint(ANIM_LERP(next_disk_pos.x, RECORD_CENTER_X, distance_normalized),                          RECORD_CENTER_Y);
+    } else {
+        curr_disk_pos = GPoint(ANIM_LERP(curr_disk_pos.x, RECORD_CENTER_X + RECORD_SWOOSH_DISTANCE, distance_normalized), RECORD_CENTER_Y);
+        next_disk_pos = GPoint(ANIM_LERP(next_disk_pos.x, RECORD_CENTER_X, distance_normalized),                          RECORD_CENTER_Y);
+    }
 
     layer_mark_dirty(s_main_layer);
 }
 
 static void implementation_teardown(Animation *animation) {
-    animating_disk_change = false;
     curr_disk_color = next_disk_color;
     curr_disk_pos = next_disk_pos;
-    animation_end_arm_angle = ARM_START_ANGLE;
-    animation_arm(100);
+    if (skip_value > 0) {
+        skip_value--;
+    } else if (skip_value < 0) {
+        skip_value++;
+    }
+    if(skip_value != 0) {
+        animation_record();
+    } else {   
+        animating_disk_change = false;
+        animation_end_arm_angle = ARM_START_ANGLE;
+        animation_arm(100);
+    }
 }
 
 static void animation_record() {
@@ -120,21 +140,22 @@ static void animation_record() {
 
 static void implementation_arm_setup(Animation *animation) {
     animation_start_arm_angle = arm_angle;
+    animating_arm_change = true;
 }
 
 static void implementation_arm_update(Animation *animation, 
                                   const AnimationProgress distance_normalized) {
     if(animation_start_arm_angle > animation_end_arm_angle)
-        arm_angle = animation_start_arm_angle - LERP(animation_end_arm_angle, animation_start_arm_angle);
+        arm_angle = animation_start_arm_angle - ANIM_LERP(animation_end_arm_angle, animation_start_arm_angle, distance_normalized);
     else
-        arm_angle = LERP(animation_start_arm_angle, animation_end_arm_angle);
+        arm_angle = ANIM_LERP(animation_start_arm_angle, animation_end_arm_angle, distance_normalized);
     layer_mark_dirty(s_main_layer);
 }
 
 static void implementation_arm_teardown(Animation *animation) {
-    if(next_track_animation) {
+    animating_arm_change = false;
+    if(skip_value != 0) {
         // If we were just back on our trip back home, animate the record change
-        next_track_animation = false;
         animation_record();
     }
 }
@@ -153,27 +174,26 @@ static void animation_arm(uint32_t duration_ms) {
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
-    // TODO
-    arm_angle-=1;
-    printf("Arm Angle %d\n", arm_angle);
-    layer_mark_dirty(s_main_layer);
+    // TODO Switch between volume and skipping
+    if(skip_value == 0 && !animating_disk_change && !animating_arm_change) {
+        animation_end_arm_angle = ARM_HOME_ANGLE;
+        animation_arm(200);
+    }
+    skip_value--;
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
-    // TODO
-    //arm_angle-=5;
-    //layer_mark_dirty(s_main_layer);
-    animation_end_arm_angle = ARM_HOME_ANGLE;
-    next_track_animation = true;
-    animation_arm(200);
+    // TODO Switch between volume and skipping
+    if(skip_value == 0 && !animating_disk_change && !animating_arm_change) {
+        animation_end_arm_angle = ARM_HOME_ANGLE;
+        animation_arm(200);
+    }
+    skip_value++;
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-    // TODO
-
-    animation_record();
+    // TODO Toggle between toggling volume && skipping and play pause
 }
-
 
 static void click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) up_click_handler);
@@ -255,7 +275,7 @@ static void main_layer_update_proc(Layer *layer, GContext *ctx) {
     graphics_draw_text(ctx, curr_length, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect((144 - 30) / 2, 84, (144 - 30) / 2 - 4, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
     
     char time_string[8] = "";
-    rcore_strftime(time_string, 8, "%R", &s_last_time);
+    strftime(time_string, 8, "%R", &s_last_time);
 
     graphics_draw_text(ctx, time_string, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(0, 0, 113, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     
@@ -290,6 +310,7 @@ static void music_window_load(Window *window) {
     curr_progress = "0:44";
     arm_angle = ARM_END_ANGLE;
     old_arm_angle = -1;
+    skip_value = 0;
     s_main_layer = layer_create(bounds);
     layer_add_child(window_layer, s_main_layer);
 
