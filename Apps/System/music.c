@@ -120,6 +120,7 @@ static void implementation_teardown(Animation *animation) {
     } else {   
         animating_disk_change = false;
         animation_end_arm_angle = ARM_START_ANGLE;
+        animating_arm_change = true;
         animation_arm(100);
     }
 }
@@ -155,8 +156,13 @@ static void implementation_arm_update(Animation *animation,
 static void implementation_arm_teardown(Animation *animation) {
     animating_arm_change = false;
     if(skip_value != 0) {
-        // If we were just back on our trip back home, animate the record change
-        animation_record();
+        if(arm_angle != ARM_HOME_ANGLE) {
+            animation_end_arm_angle = ARM_HOME_ANGLE;
+            animation_arm(100);
+        } else {
+            // If we were just back on our trip back home, animate the record change
+            animation_record();
+        }
     }
 }
 
