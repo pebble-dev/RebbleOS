@@ -16,9 +16,34 @@
 #define RECORD_CENTER GPoint(RECORD_CENTER_X, RECORD_CENTER_Y)
 #define RECORD_SWOOSH_DISTANCE 130
 #define RECORD_SWOOSH_SPEED 500
+#define ARM_OFFSET_X 17
+#define ARM_OFFSET_Y 77
+#define ARM_OFFSET GPoint(ARM_OFFSET_X, ARM_OFFSET_Y)
 static Window *s_main_window;
 static Layer *s_main_layer;
 ActionBarLayer *s_action_bar;
+
+static n_GPath *arm_base_path_ptr;
+static n_GPath *arm_1_path_ptr;
+static n_GPath *arm_2_path_ptr;
+static n_GPath *arm_head_path_ptr;
+
+static const n_GPathInfo ARM_BASE_PATH_INFO = {    
+    .num_points = 2,
+    .points = (n_GPoint[]) {{0, -3}, {0, 3}}
+};
+static const n_GPathInfo ARM_1_PATH_INFO = {    
+    .num_points = 2,
+    .points = (n_GPoint[]) {{0, -3}, {0, -3-19}}
+};
+static const n_GPathInfo ARM_2_PATH_INFO = {    
+    .num_points = 2,
+    .points = (n_GPoint[]) {{0, -3-19}, {19, -3-19-15}}
+};
+static const n_GPathInfo ARM_HEAD_PATH_INFO = {    
+    .num_points = 2,
+    .points = (n_GPoint[]) {{19, -3-19-14}, {19+9, -3-19-15-6}}
+};
 
 GBitmap *s_up_bitmap;
 GBitmap *s_down_bitmap;
@@ -34,6 +59,8 @@ GColor next_disk_color;
 GPoint curr_disk_pos;
 GPoint next_disk_pos;
 bool animating_disk_change;
+uint32_t arm_angle;
+uint32_t old_arm_angle;
 
 static struct tm s_last_time;
 
@@ -63,16 +90,51 @@ static void implementation_update(Animation *animation,
 }
 
 static void implementation_teardown(Animation *animation) {
+    animating_disk_change = false;
     curr_disk_color = next_disk_color;
     curr_disk_pos = next_disk_pos;
 }
 
+static void implementation_arm_setup(Animation *animation) {
+}
+
+static void implementation_arm_update(Animation *animation, 
+                                  const AnimationProgress progress) {
+    int distance_normalized = (int)progress;
+
+//    curr_disk_pos = GPoint(LERP(curr_disk_pos.x, RECORD_CENTER_X - RECORD_SWOOSH_DISTANCE), RECORD_CENTER_Y);
+//    next_disk_pos = GPoint(LERP(next_disk_pos.x, RECORD_CENTER_X),                          RECORD_CENTER_Y);
+    arm_angle++;
+    arm_angle++;
+    layer_mark_dirty(s_main_layer);
+}
+
+static void implementation_arm_teardown(Animation *animation) {
+}
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO
+    arm_angle-=1;
+    printf("Arm Angle %d\n", arm_angle);
+    layer_mark_dirty(s_main_layer);
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
+    // TODO
+    //arm_angle-=5;
+    //layer_mark_dirty(s_main_layer);
+    Animation *animation = animation_create();
+    animation_set_duration(animation, 10000);
+    const AnimationImplementation implementation = {
+        .setup = implementation_arm_setup,
+        .update = implementation_arm_update,
+        .teardown = implementation_arm_teardown
+    };
+    animation_set_implementation(animation, &implementation);
+    animation_schedule(animation);
+}
+
+static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO
 
     Animation *animation = animation_create();
@@ -86,9 +148,6 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
     animation_schedule(animation);
 }
 
-static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
-    // TODO
-}
 
 static void click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) up_click_handler);
@@ -117,13 +176,39 @@ void draw_record(GContext *ctx, GPoint record_center_point, GColor record_color)
     //graphics_draw_arc(ctx, GRect(RECORD_CENTER_X, RECORD_CENTER_Y,30,30), DEG_TO_TRIGANGLE(0), DEG_TO_TRIGANGLE(90));
 }
 
+void draw_arm(GContext *ctx, uint32_t angle) {
+    if(angle != old_arm_angle) {
+        arm_base_path_ptr = n_gpath_create(&ARM_BASE_PATH_INFO);
+        arm_1_path_ptr = n_gpath_create(&ARM_1_PATH_INFO);
+        arm_2_path_ptr = n_gpath_create(&ARM_2_PATH_INFO);
+        arm_head_path_ptr = n_gpath_create(&ARM_HEAD_PATH_INFO);
+        n_gpath_move_to(arm_base_path_ptr, ARM_OFFSET);
+        n_gpath_move_to(arm_1_path_ptr, ARM_OFFSET);
+        n_gpath_move_to(arm_2_path_ptr, ARM_OFFSET);
+        n_gpath_move_to(arm_head_path_ptr, ARM_OFFSET);
+        n_gpath_rotate_to(arm_base_path_ptr, TRIG_MAX_ANGLE / 360 * angle);
+        n_gpath_rotate_to(arm_1_path_ptr, TRIG_MAX_ANGLE / 360 * angle);
+        n_gpath_rotate_to(arm_2_path_ptr, TRIG_MAX_ANGLE / 360 * angle);
+        n_gpath_rotate_to(arm_head_path_ptr, TRIG_MAX_ANGLE / 360 * angle);
+        old_arm_angle = arm_angle;
+    }
+    n_graphics_context_set_stroke_caps(ctx, false);
+    n_graphics_context_set_stroke_width(ctx, 5);
+    n_gpath_draw(ctx, arm_base_path_ptr);
+    n_graphics_context_set_stroke_width(ctx, 1);
+    n_gpath_draw(ctx, arm_1_path_ptr);
+    n_gpath_draw(ctx, arm_2_path_ptr);
+    n_graphics_context_set_stroke_width(ctx, 4);    
+    n_gpath_draw(ctx, arm_head_path_ptr);
+}
+
 static void main_layer_update_proc(Layer *layer, GContext *ctx) {
     // TODO Draw these as seperate layers, not all in one
     // eg void _draw_deck(); void _draw_progress()
 
+    // Draw base plate
     graphics_context_set_fill_color(ctx, GColorDarkGray);
     graphics_fill_circle(ctx, RECORD_CENTER, 34);
-
     graphics_context_set_fill_color(ctx, GColorLightGray);
     graphics_fill_circle(ctx, RECORD_CENTER, 7);
 
@@ -145,10 +230,14 @@ static void main_layer_update_proc(Layer *layer, GContext *ctx) {
     graphics_draw_text(ctx, time_string, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(0, 0, 113, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
     
     if (animating_disk_change) {
+        draw_arm(ctx, arm_angle);
         draw_record(ctx, next_disk_pos, next_disk_color);
     }
     draw_record(ctx, curr_disk_pos, curr_disk_color);
 
+    if(!animating_disk_change) {
+        draw_arm(ctx, arm_angle);
+    }
     // Draw bar
     #define BAR_HEIGHT 102
     graphics_fill_rect(ctx, GRect(4, BAR_HEIGHT, 105, 6), 1, n_GCornersAll);
@@ -169,7 +258,8 @@ static void music_window_load(Window *window) {
     curr_track = "Maxwell's Silver Hammer";
     curr_length = "3:27";
     curr_progress = "0:44";
-
+    arm_angle = 0;
+    old_arm_angle = -1;
     s_main_layer = layer_create(bounds);
     layer_add_child(window_layer, s_main_layer);
 
