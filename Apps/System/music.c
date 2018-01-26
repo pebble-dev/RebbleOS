@@ -15,10 +15,14 @@
 #define RECORD_CENTER_Y 57
 #define RECORD_CENTER GPoint(RECORD_CENTER_X, RECORD_CENTER_Y)
 #define RECORD_SWOOSH_DISTANCE 130
-#define RECORD_SWOOSH_SPEED 500
+#define RECORD_SWOOSH_SPEED 250
 #define ARM_OFFSET_X 17
 #define ARM_OFFSET_Y 77
 #define ARM_OFFSET GPoint(ARM_OFFSET_X, ARM_OFFSET_Y)
+#define ARM_OFFSET_ANGLE -31
+#define ARM_HOME_ANGLE 0
+#define ARM_START_ANGLE 18
+#define ARM_END_ANGLE 46
 static Window *s_main_window;
 static Layer *s_main_layer;
 ActionBarLayer *s_action_bar;
@@ -59,13 +63,17 @@ GColor next_disk_color;
 GPoint curr_disk_pos;
 GPoint next_disk_pos;
 bool animating_disk_change;
+bool next_track_animation;
+Animation *s_animation_record_ptr;
+Animation *s_animation_arm_ptr;
 uint32_t arm_angle;
 uint32_t old_arm_angle;
+uint32_t animation_start_arm_angle;
+uint32_t animation_end_arm_angle;
 
 static struct tm s_last_time;
 
-static void status_tick(struct tm *tick_time, TimeUnits tick_units)
-{
+static void status_tick(struct tm *tick_time, TimeUnits tick_units ){
     // Store time
     memcpy(&s_last_time, tick_time, sizeof(struct tm));
     layer_mark_dirty(s_main_layer);
@@ -80,8 +88,7 @@ static void implementation_setup(Animation *animation) {
 }
 
 static void implementation_update(Animation *animation, 
-                                  const AnimationProgress progress) {
-    int distance_normalized = (int)progress;
+                                  const AnimationProgress distance_normalized) {
 
     curr_disk_pos = GPoint(ANIM_LERP(curr_disk_pos.x, RECORD_CENTER_X - RECORD_SWOOSH_DISTANCE, distance_normalized), RECORD_CENTER_Y);
     next_disk_pos = GPoint(ANIM_LERP(next_disk_pos.x, RECORD_CENTER_X, distance_normalized),                          RECORD_CENTER_Y);
@@ -93,23 +100,56 @@ static void implementation_teardown(Animation *animation) {
     animating_disk_change = false;
     curr_disk_color = next_disk_color;
     curr_disk_pos = next_disk_pos;
+    animation_end_arm_angle = ARM_START_ANGLE;
+    animation_arm(100);
+}
+
+static void animation_record() {
+    animation_destroy(s_animation_record_ptr);
+    s_animation_record_ptr = animation_create();
+    animation_set_duration(s_animation_record_ptr, RECORD_SWOOSH_SPEED);
+    const AnimationImplementation implementation = {
+        .setup = implementation_setup,
+        .update = implementation_update,
+        .teardown = implementation_teardown
+    };
+    animation_set_implementation(s_animation_record_ptr, &implementation);
+    //animation_set_curve(s_animation_record_ptr, AnimationCurveEaseInOut);
+    animation_schedule(s_animation_record_ptr);
 }
 
 static void implementation_arm_setup(Animation *animation) {
+    animation_start_arm_angle = arm_angle;
 }
 
 static void implementation_arm_update(Animation *animation, 
-                                  const AnimationProgress progress) {
-    int distance_normalized = (int)progress;
-
-//    curr_disk_pos = GPoint(LERP(curr_disk_pos.x, RECORD_CENTER_X - RECORD_SWOOSH_DISTANCE), RECORD_CENTER_Y);
-//    next_disk_pos = GPoint(LERP(next_disk_pos.x, RECORD_CENTER_X),                          RECORD_CENTER_Y);
-    arm_angle++;
-    arm_angle++;
+                                  const AnimationProgress distance_normalized) {
+    if(animation_start_arm_angle > animation_end_arm_angle)
+        arm_angle = animation_start_arm_angle - LERP(animation_end_arm_angle, animation_start_arm_angle);
+    else
+        arm_angle = LERP(animation_start_arm_angle, animation_end_arm_angle);
     layer_mark_dirty(s_main_layer);
 }
 
 static void implementation_arm_teardown(Animation *animation) {
+    if(next_track_animation) {
+        // If we were just back on our trip back home, animate the record change
+        next_track_animation = false;
+        animation_record();
+    }
+}
+
+static void animation_arm(uint32_t duration_ms) {
+    s_animation_arm_ptr = animation_create();
+    animation_set_duration(s_animation_arm_ptr, duration_ms);
+    const AnimationImplementation implementation = {
+        .setup = implementation_arm_setup,
+        .update = implementation_arm_update,
+        .teardown = implementation_arm_teardown
+    };
+    animation_set_implementation(s_animation_arm_ptr, &implementation);
+    //animation_set_curve(s_animation_arm_ptr, AnimationCurveEaseInOut);
+    animation_schedule(s_animation_arm_ptr);
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -123,29 +163,15 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO
     //arm_angle-=5;
     //layer_mark_dirty(s_main_layer);
-    Animation *animation = animation_create();
-    animation_set_duration(animation, 10000);
-    const AnimationImplementation implementation = {
-        .setup = implementation_arm_setup,
-        .update = implementation_arm_update,
-        .teardown = implementation_arm_teardown
-    };
-    animation_set_implementation(animation, &implementation);
-    animation_schedule(animation);
+    animation_end_arm_angle = ARM_HOME_ANGLE;
+    next_track_animation = true;
+    animation_arm(200);
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO
 
-    Animation *animation = animation_create();
-    animation_set_duration(animation, RECORD_SWOOSH_SPEED);
-    const AnimationImplementation implementation = {
-        .setup = implementation_setup,
-        .update = implementation_update,
-        .teardown = implementation_teardown
-    };
-    animation_set_implementation(animation, &implementation);
-    animation_schedule(animation);
+    animation_record();
 }
 
 
@@ -178,18 +204,22 @@ void draw_record(GContext *ctx, GPoint record_center_point, GColor record_color)
 
 void draw_arm(GContext *ctx, uint32_t angle) {
     if(angle != old_arm_angle) {
+        n_gpath_destroy(arm_base_path_ptr);
+        n_gpath_destroy(arm_1_path_ptr);
+        n_gpath_destroy(arm_2_path_ptr);
+        n_gpath_destroy(arm_head_path_ptr);
         arm_base_path_ptr = n_gpath_create(&ARM_BASE_PATH_INFO);
-        arm_1_path_ptr = n_gpath_create(&ARM_1_PATH_INFO);
-        arm_2_path_ptr = n_gpath_create(&ARM_2_PATH_INFO);
+        arm_1_path_ptr    = n_gpath_create(&ARM_1_PATH_INFO);
+        arm_2_path_ptr    = n_gpath_create(&ARM_2_PATH_INFO);
         arm_head_path_ptr = n_gpath_create(&ARM_HEAD_PATH_INFO);
         n_gpath_move_to(arm_base_path_ptr, ARM_OFFSET);
-        n_gpath_move_to(arm_1_path_ptr, ARM_OFFSET);
-        n_gpath_move_to(arm_2_path_ptr, ARM_OFFSET);
+        n_gpath_move_to(arm_1_path_ptr,    ARM_OFFSET);
+        n_gpath_move_to(arm_2_path_ptr,    ARM_OFFSET);
         n_gpath_move_to(arm_head_path_ptr, ARM_OFFSET);
-        n_gpath_rotate_to(arm_base_path_ptr, TRIG_MAX_ANGLE / 360 * angle);
-        n_gpath_rotate_to(arm_1_path_ptr, TRIG_MAX_ANGLE / 360 * angle);
-        n_gpath_rotate_to(arm_2_path_ptr, TRIG_MAX_ANGLE / 360 * angle);
-        n_gpath_rotate_to(arm_head_path_ptr, TRIG_MAX_ANGLE / 360 * angle);
+        n_gpath_rotate_to(arm_base_path_ptr, TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE));
+        n_gpath_rotate_to(arm_1_path_ptr,    TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE));
+        n_gpath_rotate_to(arm_2_path_ptr,    TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE));
+        n_gpath_rotate_to(arm_head_path_ptr, TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE));
         old_arm_angle = arm_angle;
     }
     n_graphics_context_set_stroke_caps(ctx, false);
@@ -258,7 +288,7 @@ static void music_window_load(Window *window) {
     curr_track = "Maxwell's Silver Hammer";
     curr_length = "3:27";
     curr_progress = "0:44";
-    arm_angle = 0;
+    arm_angle = ARM_END_ANGLE;
     old_arm_angle = -1;
     s_main_layer = layer_create(bounds);
     layer_add_child(window_layer, s_main_layer);
