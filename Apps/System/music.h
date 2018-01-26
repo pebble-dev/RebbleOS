@@ -25,13 +25,15 @@ static void implementation_arm_setup(Animation *animation);
 static void implementation_arm_update(Animation *animation, 
                                   const AnimationProgress distance_normalized);
 static void implementation_arm_teardown(Animation *animation);
-static void animation_arm(uint32_t duration_ms);
+static void animation_arm(int32_t angle, uint32_t duration_ms);
+static void skip_track(int32_t direction);
 static void up_click_handler(ClickRecognizerRef recognizer, void *context);
 static void down_click_handler(ClickRecognizerRef recognizer, void *context);
 static void select_click_handler(ClickRecognizerRef recognizer, void *context);
 static void click_config_provider(void *context);
 void draw_record(GContext *ctx, GPoint record_center_point, GColor record_color);
-void draw_arm(GContext *ctx, uint32_t angle);
+void destroy_paths();
+void draw_arm(GContext *ctx, int32_t angle);
 static void main_layer_update_proc(Layer *layer, GContext *ctx);
 static void music_window_load(Window *window);
 static void music_window_unload(Window *window);
