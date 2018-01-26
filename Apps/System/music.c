@@ -27,6 +27,7 @@
 #define ARM_QUICK_SPEED 100
 #define SKIP_DIRECTION_PREV -1
 #define SKIP_DIRECTION_NEXT 1
+#define PROGRESS_PIXELS_MAX 105
 
 static Window *s_main_window;
 static Layer *s_main_layer;
@@ -58,10 +59,9 @@ static Animation *s_animation_record_ptr;
 static Animation *s_animation_arm_ptr;
 static bool s_animating_disk_change;
 static bool s_animating_arm_change;
+static bool s_is_paused;
 static char *s_artist;
 static char *s_track;
-static char *s_progress;
-static char *s_length;
 static GBitmap *s_up_bitmap;
 static GBitmap *s_down_bitmap;
 static GBitmap *s_select_bitmap;
@@ -69,6 +69,8 @@ static GColor s_curr_disk_color;
 static GColor s_next_disk_color;
 static GPoint s_curr_disk_pos;
 static GPoint s_next_disk_pos;
+static int32_t s_progress;
+static int32_t s_length;
 static int32_t s_progress_pixels;
 static int32_t s_skip_value;
 static int32_t s_arm_angle;
@@ -77,10 +79,22 @@ static int32_t s_animation_start_arm_angle;
 static int32_t s_animation_end_arm_angle;
 static struct tm s_last_time;
 
-static void status_tick(struct tm *tick_time, TimeUnits tick_units ){
-    // Store time
-    memcpy(&s_last_time, tick_time, sizeof(struct tm));
-    layer_mark_dirty(s_main_layer);
+static void music_tick(struct tm *tick_time, TimeUnits tick_units) {
+    if((tick_units & SECOND_UNIT) != 0 && !s_is_paused) {
+        s_progress_pixels = s_progress * PROGRESS_PIXELS_MAX / s_length;
+        int32_t new_arm_angle = ARM_START_ANGLE + s_progress * (ARM_END_ANGLE - ARM_START_ANGLE) / s_length;
+        s_progress+=10;
+        if(new_arm_angle != s_arm_angle){
+            animation_arm(new_arm_angle, ARM_SKIP_SPEED);
+        } else {
+            layer_mark_dirty(s_main_layer);
+        }
+    }
+    if((tick_units & MINUTE_UNIT) != 0) {
+        // Store time for status bar
+        memcpy(&s_last_time, tick_time, sizeof(struct tm));
+        layer_mark_dirty(s_main_layer);
+    }
 }
 
 static void implementation_record_setup(Animation *animation) {
@@ -188,6 +202,12 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO Toggle between toggling volume && skipping and play pause
     // When paused, move arm to side
+    s_is_paused = !s_is_paused;
+    if(s_is_paused) {
+        tick_timer_service_subscribe(MINUTE_UNIT, music_tick);
+    } else {
+        tick_timer_service_subscribe(SECOND_UNIT, music_tick);
+    }
 }
 
 static void click_config_provider(void *context) {
@@ -268,17 +288,32 @@ static void main_layer_update_proc(Layer *layer, GContext *ctx) {
     graphics_fill_circle(ctx, RECORD_CENTER, 1);
     
     // Draw text
-    graphics_context_set_text_color(ctx, GColorBlack);
-    graphics_draw_text(ctx, s_artist, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(4, 108, 105, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-    graphics_draw_text(ctx, s_track, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD), GRect(4, 117, 110, 50), n_GTextOverflowModeWordWrap, GTextAlignmentLeft, NULL);
-    
-    graphics_draw_text(ctx, s_progress, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect( 4, 84, (144 - 30) / 2 + 4, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, NULL);
-    graphics_draw_text(ctx, s_length, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect((144 - 30) / 2, 84, (144 - 30) / 2 - 4, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentRight, NULL);
-    
     char time_string[8] = "";
     strftime(time_string, 8, "%R", &s_last_time);
 
-    graphics_draw_text(ctx, time_string, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(0, 0, 113, 10), GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
+    char progress_string[6] = "";
+    // TODO display tracks over 59:59s long differently
+    snprintf(progress_string, 6, "%d:%02d", s_progress / 60, s_progress % 60);
+
+    char length_string[6] = "";
+    snprintf(length_string, 6, "%d:%02d", s_length / 60, s_length % 60);
+
+    graphics_context_set_text_color(ctx, GColorBlack);
+    graphics_draw_text(ctx, s_artist,    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                       GRect(4, 108, 105, 10),                            GTextOverflowModeTrailingEllipsis,
+                       GTextAlignmentLeft, NULL);
+    graphics_draw_text(ctx, s_track,     fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD),
+                       GRect(4, 117, 110, 50),                            n_GTextOverflowModeWordWrap,//TODO remove 'n_' prefix
+                       GTextAlignmentLeft, NULL);
+    graphics_draw_text(ctx, progress_string,  fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                       GRect( 4, 84, (144 - 30) / 2 + 4, 10),             GTextOverflowModeTrailingEllipsis, 
+                       GTextAlignmentLeft, NULL);
+    graphics_draw_text(ctx, length_string,    fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                       GRect((144 - 30) / 2, 84, (144 - 30) / 2 - 4, 10), GTextOverflowModeTrailingEllipsis,
+                       GTextAlignmentRight, NULL);
+    graphics_draw_text(ctx, time_string, fonts_get_system_font(FONT_KEY_GOTHIC_14),
+                       GRect(0, 0, 113, 10),                              GTextOverflowModeTrailingEllipsis,
+                       GTextAlignmentCenter, NULL);
     
     if (s_animating_disk_change) {
         draw_arm(ctx, s_arm_angle);
@@ -290,7 +325,7 @@ static void main_layer_update_proc(Layer *layer, GContext *ctx) {
         draw_arm(ctx, s_arm_angle);
     }
     // Draw bar
-    graphics_fill_rect(ctx, GRect(4, 102, 105, 6), 1, n_GCornersAll);
+    graphics_fill_rect(ctx, GRect(4, 102, PROGRESS_PIXELS_MAX, 6), 1, n_GCornersAll);
     graphics_context_set_fill_color(ctx, s_curr_disk_color);
     graphics_fill_rect(ctx, GRect(5, 103, s_progress_pixels, 4), 0, GCornerNone);
 }
@@ -306,12 +341,13 @@ static void music_window_load(Window *window) {
     s_progress_pixels = 25;
     s_artist = "The Beatles";
     s_track = "Maxwell's Silver Hammer";
-    s_length = "3:27";
-    s_progress = "0:44";
-    s_arm_angle = ARM_END_ANGLE;
+    s_length = 207;
+    s_progress = 44;
+    s_arm_angle = ARM_HOME_ANGLE;
     s_old_arm_angle = -1;
     s_skip_value = 0;
     s_main_layer = layer_create(bounds);
+    s_is_paused = false;
     layer_add_child(window_layer, s_main_layer);
 
     s_animation_record_ptr = animation_create();
@@ -344,7 +380,7 @@ static void music_window_load(Window *window) {
     action_bar_layer_set_background_color(s_action_bar, GColorLightGray);
     
     layer_set_update_proc(s_main_layer, main_layer_update_proc);
-    tick_timer_service_subscribe(MINUTE_UNIT, status_tick);
+    tick_timer_service_subscribe(SECOND_UNIT, music_tick);
 }
 
 static void music_window_unload(Window *window) {
@@ -355,6 +391,7 @@ static void music_window_unload(Window *window) {
     animation_destroy(s_animation_record_ptr);
     animation_destroy(s_animation_arm_ptr);
     destroy_paths();
+    tick_timer_service_unsubscribe();
 }
 
 void music_init(void) {
