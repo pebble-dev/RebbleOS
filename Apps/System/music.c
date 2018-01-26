@@ -60,6 +60,7 @@ static Animation *s_animation_arm_ptr;
 static bool s_animating_disk_change;
 static bool s_animating_arm_change;
 static bool s_is_paused;
+static bool s_was_paused;
 static char *s_artist;
 static char *s_track;
 static GBitmap *s_up_bitmap;
@@ -78,16 +79,48 @@ static int32_t s_old_arm_angle;
 static int32_t s_animation_start_arm_angle;
 static int32_t s_animation_end_arm_angle;
 static struct tm s_last_time;
+// TODO remove these variables, they are for demoing only
+static int32_t s_trackcounter;
+static char *artists[] = { "The Beatles", "Deadmau5", "Daniel Ingram" };
+static char *tracks[] = { "Maxwell's Silver Hammer", "Strobe", "Smile" };
+static int32_t length[] = { 207, 637, 203 }; // { 46, 5, 10 };
+
+static void get_new_track(){
+    s_trackcounter++;
+    if(s_trackcounter >= 3) {
+        s_trackcounter = 0;
+    }
+    s_artist = artists[s_trackcounter];
+    s_track = tracks[s_trackcounter];
+    s_length = length[s_trackcounter];
+    s_progress = 0;
+}
+static void get_last_track(){
+    s_trackcounter--;
+    if(s_trackcounter < 0) {
+        s_trackcounter = 2;
+    }
+    s_artist = artists[s_trackcounter];
+    s_track = tracks[s_trackcounter];
+    s_length = length[s_trackcounter];
+    s_progress = 0;
+}
 
 static void music_tick(struct tm *tick_time, TimeUnits tick_units) {
     if((tick_units & SECOND_UNIT) != 0 && !s_is_paused) {
-        s_progress_pixels = s_progress * PROGRESS_PIXELS_MAX / s_length;
-        int32_t new_arm_angle = ARM_START_ANGLE + s_progress * (ARM_END_ANGLE - ARM_START_ANGLE) / s_length;
-        s_progress+=10;
-        if(new_arm_angle != s_arm_angle){
-            animation_arm(new_arm_angle, ARM_SKIP_SPEED);
+        if(s_progress >= s_length) {
+            get_new_track();
+            skip_track(SKIP_DIRECTION_NEXT);
+            s_progress_pixels = 0;
         } else {
-            layer_mark_dirty(s_main_layer);
+            s_progress++;
+            s_progress_pixels = s_progress * (PROGRESS_PIXELS_MAX - 1) / s_length;
+            int32_t new_arm_angle = ARM_START_ANGLE + s_progress * (ARM_END_ANGLE - ARM_START_ANGLE) / s_length;
+            if(new_arm_angle != s_arm_angle){
+                animation_arm(new_arm_angle, ARM_SKIP_SPEED);
+            } else {
+                layer_mark_dirty(s_main_layer);
+            }
         }
     }
     if((tick_units & MINUTE_UNIT) != 0) {
@@ -140,8 +173,13 @@ static void implementation_record_teardown(Animation *animation) {
         // We are done, move the arm to the start position
         // TODO actually dont when paused
         s_animating_disk_change = false;
-        s_animating_arm_change = true;
-        animation_arm(ARM_START_ANGLE, ARM_QUICK_SPEED);
+        if(!s_is_paused || !s_was_paused) {
+            if(!s_was_paused){
+                s_is_paused = false;
+            }
+            s_animating_arm_change = true;
+            animation_arm(ARM_START_ANGLE, ARM_QUICK_SPEED);
+        }
     }
 }
 
@@ -183,10 +221,18 @@ static void animation_arm(int32_t angle, uint32_t duration_ms) {
 
 static void skip_track(int32_t direction) {
     // Only start the animation when we are not already animating
+    s_was_paused = s_is_paused;
+    s_is_paused = true;
+    s_progress_pixels = 0;
     if(s_skip_value == 0 && !s_animating_disk_change && !s_animating_arm_change) {
         animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     }
     s_skip_value += direction;
+    // TODO REMOVE DEMO
+    if(direction == SKIP_DIRECTION_NEXT)
+        get_new_track();
+    else
+        get_last_track();
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
@@ -205,6 +251,7 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     s_is_paused = !s_is_paused;
     if(s_is_paused) {
         tick_timer_service_subscribe(MINUTE_UNIT, music_tick);
+        animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     } else {
         tick_timer_service_subscribe(SECOND_UNIT, music_tick);
     }
@@ -339,9 +386,8 @@ static void music_window_load(Window *window) {
     s_curr_disk_color = GColorWindsorTan;
     s_curr_disk_pos = RECORD_CENTER;
     s_progress_pixels = 25;
-    s_artist = "The Beatles";
-    s_track = "Maxwell's Silver Hammer";
-    s_length = 207;
+    s_trackcounter = 2;
+    get_new_track();
     s_progress = 44;
     s_arm_angle = ARM_HOME_ANGLE;
     s_old_arm_angle = -1;

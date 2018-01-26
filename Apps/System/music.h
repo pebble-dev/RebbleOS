@@ -15,7 +15,7 @@
 #define BTN_UP_PRESS     3
 #define BTN_DOWN_PRESS   4
 
-static void status_tick(struct tm *tick_time, TimeUnits tick_units);
+static void music_tick(struct tm *tick_time, TimeUnits tick_units);
 static void implementation_setup(Animation *animation);
 static void implementation_update(Animation *animation, 
                                   const AnimationProgress distance_normalized);
