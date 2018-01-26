@@ -23,6 +23,10 @@
 #define ARM_HOME_ANGLE 0
 #define ARM_START_ANGLE 18
 #define ARM_END_ANGLE 46
+#define INITIAL_ARM_SKIP_SPEED 200
+#define ARM_QUICK_SPEED 100
+#define SKIP_DIRECTION_PREV -1
+#define SKIP_DIRECTION_NEXT 1
 static Window *s_main_window;
 static Layer *s_main_layer;
 ActionBarLayer *s_action_bar;
@@ -32,19 +36,19 @@ static n_GPath *arm_1_path_ptr;
 static n_GPath *arm_2_path_ptr;
 static n_GPath *arm_head_path_ptr;
 
-static const n_GPathInfo ARM_BASE_PATH_INFO = {    
+static const n_GPathInfo ARM_BASE_PATH_INFO = {
     .num_points = 2,
     .points = (n_GPoint[]) {{0, -3}, {0, 3}}
 };
-static const n_GPathInfo ARM_1_PATH_INFO = {    
+static const n_GPathInfo ARM_1_PATH_INFO = {
     .num_points = 2,
     .points = (n_GPoint[]) {{0, -3}, {0, -3-19}}
 };
-static const n_GPathInfo ARM_2_PATH_INFO = {    
+static const n_GPathInfo ARM_2_PATH_INFO = {
     .num_points = 2,
     .points = (n_GPoint[]) {{0, -3-19}, {19, -3-19-15}}
 };
-static const n_GPathInfo ARM_HEAD_PATH_INFO = {    
+static const n_GPathInfo ARM_HEAD_PATH_INFO = {
     .num_points = 2,
     .points = (n_GPoint[]) {{19, -3-19-14}, {19+9, -3-19-15-6}}
 };
@@ -67,10 +71,10 @@ bool animating_disk_change;
 bool animating_arm_change;
 Animation *s_animation_record_ptr;
 Animation *s_animation_arm_ptr;
-uint32_t arm_angle;
-uint32_t old_arm_angle;
-uint32_t animation_start_arm_angle;
-uint32_t animation_end_arm_angle;
+int32_t arm_angle;
+int32_t old_arm_angle;
+int32_t animation_start_arm_angle;
+int32_t animation_end_arm_angle;
 
 static struct tm s_last_time;
 
@@ -80,12 +84,14 @@ static void status_tick(struct tm *tick_time, TimeUnits tick_units ){
     layer_mark_dirty(s_main_layer);
 }
 
-static void implementation_setup(Animation *animation) {
+static void implementation_record_setup(Animation *animation) {
     animating_disk_change = true;
     // TODO set next_disk_color based on title + artist,
     // to let each track have the same color between sessions
     // Avoid color black and white (Changing the stroke color would be an alternative)
     next_disk_color =  (GColor8) { .argb = ((rand() % 0b00111111) + 0b11000000)  };
+
+    // Set the initial positions for our two animated records
     if(skip_value > 0){
         next_disk_pos = GPoint(RECORD_CENTER_X + RECORD_SWOOSH_DISTANCE, RECORD_CENTER_Y);
     } else {
@@ -93,49 +99,40 @@ static void implementation_setup(Animation *animation) {
     }
 }
 
-static void implementation_update(Animation *animation, 
+static void implementation_record_update(Animation *animation,
                                   const AnimationProgress distance_normalized) {
-
     if(skip_value > 0) {
         curr_disk_pos = GPoint(ANIM_LERP(curr_disk_pos.x, RECORD_CENTER_X - RECORD_SWOOSH_DISTANCE, distance_normalized), RECORD_CENTER_Y);
-        next_disk_pos = GPoint(ANIM_LERP(next_disk_pos.x, RECORD_CENTER_X, distance_normalized),                          RECORD_CENTER_Y);
     } else {
         curr_disk_pos = GPoint(ANIM_LERP(curr_disk_pos.x, RECORD_CENTER_X + RECORD_SWOOSH_DISTANCE, distance_normalized), RECORD_CENTER_Y);
-        next_disk_pos = GPoint(ANIM_LERP(next_disk_pos.x, RECORD_CENTER_X, distance_normalized),                          RECORD_CENTER_Y);
     }
-
+    next_disk_pos =     GPoint(ANIM_LERP(next_disk_pos.x, RECORD_CENTER_X, distance_normalized),                          RECORD_CENTER_Y);
     layer_mark_dirty(s_main_layer);
 }
 
-static void implementation_teardown(Animation *animation) {
+static void implementation_record_teardown(Animation *animation) {
+    // Now that the animation is done, our next disk becomes the current one
     curr_disk_color = next_disk_color;
     curr_disk_pos = next_disk_pos;
+    // We successfully skipped, reduce the skip value
     if (skip_value > 0) {
         skip_value--;
     } else if (skip_value < 0) {
         skip_value++;
     }
     if(skip_value != 0) {
+        // There's more skipping to be done, just leave the arm and continue swapping
         animation_record();
     } else {   
+        // We are done, move the arm to the start position
+        // TODO actually dont when paused
         animating_disk_change = false;
-        animation_end_arm_angle = ARM_START_ANGLE;
         animating_arm_change = true;
-        animation_arm(100);
+        animation_arm(ARM_START_ANGLE, ARM_QUICK_SPEED);
     }
 }
 
 static void animation_record() {
-    animation_destroy(s_animation_record_ptr);
-    s_animation_record_ptr = animation_create();
-    animation_set_duration(s_animation_record_ptr, RECORD_SWOOSH_SPEED);
-    const AnimationImplementation implementation = {
-        .setup = implementation_setup,
-        .update = implementation_update,
-        .teardown = implementation_teardown
-    };
-    animation_set_implementation(s_animation_record_ptr, &implementation);
-    //animation_set_curve(s_animation_record_ptr, AnimationCurveEaseInOut);
     animation_schedule(s_animation_record_ptr);
 }
 
@@ -144,12 +141,9 @@ static void implementation_arm_setup(Animation *animation) {
     animating_arm_change = true;
 }
 
-static void implementation_arm_update(Animation *animation, 
-                                  const AnimationProgress distance_normalized) {
-    if(animation_start_arm_angle > animation_end_arm_angle)
-        arm_angle = animation_start_arm_angle - ANIM_LERP(animation_end_arm_angle, animation_start_arm_angle, distance_normalized);
-    else
-        arm_angle = ANIM_LERP(animation_start_arm_angle, animation_end_arm_angle, distance_normalized);
+static void implementation_arm_update(Animation *animation,
+                                      const AnimationProgress distance_normalized) {
+    arm_angle = ANIM_LERP(animation_start_arm_angle, animation_end_arm_angle, distance_normalized);
     layer_mark_dirty(s_main_layer);
 }
 
@@ -157,8 +151,9 @@ static void implementation_arm_teardown(Animation *animation) {
     animating_arm_change = false;
     if(skip_value != 0) {
         if(arm_angle != ARM_HOME_ANGLE) {
-            animation_end_arm_angle = ARM_HOME_ANGLE;
-            animation_arm(100);
+            // Skip value is not 0, so it means we are still skipping,
+            // we are not at home, so quickly move the arm to make room
+            animation_arm(ARM_HOME_ANGLE, ARM_QUICK_SPEED);
         } else {
             // If we were just back on our trip back home, animate the record change
             animation_record();
@@ -166,39 +161,34 @@ static void implementation_arm_teardown(Animation *animation) {
     }
 }
 
-static void animation_arm(uint32_t duration_ms) {
-    s_animation_arm_ptr = animation_create();
+static void animation_arm(int32_t angle, uint32_t duration_ms) {
+    // TODO Instead of taking a fixed duration set a duration based on the distance
+    animation_end_arm_angle = angle;
     animation_set_duration(s_animation_arm_ptr, duration_ms);
-    const AnimationImplementation implementation = {
-        .setup = implementation_arm_setup,
-        .update = implementation_arm_update,
-        .teardown = implementation_arm_teardown
-    };
-    animation_set_implementation(s_animation_arm_ptr, &implementation);
-    //animation_set_curve(s_animation_arm_ptr, AnimationCurveEaseInOut);
     animation_schedule(s_animation_arm_ptr);
+}
+
+static void skip_track(int32_t direction) {
+    // Only start the animation when we are not already animating
+    if(skip_value == 0 && !animating_disk_change && !animating_arm_change) {
+        animation_arm(ARM_HOME_ANGLE, INITIAL_ARM_SKIP_SPEED);
+    }
+    skip_value += direction;
 }
 
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO Switch between volume and skipping
-    if(skip_value == 0 && !animating_disk_change && !animating_arm_change) {
-        animation_end_arm_angle = ARM_HOME_ANGLE;
-        animation_arm(200);
-    }
-    skip_value--;
+    skip_track(SKIP_DIRECTION_PREV);
 }
 
 static void down_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO Switch between volume and skipping
-    if(skip_value == 0 && !animating_disk_change && !animating_arm_change) {
-        animation_end_arm_angle = ARM_HOME_ANGLE;
-        animation_arm(200);
-    }
-    skip_value++;
+    skip_track(SKIP_DIRECTION_NEXT);
 }
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO Toggle between toggling volume && skipping and play pause
+    // When paused, move arm to side
 }
 
 static void click_config_provider(void *context) {
@@ -228,12 +218,17 @@ void draw_record(GContext *ctx, GPoint record_center_point, GColor record_color)
     //graphics_draw_arc(ctx, GRect(RECORD_CENTER_X, RECORD_CENTER_Y,30,30), DEG_TO_TRIGANGLE(0), DEG_TO_TRIGANGLE(90));
 }
 
-void draw_arm(GContext *ctx, uint32_t angle) {
+void destroy_paths() {
+    n_gpath_destroy(arm_base_path_ptr);
+    n_gpath_destroy(arm_1_path_ptr);
+    n_gpath_destroy(arm_2_path_ptr);
+    n_gpath_destroy(arm_head_path_ptr);
+}
+
+void draw_arm(GContext *ctx, int32_t angle) {
     if(angle != old_arm_angle) {
-        n_gpath_destroy(arm_base_path_ptr);
-        n_gpath_destroy(arm_1_path_ptr);
-        n_gpath_destroy(arm_2_path_ptr);
-        n_gpath_destroy(arm_head_path_ptr);
+        // Only recalculate the points if the angle has changed
+        destroy_paths();
         arm_base_path_ptr = n_gpath_create(&ARM_BASE_PATH_INFO);
         arm_1_path_ptr    = n_gpath_create(&ARM_1_PATH_INFO);
         arm_2_path_ptr    = n_gpath_create(&ARM_2_PATH_INFO);
@@ -242,10 +237,11 @@ void draw_arm(GContext *ctx, uint32_t angle) {
         n_gpath_move_to(arm_1_path_ptr,    ARM_OFFSET);
         n_gpath_move_to(arm_2_path_ptr,    ARM_OFFSET);
         n_gpath_move_to(arm_head_path_ptr, ARM_OFFSET);
-        n_gpath_rotate_to(arm_base_path_ptr, TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE));
-        n_gpath_rotate_to(arm_1_path_ptr,    TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE));
-        n_gpath_rotate_to(arm_2_path_ptr,    TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE));
-        n_gpath_rotate_to(arm_head_path_ptr, TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE));
+        int32_t calculated_angle = TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE);
+        n_gpath_rotate_to(arm_base_path_ptr, calculated_angle);
+        n_gpath_rotate_to(arm_1_path_ptr,    calculated_angle);
+        n_gpath_rotate_to(arm_2_path_ptr,    calculated_angle);
+        n_gpath_rotate_to(arm_head_path_ptr, calculated_angle);
         old_arm_angle = arm_angle;
     }
     n_graphics_context_set_stroke_caps(ctx, false);
@@ -295,10 +291,9 @@ static void main_layer_update_proc(Layer *layer, GContext *ctx) {
         draw_arm(ctx, arm_angle);
     }
     // Draw bar
-    #define BAR_HEIGHT 102
-    graphics_fill_rect(ctx, GRect(4, BAR_HEIGHT, 105, 6), 1, n_GCornersAll);
+    graphics_fill_rect(ctx, GRect(4, 102, 105, 6), 1, n_GCornersAll);
     graphics_context_set_fill_color(ctx, curr_disk_color);
-    graphics_fill_rect(ctx, GRect(5,BAR_HEIGHT + 1, progress_pixels, 4), 0, GCornerNone);
+    graphics_fill_rect(ctx, GRect(5, 103, progress_pixels, 4), 0, GCornerNone);
 }
 
 static void music_window_load(Window *window) {
@@ -320,6 +315,24 @@ static void music_window_load(Window *window) {
     s_main_layer = layer_create(bounds);
     layer_add_child(window_layer, s_main_layer);
 
+    s_animation_record_ptr = animation_create();
+    animation_set_duration(s_animation_record_ptr, RECORD_SWOOSH_SPEED);
+    const AnimationImplementation implementation_record = {
+        .setup = implementation_record_setup,
+        .update = implementation_record_update,
+        .teardown = implementation_record_teardown
+    };
+    animation_set_implementation(s_animation_record_ptr, &implementation_record);
+    //animation_set_curve(s_animation_record_ptr, AnimationCurveEaseInOut);
+    s_animation_arm_ptr = animation_create();
+    const AnimationImplementation implementation_arm = {
+        .setup = implementation_arm_setup,
+        .update = implementation_arm_update,
+        .teardown = implementation_arm_teardown
+    };
+    animation_set_implementation(s_animation_arm_ptr, &implementation_arm);
+    //animation_set_curve(s_animation_arm_ptr, AnimationCurveEaseInOut);
+    
     s_action_bar = action_bar_layer_create();
     s_up_bitmap = gbitmap_create_with_resource(21);
     s_down_bitmap = gbitmap_create_with_resource(25);
@@ -340,6 +353,9 @@ static void music_window_unload(Window *window) {
     gbitmap_destroy(s_up_bitmap);
     gbitmap_destroy(s_down_bitmap);
     gbitmap_destroy(s_select_bitmap);
+    animation_destroy(s_animation_record_ptr);
+    animation_destroy(s_animation_arm_ptr);
+    destroy_paths();
 }
 
 void music_init(void) {
