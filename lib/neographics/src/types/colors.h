@@ -25,10 +25,10 @@
 #define n_GColorWhiteARGB8                 ((uint8_t)   0b11111111)
 #define n_GColorWhite                      ((n_GColor) { .argb = (n_GColorWhiteARGB8) })
 
-#define n_GColorLightGrayARGB8             ((uint8_t)   0b11010101)
+#define n_GColorLightGrayARGB8             ((uint8_t)   0b11101010)
 #define n_GColorLightGray                  ((n_GColor) { .argb = (n_GColorLightGrayARGB8) })
 
-#define n_GColorDarkGrayARGB8              ((uint8_t)   0b11101010)
+#define n_GColorDarkGrayARGB8              ((uint8_t)   0b11010101)
 #define n_GColorDarkGray                   ((n_GColor) { .argb = (n_GColorDarkGrayARGB8) })
 
 #define n_GColorBlackARGB8                 ((uint8_t)   0b11000000)
