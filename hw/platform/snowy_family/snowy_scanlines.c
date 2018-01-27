@@ -38,8 +38,8 @@ void _scanline_convert_row(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t r
         r1_fullbyte = frame_buffer[row_offset + xi];
         r0_fullbyte = frame_buffer[row_offset + xi + 1];
         
-        lsb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
-        msb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
+        lsb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
+        msb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
             
         out_buffer[xi/2] = lsb;
         out_buffer[(xi/2) + DISPLAY_COLS / 2] = msb;
@@ -73,8 +73,8 @@ void _scanline_convert_column(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_
         r0_fullbyte = frame_buffer[column_index + i];
         r1_fullbyte = frame_buffer[column_index + i + DISPLAY_COLS];
         
-        lsb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
-        msb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
+        lsb = (r0_fullbyte & (0b00101010)) >> 1 | (r1_fullbyte & (0b00101010));
+        msb = (r0_fullbyte & (0b00010101)) | (r1_fullbyte & (0b00010101)) << 1;
         
         out_buffer[pos_half_lsb] = lsb;
         out_buffer[pos_half_msb] = msb;

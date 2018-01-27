@@ -47,9 +47,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
                 // we should assume that it is full opaque
                 uint8_t alpha_val = (i >= alen ? 0xFF : alpha[i]);
                 uint8_t pal = n_GColorFromRGBA(palette[i].r, palette[i].g, palette[i].b, alpha_val).argb;
-                
-                // bits are different endian. quickly swap the bits
-                pal = (((uint8_t)pal & 0x55) << 1) | (((uint8_t)pal & 0xAA) >> 1);
+
                 conv_palettes[i].argb = pal;
             }
             free(bitmap->palette);
