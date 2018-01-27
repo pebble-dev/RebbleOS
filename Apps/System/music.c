@@ -183,6 +183,12 @@ static void implementation_record_teardown(Animation *animation) {
     }
 }
 
+static const AnimationImplementation implementation_record = {
+    .setup = implementation_record_setup,
+    .update = implementation_record_update,
+    .teardown = implementation_record_teardown
+};
+
 static void animation_record() {
     animation_schedule(s_animation_record_ptr);
 }
@@ -211,6 +217,12 @@ static void implementation_arm_teardown(Animation *animation) {
         }
     }
 }
+
+static const AnimationImplementation implementation_arm = {
+    .setup = implementation_arm_setup,
+    .update = implementation_arm_update,
+    .teardown = implementation_arm_teardown
+};
 
 static void animation_arm(int32_t angle, uint32_t duration_ms) {
     // TODO Instead of taking a fixed duration set a duration based on the distance
@@ -398,19 +410,9 @@ static void music_window_load(Window *window) {
 
     s_animation_record_ptr = animation_create();
     animation_set_duration(s_animation_record_ptr, RECORD_SWOOSH_SPEED);
-    const AnimationImplementation implementation_record = {
-        .setup = implementation_record_setup,
-        .update = implementation_record_update,
-        .teardown = implementation_record_teardown
-    };
     animation_set_implementation(s_animation_record_ptr, &implementation_record);
     //animation_set_curve(s_animation_record_ptr, AnimationCurveEaseInOut);
     s_animation_arm_ptr = animation_create();
-    const AnimationImplementation implementation_arm = {
-        .setup = implementation_arm_setup,
-        .update = implementation_arm_update,
-        .teardown = implementation_arm_teardown
-    };
     animation_set_implementation(s_animation_arm_ptr, &implementation_arm);
     //animation_set_curve(s_animation_arm_ptr, AnimationCurveEaseInOut);
     
