@@ -59,8 +59,6 @@ typedef struct Animation
     TickType_t startticks;
     AnimationImplementation impl;
     struct AnimationHandler *anim_handlers;
-    
-    PropertyAnimation *property_anim;
 } Animation;
 
 typedef struct AnimationHandler
@@ -74,7 +72,9 @@ typedef AnimationProgress(* AnimationCurveFunction)(AnimationProgress linear_dis
 
 // animation
 Animation *animation_create();
+void animation_ctor(Animation* animation);
 bool animation_destroy(Animation *animation);
+void animation_dtor(Animation* animation);
 Animation *animation_clone(Animation *from);
 Animation *animation_sequence_create(Animation *animation_a, Animation *animation_b, Animation *animation_c, ...);
 Animation *animation_sequence_create_from_array(Animation ** animation_array, uint32_t array_len);

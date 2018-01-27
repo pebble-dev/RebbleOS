@@ -127,6 +127,18 @@ GPoint layer_convert_point_to_screen(const Layer *layer, GPoint point)
     return point;
 }
 
+GPoint layer_get_bounds_origin(Layer* layer)
+{
+    return layer->bounds.origin;
+}
+
+void layer_set_bounds_origin(Layer* layer, GPoint origin) {
+    if (!POINT_EQ(layer->bounds.origin, origin)) {
+        layer->bounds.origin = origin;
+        layer_mark_dirty(layer);
+    }
+}
+
 void layer_set_frame(Layer *layer, GRect frame)
 {
     if (!RECT_EQ(layer->frame, frame)) {

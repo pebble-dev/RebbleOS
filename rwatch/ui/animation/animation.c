@@ -31,8 +31,13 @@ Animation *animation_create()
     SYS_LOG("animation", APP_LOG_LEVEL_INFO, "animation_create");
     
     Animation *anim = app_calloc(1, sizeof(Animation));
+    animation_ctor(anim);
     
     return anim;
+}
+
+void animation_ctor(Animation* animation)
+{
 }
 
 bool animation_destroy(Animation *anim)
@@ -40,9 +45,14 @@ bool animation_destroy(Animation *anim)
     if (!anim)
         return false;
     
+    animation_dtor(anim);
     app_free(anim);
     
     return true;
+}
+
+void animation_dtor(Animation* animation)
+{
 }
 
 void _animation_update(Animation *anim)
@@ -75,7 +85,7 @@ void _animation_update(Animation *anim)
     progress /= anim->duration;
     
     if (anim->impl.update)
-        anim->impl.update(anim->property_anim != NULL ? anim->property_anim : anim, (uint32_t) progress);
+        anim->impl.update(anim, (uint32_t) progress);
     
     anim->onqueue = 1;
     appmanager_timer_add(&anim->timer);

@@ -15,16 +15,11 @@ void property_animation_update_grect(PropertyAnimation * property_animation, con
 {
     if (property_animation->impl.accessors.getter.grect != NULL && property_animation->impl.accessors.setter.grect != NULL)
     {
-        Layer *layer = (Layer *) property_animation->subject;
-        
-        GRect getter_value = property_animation->impl.accessors.getter.grect(layer);
-        GRect *from = &getter_value;
+        GRect *from = (GRect *) property_animation->values.from;
         GRect *to = (GRect *) property_animation->values.to;
         
         GRect new_rect = GRect(LERP(from->origin.x, to->origin.x), LERP(from->origin.y, to->origin.y), LERP(from->size.w, to->size.w), LERP(from->size.h, to->size.h));
-        
-        if (property_animation->impl.accessors.setter.grect)
-            property_animation->impl.accessors.setter.grect(layer, new_rect);
+        property_animation->impl.accessors.setter.grect(property_animation->subject, new_rect);
     }
 }
 
@@ -32,15 +27,11 @@ void property_animation_update_gpoint(PropertyAnimation * property_animation, co
 {
     if (property_animation->impl.accessors.getter.gpoint != NULL && property_animation->impl.accessors.setter.gpoint != NULL)
     {
-        Layer *layer = (Layer *) property_animation->subject;
-        
-        GPoint getter_value = property_animation->impl.accessors.getter.gpoint(layer);
-        GPoint *from = &getter_value;
+        GPoint *from = (GPoint *) property_animation->values.from;
         GPoint *to = (GPoint *) property_animation->values.to;
         
         GPoint new_origin = GPoint(LERP(from->x, from->x), LERP(from->y, to->y));
-        if (property_animation->impl.accessors.setter.gpoint)
-            property_animation->impl.accessors.setter.gpoint(layer, new_origin);
+        property_animation->impl.accessors.setter.gpoint(property_animation->subject, new_origin);
     }
 }
 
@@ -48,13 +39,10 @@ void property_animation_update_int16(PropertyAnimation * property_animation, con
 {
     if (property_animation->impl.accessors.getter.int16 != NULL && property_animation->impl.accessors.setter.int16 != NULL)
     {
-        int16_t *int16 = (int16_t *) property_animation->subject;
-        
-        int16_t getter_value = property_animation->impl.accessors.getter.int16(int16);
-        int16_t *from = &getter_value;
+        int16_t *from = (int16_t *) property_animation->values.from;
         int16_t *to = (int16_t *) property_animation->values.to;
         
-        property_animation->impl.accessors.setter.int16(int16, LERP(from, to));
+        property_animation->impl.accessors.setter.int16(property_animation->subject, LERP(*from, *to));
     }
 }
 
@@ -62,14 +50,10 @@ void property_animation_update_uint32(PropertyAnimation * property_animation, co
 {
     if (property_animation->impl.accessors.getter.uint32 != NULL && property_animation->impl.accessors.setter.uint32 != NULL)
     {
-        uint32_t *uint32 = (uint32_t *) property_animation->subject;
-    
-        uint32_t getter_value = property_animation->impl.accessors.getter.uint32(uint32);
-        uint32_t *from = &getter_value;
-        uint32_t *to = &property_animation->values.to;
-    
-        if (property_animation->impl.accessors.setter.uint32)
-            property_animation->impl.accessors.setter.uint32(uint32, LERP(from, to));
+        uint32_t *from = (uint32_t *) property_animation->values.from;
+        uint32_t *to = (uint32_t *) property_animation->values.to;
+        
+        property_animation->impl.accessors.setter.uint32(property_animation->subject, LERP(*from, *to));
     }
 }
 
@@ -77,10 +61,7 @@ void property_animation_update_gcolor8(PropertyAnimation * property_animation, c
 {
     if (property_animation->impl.accessors.getter.gcolor != NULL && property_animation->impl.accessors.setter.gcolor != NULL)
     {
-        GColor8 *gcolor = (GColor8 *) property_animation->subject;
-        
-        GColor8 getter_value = property_animation->impl.accessors.getter.gcolor(gcolor);
-        GColor8 *from = &getter_value;
+        GColor8 *from = (GColor8 *) property_animation->values.from;
         GColor8 *to = (GColor8 *) property_animation->values.to;
         
         GColor8 new_gcolor = *from;
@@ -89,14 +70,13 @@ void property_animation_update_gcolor8(PropertyAnimation * property_animation, c
         new_gcolor.b = LERP(from->b, to->b);
         new_gcolor.a = LERP(from->a, to->a);
         
-        if (property_animation->impl.accessors.setter.gcolor)
-            property_animation->impl.accessors.setter.gcolor(gcolor, new_gcolor);
+        property_animation->impl.accessors.setter.gcolor(property_animation->subject, new_gcolor);
     }
 }
 
 static void property_animation_teardown(Animation * animation)
 {
-    property_animation_destroy(animation->property_anim);
+    property_animation_destroy((PropertyAnimation*) animation);
 }
 
 PropertyAnimation * property_animation_create_layer_frame(struct Layer * layer, GRect * from_frame, GRect * to_frame)
@@ -124,8 +104,8 @@ PropertyAnimation * property_animation_create_bounds_origin(struct Layer * layer
             .teardown = (AnimationTeardownImplementation) property_animation_teardown,
         },
         .accessors = {
-            .setter = { .gpoint = layer_get_bounds },
-            .getter = { .gpoint = layer_get_bounds },
+            .setter = { .gpoint = (GPointSetter) layer_set_bounds_origin },
+            .getter = { .gpoint = (GPointGetter) layer_get_bounds_origin },
         },
     };
     
@@ -139,11 +119,9 @@ PropertyAnimation * property_animation_create(const PropertyAnimationImplementat
     SYS_LOG("property_animation", APP_LOG_LEVEL_INFO, "property_animation_create");
     
     PropertyAnimation *property_animation = app_calloc(1, sizeof(PropertyAnimation));
-    Animation *animation = animation_create();
+    animation_ctor(&property_animation->animation);
     
-    property_animation->animation = animation;
-    property_animation->animation->property_anim = property_animation;
-    property_animation->animation->impl = implementation->base;
+    property_animation->animation.impl = implementation->base;
     property_animation->impl = *implementation;
     property_animation->subject = subject;
     
@@ -156,12 +134,12 @@ PropertyAnimation * property_animation_create(const PropertyAnimationImplementat
 
 Animation * property_animation_get_animation(PropertyAnimation * property_animation)
 {
-    return property_animation->animation;
+    return &property_animation->animation;
 }
 
 void property_animation_destroy(PropertyAnimation *property_animation)
 {
-    animation_destroy(property_animation->animation);
+    animation_dtor(&property_animation->animation);
     app_free(property_animation);
 }
 

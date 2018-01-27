@@ -46,6 +46,9 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer);
 void layer_mark_dirty(Layer *layer);
 GRect layer_get_bounds(Layer *layer);
 GPoint layer_convert_point_to_screen(const Layer *layer, GPoint point);
+GPoint layer_get_bounds_origin(Layer* layer); // Not in the original API, but necessary for property_animation
+void layer_set_bounds_origin(Layer* layer, GPoint origin);
+GPoint layer_convert_point_to_screen(const Layer *layer, GPoint point); //TODO
 GRect layer_convert_rect_to_screen(const Layer *layer, GRect rect); //TODO
 struct Window *layer_get_window(const Layer *layer);
 void layer_remove_from_parent(Layer *child);

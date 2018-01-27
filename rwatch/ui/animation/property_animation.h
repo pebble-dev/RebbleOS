@@ -60,7 +60,7 @@ typedef struct PropertyAnimationImplementation
 
 typedef struct PropertyAnimation
 {
-    Animation *animation;
+    Animation animation;
     struct
     {
         void *from;
