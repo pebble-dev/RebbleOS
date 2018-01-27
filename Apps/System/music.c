@@ -171,12 +171,9 @@ static void implementation_record_teardown(Animation *animation) {
         animation_record();
     } else {   
         // We are done, move the arm to the start position
-        // TODO actually dont when paused
         s_animating_disk_change = false;
-        if(!s_is_paused || !s_was_paused) {
-            if(!s_was_paused){
-                s_is_paused = false;
-            }
+        if(!s_was_paused) {
+            s_is_paused = false;
             s_animating_arm_change = true;
             animation_arm(ARM_START_ANGLE, ARM_QUICK_SPEED);
         }
@@ -233,7 +230,8 @@ static void animation_arm(int32_t angle, uint32_t duration_ms) {
 
 static void skip_track(int32_t direction) {
     // Only start the animation when we are not already animating
-    s_was_paused = s_is_paused;
+    if(!s_animating_arm_change && !s_animating_disk_change)
+        s_was_paused = s_is_paused;
     s_is_paused = true;
     s_progress_pixels = 0;
     if(s_skip_value == 0 && !s_animating_disk_change && !s_animating_arm_change) {
