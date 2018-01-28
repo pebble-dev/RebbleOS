@@ -264,6 +264,7 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context) {
         animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     } else {
         tick_timer_service_subscribe(SECOND_UNIT, music_tick);
+        animation_arm(ARM_START_ANGLE + s_progress * (ARM_END_ANGLE - ARM_START_ANGLE) / s_length, ARM_SKIP_SPEED);
     }
 }
 
