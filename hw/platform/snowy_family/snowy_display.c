@@ -548,7 +548,6 @@ void _snowy_display_SPI_end(void)
  */
 void _snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
-    stm32_power_request(STM32_POWER_AHB1, display.clock_display);
     _snowy_display_request_clocks();
 
     _snowy_display_cs(1);
