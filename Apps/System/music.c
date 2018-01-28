@@ -245,6 +245,13 @@ static void skip_track(int32_t direction) {
         get_last_track();
 }
 
+static void pop_notification_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    music_deinit();
+    window_stack_pop(true);
+    appmanager_app_start("System");
+}
+
 static void up_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO Switch between volume and skipping
     skip_track(SKIP_DIRECTION_PREV);
@@ -272,7 +279,8 @@ static void click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) up_click_handler);
     window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) down_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) select_click_handler);
-    
+    window_single_click_subscribe(BUTTON_ID_BACK, (ClickHandler) pop_notification_click_handler);
+
     window_set_click_context(BUTTON_ID_UP, s_action_bar);
     window_set_click_context(BUTTON_ID_DOWN, s_action_bar);
     window_set_click_context(BUTTON_ID_SELECT, s_action_bar);
@@ -406,6 +414,8 @@ static void music_window_load(Window *window) {
     s_main_layer = layer_create(bounds);
     s_is_paused = false;
     layer_add_child(window_layer, s_main_layer);
+    s_animating_arm_change = false;
+    s_animating_disk_change = false;
 
     s_animation_record_ptr = animation_create();
     animation_set_duration(s_animation_record_ptr, RECORD_SWOOSH_SPEED);
