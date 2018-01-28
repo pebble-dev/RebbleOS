@@ -16,10 +16,10 @@
 #define BTN_DOWN_PRESS   4
 
 static void music_tick(struct tm *tick_time, TimeUnits tick_units);
-static void implementation_setup(Animation *animation);
-static void implementation_update(Animation *animation, 
+static void implementation_record_setup(Animation *animation);
+static void implementation_record_update(Animation *animation, 
                                   const AnimationProgress distance_normalized);
-static void implementation_teardown(Animation *animation);
+static void implementation_record_teardown(Animation *animation);
 static void animation_record();
 static void implementation_arm_setup(Animation *animation);
 static void implementation_arm_update(Animation *animation, 
