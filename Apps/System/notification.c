@@ -18,7 +18,6 @@ static NotificationWindow *notif_window;
 
 void notif_init(void)
 {
-    printf("init\n");
     char *app = "RebbleOS";
     char *title = "Test Alert";
     char *body = "Testing a basic notification on RebbleOS. Create it using notification_window_create, with an app_name, title, body, and optional icon.";

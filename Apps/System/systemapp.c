@@ -81,7 +81,6 @@ static void exit_to_watchface(struct Menu *menu, void *context)
 
 static void systemapp_window_load(Window *window)
 {
-    printf("WF load\n");
     Layer *window_layer = window_get_root_layer(s_main_window);
 #ifdef PBL_RECT
     s_menu = menu_create(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16));
@@ -121,7 +120,6 @@ static void systemapp_window_unload(Window *window)
 
 void systemapp_init(void)
 {
-    printf("init\n");
     s_main_window = window_create();
 
     window_set_window_handlers(s_main_window, (WindowHandlers) {
@@ -148,7 +146,6 @@ void systemapp_tick(void)
 {
     struct tm *tick_time = rbl_get_tm();
     
-    printf("system\n");
     // Store time
     s_last_time.hours = tick_time->tm_hour;
     s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;

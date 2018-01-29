@@ -8,16 +8,17 @@
 
 #include "librebble.h"
 #include "ngfxwrap.h"
+#include "node_list.h"
 
-// Top node on the doubly linked list
-window_node *top_window;
+node_t *_window_list_head;
 
 /*
  * Create a new top level window and all of the contents therein
  */
-Window *window_create()
+Window *window_create(void)
 {
-    Window *window = app_calloc(1, sizeof(Window));
+    Window *window = calloc(1, sizeof(Window));
+    
     if (window == NULL)
     {
         SYS_LOG("window", APP_LOG_LEVEL_ERROR, "No memory for Window");
@@ -28,7 +29,7 @@ Window *window_create()
     
     window->root_layer = layer_create(bounds);
     window->background_color = GColorWhite;
-    
+
     return window;
 }
 
@@ -44,7 +45,7 @@ void window_set_window_handlers(Window *window, WindowHandlers handlers)
 }
 
 static void push_animation_setup(Animation *animation) {
-    printf(APP_LOG_LEVEL_INFO, "Animation started!");
+    SYS_LOG("window", APP_LOG_LEVEL_INFO, "Animation started!");
     
     /*Window *top = top_window->window;
     Layer *previous = top_window->previous->window->root_layer;
@@ -56,8 +57,8 @@ static void push_animation_update(Animation *animation,
     // Animate some completion variable
     int s_animation_percent = ((int)progress * 100) / ANIMATION_NORMALIZED_MAX;
     
-    Window *top = top_window->window;
-    Layer *previous = top_window->previous->window->root_layer;
+//     Window *wind = (Window*)(_window_list_head->data);
+//     Layer *previous = top_window->previous->window->root_layer;
     /*
     previous->bounds = GRect(0 - ((DISPLAY_COLS / 100) * s_animation_percent), previous->bounds.origin.y, previous->bounds.size.w, previous->bounds.size.h);
     top->root_layer->bounds = GRect(DISPLAY_COLS - ((DISPLAY_COLS / 100) * s_animation_percent), top->root_layer->bounds.origin.y, top->root_layer->bounds.size.w, top->root_layer->bounds.size.h);*/
@@ -66,9 +67,9 @@ static void push_animation_update(Animation *animation,
 }
 
 static void push_animation_teardown(Animation *animation) {
-    printf(APP_LOG_LEVEL_INFO, "Animation finished!");
-    Layer *previous = top_window->previous->window->root_layer;
-    layer_remove_from_parent(previous);
+    SYS_LOG("window", APP_LOG_LEVEL_INFO, "Animation finished!");
+//     Layer *previous = top_window->previous->window->root_layer;
+//     layer_remove_from_parent(previous);
     //layer_add_child(previous, prev)
 }
 
@@ -77,22 +78,7 @@ static void push_animation_teardown(Animation *animation) {
  */
 void window_stack_push(Window *window, bool animated)
 {
-    // Make it's node in the doubly linked list
-    window_node *node = app_calloc(1, sizeof(window_node));
-    if (node == NULL)
-    {
-        SYS_LOG("window", APP_LOG_LEVEL_ERROR, "No memory for window_node");
-        return NULL;
-    }
-    node->window = window;
-    node->previous = top_window;
-    top_window->next = node;
-    node->next = NULL;
-    
-    window->node = node;
-    
-    // Make it the top
-    top_window = node;
+    node_add(&_window_list_head, window);
     
     if (animated)
     {
@@ -110,7 +96,7 @@ void window_stack_push(Window *window, bool animated)
         // Play the animation
         //animation_schedule(animation);
     }
-    
+    window_configure();
     window_dirty(true);
 }
 
@@ -119,11 +105,10 @@ void window_stack_push(Window *window, bool animated)
  */
 Window * window_stack_pop(bool animated)
 {
-    window_stack_remove(top_window->window, animated);
+    Window *wind = window_stack_get_top_window();
+    window_stack_remove(wind, animated);
     
-    return top_window->window;
-    
-    window_dirty(true);
+    return wind;
 }
 
 /*
@@ -131,22 +116,8 @@ Window * window_stack_pop(bool animated)
  */
 bool window_stack_remove(Window *window, bool animated)
 {
-    // Can't remove the root!
-    if (window->node->previous == NULL) {
-        return false;
-    }
-    
-    window->node->next->previous = window->node->previous;
-    
-    window->node->previous->next = window->node->next;
-    
-    if (window->node == top_window)
-    {
-        top_window = window->node->previous;
-    }
-    
-    app_free(window->node);
-    
+    node_remove(&_window_list_head, window);
+
     return true;
 }
 
@@ -155,7 +126,34 @@ bool window_stack_remove(Window *window, bool animated)
  */
 Window * window_stack_get_top_window(void)
 {
-    return top_window->window;
+    node_t *cur = _window_list_head;
+    
+    if (_window_list_head == NULL)
+        return NULL;    
+       
+    /* fast forward to the node we want to find */
+    while(cur != NULL && cur->next != NULL)
+        cur = cur->next;
+    return (Window *)cur->data;
+}
+
+uint16_t window_count(void)
+{
+    uint16_t count = 0;
+    node_t *cur = _window_list_head;
+    
+    if (_window_list_head == NULL)
+        return 0;
+    
+    /* fast forward to the node we want to find */
+    while(cur != NULL && cur->next != NULL)
+    {
+        cur = cur->next;
+        count++;
+    }
+    SYS_LOG("window", APP_LOG_LEVEL_INFO, "COUNT %d", count);
+    
+    return count + 1;
 }
 
 /*
@@ -163,17 +161,8 @@ Window * window_stack_get_top_window(void)
  */
 bool window_stack_contains_window(Window *window)
 {
-    window_node *node = top_window;
-    
-    // Loop through all window nodes
-    while (node->previous != NULL)
-    {
-        if (node == window)
-        {
-            return true;
-        }
-        node = node->previous;
-    }
+    if (node_find(&_window_list_head, window) != NULL)
+        return true;
     
     return false;
 }
@@ -206,28 +195,38 @@ Layer *window_get_root_layer(Window *window)
  */
 void window_dirty(bool is_dirty)
 {
-    if (top_window->window->is_render_scheduled != is_dirty)
+    Window *wind = window_stack_get_top_window();
+    
+    if (wind == NULL)
+        return;
+    
+    if (wind->is_render_scheduled != is_dirty)
     {
-        top_window->window->is_render_scheduled = is_dirty;
+        wind->is_render_scheduled = is_dirty;
         
         if (is_dirty)
             appmanager_post_draw_message();
     }
 }
 
-void window_draw() {
-    if (top_window->window && top_window->window->is_render_scheduled)
+void window_draw()
+{
+    Window *wind = window_stack_get_top_window();
+    
+    if (wind == NULL)
+        return;
+    if (wind && wind->is_render_scheduled)
     {
         GContext *context = rwatch_neographics_get_global_context();
-        GRect frame = layer_get_frame(top_window->window->root_layer);
+        GRect frame = layer_get_frame(wind->root_layer);
         context->offset = frame;
-        context->fill_color = top_window->window->background_color;
+        context->fill_color = wind->background_color;
         graphics_fill_rect_app(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
         
-        walk_layers(top_window->window->root_layer, context);
+        walk_layers(wind->root_layer, context);
         
         rbl_draw();
-        top_window->window->is_render_scheduled = false;
+        wind->is_render_scheduled = false;
     }
 }
 
@@ -313,19 +312,28 @@ void window_set_click_context(ButtonId button_id, void *context)
  * These will call through to the pointers to the functions in
  * the user supplied window
  */
+void window_configure(void)
+{
+    // we assume they are configured now
+    rbl_window_load_proc();
+    rbl_window_load_click_config();
+}
+
 void rbl_window_load_proc(void)
 {
-    // TODO
-    // we are not tracking app root windows yet, just share out the top_window for now
-    if (top_window->window->window_handlers.load)
-        top_window->window->window_handlers.load(top_window->window);
+    Window *wind = window_stack_get_top_window();
+    
+    if (_window_list_head && wind->window_handlers.load)
+        wind->window_handlers.load(wind);
 }
 
 void rbl_window_load_click_config(void)
 {
-    if (top_window->window->click_config_provider) {
-        void* context = top_window->window->click_config_context ? top_window->window->click_config_context : top_window->window;
-        top_window->window->click_config_provider(context);
+    Window *wind = window_stack_get_top_window();
+    
+    if (wind->click_config_provider) {
+        void* context = wind->click_config_context ? wind->click_config_context : wind;
+        wind->click_config_provider(context);
     }
 }
 

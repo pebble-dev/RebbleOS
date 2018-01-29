@@ -386,9 +386,7 @@ void app_event_loop(void)
         window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
     }
     
-    // we assume they are configured now
-    rbl_window_load_proc();
-    rbl_window_load_click_config();
+    window_configure();
     
     // Install our own handler to hijack the long back press
     //window_long_click_subscribe(BUTTON_ID_BACK, 1100, back_long_click_handler, back_long_click_release_handler);
@@ -753,8 +751,9 @@ void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
 {
     // Pop windows off
     Window *popped = window_stack_pop(true);
-    printf("POPPED! WAS THIS THE ROOT? %d\n", popped->node->previous == NULL);
-    if (popped->node->previous == NULL)
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Window Count: %d", window_count());
+    
+    if (window_count() == 0)
     {
         appmanager_app_start("System");
     }

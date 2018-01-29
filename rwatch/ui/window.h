@@ -50,18 +50,10 @@ typedef struct Window
     bool is_render_scheduled;
     //bool on_screen : 1;
     bool is_loaded;
-    window_node *node;
     //bool overrides_back_button : 1;
     //bool is_fullscreen : 1;
     //const char *debug_name;
 } Window;
-
-struct window_node {
-    Window *window;
-    struct window_node *previous;
-    struct window_node *next;
-};
-
 
 // Window management
 Window *window_create();
@@ -91,8 +83,6 @@ bool window_stack_contains_window(Window *window);
 Window * window_stack_get_top_window(void);
 
 void window_draw();
-
-
 void rbl_window_load_proc(void);
 void rbl_window_load_click_config(void);
 

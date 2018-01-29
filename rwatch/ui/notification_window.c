@@ -124,7 +124,6 @@ static void pop_notification_click_handler(ClickRecognizerRef recognizer, void *
     
     window_stack_pop(true);
     window_dirty(true);
-    appmanager_app_start("System");
 }
 
 static void click_config_provider(void *context)
@@ -275,7 +274,7 @@ void window_stack_push_notification(Notification *notification)
     notification_window->active->next = notification;
     notification_window->active = notification;
     
-    SYS_LOG("notification_window", APP_LOG_LEVEL_DEBUG, "PUSHING NOTIF %s ON TOP OF %s", notification->app_name, notification->previous->app_name);
+    SYS_LOG("notification_window", APP_LOG_LEVEL_DEBUG, "PUSHING NOTIF %s ON TOP OF %s", notification->app_name, notification->previous == NULL ? "NO WINDOW" : notification->previous->app_name);
     
     // Show the notification_window if not already pushed
     if (!window_stack_contains_window(notification_window->window))
