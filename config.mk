@@ -91,6 +91,7 @@ SRCS_all += rcore/log.c
 SRCS_all += rcore/resource.c
 SRCS_all += rcore/heap_app.c
 SRCS_all += rcore/watchdog.c
+SRCS_all += rcore/node_list.c
 
 SRCS_all += rwatch/librebble.c
 SRCS_all += rwatch/ngfxwrap.c
