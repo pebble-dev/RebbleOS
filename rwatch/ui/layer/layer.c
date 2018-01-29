@@ -25,6 +25,7 @@ Layer *layer_create(GRect frame)
     layer->frame = frame;
     layer->child = NULL;
     layer->sibling = NULL;
+    layer->parent = NULL;
     
     return layer;
 }
@@ -72,6 +73,7 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
     if (parent_layer->child == NULL)
     {
         parent_layer->child = child_layer;
+        child_layer->parent = parent_layer;
         return;
     }
     
@@ -197,8 +199,17 @@ void layer_insert_node(Layer *layer_to_insert, Layer *sibling_layer, bool below)
 
 void layer_remove_node(Layer *to_be_removed)
 {
+    Layer *parent = layer_find_parent(to_be_removed, to_be_removed->parent);
     // remove our node by pointing next to parents next, jumping over us
-    to_be_removed->parent->sibling = to_be_removed->sibling;
+
+    if (parent->sibling == to_be_removed)
+    {
+        parent->sibling = to_be_removed->sibling;
+    }
+    else if (parent->child == to_be_removed)
+    {
+        parent->child = to_be_removed->child;
+    }
     to_be_removed->sibling = NULL;
 }
 
@@ -244,9 +255,7 @@ void layer_apply_frame_offset(const Layer *layer, GContext *context)
 Layer *layer_find_parent(Layer *orig_layer, Layer *layer)
 {
     if (layer)
-    {
-        if (layer->sibling == NULL && layer->sibling == NULL)
-        
+    {       
         if (layer->sibling == orig_layer || layer->child == orig_layer)
         {
             return layer;
@@ -270,6 +279,7 @@ void layer_delete_tree(Layer *layer)
 {
     if(layer)
     {
+        SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "DTREE");
         layer_delete_tree(layer->child);
         layer_delete_tree(layer->sibling);
         app_free(layer);
