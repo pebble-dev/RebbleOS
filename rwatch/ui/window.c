@@ -29,6 +29,7 @@ Window *window_create(void)
     
     window->root_layer = layer_create(bounds);
     window->background_color = GColorWhite;
+    window->is_loaded = false;
 
     return window;
 }
@@ -323,8 +324,10 @@ void rbl_window_load_proc(void)
 {
     Window *wind = window_stack_get_top_window();
     
-    if (_window_list_head && wind->window_handlers.load)
+    if (_window_list_head && wind->window_handlers.load && !wind->is_loaded) {
         wind->window_handlers.load(wind);
+        wind->is_loaded = true;
+    }
 }
 
 void rbl_window_load_click_config(void)
