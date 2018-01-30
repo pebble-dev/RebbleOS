@@ -8,6 +8,7 @@
 #include "librebble.h"
 #include "scroll_layer.h"
 #include "utils.h"
+#include "property_animation.h"
 
 #define BUTTON_REPEAT_INTERVAL_MS 600
 #define CLICK_SCROLL_AMOUNT 16
@@ -97,12 +98,13 @@ void scroll_layer_set_content_offset(ScrollLayer *scroll_layer, GPoint offset, b
     GSize slayer_size = layer_get_frame(scroll_layer->layer).size;
     GRect frame = layer_get_frame(scroll_layer->content_sublayer);
     
-    scroll_layer->scroll_offset = GRect(CLAMP(offset.x, slayer_size.w - frame.size.w, 0),
-                                 CLAMP(offset.y, slayer_size.h - frame.size.h, 0),
+    scroll_layer->prev_scroll_offset = scroll_layer->scroll_offset;
+    scroll_layer->scroll_offset = GRect(CLAMP(offset.x, -frame.size.w, slayer_size.w),
+                                 CLAMP(offset.y, -frame.size.h, slayer_size.h),
                                  frame.size.w,
                                  frame.size.h);
     
-    scroll_layer->animation = property_animation_create_layer_frame(scroll_layer->content_sublayer, &frame, &scroll_layer->scroll_offset);
+    scroll_layer->animation = property_animation_create_layer_frame(scroll_layer->content_sublayer, &scroll_layer->prev_scroll_offset, &scroll_layer->scroll_offset);
     Animation *anim = property_animation_get_animation(scroll_layer->animation);
     animation_set_duration(anim, 100);
     animation_schedule(anim);
@@ -117,7 +119,9 @@ GPoint scroll_layer_get_content_offset(ScrollLayer *scroll_layer)
 void scroll_layer_set_content_size(ScrollLayer *scroll_layer, GSize size)
 {
     GRect frame = layer_get_frame(scroll_layer->content_sublayer);
-    layer_set_frame(scroll_layer->content_sublayer, GRect(frame.origin.x, frame.origin.y, size.w, size.h));
+    frame.size = size;
+    layer_set_frame(scroll_layer->content_sublayer, frame);
+    scroll_layer->scroll_offset = scroll_layer->prev_scroll_offset = frame;
     // calling set_offset to ensure that offset is clamped to current size
     scroll_layer_set_content_offset(scroll_layer, frame.origin, false);
 }

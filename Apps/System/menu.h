@@ -11,6 +11,7 @@
 #include "librebble.h"
 #include "menu_layer.h"
 
+struct Menu;
 struct MenuItem;
 struct MenuItems;
 

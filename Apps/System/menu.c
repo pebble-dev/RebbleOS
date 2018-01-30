@@ -61,14 +61,19 @@ static void select_click_callback(MenuLayer *menu_layer, MenuIndex *index, Menu 
 
 static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *index, Menu *menu)
 {
-#ifdef PBL_RECT
     MenuItem *item = &menu->items->items[index->row];
     GBitmap *gbitmap = gbitmap_create_with_resource(item->image_res_id);
+#ifdef PBL_RECT
     menu_cell_basic_draw(ctx, cell_layer, item->text, item->sub_text, gbitmap);
-    gbitmap_destroy(gbitmap);
 #else
-    menu_cell_chalk_draw(ctx, menu_get_layer(menu), menu->items->items[(index->row) - 1].text, &menu->items->items[index->row], menu->items->items[(index->row) + 1].text);
+    // The main menu on chalk has left text alignment and icons, but has to be shifted to the right
+    static const int16_t rightShift = 20;
+    GRect frame = layer_get_frame(cell_layer);
+    frame.origin.x += rightShift;
+    menu_cell_basic_draw_ex(ctx, frame, item->text, item->sub_text, gbitmap, GTextAlignmentLeft);
+    frame.origin.x -= rightShift;
 #endif
+    gbitmap_destroy(gbitmap);
 }
 
 

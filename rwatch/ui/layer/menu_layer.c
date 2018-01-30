@@ -5,6 +5,7 @@
  */
 #include "menu_layer.h"
 #include "menu.h"
+#include "utils.h"
 
 extern void graphics_draw_bitmap_in_rect(GContext *, GBitmap *, GRect);
 
@@ -31,6 +32,13 @@ MenuLayer *menu_layer_create(GRect frame)
     mlayer->bg_hi_color = GColorBlack;
     mlayer->fg_color = GColorBlack;
     mlayer->fg_hi_color = GColorWhite;
+
+    mlayer->isBottomPaddingEnabled = true;
+#ifdef PBL_RECT
+    mlayer->isCenterFocused = false;
+#else
+    mlayer->isCenterFocused = true;
+#endif
 
     layer_set_update_proc(mlayer->layer, menu_layer_update_proc);
 
@@ -107,47 +115,47 @@ static MenuCellSpan *get_cell_span(MenuLayer *menu_layer, const MenuIndex *index
 {
     // TODO: optimize, binary search should be enough
     for (size_t cell = 0; cell < menu_layer->cells_count; ++cell)
-        if (menu_index_compare(index, &menu_layer->cells[cell].index) == 0)
+        if (menu_index_compare(index, &menu_layer->cells[cell].index) == 0 && !menu_layer->cells[cell].header)
             return &menu_layer->cells[cell];
 
     return NULL;
 }
 
-// scroll to make sure given y_position is visible
-static void scroll_to_visible(MenuLayer *menu_layer, int16_t y_position, bool animated)
-{
-    GSize size = layer_get_frame(menu_layer->layer).size;
-    GPoint offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
-#ifdef PBL_RECT
-    if (y_position + offset.y - (size.h) / 4  < 0)
-    {
-        offset.y += (size.h) / 4;
-    } else if (y_position + offset.y >= size.h)
-    {
-        offset.y = size.h - y_position - (size.h) / 4;
-    }
-#else
-    if (y_position + offset.y < 0)
-    {
-        offset.y += size.h;
-    } else if (y_position + offset.y >= size.h)
-    {
-        offset.y = size.h - y_position;
-    }
-#endif
-    scroll_layer_set_content_offset(menu_layer->scroll_layer, offset, animated);
-}
-
-static int16_t get_aligned_position(const MenuCellSpan *span, MenuRowAlign align)
+static int16_t _get_aligned_edge_position(int16_t height, MenuRowAlign align)
 {
     switch (align)
     {
         case MenuRowAlignCenter:
-            return span->y + span->h / 2;
+            return height / 2;
         case MenuRowAlignBottom:
-            return span->y + span->h;
+            return height;
         default:
-            return span->y;
+            return 0;
+    }
+}
+
+void _menu_layer_update_scroll_offset(MenuLayer* menu_layer, MenuRowAlign scroll_align, bool animated) {
+    MenuIndex index = menu_layer_get_selected_index(menu_layer);
+    MenuCellSpan *cell = get_cell_span(menu_layer, &index);
+    if (cell && scroll_align != MenuRowAlignNone)
+    {
+        if (menu_layer->isCenterFocused)
+            scroll_align = MenuRowAlignCenter;
+        GSize size = layer_get_frame(menu_layer->layer).size;
+        int16_t span_pos = cell->y + _get_aligned_edge_position(cell->h, scroll_align);
+        int16_t frame_pos = _get_aligned_edge_position(size.h, scroll_align);
+
+        int16_t full_content_height = scroll_layer_get_content_size(menu_layer->scroll_layer).h;
+        if (menu_layer->isBottomPaddingEnabled)
+            full_content_height += MENU_BOTTOM_PADDING;
+
+        GPoint new_offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
+        new_offset.y = -(span_pos - frame_pos);
+        if (menu_layer->isCenterFocused == false) {
+            int16_t min_offset = MIN(size.h - full_content_height, 0);
+            new_offset.y = CLAMP(new_offset.y, min_offset, 0);
+        }
+        scroll_layer_set_content_offset(menu_layer->scroll_layer, new_offset, animated);
     }
 }
 
@@ -156,12 +164,8 @@ void menu_layer_set_selected_index(MenuLayer *menu_layer, MenuIndex index, MenuR
     if (menu_index_compare(&menu_layer->selected, &index) != 0)
     {
         menu_layer->selected = index;
-        MenuCellSpan *cell = get_cell_span(menu_layer, &index);
-        if (cell)
-        {
-            // TODO: handle center focused
-            scroll_to_visible(menu_layer, get_aligned_position(cell, scroll_align), animated);
-        }
+        
+        _menu_layer_update_scroll_offset(menu_layer, scroll_align, animated);
         layer_mark_dirty(menu_layer->layer);
     }
 }
@@ -174,18 +178,27 @@ MenuIndex menu_layer_get_selected_index(const MenuLayer *menu_layer)
 
 void menu_layer_pad_bottom_enable(MenuLayer *menu_layer, bool enable)
 {
-    // TODO
+    if (menu_layer->isBottomPaddingEnabled != enable) {
+        menu_layer->isBottomPaddingEnabled = enable;
+
+        MenuIndex index = menu_layer->selected;
+        if (!has_next_index(menu_layer, &index, false))
+            _menu_layer_update_scroll_offset(menu_layer, MenuRowAlignCenter, false);
+    }
 }
 
 bool menu_layer_get_center_focused(MenuLayer *menu_layer)
 {
-    // TODO
-    return false;
+    return menu_layer->isCenterFocused;
 }
 
 void menu_layer_set_center_focused(MenuLayer *menu_layer, bool center_focused)
 {
-    // TODO
+    if (menu_layer->isCenterFocused != center_focused) {
+        menu_layer->isCenterFocused = center_focused;
+
+        _menu_layer_update_scroll_offset(menu_layer, MenuRowAlignCenter, false);
+    }
 }
 
 bool menu_layer_is_index_selected(const MenuLayer *menu_layer, MenuIndex *index)
@@ -252,14 +265,9 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
         for (uint16_t row = 0; row < rows; ++row)
         {
             MenuIndex index = MenuIndex(section, row);
-#ifdef PBL_RECT
-            //h = menu_layer->callbacks.get_cell_height
-                //? menu_layer->callbacks.get_cell_height(menu_layer, &index, menu_layer->context)
-                //: 44;
-            h = layer_get_frame(menu_layer->layer).size.h / 4;
-#else
-            h = layer_get_frame(menu_layer->layer).size.h;
-#endif
+            h = menu_layer->callbacks.get_cell_height
+                ? menu_layer->callbacks.get_cell_height(menu_layer, &index, menu_layer->context)
+                : MENU_CELL_BASIC_CELL_HEIGHT;
             menu_layer->cells[cell++] = MenuRow(section, row, y, h);
             y += h;
             // TODO: add space for separator
@@ -270,6 +278,7 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
     GSize size = layer_get_frame(menu_layer->layer).size;
     size.h = y;
     scroll_layer_set_content_size(menu_layer->scroll_layer, size);
+    _menu_layer_update_scroll_offset(menu_layer, MenuRowAlignCenter, false);
     layer_mark_dirty(menu_layer->layer);
 }
 
@@ -282,12 +291,12 @@ void menu_layer_set_click_config_provider(MenuLayer *menu_layer, ClickConfigProv
 
 static void down_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
 {
-    menu_layer_set_selected_next(menu_layer, false, MenuRowAlignBottom, ANIMATE_ON_CLICK);
+    menu_layer_set_selected_next(menu_layer, false, MenuRowAlignCenter, ANIMATE_ON_CLICK);
 }
 
 static void up_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
 {
-    menu_layer_set_selected_next(menu_layer, true, MenuRowAlignTop, ANIMATE_ON_CLICK);
+    menu_layer_set_selected_next(menu_layer, true, MenuRowAlignCenter, ANIMATE_ON_CLICK);
 }
 
 static void select_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
@@ -350,19 +359,15 @@ static void menu_layer_draw_cell(GContext *context, const MenuLayer *menu_layer,
                                  MenuCellSpan *span,
                                  Layer *layer)
 {
-    bool highlighted = menu_layer_is_index_selected(menu_layer, &span->index);
+    bool highlighted = menu_layer_is_index_selected(menu_layer, &span->index) && !span->header;
     graphics_context_set_fill_color(context, highlighted ? menu_layer->bg_hi_color : menu_layer->bg_color);
     graphics_context_set_text_color(context, highlighted ? menu_layer->fg_hi_color : menu_layer->fg_color);
     
     // background
-#ifdef PBL_RECT
     if (menu_layer->callbacks.draw_background)
         menu_layer->callbacks.draw_background(context, layer, highlighted, menu_layer->context);
     else
         graphics_fill_rect_app(context, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
-#else
-     graphics_fill_rect_app(context, GRect(0, (layer->frame.size.h / 2) - 45, layer->frame.size.w, 90), 0, GCornerNone);
-#endif
     
     // cell content
     if (span->header)
@@ -399,73 +404,28 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
     layer->frame = frame;
 }
 
-void menu_cell_chalk_draw(GContext *ctx, const Layer *layer, const char *previous, MenuItem *selected, const char *next)
+void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
+                          const char *subtitle, GBitmap *icon)
 {
     GRect frame = layer_get_frame(layer);
-    
-    // Draw the selected item:
-    const char *selected_title = selected->text;
-    
-    bool has_icon = selected->image_res_id == NULL ? false : true;
-    
-    if (selected_title)
-    {
-        GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-        GRect title_rect = GRect(0, has_icon ? (frame.size.h / 2) - 12 : (frame.size.h / 2) - 20, frame.size.w, 24);
-        graphics_draw_text_app(ctx, selected_title, title_font, title_rect, GTextOverflowModeTrailingEllipsis,
-                               GTextAlignmentCenter, 0);
-    }
-    const char *selected_subtitle = selected->sub_text;
-    if (selected_subtitle)
-    {
-        GFont subtitle_font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
-        n_GSize text_size = n_graphics_text_layout_get_content_size(selected_subtitle, subtitle_font);
-        GRect subtitle_rect = GRect(0, has_icon ? (frame.size.h / 2) + 12 : (frame.size.h / 2), frame.size.w, 24);
-        graphics_draw_text_app(ctx, selected_subtitle, subtitle_font, subtitle_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
-    }
-    
-    GBitmap *icon = gbitmap_create_with_resource(selected->image_res_id);
-    if (icon)
-    {
-        GSize icon_size = icon->raw_bitmap_size;
-        graphics_draw_bitmap_in_rect_app(ctx, icon, GRect((frame.size.w / 2) - (icon_size.w / 2), ((frame.size.h - icon_size.h) / 2) - 20, icon_size.w, icon_size.h));
-    }
-    
-    // Draw the previous:
-    ctx->text_color = GColorBlack;
-    if (previous)
-    {
-        GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-        n_GSize text_size = n_graphics_text_layout_get_content_size(previous, font);
-        GRect subtitle_rect = GRect(0, 20, frame.size.w, 24);
-        graphics_draw_text_app(ctx, previous, font, subtitle_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
-    }
-    
-    if (next)
-    {
-        GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-        n_GSize text_size = n_graphics_text_layout_get_content_size(next, font);
-        GRect subtitle_rect = GRect((frame.size.w / 2) - (text_size.w / 2) - 10, 135, frame.size.w, 24);
-        graphics_draw_text_app(ctx, next, font, subtitle_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
-    }
-    
-    gbitmap_destroy(icon);
+#ifdef PBL_RECT
+    menu_cell_basic_draw_ex(ctx, frame, title, subtitle, icon, MENU_DEFAULT_TEXT_ALIGNMENT);
+#else
+    // the basic cell does not support icons on chalk
+    menu_cell_basic_draw_ex(ctx, frame, title, subtitle, NULL, MENU_DEFAULT_TEXT_ALIGNMENT);
+#endif
 }
 
-void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
-                          const char *subtitle,
-                          GBitmap *icon)
+void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
+                          const char *subtitle, GBitmap *icon, GTextAlignment align)
 {
-    GRect frame = layer_get_frame(layer);
-    int16_t x = 5;
+    int16_t x = MENU_CELL_PADDING + frame.origin.x;
     if (icon)
     {
         GSize icon_size = icon->raw_bitmap_size;
         graphics_draw_bitmap_in_rect_app(ctx, icon, GRect(x, (frame.size.h - icon_size.h) / 2, icon_size.w, icon_size.h));
-        x = icon_size.w + 10;
+        x += icon_size.w + MENU_CELL_PADDING;
     }
-    
-    GTextAlignment align = GTextAlignmentLeft;
     
     bool has_subtitle = false;
     
@@ -474,7 +434,8 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
         has_subtitle = true;
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
         GRect subtitle_rect;
-       subtitle_rect = GRect(x, frame.size.h / 2 - (18 * (2 / 3)) - 3, frame.size.w - x - 5, 18);
+        subtitle_rect = GRect(x, frame.size.h / 2 - 2,
+                              frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
         graphics_draw_text_app(ctx, subtitle, font, subtitle_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
@@ -482,9 +443,10 @@ void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
     if (title)
     {
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
-        GRect title_rect = GRect(x, has_subtitle ? - frame.size.h / 2 + 16 - 3 : frame.size.h / 2 - 16, frame.size.w - x - 5, 20);
-        graphics_draw_text_app(ctx, title, title_font, title_rect, GTextOverflowModeTrailingEllipsis,
-                               align, 0);
+        GRect title_rect = GRect(x, frame.size.h / 2 - ( has_subtitle ? 26 : 18 ),
+                                 frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
+        graphics_draw_text_app(ctx, title, title_font, title_rect,
+                               GTextOverflowModeTrailingEllipsis, align, 0);
     }
 }
 
@@ -492,14 +454,12 @@ void menu_cell_title_draw(GContext *ctx, const Layer *layer, const char *title)
 {
     if (title)
     {
-#ifdef PBL_RECT
-        GTextAlignment align = GTextAlignmentLeft;
-#else
-        GTextAlignment align = GTextAlignmentCenter;
-#endif
+        GTextAlignment align = MENU_DEFAULT_TEXT_ALIGNMENT;
         GRect frame = layer_get_frame(layer);
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
-        graphics_draw_text_app(ctx, title, font, GRect(5, frame.size.h / 2 - 18, frame.size.w - 10, 28),
+        GRect title_rect = GRect(MENU_CELL_PADDING, frame.size.h / 2 - 18,
+                                 frame.size.w - 2 * MENU_CELL_PADDING, frame.size.h);
+        graphics_draw_text_app(ctx, title, font, title_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
 }
@@ -508,14 +468,12 @@ void menu_cell_basic_header_draw(GContext *ctx, const Layer *layer, const char *
 {
     if (title)
     {
-#ifdef PBL_RECT
-        GTextAlignment align = GTextAlignmentLeft;
-#else
-        GTextAlignment align = GTextAlignmentCenter;
-#endif
+        GTextAlignment align = MENU_DEFAULT_TEXT_ALIGNMENT;
         GRect frame = layer_get_frame(layer);
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
-        graphics_draw_text_app(ctx, title, font, GRect(5, frame.size.h / 2 - 7, frame.size.w - 10, 14),
+        GRect title_rect = GRect(MENU_CELL_PADDING, frame.size.h / 2 - 7,
+                                 frame.size.w - 2 * MENU_CELL_PADDING, frame.size.h);
+        graphics_draw_text_app(ctx, title, font, title_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
 }

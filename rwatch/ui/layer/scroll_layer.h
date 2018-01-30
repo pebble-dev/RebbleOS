@@ -28,6 +28,7 @@ typedef struct ScrollLayer
     Layer *content_sublayer;
     Layer *shadow_sublayer;
     PropertyAnimation *animation;
+    GRect prev_scroll_offset;
     GRect scroll_offset;
     ScrollLayerCallbacks callbacks;
     void *context;
