@@ -21,11 +21,7 @@ Layer *layer_create(GRect frame)
         SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "NO MEMORY FOR LAYER!");
         return NULL;
     }
-    layer->bounds = frame;
-    layer->frame = frame;
-    layer->child = NULL;
-    layer->sibling = NULL;
-    layer->parent = NULL;
+    layer_ctor(layer, frame);
     
     return layer;
 }
@@ -38,7 +34,21 @@ Layer *layer_create_with_data(GRect frame, size_t data_size)
     return layer;
 }
 
-void layer_destroy(Layer *layer)
+void layer_ctor(Layer* layer, GRect frame)
+{
+    layer->bounds = frame;
+    layer->frame = frame;
+    layer->child = NULL;
+    layer->sibling = NULL;
+    layer->parent = NULL;
+}
+
+void layer_destroy(Layer* layer)
+{
+    layer_dtor(layer);
+}
+
+void layer_dtor(Layer *layer)
 {
     // remove our node
     layer_remove_node(layer);

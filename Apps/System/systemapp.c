@@ -106,9 +106,11 @@ static void systemapp_window_load(Window *window)
     menu_items_add(items, MenuItem("awesome!", NULL, 20, NULL));
     menu_set_items(s_menu, items);
 
-    // Status Bar
+#ifdef PBL_RECT
+    // Status bar is only on rectangular pebbles
     status_bar = status_bar_layer_create();
     layer_add_child(menu_get_layer(s_menu), status_bar_layer_get_layer(status_bar));
+#endif
 
     //tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_handler);
 }

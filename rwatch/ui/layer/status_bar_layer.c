@@ -6,18 +6,26 @@
  */
 
 #include "librebble.h"
-#include "utils.h"
+#include "util.h"
 #include "status_bar_layer.h"
-#include "bitmap_layer.h"
-#include "graphics.h"
-#include "platform.h"
+#include "appmanager.h"
 
-static struct tm s_last_time;
+static void _draw(Layer *layer, GContext *context);
 
-static void status_tick(struct tm *tick_time, TimeUnits tick_units)
+static void _schedule_timer(StatusBarLayer* status_bar)
 {
-    // Store time
-    memcpy(&s_last_time, tick_time, sizeof(struct tm));
+    TickType_t delay = pdMS_TO_TICKS(1000 * (60 - status_bar->last_time.tm_sec));
+    status_bar->timer.when = xTaskGetTickCount() + delay;
+    appmanager_timer_add(&status_bar->timer);
+}
+
+static void _timer_callback(CoreTimer* timer) {
+    StatusBarLayer* status_bar = STRUCT_OFF(StatusBarLayer, timer, timer);
+
+    memcpy(&status_bar->last_time, rebble_time_get_tm(), sizeof(struct tm));
+    layer_mark_dirty(&status_bar->layer);
+
+    _schedule_timer(status_bar);
 }
 
 StatusBarLayer *status_bar_layer_create(void)
@@ -25,33 +33,30 @@ StatusBarLayer *status_bar_layer_create(void)
     StatusBarLayer *status_bar = (StatusBarLayer*)app_calloc(1, sizeof(StatusBarLayer));
     
     GRect frame = GRect(0, 0, DISPLAY_COLS, STATUS_BAR_LAYER_HEIGHT);
-    
-    Layer* layer = layer_create(frame);
-    // give the layer a reference back to us
-    layer->container = status_bar;
-    status_bar->layer = layer;
-    status_bar->background_color = GColorDarkGray;
-    status_bar->text_color = GColorWhite;
-    status_bar->separator_mode = StatusBarLayerSeparatorModeDotted;
-    
-    layer_set_update_proc(layer, draw);
-    
-    tick_timer_service_subscribe(MINUTE_UNIT, status_tick);
+    layer_ctor(&status_bar->layer, frame);
+    layer_set_update_proc(&status_bar->layer, _draw);
+    layer_mark_dirty(&status_bar->layer);
 
-    layer_mark_dirty(layer);
+    status_bar->background_color = GColorBlack;
+    status_bar->foreground_color = GColorWhite;
+    status_bar->separator_mode = StatusBarLayerSeparatorModeNone;
+    status_bar->text = NULL;
+    status_bar->timer.callback = _timer_callback;
+
+    memcpy(&status_bar->last_time, rebble_time_get_tm(), sizeof(struct tm));
+    _schedule_timer(status_bar);
     
     return status_bar;
 }
 
 void status_bar_layer_destroy(StatusBarLayer *status_bar)
 {
-    layer_destroy(status_bar);
-    app_free(status_bar);
+    layer_destroy(&status_bar->layer);
 }
 
 Layer *status_bar_layer_get_layer(StatusBarLayer *status_bar)
 {
-    return status_bar->layer;
+    return &status_bar->layer;
 }
 
 GColor status_bar_layer_get_background_color(StatusBarLayer *status_bar)
@@ -59,46 +64,70 @@ GColor status_bar_layer_get_background_color(StatusBarLayer *status_bar)
     return status_bar->background_color;
 }
 
-GColor status_bar_layer_get_foreground_color(StatusBarLayer * status_bar)
+GColor status_bar_layer_get_foreground_color(StatusBarLayer *status_bar)
 {
-    return status_bar->text_color;
+    return status_bar->foreground_color;
 }
 
-void status_bar_layer_set_colors(StatusBarLayer * status_bar, GColor background, GColor foreground)
+void status_bar_layer_set_colors(StatusBarLayer *status_bar, GColor background, GColor foreground)
 {
-    status_bar->background_color = background;
-    status_bar->text_color = foreground;
+    if (status_bar->background_color.argb != background.argb || status_bar->foreground_color.argb != foreground.argb) {
+        status_bar->background_color = background;
+        status_bar->foreground_color = foreground;
+        
+        layer_mark_dirty(&status_bar->layer);
+    }
 }
 
-void status_bar_layer_set_separator_mode(StatusBarLayer * status_bar_layer, StatusBarLayerSeparatorMode mode)
+void status_bar_layer_set_separator_mode(StatusBarLayer *status_bar, StatusBarLayerSeparatorMode mode)
 {
-    
+    if (status_bar->separator_mode != mode) {
+        status_bar->separator_mode = mode;
+
+        layer_mark_dirty(&status_bar->layer);
+    }
 }
 
-static void draw(Layer *layer, GContext *context)
+void status_bar_layer_set_text(StatusBarLayer *status_bar, const char *status_text)
 {
-    StatusBarLayer *status_bar = (StatusBarLayer *) layer->container;
+    status_bar->text = status_text;
+    layer_mark_dirty(&status_bar->layer);
+}
+
+static void _draw(Layer *layer, GContext *context)
+{
+    StatusBarLayer *status_bar = (StatusBarLayer *) layer;
     GRect full_bounds = layer_get_bounds(layer);
     
     // Draw the background
     graphics_context_set_fill_color(context, status_bar->background_color);
     graphics_fill_rect(context, full_bounds, 0, GCornerNone);
-    
-    // Draw the time
-    context->text_color = status_bar->text_color;
-    GFont time_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
-    
-    char time_string[8] = "";
-    
-    rcore_strftime(time_string, 8, "%R", &s_last_time);
-    printf("%s", time_string);
-    
-    GRect text_bounds = GRect((full_bounds.size.w / 2) - 10, 0, 100, 10);
-    graphics_draw_text_app(context, time_string, time_font, text_bounds, GTextOverflowModeTrailingEllipsis, n_GTextAlignmentLeft, 0);
-    
-    // TODO: Draw the separator
+
     if (status_bar->separator_mode == StatusBarLayerSeparatorModeDotted)
     {
-        
+        graphics_context_set_stroke_color(context, status_bar->foreground_color);
+        for(int i = 0; i < full_bounds.size.w; i += 2)
+        {
+            n_graphics_draw_pixel(context, n_GPoint(i, full_bounds.size.h - 2));
+        }
+    }
+    
+    // Draw the text
+    GRect text_bounds = full_bounds;
+    text_bounds.origin.y = full_bounds.size.h - 18;
+    graphics_context_set_text_color(context, status_bar->foreground_color);
+    GFont text_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
+
+    if (status_bar->text == NULL) {
+        char time_string[8];
+        rcore_strftime(time_string, 8, "%R", &status_bar->last_time);
+        printf("%s", time_string);
+
+        graphics_draw_text_app(context, time_string, text_font, text_bounds,
+                               GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
+    }
+    else {
+        graphics_draw_text_app(context, status_bar->text, text_font, text_bounds,
+                               GTextOverflowModeTrailingEllipsis, n_GTextAlignmentCenter, 0);
     }
 }
