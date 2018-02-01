@@ -17,7 +17,7 @@ RebbleOS currently can be built for `snowy` (Pebble Time and Pebble Time
 Steel) and `tintin` (Pebble and Pebble Steel).  To build RebbleOS, follow
 these steps:
 
-* Obtain a checkout of the RebbleOS source code.
+* Obtain a checkout of the RebbleOS source code.  Ensure that you have also checked out the submodules required to build the resource tree: `git submodule update --init --recursive`
 * Create a `localconfig.mk` if your cross-compiler is in an unusual location.  For instance, if you have the SDK installed in `/home/me`, add the following line to your `localconfig.mk`: `PEBBLE_TOOLCHAIN_PATH=/home/me/Pebble/SDK/pebble-sdk-4.5-linux64/arm-cs-tools/bin`.  For more information on `localconfig.mk` variables, consult the `Makefile`.
 * Build the firmware: `make`
 * If you wish to run the firmware in `qemu`, copy the resources necessary into `Resources/`.  Take a look at [Utilities/mk_resources.sh](Utilities/mk_resources.sh) for more information on that.

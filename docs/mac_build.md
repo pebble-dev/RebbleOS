@@ -4,6 +4,7 @@ The following builds RebbleOS on macOS:
 
     git clone https://github.com/ginge/FreeRTOS-Pebble.git
     cd FreeRTOS-Pebble
+    git submodule update --init --recursive
     make
 
 The Pebble SDK is a prerequisite for portions of RebbleOS. The

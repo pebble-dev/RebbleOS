@@ -58,6 +58,8 @@ define PLATFORM_template
 $(eval OBJS_$(1) = $(addprefix $(BUILD)/$(1)/,$(addsuffix .o,$(basename $(SRCS_$(1))))) )
 $(eval DEPS_$(1) = $(addprefix $(BUILD)/$(1)/,$(addsuffix .d,$(basename $(SRCS_$(1))))) )
 
+$(eval CFLAGS_$(1) = $(CFLAGS_$(1)) -I$(BUILD)/$(1)/res )
+
 -include $(DEPS_$(1))
 
 $(1): $(BUILD)/$(1)/tintin_fw.bin
@@ -68,7 +70,9 @@ $(1)_qemu: $(BUILD)/$(1)/fw.qemu_flash.bin
 $(1)_gdb:
 	$(PFX)gdb -ex 'target remote localhost:63770' -ex "sym $(BUILD)/$(1)/tintin_fw.elf"
 
-$(BUILD)/$(1)/tintin_fw.elf: $(OBJS_$(1))
+# List the resource header first to make sure it gets built first ...
+# otherwise we could get into trouble.
+$(BUILD)/$(1)/tintin_fw.elf: $(BUILD)/$(1)/res/platform_res.h $(OBJS_$(1))
 	$(call SAY,[$(1)] LD $$@)
 	@mkdir -p $$(dir $$@)
 	$(QUIET)$(CC) $(CFLAGS_$(1)) $(LDFLAGS_$(1)) -Wl,-Map,$(BUILD)/$(1)/tintin_fw.map -o $$@ $(OBJS_$(1)) $(LIBS_$(1))
@@ -97,10 +101,52 @@ $(BUILD)/$(1)/fw.qemu_flash.bin: Resources/$(1)_boot.bin $(BUILD)/$(1)/tintin_fw
 	@mkdir -p $$(dir $$@)
 	$(QUIET)cat Resources/$(1)_boot.bin $(BUILD)/$(1)/tintin_fw.bin > $(BUILD)/$(1)/fw.qemu_flash.bin
 
-.PRECIOUS: out/$(1)/tintin_fw.bin out/$(1)/tintin_fw.elf
+.PRECIOUS: $(BUILD)/$(1)/tintin_fw.bin $(BUILD)/$(1)/tintin_fw.elf
+
+# Resource build recipe.
+
+-include $(BUILD)/$(1)/res/$(1)_res.d
+
+# We have to update this first, because otherwise we don't know that we have
+# to build the qemu pbpack.
+$(BUILD)/$(1)/res/$(1)_res.d: res/$(1).json
+	@mkdir -p $$(dir $$@)
+	$(QUIET)Utilities/mkpack.py -r res -M $$< $(BUILD)/$(1)/res/$(1)_res >/dev/null
+
+# workaround for https://savannah.gnu.org/bugs/?15110
+res/$(1).json:
+	@echo "${RED}Error: platform '$(1)' doesn't have a resource definition file, and some versions of make are buggy and can't tell you this, so I told you myself.  (In particular, the version of GNU Make that Apple ships with is broken, because it's stuck in 2006, because new versions of GNU Make are GPLv3ed, and Apple are huge hosers.)  Your build might fail here, or it might fail later, but it's going to fail -- and now you've learned something new about GNU Make.${STOP}"; exit 1
+
+$(BUILD)/$(1)/res/platform_res.h: $(BUILD)/$(1)/res/$(1)_res.h
+	@rm -f $$@
+	@ln -s $(1)_res.h $$@
+
+$(BUILD)/$(1)/res/$(1)_res.h: $(BUILD)/$(1)/res/$(1)_res.pbpack
+
+$(BUILD)/$(1)/res/$(1)_res.pbpack: res/$(1).json
+	$(call SAY,[$(1)] MKPACK $$<)
+	@mkdir -p $$(dir $$@)
+	$(QUIET)Utilities/mkpack.py -r res -M -H -P $$< $(BUILD)/$(1)/res/$(1)_res
+
+# Sigh.  This is kind of gross, because it writes outside of the build/
+# directory.  On the other hand, the alternative is also pretty gross: it
+# would mean that the json file would have to refer to something like
+# "../../build/PLATFORM/res/qemu.pbpack", or something.  You gotta take it
+# somehow, I suppose.
+
+res/build/pebble-$(1).pbpack: res/qemu-tintin-images/$(QEMUSPINAME_$(1))/qemu_spi_flash.bin
+	$(call SAY,[$(1)] PBPACK_EXTRACT) # I dunno, what do *you* think we should call this step?
+	@mkdir -p $$(dir $$@)
+	$(QUIET)dd if=$$< of=$$@ bs=1 skip=$(QEMUPACKOFS_$(1)) count=$(QEMUPACKSIZE_$(1)) status=noxfer
+
+.PRECIOUS: $(BUILD)/$(1)/res/$(1)_res.pbpack
 
 endef
 $(foreach platform,$(PLATFORMS),$(eval $(call PLATFORM_template,$(platform))))
+
+ifeq ($(wildcard res/*),)
+$(warning Hmm... res/ seems to be empty.  Did you remember to 'git submodule update --init --recursive'?)
+endif
 
 # Build rules that do not depend on target parameters.
 %.bin: %.elf
@@ -118,8 +164,8 @@ $(BUILD)/version.c:
 
 clean:
 	rm -rf $(BUILD)
+	rm -rf res/build
 
 .PHONY: clean
-
 
 # XXX: still need to add rules to build a .pbz

@@ -11,5 +11,8 @@ LIBS_snowy = $(LIBS_snowy_family)
 
 QEMUFLAGS_snowy = -machine pebble-snowy-bb -cpu cortex-m4
 QEMUSPITYPE_snowy = pflash
+QEMUPACKSIZE_snowy = 512000
+QEMUPACKOFS_snowy = 3670016
+QEMUSPINAME_snowy = basalt/3.0
 
 PLATFORMS += snowy

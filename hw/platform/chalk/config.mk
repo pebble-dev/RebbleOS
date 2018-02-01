@@ -11,5 +11,8 @@ LIBS_chalk = $(LIBS_snowy_family)
 
 QEMUFLAGS_chalk = -machine pebble-s4-bb -cpu cortex-m4
 QEMUSPITYPE_chalk = pflash
+QEMUPACKSIZE_chalk = 512000
+QEMUPACKOFS_chalk = 3670016
+QEMUSPINAME_chalk = chalk/3.0
 
 PLATFORMS += chalk

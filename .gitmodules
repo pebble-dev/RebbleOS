@@ -1,0 +1,3 @@
+[submodule "res"]
+	path = res
+	url = ../../pebble-dev/RebbleOS-resources
