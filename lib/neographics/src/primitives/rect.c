@@ -207,7 +207,7 @@ static void n_graphics_fill_0rad_rect_bounded(n_GContext * ctx, n_GRect rect,
 }
 
 void n_graphics_fill_rect(n_GContext * ctx, n_GRect rect, uint16_t radius, n_GCornerMask mask) {
-    if (!(ctx->stroke_color.argb & (0b11 << 6)))
+    if (!(ctx->fill_color.argb & (0b11 << 6)))
         ;
     else if (radius == 0 || (mask & 0b1111) == 0)
         n_graphics_fill_0rad_rect_bounded(ctx, rect, 0, __SCREEN_WIDTH, 0, __SCREEN_HEIGHT);
