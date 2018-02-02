@@ -6,7 +6,7 @@
  */
 
 #include "librebble.h"
-#include "util.h"
+#include "node_list.h"
 #include "status_bar_layer.h"
 #include "appmanager.h"
 
@@ -20,7 +20,7 @@ static void _schedule_timer(StatusBarLayer* status_bar)
 }
 
 static void _timer_callback(CoreTimer* timer) {
-    StatusBarLayer* status_bar = STRUCT_OFF(StatusBarLayer, timer, timer);
+    StatusBarLayer* status_bar = container_of(timer, StatusBarLayer, timer);
 
     memcpy(&status_bar->last_time, rebble_time_get_tm(), sizeof(struct tm));
     layer_mark_dirty(&status_bar->layer);
