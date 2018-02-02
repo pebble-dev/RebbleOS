@@ -367,7 +367,7 @@ static void menu_layer_draw_cell(GContext *context, const MenuLayer *menu_layer,
     if (menu_layer->callbacks.draw_background)
         menu_layer->callbacks.draw_background(context, layer, highlighted, menu_layer->context);
     else
-        graphics_fill_rect_app(context, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
+        graphics_fill_rect(context, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
     
     // cell content
     if (span->header)
@@ -423,7 +423,7 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
     if (icon)
     {
         GSize icon_size = icon->raw_bitmap_size;
-        graphics_draw_bitmap_in_rect_app(ctx, icon, GRect(x, (frame.size.h - icon_size.h) / 2, icon_size.w, icon_size.h));
+        graphics_draw_bitmap_in_rect(ctx, icon, GRect(x, (frame.size.h - icon_size.h) / 2, icon_size.w, icon_size.h));
         x += icon_size.w + MENU_CELL_PADDING;
     }
     
@@ -436,7 +436,7 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
         GRect subtitle_rect;
         subtitle_rect = GRect(x, frame.size.h / 2 - 2,
                               frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
-        graphics_draw_text_app(ctx, subtitle, font, subtitle_rect,
+        graphics_draw_text(ctx, subtitle, font, subtitle_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
 
@@ -445,7 +445,7 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
         GRect title_rect = GRect(x, frame.size.h / 2 - ( has_subtitle ? 26 : 18 ),
                                  frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
-        graphics_draw_text_app(ctx, title, title_font, title_rect,
+        graphics_draw_text(ctx, title, title_font, title_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
 }
@@ -459,7 +459,7 @@ void menu_cell_title_draw(GContext *ctx, const Layer *layer, const char *title)
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
         GRect title_rect = GRect(MENU_CELL_PADDING, frame.size.h / 2 - 18,
                                  frame.size.w - 2 * MENU_CELL_PADDING, frame.size.h);
-        graphics_draw_text_app(ctx, title, font, title_rect,
+        graphics_draw_text(ctx, title, font, title_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
 }
@@ -473,7 +473,7 @@ void menu_cell_basic_header_draw(GContext *ctx, const Layer *layer, const char *
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
         GRect title_rect = GRect(MENU_CELL_PADDING, frame.size.h / 2 - 7,
                                  frame.size.w - 2 * MENU_CELL_PADDING, frame.size.h);
-        graphics_draw_text_app(ctx, title, font, title_rect,
+        graphics_draw_text(ctx, title, font, title_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
 }

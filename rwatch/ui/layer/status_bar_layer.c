@@ -123,11 +123,11 @@ static void _draw(Layer *layer, GContext *context)
         rcore_strftime(time_string, 8, "%R", &status_bar->last_time);
         printf("%s", time_string);
 
-        graphics_draw_text_app(context, time_string, text_font, text_bounds,
+        graphics_draw_text(context, time_string, text_font, text_bounds,
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
     }
     else {
-        graphics_draw_text_app(context, status_bar->text, text_font, text_bounds,
+        graphics_draw_text(context, status_bar->text, text_font, text_bounds,
                                GTextOverflowModeTrailingEllipsis, n_GTextAlignmentCenter, 0);
     }
 }

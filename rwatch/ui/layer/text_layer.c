@@ -109,9 +109,9 @@ void text_layer_draw(struct Layer *layer, GContext *context)
     context->fill_color = tlayer->background_color;
 
     GRect bounds = GRect(0, 0, layer->frame.size.w, layer->frame.size.h);
-    graphics_fill_rect_app(context, bounds, 0, GCornerNone);
+    graphics_fill_rect(context, bounds, 0, GCornerNone);
 
-    graphics_draw_text_app(context, tlayer->text, tlayer->font,
+    graphics_draw_text(context, tlayer->text, tlayer->font,
                        bounds, tlayer->overflow_mode,
                        tlayer->text_alignment, &tlayer->text_attributes);
 }

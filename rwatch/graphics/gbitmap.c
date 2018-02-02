@@ -382,7 +382,7 @@ void _gbitmap_set_size_pos(GBitmap *bitmap, GRect size)
  * Bitmaps will be clipped to rect
  * If rect > bitmap, bitmap will be tiled
  */
-void graphics_draw_bitmap_in_rect(GContext *ctx, GBitmap *bitmap, GRect rect)
+void r_graphics_draw_bitmap_in_rect(GContext *ctx, GBitmap *bitmap, GRect rect)
 {
     _gbitmap_set_size_pos(bitmap, rect);
     

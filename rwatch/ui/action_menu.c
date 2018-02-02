@@ -117,7 +117,7 @@ static void side_bar_update_proc(Layer *layer, GContext *nGContext)
 #ifdef PBL_RECT
     // Draw the sidebar:
     graphics_context_set_fill_color(nGContext, config->colors.background);
-    graphics_fill_rect_app(nGContext, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
+    graphics_fill_rect(nGContext, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
     
     // Draw the level:
     int index = action_menu->level_index;
@@ -153,12 +153,12 @@ static void draw_row_callback(GContext *ctx, const Layer *cell_layer,
     GTextAlignment align = GTextAlignmentLeft;
     GFont item_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
     GRect item_rect = GRect(30, frame.size.h / 2 - 16, frame.size.w - 35, 24);
-    graphics_draw_text_app(ctx, item_text, item_font, item_rect, GTextOverflowModeTrailingEllipsis, align, 0);
+    graphics_draw_text(ctx, item_text, item_font, item_rect, GTextOverflowModeTrailingEllipsis, align, 0);
 #else
     GTextAlignment align = GTextAlignmentCenter;
     GFont item_font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
     GRect item_rect = GRect(20, frame.size.h / 2 - 16, frame.size.w - 25, 24);
-    graphics_draw_text_app(ctx, item_text, item_font, item_rect, GTextOverflowModeTrailingEllipsis, align, 0);
+    graphics_draw_text(ctx, item_text, item_font, item_rect, GTextOverflowModeTrailingEllipsis, align, 0);
 #endif
 }
 

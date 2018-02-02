@@ -24,14 +24,9 @@
 #endif
 
 #define graphics_context_set_fill_color n_graphics_context_set_fill_color
-#define graphics_fill_rect n_graphics_fill_rect
 #define graphics_context_set_stroke_color n_graphics_context_set_stroke_color
 #define graphics_context_set_stroke_width n_graphics_context_set_stroke_width
 #define graphics_context_set_antialiased n_graphics_context_set_antialiased
-
-#define graphics_fill_circle n_graphics_fill_circle
-#define graphics_draw_circle n_graphics_draw_circle
-#define graphics_draw_line n_graphics_draw_line
 
 #define GColorFromRGBA n_GColorFromRGBA
 #define GColorFromRGB n_GColorFromRGB
@@ -47,7 +42,7 @@
 #define GTextAlignmentCenter n_GTextAlignmentCenter
 #define GTextAlignmentRight n_GTextAlignmentRight
 #define GTextAttributes n_GTextAttributes
-#define graphics_draw_text n_graphics_draw_text
+
 
 // math
 #define TRIG_MAX_RATIO 0xffff

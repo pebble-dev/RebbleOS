@@ -241,7 +241,7 @@ void window_draw()
         GRect frame = layer_get_frame(wind->root_layer);
         context->offset = frame;
         context->fill_color = wind->background_color;
-        graphics_fill_rect_app(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
+        graphics_fill_rect(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
         
         layer_draw(wind->root_layer, context);
         

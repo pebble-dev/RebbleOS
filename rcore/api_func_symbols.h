@@ -1,7 +1,7 @@
 #include "common.h"
 #include "rebbleos.h"
 #include "librebble.h"
-
+#include "graphics_wrapper.h"
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
 ResHandle *resource_get_handle_proxy(uint16_t resource_id);
 GFont *fonts_load_custom_font_proxy(ResHandle *handle);
@@ -829,13 +829,13 @@ unalloc114,
 unalloc115,
 unalloc116,
 unalloc117, // (VoidFunc)graphics_draw_bitmap_in_rect_app,
-(VoidFunc)graphics_draw_circle_app,
-(VoidFunc)graphics_draw_line_app,
-(VoidFunc)graphics_draw_pixel_app,
-(VoidFunc)graphics_draw_rect_app,
+(VoidFunc)graphics_draw_circle,
+(VoidFunc)graphics_draw_line,
+(VoidFunc)graphics_draw_pixel,
+(VoidFunc)graphics_draw_rect,
 unalloc122,
-(VoidFunc)graphics_fill_circle_app,
-(VoidFunc)graphics_fill_rect_app,
+(VoidFunc)graphics_fill_circle,
+(VoidFunc)graphics_fill_rect,
 unalloc125,
 unalloc126,
 unalloc127,
@@ -1021,7 +1021,7 @@ unalloc303,
 (VoidFunc)window_set_click_context,                // UNVERIFIED
 (VoidFunc)window_single_click_subscribe,           // UNVERIFIED
 (VoidFunc)window_single_repeating_click_subscribe, // UNVERIFIED
-(VoidFunc)graphics_draw_text_app,
+(VoidFunc)graphics_draw_text,
 unalloc311,
 unalloc312,
 unalloc313,

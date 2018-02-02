@@ -8,7 +8,7 @@
 #include "librebble.h"
 #include "upng.h"
 #include "png.h"
-
+#include "graphics_wrapper.h"
 
 GRect _jimmy_layer_offset(n_GContext *ctx, n_GRect rect)
 {
@@ -32,29 +32,29 @@ n_GPoint _jimmy_layer_point_offset(n_GContext *ctx, n_GPoint point)
 
 
 // void n_graphics_fill_rect_app(n_GContext * ctx, n_GRect rect, uint16_t radius, n_GCornerMask mask);
-void graphics_fill_rect_app(n_GContext * ctx, n_GRect rect, uint16_t radius, n_GCornerMask mask)
+void graphics_fill_rect(n_GContext * ctx, n_GRect rect, uint16_t radius, n_GCornerMask mask)
 {
     n_graphics_fill_rect(ctx, _jimmy_layer_offset(ctx, rect), radius, mask);
 }
 
-void graphics_fill_circle_app(n_GContext * ctx, n_GPoint p, uint16_t radius)
+void graphics_fill_circle(n_GContext * ctx, n_GPoint p, uint16_t radius)
 {
     n_graphics_fill_circle(ctx, _jimmy_layer_point_offset(ctx, p), radius);
 }
 
-void graphics_draw_circle_app(n_GContext * ctx, n_GPoint p, uint16_t radius)
+void graphics_draw_circle(n_GContext * ctx, n_GPoint p, uint16_t radius)
 {
     n_graphics_draw_circle(ctx, _jimmy_layer_point_offset(ctx, p), radius);
 }
 
-void graphics_draw_line_app(n_GContext * ctx, n_GPoint from, n_GPoint to)
+void graphics_draw_line(n_GContext * ctx, n_GPoint from, n_GPoint to)
 {
     n_graphics_draw_line(ctx, 
                          _jimmy_layer_point_offset(ctx, from), 
                          _jimmy_layer_point_offset(ctx, to));
 }
 
-void graphics_draw_text_app(
+void graphics_draw_text(
     n_GContext * ctx, const char * text, n_GFont const font, const n_GRect box,
     const n_GTextOverflowMode overflow_mode, const n_GTextAlignment alignment,
     n_GTextAttributes * text_attributes)
@@ -64,19 +64,19 @@ void graphics_draw_text_app(
                             text_attributes);
 }
 
-void graphics_draw_bitmap_in_rect_app(GContext *ctx, GBitmap *bitmap, GRect rect)
+void graphics_draw_bitmap_in_rect(GContext *ctx, GBitmap *bitmap, GRect rect)
 {
-    graphics_draw_bitmap_in_rect(ctx, bitmap, _jimmy_layer_offset(ctx, rect));
+    r_graphics_draw_bitmap_in_rect(ctx, bitmap, _jimmy_layer_offset(ctx, rect));
 }
 
 
-void graphics_draw_pixel_app(n_GContext * ctx, n_GPoint p)
+void graphics_draw_pixel(n_GContext * ctx, n_GPoint p)
 {
     n_graphics_draw_pixel(ctx, _jimmy_layer_point_offset(ctx, p));
 
 }
 
-void graphics_draw_rect_app(n_GContext * ctx, n_GRect rect, uint16_t radius, n_GCornerMask mask)
+void graphics_draw_rect(n_GContext * ctx, n_GRect rect, uint16_t radius, n_GCornerMask mask)
 {
     n_graphics_draw_rect(ctx, _jimmy_layer_offset(ctx, rect), radius, mask);
 }

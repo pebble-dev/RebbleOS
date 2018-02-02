@@ -177,7 +177,7 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
     graphics_context_set_fill_color(ctx, notification->color);
 #ifdef PBL_RECT
     GRect rect_bounds = GRect(0, 0 - offset, bounds.size.w, 35);
-    graphics_fill_rect_app(ctx, rect_bounds, 0, GCornerNone);
+    graphics_fill_rect(ctx, rect_bounds, 0, GCornerNone);
 #else
     n_graphics_fill_circle(ctx, GPoint(DISPLAY_COLS / 2, (-DISPLAY_COLS + 35) - offset), DISPLAY_COLS);
 #endif
@@ -186,7 +186,7 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
     if (icon != NULL)
     {
         GSize icon_size = icon->raw_bitmap_size;
-        graphics_draw_bitmap_in_rect_app(ctx, icon, GRect(bounds.size.w / 2 - (icon_size.w / 2), 17 - offset - (icon_size.h / 2), icon_size.w, icon_size.h));
+        graphics_draw_bitmap_in_rect(ctx, icon, GRect(bounds.size.w / 2 - (icon_size.w / 2), 17 - offset - (icon_size.h / 2), icon_size.w, icon_size.h));
     }
     
 #ifdef PBL_RECT
@@ -208,14 +208,14 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
     
     // Draw the app:
     ctx->text_color = notification->color;
-    graphics_draw_text_app(ctx, app, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), app_rect, GTextOverflowModeTrailingEllipsis, alignment, 0);
+    graphics_draw_text(ctx, app, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), app_rect, GTextOverflowModeTrailingEllipsis, alignment, 0);
     
     // Draw the title:
     ctx->text_color = GColorBlack;
-    graphics_draw_text_app(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), title_rect, GTextOverflowModeTrailingEllipsis, alignment, 0);
+    graphics_draw_text(ctx, title, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), title_rect, GTextOverflowModeTrailingEllipsis, alignment, 0);
     
     // Draw the body:
-    graphics_draw_text_app(ctx, body, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), body_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+    graphics_draw_text(ctx, body, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), body_rect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
     
     // Draw the indicator:
     graphics_context_set_fill_color(ctx, GColorBlack);
