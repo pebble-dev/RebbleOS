@@ -11,6 +11,7 @@
 #include "point.h"
 #include "rect.h"
 #include "size.h"
+#include "node_list.h"
 
 struct Layer;
 
@@ -53,6 +54,7 @@ typedef struct Window
     //bool overrides_back_button : 1;
     //bool is_fullscreen : 1;
     //const char *debug_name;
+    list_node node;
 } Window;
 
 // Window management
@@ -81,8 +83,6 @@ void window_stack_pop_all(const bool animated);
 bool window_stack_remove(Window *window, bool animated);
 bool window_stack_contains_window(Window *window);
 Window * window_stack_get_top_window(void);
-
+void window_dirty(bool is_dirty);
 void window_draw();
-void rbl_window_load_proc(void);
-void rbl_window_load_click_config(void);
-
+uint16_t window_count(void);

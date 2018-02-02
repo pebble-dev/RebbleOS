@@ -10,7 +10,11 @@
 #include "ngfxwrap.h"
 #include "node_list.h"
 
-node_t *_window_list_head;
+static list_head _window_list_head = LIST_HEAD(_window_list_head);
+
+void _window_unload_proc(Window *window);
+void _window_load_proc(Window *window);
+void _window_load_click_config(Window *window);
 
 /*
  * Create a new top level window and all of the contents therein
@@ -79,8 +83,8 @@ static void push_animation_teardown(Animation *animation) {
  */
 void window_stack_push(Window *window, bool animated)
 {
-    node_add(&_window_list_head, window);
-    
+    list_init_node(&window->node);
+    list_insert_head(&_window_list_head, &window->node);
     if (animated)
     {
         // Animate the window change
@@ -93,12 +97,13 @@ void window_stack_push(Window *window, bool animated)
             .teardown = push_animation_teardown
         };
         animation_set_implementation(animation, &implementation);
-        
+
         // Play the animation
         //animation_schedule(animation);
     }
-    window_configure();
+    window_configure(window);
     window_dirty(true);
+    window_count();
 }
 
 /*
@@ -109,6 +114,11 @@ Window * window_stack_pop(bool animated)
     Window *wind = window_stack_get_top_window();
     window_stack_remove(wind, animated);
     
+    Window *newwind = window_stack_get_top_window();
+
+    if (newwind)
+        window_configure(newwind);
+
     return wind;
 }
 
@@ -117,7 +127,7 @@ Window * window_stack_pop(bool animated)
  */
 bool window_stack_remove(Window *window, bool animated)
 {
-    node_remove(&_window_list_head, window);
+    list_remove(&_window_list_head, &window->node);
 
     return true;
 }
@@ -127,34 +137,25 @@ bool window_stack_remove(Window *window, bool animated)
  */
 Window * window_stack_get_top_window(void)
 {
-    node_t *cur = _window_list_head;
-    
-    if (_window_list_head == NULL)
-        return NULL;    
-       
-    /* fast forward to the node we want to find */
-    while(cur != NULL && cur->next != NULL)
-        cur = cur->next;
-    return (Window *)cur->data;
+    return list_elem(list_get_head(&_window_list_head), Window, node);
 }
 
 uint16_t window_count(void)
 {
     uint16_t count = 0;
-    node_t *cur = _window_list_head;
+    Window *w;
     
-    if (_window_list_head == NULL)
+    if (list_get_head(&_window_list_head) == NULL)
         return 0;
     
-    /* fast forward to the node we want to find */
-    while(cur != NULL && cur->next != NULL)
+    list_foreach(w, &_window_list_head, Window, node)
     {
-        cur = cur->next;
         count++;
     }
+    
     SYS_LOG("window", APP_LOG_LEVEL_INFO, "COUNT %d", count);
     
-    return count + 1;
+    return count;
 }
 
 /*
@@ -162,8 +163,10 @@ uint16_t window_count(void)
  */
 bool window_stack_contains_window(Window *window)
 {
-    if (node_find(&_window_list_head, window) != NULL)
-        return true;
+    Window *w;
+    list_foreach(w, &_window_list_head, Window, node)
+        if (window == w)
+            return true;
     
     return false;
 }
@@ -173,10 +176,26 @@ bool window_stack_contains_window(Window *window)
  */
 void window_destroy(Window *window)
 {
-    // free all of the layers
+    list_remove(&_window_list_head, &window->node);
+    SYS_LOG("window", APP_LOG_LEVEL_INFO, "Destroy!");
+    window_count();
+    /* Unload the window */
+    _window_unload_proc(window);
+    /* free all of the layers */
     layer_destroy(window->root_layer);
-    // and now the window
+    /* and now the window */
     app_free(window);
+    window = window_stack_get_top_window();
+    if (!window)
+    {
+        SYS_LOG("window", APP_LOG_LEVEL_INFO, "No more windows!");
+        return;
+    }
+    
+    /* Clean up the clink handler and remap back to our current window */
+    _window_load_click_config(window);
+    window_draw();
+    window_dirty(true);
 }
 
 /*
@@ -224,7 +243,7 @@ void window_draw()
         context->fill_color = wind->background_color;
         graphics_fill_rect_app(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
         
-        walk_layers(wind->root_layer, context);
+        layer_draw(wind->root_layer, context);
         
         rbl_draw();
         wind->is_render_scheduled = false;
@@ -313,30 +332,49 @@ void window_set_click_context(ButtonId button_id, void *context)
  * These will call through to the pointers to the functions in
  * the user supplied window
  */
-void window_configure(void)
+void window_configure(Window *window)
 {
     // we assume they are configured now
-    rbl_window_load_proc();
-    rbl_window_load_click_config();
+    _window_load_proc(window);
+    _window_load_click_config(window);
 }
 
-void rbl_window_load_proc(void)
+/* 
+ * Call the window's _load handler and flag as loaded
+ */
+void _window_load_proc(Window *window)
 {
-    Window *wind = window_stack_get_top_window();
-    
-    if (_window_list_head && wind->window_handlers.load && !wind->is_loaded) {
-        wind->window_handlers.load(wind);
-        wind->is_loaded = true;
-    }
+    if (window->is_loaded)
+        return;
+         
+    if (window->window_handlers.load) 
+    window->window_handlers.load(window); 
+         
+    /* we should flag as loaded even if they don't have a load handler */ 
+    window->is_loaded = true; 
+    return;
 }
 
-void rbl_window_load_click_config(void)
-{
-    Window *wind = window_stack_get_top_window();
+/* 
+ * Call the window's _unload handler and flag as unloaded
+ */
+void _window_unload_proc(Window *window) 
+{ 
+    if (!window->is_loaded)
+        return;
     
-    if (wind->click_config_provider) {
-        void* context = wind->click_config_context ? wind->click_config_context : wind;
-        wind->click_config_provider(context);
-    }
+    if (window->window_handlers.unload)
+        window->window_handlers.unload(window);
+    
+    /* we should flag as unloaded even if they don't have a load handler */
+    window->is_loaded = false;
+    return;
 }
 
+void _window_load_click_config(Window *window) 
+{    
+    if (window->click_config_provider) { 
+        void* context = window->click_config_context ? window->click_config_context : window; 
+        window->click_config_provider(context); 
+    } 
+}

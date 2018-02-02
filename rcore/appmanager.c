@@ -47,6 +47,7 @@ static StaticTask_t _app_task;
 
 static App *_running_app;
 static App *_app_manifest_head;
+void _running_app_loop(void);
 
 /* The manager thread needs only a small stack */
 #define APP_THREAD_MANAGER_STACK_SIZE 300
@@ -76,6 +77,7 @@ void appmanager_init(void)
     _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", APP_TYPE_FACE, nivz_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Settings", APP_TYPE_SYSTEM, test_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Notification", APP_TYPE_SYSTEM, notif_main, true, &empty, &empty));
+
     _app_task_handle = NULL;
     
     // now load the ones on flash
@@ -386,7 +388,7 @@ void app_event_loop(void)
         window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
     }
     
-    window_configure();
+    window_configure(window_stack_get_top_window());
     
     // Install our own handler to hijack the long back press
     //window_long_click_subscribe(BUTTON_ID_BACK, 1100, back_long_click_handler, back_long_click_release_handler);
@@ -438,10 +440,11 @@ void app_event_loop(void)
                 // remove the ticktimer service handler and stop it
                 tick_timer_service_unsubscribe();
 
+                /* Set the shutdown time for this app. We will kill it then */
+                _running_app->shutdown_at_tick = xTaskGetTickCount() + pdMS_TO_TICKS(5000);
+                
                 KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Quit");
-                // The task will die hard.
-                // TODO: BAD! The task will never call the cleanup after loop!
-                vTaskDelete(_app_task_handle);
+
                 // app was quit, break out of this loop into the main handler
                 break;
             }
@@ -463,6 +466,7 @@ void app_event_loop(void)
             timer->callback(timer);
         }
     }
+    KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Signalled shutdown...");
     // the app itself will quit now
 }
 
@@ -480,7 +484,8 @@ static void _appmanager_app_thread(void *parms)
     ApplicationHeader header;   // TODO change to malloc so we can free after load?
     char *app_name;
     AppMessage am;
-       
+    uint32_t total_app_size = 0;
+    
     for( ;; )
     {
         // Sleep waiting for the go signal. The app to start will be the parameter
@@ -598,7 +603,6 @@ static void _appmanager_app_thread(void *parms)
              * fork
                  
              */
-            uint32_t total_app_size = 0;
             struct fd fd;
             fs_open(&fd, &app->app_file);
             fs_read(&fd, &header, sizeof(ApplicationHeader));
@@ -665,58 +669,90 @@ static void _appmanager_app_thread(void *parms)
             KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Reloc:%d", header.reloc_entries_count);
             KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "VSize 0x%x", header.virtual_size);
              
-            uint32_t stack_size = MAX_APP_STACK_SIZE;
-            
-            // Get the start point of the stack in the array
-            uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - stack_size];
-            // Calculate the heap size of the remaining memory
-            uint32_t heap_size = ((MAX_APP_MEMORY_SIZE) - total_app_size) - (stack_size * 4);
-            // Where is our heap going to start. It's directly after the ap + bss
-            uint32_t *heap_entry = (uint32_t *)&app_stack_heap.byte_buf[total_app_size];
-
-            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Base %x heap %x sz %d stack %x sz %d", 
-                   app_stack_heap.word_buf,
-                   heap_entry,
-                   heap_size,
-                   stack_entry, 
-                   stack_size);
-            
-            // heap is all uint8_t
-            appHeapInit(heap_size, (void *)heap_entry);
-
-            // Let this guy do the heavy lifting!
-            _app_task_handle = xTaskCreateStatic((TaskFunction_t)&app_stack_heap.byte_buf[header.offset], 
-                                                 "dynapp", 
-                                                 stack_size, 
-                                                 NULL, 
-                                                 tskIDLE_PRIORITY + 6UL, 
-                                                 (StackType_t*) stack_entry, 
-                                                 (StaticTask_t* )&_app_task);
+            _running_app->main = (AppMainHandler)&app_stack_heap.byte_buf[header.offset];
         }
         else
         {
-            // "System" or otherwise internal apps are spawned here. They don't need loading from flash,
-            // just a reasonable entrypoint
-            // The main loop work is deferred to the app until it quits
-            appHeapInit(MAX_APP_MEMORY_SIZE - (MAX_APP_STACK_SIZE * 4), app_stack_heap.byte_buf);
-             
-            uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - MAX_APP_STACK_SIZE];
-            
-            DRV_LOG("app", APP_LOG_LEVEL_DEBUG, "Launching To the Moon!");
-            
-            _app_task_handle = xTaskCreateStatic((TaskFunction_t)_running_app->main, 
-                                                  "dynapp", 
-                                                  MAX_APP_STACK_SIZE, 
-                                                  NULL, 
-                                                  tskIDLE_PRIORITY + 6UL, 
-                                                  stack_entry, 
-                                                  &_app_task);
-
-            // around we go again
-            // TODO block while running
+            total_app_size = 0;
         }
+        
+        uint32_t stack_size = MAX_APP_STACK_SIZE;
+        
+        // Get the start point of the stack in the array
+        uint32_t *stack_entry = &app_stack_heap.word_buf[(MAX_APP_MEMORY_SIZE / 4) - stack_size];
+        // Calculate the heap size of the remaining memory
+        uint32_t heap_size = ((MAX_APP_MEMORY_SIZE) - total_app_size) - (stack_size * 4);
+        /* Where is our heap going to start. It's directly after the ap + bss */
+        uint32_t *heap_entry = (uint32_t *)&app_stack_heap.byte_buf[total_app_size];
+
+        KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Base %x heap %x sz %d stack %x sz %d", 
+                app_stack_heap.word_buf,
+                heap_entry,
+                heap_size,
+                stack_entry, 
+                stack_size);
+        
+        /* heap is all uint8_t */
+        appHeapInit(heap_size, (void *)heap_entry);
+
+        /* Load the app in a vTask */
+        _app_task_handle = xTaskCreateStatic((TaskFunction_t)_running_app_loop, 
+                                                "dynapp", 
+                                                stack_size, 
+                                                NULL, 
+                                                tskIDLE_PRIORITY + 6UL, 
+                                                (StackType_t*) stack_entry, 
+                                                (StaticTask_t* )&_app_task);
+
+        /* Sleep for the app run. We wake up periodically to see if the app 
+         * need kill -9 
+         */
+        while(1)
+        {
+            if(ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100)))
+            {
+                /* We were signalled that the app has finished */
+                KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App finished cleanly");
+                break;
+            }
+            else
+            {
+                if (_running_app->shutdown_at_tick > 0 &&
+                    xTaskGetTickCount() >= _running_app->shutdown_at_tick)
+                {
+                    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "!! Hard terminating app");
+                    /* go and process the queue */
+                    break;
+                }
+                /* app really should have died by now */
+            }
+        }
+        /* The task will die hard, but it did finish the runloop */
+        vTaskDelete(_app_task_handle);
+        _running_app->shutdown_at_tick = 0;
+        _running_app = NULL;
+        /* around we go again */
     }
 }
+
+/*
+ * We are the main entrypoint for running a task.
+ * When we are done, we notify the main thread we shutdown
+ * lest we get murdered
+ */
+void _running_app_loop(void)
+{
+    _running_app->main();
+    xTaskNotifyGive(_app_thread_manager_task_handle);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App Finished.");
+    
+    /* We are done with our app. Block until we are killed */
+    while(1)
+    {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+}
+
 
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context)
 {

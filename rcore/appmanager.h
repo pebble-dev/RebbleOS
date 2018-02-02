@@ -89,6 +89,7 @@ typedef struct ApplicationHeader {
 typedef struct App {
     uint8_t type; // this will be in flags I presume <-- it is. TODO. Hook flags up
     bool is_internal; // is the app baked into flash
+    TickType_t shutdown_at_tick;
     struct file app_file;
     struct file resource_file; // the file where we are keeping the resources for this app
     char *name;
@@ -125,8 +126,6 @@ void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
 App *appmanager_get_app(char *app_name);
 App *app_manager_get_apps_head();
-
-void rbl_window_load_proc(void);
 void app_event_loop(void);
 
 
