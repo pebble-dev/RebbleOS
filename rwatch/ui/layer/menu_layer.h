@@ -165,7 +165,11 @@ bool menu_layer_is_index_selected(const MenuLayer *menu_layer, MenuIndex *index)
 #endif
 
 #define MENU_CELL_BASIC_HEADER_HEIGHT ((const int16_t) 16)
-#define MENU_CELL_BASIC_CELL_HEIGHT ((const int16_t) DISPLAY_ROWS / 4)
+#ifdef PBL_RECT
+    #define MENU_CELL_BASIC_CELL_HEIGHT ((const int16_t) DISPLAY_ROWS / 4)
+#else
+    #define MENU_CELL_BASIC_CELL_HEIGHT ((const int16_t) DISPLAY_ROWS / 3)
+#endif
 
 #define MENU_INDEX_NOT_FOUND ((const uint16_t) ~0)
 #define MENU_CELL_ROUND_FOCUSED_SHORT_CELL_HEIGHT ((const int16_t) 68)

@@ -367,7 +367,9 @@ static void menu_layer_draw_cell(GContext *context, const MenuLayer *menu_layer,
     if (menu_layer->callbacks.draw_background)
         menu_layer->callbacks.draw_background(context, layer, highlighted, menu_layer->context);
     else
+#ifdef PBL_RECT
         graphics_fill_rect(context, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
+#endif
     
     // cell content
     if (span->header)
@@ -384,6 +386,19 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
 {
     MenuLayer *menu_layer = (MenuLayer *) layer->container;
     GRect frame = layer_get_frame(layer);
+    
+#ifndef PBL_RECT
+    if (!menu_layer->callbacks.draw_background)
+    {
+        graphics_context_set_fill_color(nGContext, menu_layer->bg_hi_color);
+        GPoint scroll_offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
+        GRect background_rect = GRect(0, 
+                              (layer->frame.size.h / 2) - (MENU_CELL_BASIC_CELL_HEIGHT / 2) - scroll_offset.y, 
+                              layer->frame.size.w, 
+                              MENU_CELL_BASIC_CELL_HEIGHT);
+        graphics_fill_rect(nGContext, background_rect, 0, GCornerNone);
+    }
+#endif
 
     for (size_t cell = 0; cell < menu_layer->cells_count; ++cell)
     {
