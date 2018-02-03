@@ -27,6 +27,8 @@ these steps:
 
 [Building on macOS](docs/mac_build.md)
 
+[Building on Windows](docs/windows_build.md)
+
 If you wish to build firmware to run on your device, you may also wish to
 consider a script like [buildfw.sh](buildfw.sh). Running RebbleOS on hardware is
 currently out of scope for this document.
