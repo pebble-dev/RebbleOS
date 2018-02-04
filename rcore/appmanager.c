@@ -669,7 +669,7 @@ static void _appmanager_app_thread(void *parms)
             KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Reloc:%d", header.reloc_entries_count);
             KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "VSize 0x%x", header.virtual_size);
              
-            _running_app->main = (AppMainHandler)&app_stack_heap.byte_buf[header.offset];
+            _running_app->main = (AppMainHandler)((uint32_t)(&app_stack_heap.byte_buf[header.offset]) | 1);
         }
         else
         {
