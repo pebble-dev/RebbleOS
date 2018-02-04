@@ -7,6 +7,7 @@
 
 #include "rebbleos.h"
 #include "librebble.h"
+#include "platform_res.h"
 
 // TODO This is still somewhat sketchy in that I'm not convinced some of these magic offsets
 // are right
@@ -86,7 +87,7 @@ void fonts_unload_custom_font(GFont font)
     app_free(font);
 }
 
-#define EQ_FONT(font) (strncmp(key, font, strlen(key)) == 0) return font ## _ID;
+#define EQ_FONT(font) (strncmp(key, "RESOURCE_ID_" #font, strlen(key)) == 0) return RESOURCE_ID_ ## font;
 
 /*
  * Load a font by a string key
@@ -101,40 +102,37 @@ uint16_t _fonts_get_resource_id_for_key(const char *key)
       
      */
     // so still seems like a bad choice, but backward compat.
-    if EQ_FONT(FONT_KEY_FONT_FALLBACK)
-    else if EQ_FONT(FONT_KEY_GOTHIC_09)
-    else if EQ_FONT(FONT_KEY_GOTHIC_14)
-    else if EQ_FONT(FONT_KEY_GOTHIC_14_BOLD)
-    else if EQ_FONT(FONT_KEY_GOTHIC_18)
-    else if EQ_FONT(FONT_KEY_GOTHIC_18_BOLD)
-    else if EQ_FONT(FONT_KEY_GOTHIC_24)
-    else if EQ_FONT(FONT_KEY_GOTHIC_24_BOLD)
-    else if EQ_FONT(FONT_KEY_GOTHIC_28)
-    else if EQ_FONT(FONT_KEY_GOTHIC_28_BOLD)
-
-    else if EQ_FONT(FONT_KEY_BITHAM_30_BLACK)
-    else if EQ_FONT(FONT_KEY_BITHAM_42_BOLD)
-    else if EQ_FONT(FONT_KEY_BITHAM_42_LIGHT)
-    else if EQ_FONT(FONT_KEY_BITHAM_42_MEDIUM_NUMBERS)
-    else if EQ_FONT(FONT_KEY_BITHAM_34_MEDIUM_NUMBERS)
-    else if EQ_FONT(FONT_KEY_BITHAM_34_LIGHT_SUBSET)
-    else if EQ_FONT(FONT_KEY_BITHAM_18_LIGHT_SUBSET)
-
-    else if EQ_FONT(FONT_KEY_ROBOTO_CONDENSED_21)
-    else if EQ_FONT(FONT_KEY_ROBOTO_BOLD_SUBSET_49)
-    else if EQ_FONT(FONT_KEY_DROID_SERIF_28_BOLD)
-
-    else if EQ_FONT(FONT_KEY_LECO_20_BOLD_NUMBERS)
-    else if EQ_FONT(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM)
-    else if EQ_FONT(FONT_KEY_LECO_28_LIGHT_NUMBERS)
-    else if EQ_FONT(FONT_KEY_LECO_32_BOLD_NUMBERS)
-    else if EQ_FONT(FONT_KEY_LECO_36_BOLD_NUMBERS)
-    else if EQ_FONT(FONT_KEY_LECO_38_BOLD_NUMBERS)
-    else if EQ_FONT(FONT_KEY_LECO_42_NUMBERS)
-
-    else if EQ_FONT(FONT_KEY_AGENCY_FB_60_THIN_NUMBERS_AM_PM)
-    else if EQ_FONT(FONT_KEY_AGENCY_FB_60_NUMBERS_AM_PM)
-    else if EQ_FONT(FONT_KEY_AGENCY_FB_36_NUMBERS_AM_PM)
-        
-    return FONT_KEY_FONT_FALLBACK_ID;
+         if EQ_FONT(AGENCY_FB_60_THIN_NUMBERS_AM_PM)
+    else if EQ_FONT(AGENCY_FB_60_NUMBERS_AM_PM)
+    else if EQ_FONT(AGENCY_FB_36_NUMBERS_AM_PM)
+    else if EQ_FONT(GOTHIC_09)
+    else if EQ_FONT(GOTHIC_14)
+    else if EQ_FONT(GOTHIC_14_BOLD)
+    else if EQ_FONT(GOTHIC_18)
+    else if EQ_FONT(GOTHIC_18_BOLD)
+    else if EQ_FONT(GOTHIC_24)
+    else if EQ_FONT(GOTHIC_24_BOLD)
+    else if EQ_FONT(GOTHIC_28)
+    else if EQ_FONT(GOTHIC_28_BOLD)
+    else if EQ_FONT(GOTHIC_36)
+    else if EQ_FONT(BITHAM_18_LIGHT_SUBSET)
+    else if EQ_FONT(BITHAM_34_LIGHT_SUBSET)
+    else if EQ_FONT(BITHAM_30_BLACK)
+    else if EQ_FONT(BITHAM_42_BOLD)
+    else if EQ_FONT(BITHAM_42_LIGHT)
+    else if EQ_FONT(BITHAM_34_MEDIUM_NUMBERS)
+    else if EQ_FONT(BITHAM_42_MEDIUM_NUMBERS)
+    else if EQ_FONT(ROBOTO_CONDENSED_21)
+    else if EQ_FONT(ROBOTO_BOLD_SUBSET_49)
+    else if EQ_FONT(DROID_SERIF_28_BOLD)
+    else if EQ_FONT(LECO_20_BOLD_NUMBERS)
+    else if EQ_FONT(LECO_26_BOLD_NUMBERS_AM_PM)
+    else if EQ_FONT(LECO_32_BOLD_NUMBERS)
+    else if EQ_FONT(LECO_36_BOLD_NUMBERS)
+    else if EQ_FONT(LECO_38_BOLD_NUMBERS)
+    else if EQ_FONT(LECO_28_LIGHT_NUMBERS)
+    else if EQ_FONT(LECO_42_NUMBERS)
+    else if EQ_FONT(FONT_FALLBACK)
+                                                                                                                                
+    return RESOURCE_ID_FONT_FALLBACK;
 }

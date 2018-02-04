@@ -11,6 +11,7 @@
 #include "bitmap_layer.h"
 #include "action_bar_layer.h"
 #include "status_bar_layer.h"
+#include "platform_res.h"
 
 const char *test_name = "Test";
 
@@ -61,9 +62,9 @@ static void test_window_load(Window *window)
     action_bar = action_bar_layer_create();
     
     // Set the icons
-    GBitmap *icon1 = gbitmap_create_with_resource(21);
-    GBitmap *icon2 = gbitmap_create_with_resource(25);
-    GBitmap *icon3 = gbitmap_create_with_resource(22);
+    GBitmap *icon1 = gbitmap_create_with_resource(RESOURCE_ID_MUSIC_PLAY);
+    GBitmap *icon2 = gbitmap_create_with_resource(RESOURCE_ID_CLOCK);
+    GBitmap *icon3 = gbitmap_create_with_resource(RESOURCE_ID_MUSIC_PAUSE);
     action_bar_layer_set_icon(action_bar, BUTTON_ID_UP, icon1);
     action_bar_layer_set_icon(action_bar, BUTTON_ID_SELECT, icon2);
     action_bar_layer_set_icon(action_bar, BUTTON_ID_DOWN, icon3);

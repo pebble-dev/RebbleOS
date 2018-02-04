@@ -10,6 +10,7 @@
 #include "menu.h"
 #include "status_bar_layer.h"
 #include "platform_config.h"
+#include "platform_res.h"
 
 extern void flash_dump(void);
 
@@ -72,7 +73,7 @@ static MenuItems* watch_list_item_selected(const MenuItem *item) {
             node = node->next;
             continue;
         }
-        menu_items_add(items, MenuItem(node->name, "", 25, app_item_selected));
+        menu_items_add(items, MenuItem(node->name, "", RESOURCE_ID_CLOCK, app_item_selected));
 
         node = node->next;
     }
@@ -102,10 +103,10 @@ static void systemapp_window_load(Window *window)
     menu_set_click_config_onto_window(s_menu, window);
 
     MenuItems *items = menu_items_create(4);
-    menu_items_add(items, MenuItem("Watchfaces", "All your faces", 25, watch_list_item_selected));
-    menu_items_add(items, MenuItem("Settings", "Move Along", 24, test_item_selected));
-    menu_items_add(items, MenuItem("Tests", NULL, 25, run_test_item_selected));
-    menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", 24, NULL));
+    menu_items_add(items, MenuItem("Watchfaces", "All your faces", RESOURCE_ID_CLOCK, watch_list_item_selected));
+    menu_items_add(items, MenuItem("Settings", "Move Along", RESOURCE_ID_SPEECH_BUBBLE, test_item_selected));
+    menu_items_add(items, MenuItem("Tests", NULL, RESOURCE_ID_CLOCK, run_test_item_selected));
+    menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", RESOURCE_ID_SPEECH_BUBBLE, NULL));
     menu_set_items(s_menu, items);
 
 #ifdef PBL_RECT

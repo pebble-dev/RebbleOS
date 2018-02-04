@@ -64,8 +64,8 @@ $(eval CFLAGS_$(1) = $(CFLAGS_$(1)) -I$(BUILD)/$(1)/res )
 
 $(1): $(BUILD)/$(1)/tintin_fw.bin
 
-$(1)_qemu: $(BUILD)/$(1)/fw.qemu_flash.bin
-	$(QEMU) -rtc base=localtime -serial null -serial null -serial stdio -gdb tcp::63770,server $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) Resources/$(1)_spi.bin $(QEMUFLAGS)
+$(1)_qemu: $(BUILD)/$(1)/fw.qemu_flash.bin $(BUILD)/$(1)/fw.qemu_spi.bin
+	$(QEMU) -rtc base=localtime -serial null -serial null -serial stdio -gdb tcp::63770,server $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) $(BUILD)/$(1)/fw.qemu_spi.bin $(QEMUFLAGS)
 
 $(1)_gdb:
 	$(PFX)gdb -ex 'target remote localhost:63770' -ex "sym $(BUILD)/$(1)/tintin_fw.elf"
@@ -127,6 +127,13 @@ $(BUILD)/$(1)/res/$(1)_res.pbpack: res/$(1).json
 	$(call SAY,[$(1)] MKPACK $$<)
 	@mkdir -p $$(dir $$@)
 	$(QUIET)Utilities/mkpack.py -r res -M -H -P $$< $(BUILD)/$(1)/res/$(1)_res
+
+$(BUILD)/$(1)/fw.qemu_spi.bin: Resources/$(1)_spi.bin $(BUILD)/$(1)/res/$(1)_res.pbpack
+	$(call SAY,[$(1)] QEMU_SPI)
+	@mkdir -p $$(dir $$@)
+	$(QUIET)cp Resources/$(1)_spi.bin $$@
+	$(QUIET)dd if=/dev/zero of=$$@ bs=1 seek=$(QEMUPACKOFS_$(1)) count=$(QEMUPACKSIZE_$(1)) conv=notrunc status=noxfer || (rm $$@; exit 1)
+	$(QUIET)dd if=$(BUILD)/$(1)/res/$(1)_res.pbpack of=$$@ bs=1 seek=$(QEMUPACKOFS_$(1)) conv=notrunc status=noxfer || (rm $$@; exit 1)
 
 # Sigh.  This is kind of gross, because it writes outside of the build/
 # directory.  On the other hand, the alternative is also pretty gross: it
