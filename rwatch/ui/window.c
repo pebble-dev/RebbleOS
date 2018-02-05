@@ -27,14 +27,19 @@ Window *window_create(void)
         SYS_LOG("window", APP_LOG_LEVEL_ERROR, "No memory for Window");
         return NULL;
     }
-    // and it's root layer
+    window_ctor(window);
+
+    return window;
+}
+
+void window_ctor(Window *window)
+{
     GRect bounds = GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS);
     
     window->root_layer = layer_create(bounds);
+    window->root_layer->window = window;
     window->background_color = GColorWhite;
     window->load_state = WindowLoadStateUnloaded;
-
-    return window;
 }
 
 /*
@@ -112,11 +117,6 @@ Window * window_stack_pop(bool animated)
 {
     Window *wind = window_stack_get_top_window();
     window_stack_remove(wind, animated);
-    
-    Window *newwind = window_stack_get_top_window();
-
-    if (newwind)
-        window_configure(newwind);
 
     return wind;
 }
@@ -126,7 +126,16 @@ Window * window_stack_pop(bool animated)
  */
 bool window_stack_remove(Window *window, bool animated)
 {
+    Window* top_window = window_stack_get_top_window();
     list_remove(&_window_list_head, &window->node);
+
+    if (top_window == window) {
+        top_window = window_stack_get_top_window();
+        if (top_window) {
+            window_configure(top_window);
+            window_dirty(true);
+        }
+    }
 
     return true;
 }
@@ -188,8 +197,7 @@ void window_destroy(Window *window)
     window_count();
     /* Unload the window */
     _window_unload_proc(window);
-    /* free all of the layers */
-    layer_destroy(window->root_layer);
+    window_dtor(window);
     /* and now the window */
     app_free(window);
     window = window_stack_get_top_window();
@@ -203,6 +211,12 @@ void window_destroy(Window *window)
     _window_load_click_config(window);
     window_draw();
     window_dirty(true);
+}
+
+void window_dtor(Window* window)
+{
+    // free all of the layers
+    layer_destroy(window->root_layer);
 }
 
 /*
@@ -387,7 +401,13 @@ void _window_unload_proc(Window *window)
 void _window_load_click_config(Window *window) 
 {    
     if (window->click_config_provider) { 
-        void* context = window->click_config_context ? window->click_config_context : window; 
+        void* context = window->click_config_context ? window->click_config_context : window;
+        for (int i = 0; i < NUM_BUTTONS; i++) {
+            window_single_click_subscribe(i, NULL);
+            window_long_click_subscribe(i, 0, NULL, NULL);
+            window_multi_click_subscribe(i, 0, 0, 0, false, NULL);
+            window_raw_click_subscribe(i, NULL, NULL, context);
+        }
         window->click_config_provider(context); 
     } 
 }

@@ -86,6 +86,7 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
     {
         parent_layer->child = child_layer;
         child_layer->parent = parent_layer;
+        child_layer->window = parent_layer->window;
         return;
     }
     
@@ -104,6 +105,7 @@ void layer_add_child(Layer *parent_layer, Layer *child_layer)
     
     child->sibling = child_layer;
     child_layer->parent = parent_layer;
+    child_layer->window = parent_layer->window;
 
     layer_mark_dirty(parent_layer);
 }
@@ -231,6 +233,7 @@ static void _layer_insert_node(Layer *layer_to_insert, Layer *sibling_layer, boo
         layer_to_insert->sibling = sibling_layer->sibling;
         sibling_layer->sibling = layer_to_insert;
     }
+    layer_to_insert->window = sibling_layer->window;
 }
 
 static void _layer_remove_node(Layer *to_be_removed)
