@@ -36,6 +36,13 @@ typedef struct WindowHandlers
     WindowHandler unload;
 } WindowHandlers;
 
+typedef enum WindowLoadState {
+    WindowLoadStateUnloaded,
+    WindowLoadStateLoading,
+    WindowLoadStateLoaded,
+    WindowLoadStateUnloading,
+} WindowLoadState;
+
 typedef struct window_node window_node;
 
 typedef struct Window
@@ -50,7 +57,7 @@ typedef struct Window
     GColor background_color;
     bool is_render_scheduled;
     //bool on_screen : 1;
-    bool is_loaded;
+    WindowLoadState load_state;
     //bool overrides_back_button : 1;
     //bool is_fullscreen : 1;
     //const char *debug_name;
@@ -83,6 +90,9 @@ void window_stack_pop_all(const bool animated);
 bool window_stack_remove(Window *window, bool animated);
 bool window_stack_contains_window(Window *window);
 Window * window_stack_get_top_window(void);
+
+void window_configure(Window *window);
 void window_dirty(bool is_dirty);
 void window_draw();
+
 uint16_t window_count(void);

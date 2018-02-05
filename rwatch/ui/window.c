@@ -1,5 +1,4 @@
-/* window.c
- * routines for [...]
+/* routines for Managing the Window object
  * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
@@ -33,7 +32,7 @@ Window *window_create(void)
     
     window->root_layer = layer_create(bounds);
     window->background_color = GColorWhite;
-    window->is_loaded = false;
+    window->load_state = WindowLoadStateUnloaded;
 
     return window;
 }
@@ -176,6 +175,14 @@ bool window_stack_contains_window(Window *window)
  */
 void window_destroy(Window *window)
 {
+    if (window->load_state != WindowLoadStateLoaded ||
+        window->load_state != WindowLoadStateUnloaded
+    )
+    {
+        SYS_LOG("window", APP_LOG_LEVEL_ERROR, "Window is either loading or unloading!!");
+        return;
+    }
+    
     list_remove(&_window_list_head, &window->node);
     SYS_LOG("window", APP_LOG_LEVEL_INFO, "Destroy!");
     window_count();
@@ -283,7 +290,7 @@ void window_set_background_color(Window *window, GColor background_color)
 
 bool window_is_loaded(Window *window)
 {
-    return window->is_loaded;
+    return window->load_state == WindowLoadStateLoaded;
 }
 
 void window_set_user_data(Window *window, void *data)
@@ -336,7 +343,8 @@ void window_configure(Window *window)
 {
     // we assume they are configured now
     _window_load_proc(window);
-    _window_load_click_config(window);
+    if (window)
+        _window_load_click_config(window);
 }
 
 /* 
@@ -344,30 +352,35 @@ void window_configure(Window *window)
  */
 void _window_load_proc(Window *window)
 {
-    if (window->is_loaded)
+    if (window->load_state == WindowLoadStateLoaded ||
+        window->load_state == WindowLoadStateLoading
+    )
         return;
-         
-    if (window->window_handlers.load) 
-    window->window_handlers.load(window); 
-         
+    
     /* we should flag as loaded even if they don't have a load handler */ 
-    window->is_loaded = true; 
-    return;
+    window->load_state = WindowLoadStateLoading;
+         
+    if (window->window_handlers.load)
+        window->window_handlers.load(window);
+    
+    window->load_state = WindowLoadStateLoaded;
 }
 
 /* 
  * Call the window's _unload handler and flag as unloaded
  */
 void _window_unload_proc(Window *window) 
-{ 
-    if (!window->is_loaded)
+{
+    if (window->load_state != WindowLoadStateLoaded)
         return;
+    
+    window->load_state = WindowLoadStateUnloading;
     
     if (window->window_handlers.unload)
         window->window_handlers.unload(window);
     
     /* we should flag as unloaded even if they don't have a load handler */
-    window->is_loaded = false;
+    window->load_state = WindowLoadStateUnloaded;
     return;
 }
 
