@@ -59,10 +59,15 @@
 /* Size of the app + stack + heap of the running app. 
    IN BYTES
  */ 
-#define MAX_APP_MEMORY_SIZE     40000
+#define MEMORY_SIZE_APP         40000
+#define MEMORY_SIZE_WORKER      10500
+#define MEMORY_SIZE_OVERLAY     3000
 
-/* Size of the stack in WORDS */
-#define MAX_APP_STACK_SIZE      2000
+/* Size of the stack in bytes */
+/* Size of the stack in bytes */
+#define MEMORY_SIZE_APP_STACK     8000
+#define MEMORY_SIZE_WORKER_STACK  500
+#define MEMORY_SIZE_OVERLAY_STACK 2000
 
 
 

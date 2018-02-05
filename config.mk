@@ -51,6 +51,7 @@ SRCS_all += lib/minilib/dprint.c
 SRCS_all += lib/minilib/fmt.c
 SRCS_all += lib/minilib/unfmt.c
 SRCS_all += lib/minilib/rand.c
+SRCS_all += lib/minilib/qalloc.c
 SRCS_all += lib/musl/time/localtime.c
 SRCS_all += lib/musl/time/localtime_r.c
 SRCS_all += lib/musl/time/mktime.c
@@ -76,6 +77,9 @@ SRCS_all += lib/pbl_strftime/src/strftime.c
 
 SRCS_all += rcore/ambient.c
 SRCS_all += rcore/appmanager.c
+SRCS_all += rcore/appmanager_app.c
+SRCS_all += rcore/appmanager_app_api.c
+SRCS_all += rcore/appmanager_app_runloop.c
 SRCS_all += rcore/backlight.c
 SRCS_all += rcore/buttons.c
 SRCS_all += rcore/display.c
@@ -92,7 +96,6 @@ SRCS_all += rcore/flash.c
 SRCS_all += rcore/fs.c
 SRCS_all += rcore/log.c
 SRCS_all += rcore/resource.c
-SRCS_all += rcore/heap_app.c
 SRCS_all += rcore/watchdog.c
 
 SRCS_all += rwatch/librebble.c

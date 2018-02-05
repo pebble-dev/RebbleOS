@@ -96,11 +96,11 @@ ResHandle resource_get_handle_app(uint32_t resource_id, const struct file *file)
 
 void resource_load_app(ResHandle resource_handle, uint8_t *buffer, const struct file *file)
 {
-    if (resource_handle.size > xPortGetFreeAppHeapSize())
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", resource_handle.size);
-        return;
-    }
+//     if (resource_handle.size > xPortGetFreeAppHeapSize())
+//     {
+//         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", resource_handle.size);
+//         return;
+//     }
     
     KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Res: Start %p", APP_RES_START + resource_handle.offset);
     
@@ -153,11 +153,11 @@ size_t resource_size(ResHandle handle)
 void resource_load_system(ResHandle resource_handle, uint8_t *buffer)
 {
     
-    if (resource_handle.size > xPortGetFreeAppHeapSize())
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Ress: malloc fail. Not enough heap for %d", resource_handle.size);
-        return;
-    }
+//     if (resource_handle.size > xPortGetFreeAppHeapSize())
+//     {
+//         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Ress: malloc fail. Not enough heap for %d", resource_handle.size);
+//         return;
+//     }
     flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
 }
 
@@ -189,11 +189,13 @@ bool _resource_is_sane(ResHandle res_handle)
         return false;
     }
     
+    
+    /* XXX TODO qalloc to implement this
     if (sz > xPortGetFreeAppHeapSize())
     {
         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", sz);
         return false;
-    }
+    }*/
     
     if (sz > 100000)
     {
@@ -284,4 +286,59 @@ uintptr_t vApplicationStartSyscall(uint16_t syscall_index)
 {
 //     printf("APP SYSCALL %d\n");
     return 0;
+}
+
+
+
+/*
+ * Cheesy proxy to get the apps slot_id
+ * When we need any resource from an app, we need a way of knowing
+ * which app it was that wanted that resource. We know which app is running, that's the apps slot
+ * 
+ */
+GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id)
+{
+    App *app = appmanager_get_current_app();
+    return gbitmap_create_with_resource_app(resource_id, &app->resource_file);
+}
+
+ResHandle resource_get_handle(uint16_t resource_id)
+{
+    App *app = appmanager_get_current_app();
+    return resource_get_handle_app(resource_id, &app->resource_file);
+}
+
+void resource_load(ResHandle resource_handle, uint8_t *buffer, uint32_t size)
+{
+    App *app = appmanager_get_current_app();
+    /* TODO: respect passed size, should we include file in ResHandle? */
+    return resource_load_app(resource_handle, buffer, &app->resource_file);
+}
+
+/* app proxies by pointer */
+ResHandle *resource_get_handle_proxy(uint16_t resource_id)
+{
+    App *app = appmanager_get_current_app();
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "ResH %d %s", resource_id, app->header->name);
+
+    // push to the heap.
+    ResHandle *x = app_malloc(sizeof(ResHandle));
+    ResHandle y = resource_get_handle_app(resource_id, &app->resource_file);
+    memcpy(x, &y, sizeof(ResHandle));
+     
+    return x;
+}
+
+GFont *fonts_load_custom_font_proxy(ResHandle *handle)
+{
+    App *app = appmanager_get_current_app();
+    return (GFont *)fonts_load_custom_font(handle, &app->resource_file);
+}
+
+
+/* XXX MOVE Some missing functionality */
+
+void p_n_grect_standardize(n_GRect r)
+{
+    n_grect_standardize(r);
 }

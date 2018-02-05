@@ -98,3 +98,4 @@ void window_dirty(bool is_dirty);
 void window_draw();
 
 uint16_t window_count(void);
+void window_configure(Window *window);
