@@ -240,7 +240,7 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
     if (menu_layer->cells_count != cells)
     {
         if (menu_layer->cells_count > 0)
-            free(menu_layer->cells);
+            app_free(menu_layer->cells);
 
         menu_layer->cells_count = cells;
         if (cells > 0)
