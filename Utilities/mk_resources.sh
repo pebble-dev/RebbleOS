@@ -9,7 +9,7 @@ fi
 if [ $# -eq 1 ];then
 	SDK=$1
 else 
-	if [ $BREW -eq 1 ];then
+	if [ ! -z "$BREW" ];then
 		SDK=$BREW_SDK
 	else
 		echo "usage: $0 SDK-path"
