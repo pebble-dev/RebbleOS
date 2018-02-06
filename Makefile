@@ -132,8 +132,8 @@ $(BUILD)/$(1)/fw.qemu_spi.bin: Resources/$(1)_spi.bin $(BUILD)/$(1)/res/$(1)_res
 	$(call SAY,[$(1)] QEMU_SPI)
 	@mkdir -p $$(dir $$@)
 	$(QUIET)cp Resources/$(1)_spi.bin $$@
-	$(QUIET)dd if=/dev/zero of=$$@ bs=1 seek=$(QEMUPACKOFS_$(1)) count=$(QEMUPACKSIZE_$(1)) conv=notrunc status=noxfer || (rm $$@; exit 1)
-	$(QUIET)dd if=$(BUILD)/$(1)/res/$(1)_res.pbpack of=$$@ bs=1 seek=$(QEMUPACKOFS_$(1)) conv=notrunc status=noxfer || (rm $$@; exit 1)
+	$(QUIET)dd if=/dev/zero of=$$@ bs=1 seek=$(QEMUPACKOFS_$(1)) count=$(QEMUPACKSIZE_$(1)) conv=notrunc || (rm $$@; exit 1)
+	$(QUIET)dd if=$(BUILD)/$(1)/res/$(1)_res.pbpack of=$$@ bs=1 seek=$(QEMUPACKOFS_$(1)) conv=notrunc || (rm $$@; exit 1)
 
 # Sigh.  This is kind of gross, because it writes outside of the build/
 # directory.  On the other hand, the alternative is also pretty gross: it
@@ -144,7 +144,7 @@ $(BUILD)/$(1)/fw.qemu_spi.bin: Resources/$(1)_spi.bin $(BUILD)/$(1)/res/$(1)_res
 res/build/pebble-$(1).pbpack: res/qemu-tintin-images/$(QEMUSPINAME_$(1))/qemu_spi_flash.bin
 	$(call SAY,[$(1)] PBPACK_EXTRACT) # I dunno, what do *you* think we should call this step?
 	@mkdir -p $$(dir $$@)
-	$(QUIET)dd if=$$< of=$$@ bs=1 skip=$(QEMUPACKOFS_$(1)) count=$(QEMUPACKSIZE_$(1)) status=noxfer
+	$(QUIET)dd if=$$< of=$$@ bs=1 skip=$(QEMUPACKOFS_$(1)) count=$(QEMUPACKSIZE_$(1))
 
 .PRECIOUS: $(BUILD)/$(1)/res/$(1)_res.pbpack
 
