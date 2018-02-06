@@ -73,7 +73,7 @@ static MenuItems* watch_list_item_selected(const MenuItem *item) {
             node = node->next;
             continue;
         }
-        menu_items_add(items, MenuItem(node->name, "", RESOURCE_ID_CLOCK, app_item_selected));
+        menu_items_add(items, MenuItem(node->name, NULL, RESOURCE_ID_CLOCK, app_item_selected));
 
         node = node->next;
     }

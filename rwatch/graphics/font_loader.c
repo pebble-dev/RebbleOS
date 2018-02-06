@@ -9,12 +9,14 @@
 #include "librebble.h"
 #include "platform_res.h"
 
+#define MAX_CACHED_COUNT 5
 // TODO This is still somewhat sketchy in that I'm not convinced some of these magic offsets
 // are right
 
 uint16_t _fonts_get_resource_id_for_key(const char *key);
 
 
+void fonts_resetcache();
 GFont fonts_get_system_font_by_resource_id(uint32_t resource_id);
 
 typedef struct GFontCache
@@ -23,8 +25,13 @@ typedef struct GFontCache
     GFont font;
 } GFontCache;
 
-static GFontCache _cached_fonts[5];
+static GFontCache _cached_fonts[MAX_CACHED_COUNT];
 static uint8_t _cached_count = 0;
+
+void fonts_resetcache()
+{
+	_cached_count=0;
+}
 
 // get a system font and then cache it. Ugh.
 // TODO make this not suck (RAM)
@@ -43,15 +50,19 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 {
     if (_cached_count == 0)
     {
-        for (uint8_t i = 0; i < 5; i++)
+        for (uint8_t i = 0; i < MAX_CACHED_COUNT; i++)
+        {
             _cached_fonts[i].resource_id = 0;
+        }
     }
     else
     {
-        for (uint8_t i = 0; i < 5; i++)
+        for (uint8_t i = 0; i < MAX_CACHED_COUNT; i++)
         {
             if (_cached_fonts[i].resource_id == resource_id)
+            {
                 return _cached_fonts[i].font;
+            }
         }
     }
 
@@ -59,10 +70,13 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 
     GFont font = (GFont)buffer;
 
-    _cached_fonts[_cached_count].resource_id = resource_id;
-    _cached_fonts[_cached_count].font = font;
-    _cached_count++;
-
+    if (_cached_count<MAX_CACHED_COUNT)
+    {
+        _cached_fonts[_cached_count].resource_id = resource_id;
+        _cached_fonts[_cached_count].font = font;
+        _cached_count++;
+    }
+    // TODO else
     return font;
 }
 
