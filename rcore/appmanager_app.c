@@ -168,7 +168,10 @@ static void _appmanager_flash_load_app_manifest(void)
        
         /* sanity check the hell out of this to make sure it's a real app */
         if (strncmp(header.header, "PBLAPP", 6))
+        {
             KERN_LOG("app", APP_LOG_LEVEL_ERROR, "No PBLAPP header!");
+            continue;
+        }
         
         
         /* it's real... so far. Lets crc check to make sure

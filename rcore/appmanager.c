@@ -501,8 +501,7 @@ void appmanager_execute_app(app_running_thread *thread, int total_app_size)
             stack_size / 4);
     
     /* heap is all uint8_t */
-    qarena_t *arena = qinit(heap_entry, heap_size);
-    _app_threads[AppThreadMainApp].arena = arena;
+    thread->arena = qinit(heap_entry, heap_size);
     
     /* Load the app in a vTask */
     thread->task_handle = xTaskCreateStatic((TaskFunction_t)thread->thread_entry, 

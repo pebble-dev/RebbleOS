@@ -184,7 +184,7 @@ bool window_stack_contains_window(Window *window)
  */
 void window_destroy(Window *window)
 {
-    if (window->load_state != WindowLoadStateLoaded ||
+    if (window->load_state != WindowLoadStateLoaded &&
         window->load_state != WindowLoadStateUnloaded
     )
     {
