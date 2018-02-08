@@ -111,7 +111,7 @@ void menu_layer_set_selected_next(MenuLayer *menu_layer, bool up, MenuRowAlign s
     menu_layer_set_selected_index(menu_layer, get_next_index(menu_layer, up), scroll_align, animated);
 }
 
-static MenuCellSpan *get_cell_span(MenuLayer *menu_layer, const MenuIndex *index)
+static MenuCellSpan *_get_cell_span(MenuLayer *menu_layer, const MenuIndex *index)
 {
     // TODO: optimize, binary search should be enough
     for (size_t cell = 0; cell < menu_layer->cells_count; ++cell)
@@ -136,7 +136,7 @@ static int16_t _get_aligned_edge_position(int16_t height, MenuRowAlign align)
 
 void _menu_layer_update_scroll_offset(MenuLayer* menu_layer, MenuRowAlign scroll_align, bool animated) {
     MenuIndex index = menu_layer_get_selected_index(menu_layer);
-    MenuCellSpan *cell = get_cell_span(menu_layer, &index);
+    MenuCellSpan *cell = _get_cell_span(menu_layer, &index);
     if (cell && scroll_align != MenuRowAlignNone)
     {
         if (menu_layer->isCenterFocused)
@@ -366,10 +366,8 @@ static void menu_layer_draw_cell(GContext *context, const MenuLayer *menu_layer,
     // background
     if (menu_layer->callbacks.draw_background)
         menu_layer->callbacks.draw_background(context, layer, highlighted, menu_layer->context);
-    else
-#ifdef PBL_RECT
+    else if (highlighted && !menu_layer->isCenterFocused)
         graphics_fill_rect(context, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
-#endif
     
     // cell content
     if (span->header)
@@ -387,19 +385,33 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
     MenuLayer *menu_layer = (MenuLayer *) layer->container;
     GRect frame = layer_get_frame(layer);
     
-#ifndef PBL_RECT
-    if (!menu_layer->callbacks.draw_background)
+    // Draw background
+    if (menu_layer->isCenterFocused)
     {
-        graphics_context_set_fill_color(nGContext, menu_layer->bg_hi_color);
         GPoint scroll_offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
-        GRect background_rect = GRect(0, 
-                              (layer->frame.size.h / 2) - (MENU_CELL_BASIC_CELL_HEIGHT / 2) - scroll_offset.y, 
-                              layer->frame.size.w, 
-                              MENU_CELL_BASIC_CELL_HEIGHT);
-        graphics_fill_rect(nGContext, background_rect, 0, GCornerNone);
-    }
-#endif
+        MenuCellSpan* focused_cell = _get_cell_span(menu_layer, &menu_layer->selected);
+        GRect cursor_rect = GRect(0, (layer->frame.size.h / 2) - (focused_cell->h / 2) - scroll_offset.y, 
+                                  layer->frame.size.w, focused_cell->h);
 
+        if (menu_layer->isCenterFocused) {
+            // draw everything except the cursor
+            graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
+            GRect background_rect = GRect(0, -scroll_offset.y, frame.size.w, cursor_rect.origin.y);
+            graphics_fill_rect(nGContext, background_rect, 0, GCornerNone);
+            background_rect = GRect(0, cursor_rect.origin.y + cursor_rect.size.h,
+                                    layer->frame.size.w, layer->frame.size.h - (cursor_rect.origin.y + cursor_rect.size.h));
+            graphics_fill_rect(nGContext, background_rect, 0, GCornerNone);
+        }
+
+        // draw the cursor
+        graphics_context_set_fill_color(nGContext, menu_layer->bg_hi_color);
+        graphics_fill_rect(nGContext, cursor_rect, 0, GCornerNone);
+    } else if (!menu_layer->callbacks.draw_background) {
+        graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
+        graphics_fill_rect(nGContext, frame, 0, GCornerNone);
+    }
+
+    // Draw cells
     for (size_t cell = 0; cell < menu_layer->cells_count; ++cell)
     {
         // TODO: only draw visible cells based on layer frame/bounds

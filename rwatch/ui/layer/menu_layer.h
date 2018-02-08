@@ -14,6 +14,14 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
 void menu_cell_title_draw(GContext *ctx, const Layer *layer, const char *title);
 void menu_cell_basic_header_draw(GContext *ctx, const Layer *layer, const char *title);
 
+//! Value to describe the reload behaviour for \ref MenuLayer.
+//! @see \ref menu_layer_set_reload_behaviour
+typedef enum {
+    MenuLayerReloadBehaviourManual = 0, //!< The data is reloaded only on manual API calls (e.g. \ref menu_layer_set_callbacks).
+    MenuLayerReloadBehaviourOnSelection, //!< The data is reloaded on every selection change (and manual API calls).
+    MenuLayerReloadBehaviourOnRender //!< The data is reloaded before every rendering.
+} MenuLayerReloadBehaviour;
+
 typedef struct MenuIndex
 {
   uint16_t section;
@@ -158,6 +166,21 @@ void menu_layer_set_center_focused(MenuLayer *menu_layer, bool center_focused);
 
 bool menu_layer_is_index_selected(const MenuLayer *menu_layer, MenuIndex *index);
 
+//! Sets the number of columns for the \ref MenuLayer. A cell then has a width of
+//! `frame.size.w / num_columns`. The height of a particular row is determined by the
+//! maximum height of the cells (and the separators). If there are less than
+//! `num_columns` in a row the additional space is not touched.
+//! @param menu_layer Pointer to the \ref MenuLayer for which to set the column number.
+//! @param num_columns The number of columns to set for the \ref MenuLayer.
+void menu_layer_set_column_number(MenuLayer *menu_layer, uint16_t num_columns);
+
+//! Sets the reload behaviour for the \ref MenuLayer. This mode decides when the menu
+//! data is reloaded via the \ref MenuLayerCallbacks.
+//! @param menu_layer Pointer to the \ref MenuLayer for which to set the reload behaviour.
+//! @param behaviour The new reload behaviour to set for the \ref MenuLayer.
+//! @see MenuLayerReloadBehaviour
+void menu_layer_set_reload_behaviour(MenuLayer *menu_layer, MenuLayerReloadBehaviour behaviour);
+
 #ifdef PBL_RECT
 #define MENU_DEFAULT_TEXT_ALIGNMENT GTextAlignmentLeft
 #else
@@ -165,11 +188,7 @@ bool menu_layer_is_index_selected(const MenuLayer *menu_layer, MenuIndex *index)
 #endif
 
 #define MENU_CELL_BASIC_HEADER_HEIGHT ((const int16_t) 16)
-#ifdef PBL_RECT
-    #define MENU_CELL_BASIC_CELL_HEIGHT ((const int16_t) DISPLAY_ROWS / 4)
-#else
-    #define MENU_CELL_BASIC_CELL_HEIGHT ((const int16_t) DISPLAY_ROWS / 3)
-#endif
+#define MENU_CELL_BASIC_CELL_HEIGHT ((const int16_t) DISPLAY_ROWS / 4)
 
 #define MENU_INDEX_NOT_FOUND ((const uint16_t) ~0)
 #define MENU_CELL_ROUND_FOCUSED_SHORT_CELL_HEIGHT ((const int16_t) 68)
