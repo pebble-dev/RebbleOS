@@ -48,3 +48,7 @@
 
 #define Bank1_NOR_ADDR ((uint32_t)0x60000000)
 
+/* Use the prefix CCRAM to force the memory of an object to be pushed
+ * into memory bank 2. Note bank 2 is NOT DMA capable
+ */
+#define CCRAM __attribute__((section(".ccmram")))

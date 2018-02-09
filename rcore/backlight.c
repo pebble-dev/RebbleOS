@@ -16,7 +16,8 @@
 
 static TaskHandle_t _backlight_task;
 static StaticTask_t _backlight_task_buf;
-static StackType_t _backlight_task_stack[configMINIMAL_STACK_SIZE];
+
+static StackType_t _backlight_task_stack[configMINIMAL_STACK_SIZE + 90];
 static void _backlight_thread(void *pvParameters);
 
 typedef struct backlight_message
@@ -41,7 +42,7 @@ void rcore_backlight_init(void)
 {
     hw_backlight_init();
     
-    _backlight_task = xTaskCreateStatic(_backlight_thread, "Bl", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, _backlight_task_stack, &_backlight_task_buf);
+    _backlight_task = xTaskCreateStatic(_backlight_thread, "Bl", configMINIMAL_STACK_SIZE + 90, NULL, tskIDLE_PRIORITY + 2UL, _backlight_task_stack, &_backlight_task_buf);
     
     _backlight_queue = xQueueCreateStatic(2, sizeof(backlight_message_t *), (uint8_t *)&_backlight_queue_contents, &_backlight_queue_buf);
     KERN_LOG("backl", APP_LOG_LEVEL_INFO, "Backlight Tasks Created");

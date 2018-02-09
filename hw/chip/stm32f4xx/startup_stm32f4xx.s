@@ -55,6 +55,9 @@ defined in linker script */
 .word  _sbss
 /* end address for the .bss section. defined in linker script */
 .word  _ebss
+
+.word  _sccmidata
+.word  _eccmidata
 /* stack used for SystemInit_ExtMemCtl; always internal RAM used */
 
 /**
@@ -79,16 +82,33 @@ CopyDataInit:
   ldr  r3, =_sidata
   ldr  r3, [r3, r1]
   str  r3, [r0, r1]
-  adds  r1, r1, #4
+  adds r1, r1, #4
 
 LoopCopyDataInit:
   ldr  r0, =_sdata
   ldr  r3, =_edata
-  adds  r2, r0, r1
+  adds r2, r0, r1
   cmp  r2, r3
   bcc  CopyDataInit
+  movs r1, #0
+  b    LoopCopyCcmInit
+
+/* Copy the ccm segment initializers from flash to SRAM 2 */
+CopyCcmInit:
+  ldr  r3, =_siccmram
+  ldr  r3, [r3, r1]
+  str  r3, [r0, r1]
+  adds r1, r1, #4
+
+LoopCopyCcmInit:
+  ldr  r0, =_sccmidata
+  ldr  r3, =_eccmidata
+  adds r2, r0, r1
+  cmp  r2, r3
+  bcc  CopyCcmInit
   ldr  r2, =_sbss
-  b  LoopFillZerobss
+  b    LoopFillZerobss    
+
 /* Zero fill the bss segment. */
 FillZerobss:
   movs  r3, #0
@@ -98,20 +118,19 @@ LoopFillZerobss:
   ldr  r3, = _ebss
   cmp  r2, r3
   bcc  FillZerobss
-
-/*ldr r2, = _sccmram
-  b LoopFillZeroCcm*/
+/*   ldr  r2, = _sccmram */
+/*   b    LoopFillZeroCcm */
 /* Zero fill the CCM segment */
-/*FillZeroCcm:
-  movs r3, #0
-  str  r3, [r2]
-  adds r2, r2, #4
+/* FillZeroCcm: */
+/*   movs r3, #0 */
+/*   str  r3, [r2] */
+/*   adds r2, r2, #4 */
 
-LoopFillZeroCcm:
-  ldr r3, = _eccmram
-  cmp r2, r3
-  bcc FillZeroCcm
-*/
+/* LoopFillZeroCcm: */
+/*   ldr r3, = _eccmram */
+/*   cmp r2, r3 */
+/*   bcc FillZeroCcm */
+
 /* Call the clock system intitialization function.*/
   bl  SystemInit
 /* Call static constructors */

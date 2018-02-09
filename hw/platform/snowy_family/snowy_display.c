@@ -72,7 +72,7 @@ void _snowy_display_init_dma(void);
 
 
 // Display configuration for the Pebble TIME
-display_t display = {
+CCRAM display_t display = {
     .port_display    = GPIOG,
     .clock_display   = RCC_AHB1Periph_GPIOG,
     .pin_reset       = GPIO_Pin_15,

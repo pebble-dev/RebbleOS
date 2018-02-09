@@ -42,8 +42,8 @@ StackType_t _app_thread_manager_stack[APP_THREAD_MANAGER_STACK_SIZE];  // stack 
  * or at least add dynamicness to it. But honestly we have 3 threads
  * max at the moment, so if we get there, maybe */
 uint8_t _heap_app[MEMORY_SIZE_APP];
-uint8_t _heap_worker[MEMORY_SIZE_WORKER];
-uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY];
+CCRAM uint8_t _heap_worker[MEMORY_SIZE_WORKER];
+CCRAM uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY];
 
 /* Initialise everything we know about the different threads */
 app_running_thread _app_threads[MAX_APP_THREADS] = {

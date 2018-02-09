@@ -21,15 +21,15 @@
 
 static TaskHandle_t _button_debounce_task;
 static StaticTask_t _button_debounce_task_buf;
-static StackType_t _button_debounce_task_stack[configMINIMAL_STACK_SIZE];
+static StackType_t _button_debounce_task_stack[configMINIMAL_STACK_SIZE + 130];
 
 static TaskHandle_t _button_message_task;
 static StaticTask_t _button_message_task_buf;
-static StackType_t _button_message_task_stack[configMINIMAL_STACK_SIZE];
+static StackType_t _button_message_task_stack[configMINIMAL_STACK_SIZE + 160];
 
 static xQueueHandle _button_queue;
 static StaticQueue_t _button_queue_buf;
-#define BUTTON_QUEUE_SIZE 5
+#define BUTTON_QUEUE_SIZE 3
 static uint8_t _button_queue_contents[BUTTON_QUEUE_SIZE];
 
 static ButtonMessage _button_message;
@@ -53,8 +53,8 @@ void rcore_buttons_init(void)
 {
     hw_button_init();
     
-    _button_message_task = xTaskCreateStatic(_button_message_thread, "Button", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, _button_message_task_stack, &_button_message_task_buf);
-    _button_debounce_task = xTaskCreateStatic(_button_debounce_thread, "Debounce", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 5UL, _button_debounce_task_stack, &_button_debounce_task_buf);
+    _button_message_task = xTaskCreateStatic(_button_message_thread, "Button", configMINIMAL_STACK_SIZE + 160, NULL, tskIDLE_PRIORITY + 5UL, _button_message_task_stack, &_button_message_task_buf);
+    _button_debounce_task = xTaskCreateStatic(_button_debounce_thread, "Debounce", configMINIMAL_STACK_SIZE + 130, NULL, tskIDLE_PRIORITY + 5UL, _button_debounce_task_stack, &_button_debounce_task_buf);
     
     _button_queue = xQueueCreateStatic(5, sizeof(uint8_t), _button_queue_contents, &_button_queue_buf);
     

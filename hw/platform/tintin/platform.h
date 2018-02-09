@@ -69,6 +69,6 @@
 #define MEMORY_SIZE_WORKER_STACK  500
 #define MEMORY_SIZE_OVERLAY_STACK 2000
 
-
+#define CCRAM 
 
 #endif
