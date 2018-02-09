@@ -373,6 +373,8 @@ void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
     ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.raw.up_handler = up_handler;
     holder->click_config.raw.down_handler = down_handler;
+    if (context != NULL)
+        holder->click_config.context = context;
 }
 
 void button_unsubscribe_all(void)

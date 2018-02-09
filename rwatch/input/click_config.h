@@ -54,7 +54,6 @@ typedef struct ClickConfig
     {
         ClickHandler up_handler;
         ClickHandler down_handler;
-        void *context;
     } raw;
 } ClickConfig;
 
