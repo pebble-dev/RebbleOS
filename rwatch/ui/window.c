@@ -8,25 +8,26 @@
 #include "librebble.h"
 #include "ngfxwrap.h"
 #include "node_list.h"
+#include "overlay_manager.h"
 
 static list_head _window_list_head = LIST_HEAD(_window_list_head);
 
 void _window_unload_proc(Window *window);
 void _window_load_proc(Window *window);
-void _window_load_click_config(Window *window);
 
 /*
  * Create a new top level window and all of the contents therein
  */
 Window *window_create(void)
 {
-    Window *window = calloc(1, sizeof(Window));
-    
+    Window *window = app_calloc(1, sizeof(Window));
+
     if (window == NULL)
     {
         SYS_LOG("window", APP_LOG_LEVEL_ERROR, "No memory for Window");
         return NULL;
     }
+
     window_ctor(window);
 
     return window;
@@ -40,6 +41,7 @@ void window_ctor(Window *window)
     window->root_layer->window = window;
     window->background_color = GColorWhite;
     window->load_state = WindowLoadStateUnloaded;
+    SYS_LOG("window", APP_LOG_LEVEL_INFO, "CTOR");
 }
 
 /*
@@ -82,13 +84,37 @@ static void push_animation_teardown(Animation *animation) {
     //layer_add_child(previous, prev)
 }
 
+
+/* 
+ * Get the head node for a window list
+ */
+list_head *window_thread_get_head(Window *window)
+{
+    if (appmanager_get_thread_type() == AppThreadMainApp)
+        return &_window_list_head;
+    else if (appmanager_get_thread_type() == AppThreadOverlay)
+        return overlay_window_thread_get_head(window);
+    
+    assert(!"I don't know how to deal with a window in this thread!");
+    return NULL;
+}
+
+
 /*
  * Push a window onto the main window window_stack_push
  */
 void window_stack_push(Window *window, bool animated)
 {
+    assert(!appmanager_is_thread_overlay() && "Please use overlay_window_stack_push");
+
     list_init_node(&window->node);
+    /* It is only valid to window push into a window */
     list_insert_head(&_window_list_head, &window->node);
+    window_stack_push_configure(window, animated);
+}
+
+void window_stack_push_configure(Window *window, bool animated)
+{
     if (animated)
     {
         // Animate the window change
@@ -107,7 +133,6 @@ void window_stack_push(Window *window, bool animated)
     }
     window_configure(window);
     window_dirty(true);
-    window_count();
 }
 
 /*
@@ -115,6 +140,9 @@ void window_stack_push(Window *window, bool animated)
  */
 Window * window_stack_pop(bool animated)
 {
+    assert(appmanager_get_thread_type() != AppThreadOverlay 
+            && "Please use overlay_window_stack_pop");
+    
     Window *wind = window_stack_get_top_window();
     window_stack_remove(wind, animated);
 
@@ -126,11 +154,12 @@ Window * window_stack_pop(bool animated)
  */
 bool window_stack_remove(Window *window, bool animated)
 {
-    Window* top_window = window_stack_get_top_window();
-    list_remove(&_window_list_head, &window->node);
+    list_head *lh = window_thread_get_head(window);
+    Window* top_window = list_elem(list_get_head(lh), Window, node);
+    list_remove(lh, &window->node);
 
     if (top_window == window) {
-        top_window = window_stack_get_top_window();
+        top_window = list_elem(list_get_head(lh), Window, node);
         if (top_window) {
             window_configure(top_window);
             window_dirty(true);
@@ -143,7 +172,7 @@ bool window_stack_remove(Window *window, bool animated)
 /*
  * Get the topmost window
  */
-Window * window_stack_get_top_window(void)
+Window *window_stack_get_top_window(void)
 {
     return list_elem(list_get_head(&_window_list_head), Window, node);
 }
@@ -152,6 +181,9 @@ uint16_t window_count(void)
 {
     uint16_t count = 0;
     Window *w;
+    
+    assert(!appmanager_is_thread_overlay() && "Please use overlay_window_count");
+    
     
     if (list_get_head(&_window_list_head) == NULL)
         return 0;
@@ -171,10 +203,14 @@ uint16_t window_count(void)
  */
 bool window_stack_contains_window(Window *window)
 {
+    list_head *lh = window_thread_get_head(window);
     Window *w;
-    list_foreach(w, &_window_list_head, Window, node)
+    
+    list_foreach(w, lh, Window, node)
+    {
         if (window == w)
             return true;
+    }
     
     return false;
 }
@@ -184,6 +220,9 @@ bool window_stack_contains_window(Window *window)
  */
 void window_destroy(Window *window)
 {
+    uint8_t _count;
+    list_head *lh = window_thread_get_head(window);
+    
     if (window->load_state != WindowLoadStateLoaded &&
         window->load_state != WindowLoadStateUnloaded
     )
@@ -192,23 +231,30 @@ void window_destroy(Window *window)
         return;
     }
     
-    list_remove(&_window_list_head, &window->node);
-    SYS_LOG("window", APP_LOG_LEVEL_INFO, "Destroy!");
-    window_count();
+    /* Check the node isn't already detached */
+    if (!(window->node.next == NULL && window->node.prev == NULL))
+        list_remove(lh, &window->node);
+
     /* Unload the window */
     _window_unload_proc(window);
     window_dtor(window);
     /* and now the window */
     app_free(window);
-    window = window_stack_get_top_window();
-    if (!window)
+    
+
+    if (appmanager_get_thread_type() == AppThreadOverlay)
+        _count = overlay_window_count();
+    else
+        _count = window_count();  
+    
+    if (_count == 0)
     {
         SYS_LOG("window", APP_LOG_LEVEL_INFO, "No more windows!");
         return;
     }
     
     /* Clean up the clink handler and remap back to our current window */
-    _window_load_click_config(window);
+    window_load_click_config(window);
     window_draw();
     window_dirty(true);
 }
@@ -217,6 +263,7 @@ void window_dtor(Window* window)
 {
     // free all of the layers
     layer_destroy(window->root_layer);
+    SYS_LOG("window", APP_LOG_LEVEL_INFO, "DTOR");
 }
 
 /*
@@ -230,14 +277,14 @@ Layer *window_get_root_layer(Window *window)
     return window->root_layer;
 }
 
-
 /*
  * Invalidate the window so it is scheduled for a redraw
  */
 void window_dirty(bool is_dirty)
 {
-    Window *wind = window_stack_get_top_window();
-    
+    list_head *lh = &_window_list_head;
+    Window* wind = list_elem(list_get_head(lh), Window, node);
+        
     if (wind == NULL)
         return;
     
@@ -250,26 +297,76 @@ void window_dirty(bool is_dirty)
     }
 }
 
-void window_draw()
+/* 
+ * Draw a window.
+ */
+void rbl_window_draw(Window *window)
 {
-    Window *wind = window_stack_get_top_window();
+    assert(window && "Invalid window to draw");
+
+    GContext *context = rwatch_neographics_get_global_context();
+    GRect frame = layer_get_frame(window->root_layer);
+    context->offset = frame;
+    context->fill_color = window->background_color;
+    graphics_fill_rect(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
     
+    layer_draw(window->root_layer, context);
+}
+
+/*
+ * Draw the window, which in general means painting the background
+ * and then walking all layers and drawing them
+ * Last of all we go and see if overlay wants anything
+ * Usually we are drawn from a request through the thread, so all contexts
+ * are app thread.
+ * However for speed we need to draw the overlay too
+ */
+void window_draw(void)
+{
+    if (appmanager_is_thread_overlay())
+    {
+        SYS_LOG("window", APP_LOG_LEVEL_ERROR, "XXX Overlay Thread!!.");
+        return;
+    }
+    else if (appmanager_get_thread_type() != AppThreadMainApp)
+    {
+        SYS_LOG("window", APP_LOG_LEVEL_ERROR, "XXX Not app thread! I don't trust you to allocate memory correctly.");
+        SYS_LOG("window", APP_LOG_LEVEL_ERROR, "XXX Please find the correct mechanism! (did you mean overlay_x?).");
+        return;
+    }
+    
+    bool draw = false;
+    Window *wind = window_stack_get_top_window();
+
     if (wind == NULL)
         return;
-    if (wind && wind->is_render_scheduled)
+    
+    if (wind->is_render_scheduled)
     {
-        GContext *context = rwatch_neographics_get_global_context();
-        GRect frame = layer_get_frame(wind->root_layer);
-        context->offset = frame;
-        context->fill_color = wind->background_color;
-        graphics_fill_rect(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
-        
-        layer_draw(wind->root_layer, context);
-        
-        rbl_draw();
-        wind->is_render_scheduled = false;
+        rbl_window_draw(wind);
+        draw = true;
     }
+
+    /* We now decide if we are going to draw, or if we need overlay
+     * to do the drawing for us
+     * XXX might be better to have a sync mechanism here. It's not likely
+     * that a draw request on the app thread could cause a paint over the
+     * overlay thread, as it gets draw control
+     */
+    /* yeah so to that end if we have an overlay, let that guy draw.
+     * In fact we are going to hand off control to do the drawing to the
+     * overlay thread itself. The logic is that if an overlay is going to
+     * be creating things in memory during the layer paint, best it be 
+     * allocated to the overlay thread draw.
+     */
+    if (overlay_window_count() > 0)
+        overlay_window_draw();
+    else if (draw)
+        rbl_draw();
+       
+    wind->is_render_scheduled = false;
 }
+
 
 /*
  * Window click config provider registration implementation.
@@ -358,7 +455,7 @@ void window_configure(Window *window)
     // we assume they are configured now
     _window_load_proc(window);
     if (window)
-        _window_load_click_config(window);
+        window_load_click_config(window);
 }
 
 /* 
@@ -398,9 +495,14 @@ void _window_unload_proc(Window *window)
     return;
 }
 
-void _window_load_click_config(Window *window) 
-{    
-    if (window->click_config_provider) { 
+void window_load_click_config(Window *window)
+{
+    /* A window is being configured. If it is a normal window and we are
+     * in an overlay thread, ignore */
+    if (appmanager_is_thread_overlay() && window_stack_contains_window(window))
+        return;
+    
+    if (window->click_config_provider) {
         void* context = window->click_config_context ? window->click_config_context : window;
         for (int i = 0; i < NUM_BUTTONS; i++) {
             window_single_click_subscribe(i, NULL);

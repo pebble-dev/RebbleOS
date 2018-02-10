@@ -59,7 +59,8 @@ void _animation_update(Animation *anim)
 {
     if (anim->onqueue)
         appmanager_timer_remove(&anim->timer);
-    
+
+    anim->onqueue = 0;
     TickType_t now = xTaskGetTickCount();
     
     anim->timer.when = now + ANIMATION_TICKS;

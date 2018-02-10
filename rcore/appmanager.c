@@ -28,7 +28,6 @@ static void _app_management_thread(void *parameters);
 static TaskHandle_t _app_thread_manager_task_handle;
 static xQueueHandle _app_thread_queue;
 static StaticTask_t _app_thread_manager_task;
-static StaticTask_t _app_task;
 
 static void _running_app_loop(void);
 
@@ -173,6 +172,25 @@ App *appmanager_get_current_app(void)
     return th->app;
 }
 
+/*
+ * Send a message to the manager thread 
+ */
+bool appmanager_post_generic_thread_message(AppMessage *am, TickType_t timeout)
+{
+    return xQueueSendToBack(_app_thread_queue, am, (TickType_t)timeout);
+}
+
+app_running_thread *appmanager_get_thread(AppThreadType type)
+{
+    return &_app_threads[type];
+}
+
+AppThreadType appmanager_get_thread_type(void)
+{
+    app_running_thread *thread = appmanager_get_current_thread();
+    return thread->thread_type;
+}
+
 /* 
  * Are we running as the system thread?
  */
@@ -181,6 +199,21 @@ bool appmanager_is_thread_system(void)
     app_running_thread *th = _get_current_thread();
     
     return (th == NULL);
+}
+
+bool appmanager_is_thread_overlay(void)
+{
+    return appmanager_get_thread_type() == AppThreadOverlay;
+}
+
+bool appmanager_is_thread_app(void)
+{
+    return appmanager_get_thread_type() == AppThreadMainApp;
+}
+
+bool appmanager_is_thread_worker(void)
+{
+    return appmanager_get_thread_type() == AppThreadWorker;
 }
 
 /*
@@ -485,9 +518,11 @@ void appmanager_execute_app(app_running_thread *thread, int total_app_size)
 {    
     uint32_t stack_size = thread->stack_size;
     app_stack_heap_proto *app_stack_heap = (app_stack_heap_proto *)thread->heap;
+    uint8_t *app_stack = thread->heap->byte_buf + thread->heap_size - total_app_size - stack_size;
     
     /* Get the start point of the stack in the array */
-    uint32_t *stack_entry = &app_stack_heap->word_buf[(thread->heap_size - total_app_size - stack_size) / 4];
+//     StackType_t *stack_entry = &app_stack_heap->word_buf[(thread->heap_size - total_app_size - stack_size) / 4];
+    StackType_t *stack_entry = (StackType_t *)app_stack;
     /* Calculate the heap size of the remaining memory */
     uint32_t heap_size = thread->heap_size - total_app_size - stack_size;
     /* Where is our heap going to start. It's directly after the app + bss */
@@ -510,16 +545,10 @@ void appmanager_execute_app(app_running_thread *thread, int total_app_size)
                                             NULL, 
                                             tskIDLE_PRIORITY + thread->thread_priority, 
                                             (StackType_t*) stack_entry, 
-                                            (StaticTask_t* )&_app_task);
+                                            (StaticTask_t* )&thread->static_task);
 }
 
-/*
- * Send a message to the manager thread 
- */
-bool appmanager_post_generic_thread_message(AppMessage *am, TickType_t timeout)
-{
-    return xQueueSendToBack(_app_thread_queue, am, (TickType_t)timeout);
-}
+
 
 /* Some stubs below for testing etc */
 void api_unimpl(void)

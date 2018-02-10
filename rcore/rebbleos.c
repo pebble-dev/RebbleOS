@@ -23,11 +23,8 @@ void rebbleos_init(void)
     
     rwatch_neographics_init();
     appmanager_init();
-
-    // set up main rebble task thread
     
-    // this will be the main coordinator
-    
+    overlay_window_init();
 }
 
 void rebbleos_set_system_status(uint8_t status)

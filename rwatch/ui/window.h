@@ -55,12 +55,13 @@ typedef struct Window
     void *click_config_context;
     void *user_data;
     GColor background_color;
-    bool is_render_scheduled;
+    bool is_render_scheduled : 1;
     //bool on_screen : 1;
     WindowLoadState load_state;
     //bool overrides_back_button : 1;
     //bool is_fullscreen : 1;
-    //const char *debug_name;
+    const char *debug_name;
+    void *context;
     list_node node;
 } Window;
 
@@ -87,6 +88,7 @@ void window_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
 void window_set_click_context(ButtonId button_id, void *context);
 
 void window_stack_push(Window *window, bool animated);
+void window_stack_push_configure(Window *window, bool animated);
 Window * window_stack_pop(bool animated);
 void window_stack_pop_all(const bool animated);
 bool window_stack_remove(Window *window, bool animated);
@@ -96,6 +98,8 @@ Window * window_stack_get_top_window(void);
 void window_configure(Window *window);
 void window_dirty(bool is_dirty);
 void window_draw();
+void rbl_window_draw(Window *window);
 
 uint16_t window_count(void);
 void window_configure(Window *window);
+void window_load_click_config(Window *window);
