@@ -6,6 +6,7 @@
 #include "menu_layer.h"
 #include "menu.h"
 #include "utils.h"
+#include "graphics_wrapper.h"
 
 extern void graphics_draw_bitmap_in_rect(GContext *, GBitmap *, GRect);
 
@@ -33,11 +34,11 @@ MenuLayer *menu_layer_create(GRect frame)
     mlayer->fg_color = GColorBlack;
     mlayer->fg_hi_color = GColorWhite;
 
-    mlayer->isBottomPaddingEnabled = true;
+    mlayer->is_bottom_padding_enabled = true;
 #ifdef PBL_RECT
-    mlayer->isCenterFocused = false;
+    mlayer->is_center_focus = false;
 #else
-    mlayer->isCenterFocused = true;
+    mlayer->is_center_focus = true;
 #endif
 
     layer_set_update_proc(mlayer->layer, menu_layer_update_proc);
@@ -139,19 +140,19 @@ void _menu_layer_update_scroll_offset(MenuLayer* menu_layer, MenuRowAlign scroll
     MenuCellSpan *cell = _get_cell_span(menu_layer, &index);
     if (cell && scroll_align != MenuRowAlignNone)
     {
-        if (menu_layer->isCenterFocused)
+        if (menu_layer->is_center_focus)
             scroll_align = MenuRowAlignCenter;
         GSize size = layer_get_frame(menu_layer->layer).size;
         int16_t span_pos = cell->y + _get_aligned_edge_position(cell->h, scroll_align);
         int16_t frame_pos = _get_aligned_edge_position(size.h, scroll_align);
 
         int16_t full_content_height = scroll_layer_get_content_size(menu_layer->scroll_layer).h;
-        if (menu_layer->isBottomPaddingEnabled)
+        if (menu_layer->is_bottom_padding_enabled)
             full_content_height += MENU_BOTTOM_PADDING;
 
         GPoint new_offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
         new_offset.y = -(span_pos - frame_pos);
-        if (menu_layer->isCenterFocused == false) {
+        if (menu_layer->is_center_focus == false) {
             int16_t min_offset = MIN(size.h - full_content_height, 0);
             new_offset.y = CLAMP(new_offset.y, min_offset, 0);
         }
@@ -178,8 +179,8 @@ MenuIndex menu_layer_get_selected_index(const MenuLayer *menu_layer)
 
 void menu_layer_pad_bottom_enable(MenuLayer *menu_layer, bool enable)
 {
-    if (menu_layer->isBottomPaddingEnabled != enable) {
-        menu_layer->isBottomPaddingEnabled = enable;
+    if (menu_layer->is_bottom_padding_enabled != enable) {
+        menu_layer->is_bottom_padding_enabled = enable;
 
         MenuIndex index = menu_layer->selected;
         if (!has_next_index(menu_layer, &index, false))
@@ -189,13 +190,13 @@ void menu_layer_pad_bottom_enable(MenuLayer *menu_layer, bool enable)
 
 bool menu_layer_get_center_focused(MenuLayer *menu_layer)
 {
-    return menu_layer->isCenterFocused;
+    return menu_layer->is_center_focus;
 }
 
 void menu_layer_set_center_focused(MenuLayer *menu_layer, bool center_focused)
 {
-    if (menu_layer->isCenterFocused != center_focused) {
-        menu_layer->isCenterFocused = center_focused;
+    if (menu_layer->is_center_focus != center_focused) {
+        menu_layer->is_center_focus = center_focused;
 
         _menu_layer_update_scroll_offset(menu_layer, MenuRowAlignCenter, false);
     }
@@ -366,7 +367,7 @@ static void menu_layer_draw_cell(GContext *context, const MenuLayer *menu_layer,
     // background
     if (menu_layer->callbacks.draw_background)
         menu_layer->callbacks.draw_background(context, layer, highlighted, menu_layer->context);
-    else if (highlighted && !menu_layer->isCenterFocused)
+    else if (highlighted && !menu_layer->is_center_focus)
         graphics_fill_rect(context, GRect(0, 0, layer->frame.size.w, layer->frame.size.h), 0, GCornerNone);
     
     // cell content
@@ -386,14 +387,14 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
     GRect frame = layer_get_frame(layer);
     
     // Draw background
-    if (menu_layer->isCenterFocused)
+    if (menu_layer->is_center_focus)
     {
         GPoint scroll_offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
         MenuCellSpan* focused_cell = _get_cell_span(menu_layer, &menu_layer->selected);
         GRect cursor_rect = GRect(0, (layer->frame.size.h / 2) - (focused_cell->h / 2) - scroll_offset.y, 
                                   layer->frame.size.w, focused_cell->h);
 
-        if (menu_layer->isCenterFocused) {
+        if (menu_layer->is_center_focus) {
             // draw everything except the cursor
             graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
             GRect background_rect = GRect(0, -scroll_offset.y, frame.size.w, cursor_rect.origin.y);

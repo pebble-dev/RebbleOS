@@ -115,8 +115,8 @@ typedef struct MenuLayer
   GColor fg_color;
   GColor fg_hi_color;
 
-  bool isCenterFocused;
-  bool isBottomPaddingEnabled;
+  bool is_center_focus;
+  bool is_bottom_padding_enabled;
 } MenuLayer;
 
 
