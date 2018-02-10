@@ -18,7 +18,12 @@ void property_animation_update_grect(PropertyAnimation * property_animation, con
         GRect *from = (GRect *) property_animation->values.from;
         GRect *to = (GRect *) property_animation->values.to;
         
-        GRect new_rect = GRect(LERP(from->origin.x, to->origin.x), LERP(from->origin.y, to->origin.y), LERP(from->size.w, to->size.w), LERP(from->size.h, to->size.h));
+        GRect new_rect = GRect(ANIM_LERP(from->origin.x, 
+                               to->origin.x, 
+                               distance_normalized), 
+                               ANIM_LERP(from->origin.y, to->origin.y, distance_normalized), 
+                               ANIM_LERP(from->size.w, to->size.w, distance_normalized), 
+                               ANIM_LERP(from->size.h, to->size.h, distance_normalized));
         property_animation->impl.accessors.setter.grect(property_animation->subject, new_rect);
     }
 }
@@ -30,7 +35,8 @@ void property_animation_update_gpoint(PropertyAnimation * property_animation, co
         GPoint *from = (GPoint *) property_animation->values.from;
         GPoint *to = (GPoint *) property_animation->values.to;
         
-        GPoint new_origin = GPoint(LERP(from->x, from->x), LERP(from->y, to->y));
+        GPoint new_origin = GPoint(ANIM_LERP(from->x, from->x, distance_normalized), 
+                                   ANIM_LERP(from->y, to->y, distance_normalized));
         property_animation->impl.accessors.setter.gpoint(property_animation->subject, new_origin);
     }
 }
@@ -42,7 +48,7 @@ void property_animation_update_int16(PropertyAnimation * property_animation, con
         int16_t *from = (int16_t *) property_animation->values.from;
         int16_t *to = (int16_t *) property_animation->values.to;
         
-        property_animation->impl.accessors.setter.int16(property_animation->subject, LERP(*from, *to));
+        property_animation->impl.accessors.setter.int16(property_animation->subject, ANIM_LERP(*from, *to, distance_normalized));
     }
 }
 
@@ -53,7 +59,7 @@ void property_animation_update_uint32(PropertyAnimation * property_animation, co
         uint32_t *from = (uint32_t *) property_animation->values.from;
         uint32_t *to = (uint32_t *) property_animation->values.to;
         
-        property_animation->impl.accessors.setter.uint32(property_animation->subject, LERP(*from, *to));
+        property_animation->impl.accessors.setter.uint32(property_animation->subject, ANIM_LERP(*from, *to, distance_normalized));
     }
 }
 
@@ -65,10 +71,10 @@ void property_animation_update_gcolor8(PropertyAnimation * property_animation, c
         GColor8 *to = (GColor8 *) property_animation->values.to;
         
         GColor8 new_gcolor = *from;
-        new_gcolor.r = LERP(from->r, to->r);
-        new_gcolor.g = LERP(from->g, to->g);
-        new_gcolor.b = LERP(from->b, to->b);
-        new_gcolor.a = LERP(from->a, to->a);
+        new_gcolor.r = ANIM_LERP(from->r, to->r, distance_normalized);
+        new_gcolor.g = ANIM_LERP(from->g, to->g, distance_normalized);
+        new_gcolor.b = ANIM_LERP(from->b, to->b, distance_normalized);
+        new_gcolor.a = ANIM_LERP(from->a, to->a, distance_normalized);
         
         property_animation->impl.accessors.setter.gcolor(property_animation->subject, new_gcolor);
     }

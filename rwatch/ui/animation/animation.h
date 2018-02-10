@@ -19,6 +19,9 @@
 #define ANIMATION_NORMALIZED_MIN 0 
 #define ANIMATION_NORMALIZED_MAX 65535
 
+/* Use to easily calculate changes */
+#define ANIM_LERP(a, b, progress)  ((a) + ((b) - (a)) * progress / ANIMATION_NORMALIZED_MAX)
+
 struct Animation;
 typedef struct PropertyAnimation PropertyAnimation;
 
@@ -59,6 +62,7 @@ typedef struct Animation
     TickType_t startticks;
     AnimationImplementation impl;
     struct AnimationHandler *anim_handlers;
+    void *context; /* for generic use */
 } Animation;
 
 typedef struct AnimationHandler

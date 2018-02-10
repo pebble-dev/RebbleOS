@@ -16,9 +16,6 @@
 
 #include "appmanager.h"
 
-// Use to easily calculate changes
-#define LERP(a, b)  ((a) + ((b) - (a)) * distance_normalized / ANIMATION_NORMALIZED_MAX)
-
 typedef GPoint GPointReturn;
 typedef GRect GRectReturn;
 typedef void (*Int16Setter)(void *subject, int16_t int16);

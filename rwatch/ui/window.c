@@ -8,12 +8,16 @@
 #include "librebble.h"
 #include "ngfxwrap.h"
 #include "node_list.h"
+#include "property_animation.h"
+#include "animation.h"
 #include "overlay_manager.h"
 
 static list_head _window_list_head = LIST_HEAD(_window_list_head);
 
 void _window_unload_proc(Window *window);
 void _window_load_proc(Window *window);
+
+bool _anim_direction_left = true;
 
 /*
  * Create a new top level window and all of the contents therein
@@ -36,7 +40,8 @@ Window *window_create(void)
 void window_ctor(Window *window)
 {
     GRect bounds = GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS);
-    
+    GRect frame = GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS);
+    window->frame = frame;
     window->root_layer = layer_create(bounds);
     window->root_layer->window = window;
     window->background_color = GColorWhite;
@@ -56,32 +61,36 @@ void window_set_window_handlers(Window *window, WindowHandlers handlers)
 }
 
 static void push_animation_setup(Animation *animation) {
-    SYS_LOG("window", APP_LOG_LEVEL_INFO, "Animation started!");
-    
-    /*Window *top = top_window->window;
-    Layer *previous = top_window->previous->window->root_layer;
-    layer_add_child(top->root_layer, previous);*/
+    SYS_LOG("window", APP_LOG_LEVEL_INFO, "Anim window ease in.");
 }
 
 static void push_animation_update(Animation *animation,
                                   const AnimationProgress progress) {
-    // Animate some completion variable
-    int s_animation_percent = ((int)progress * 100) / ANIMATION_NORMALIZED_MAX;
-    
-//     Window *wind = (Window*)(_window_list_head->data);
-//     Layer *previous = top_window->previous->window->root_layer;
-    /*
-    previous->bounds = GRect(0 - ((DISPLAY_COLS / 100) * s_animation_percent), previous->bounds.origin.y, previous->bounds.size.w, previous->bounds.size.h);
-    top->root_layer->bounds = GRect(DISPLAY_COLS - ((DISPLAY_COLS / 100) * s_animation_percent), top->root_layer->bounds.origin.y, top->root_layer->bounds.size.w, top->root_layer->bounds.size.h);*/
-    
-    window_dirty(true);
+    Window *window = window_stack_get_top_window(); 
+    int existx = window->frame.origin.x; 
+    int newx, delta; 
+     
+    if (*((bool*)animation->context) == true) 
+    { 
+        newx = ANIM_LERP(DISPLAY_COLS, 0, progress); 
+        delta = (existx - newx); 
+        animation_util_push_fb(existx, delta, true);
+    } 
+    else 
+    { 
+        newx = ANIM_LERP(-DISPLAY_COLS, 0, progress); 
+        delta = newx - existx;
+        animation_util_push_fb(DISPLAY_COLS - (existx + DISPLAY_COLS), delta, false);
+    } 
+
+    window->frame.origin.x = newx; 
+    window_dirty(true); 
+    window_draw(); 
 }
 
 static void push_animation_teardown(Animation *animation) {
     SYS_LOG("window", APP_LOG_LEVEL_INFO, "Animation finished!");
-//     Layer *previous = top_window->previous->window->root_layer;
-//     layer_remove_from_parent(previous);
-    //layer_add_child(previous, prev)
+    animation_destroy(animation);
 }
 
 
@@ -117,22 +126,40 @@ void window_stack_push_configure(Window *window, bool animated)
 {
     if (animated)
     {
-        // Animate the window change
-        Animation *animation = animation_create();
-        animation_set_duration(animation, 1000);
-        
-        const AnimationImplementation implementation = {
-            .setup = push_animation_setup,
-            .update = push_animation_update,
-            .teardown = push_animation_teardown
-        };
-        animation_set_implementation(animation, &implementation);
-
-        // Play the animation
-        //animation_schedule(animation);
+        Window *window = window_stack_get_top_window();
+        window->frame.origin.x = DISPLAY_COLS;
+        App *app = appmanager_get_current_app();
+        /* A quicky hack to determine direction of scroll
+         * If we are an app => face, then we go left
+         * Face to app => right
+         */
+        if (app->type == APP_TYPE_FACE)
+            _animation_setup(true);
+        else 
+            _animation_setup(false);
     }
     window_configure(window);
     window_dirty(true);
+}
+
+void _animation_setup(bool direction_left)
+{
+    // Animate the window change
+    Animation *animation = animation_create();
+    animation_set_duration(animation, 300);
+    
+    const AnimationImplementation implementation = {
+        .setup = push_animation_setup,
+        .update = push_animation_update,
+        .teardown = push_animation_teardown
+    };
+    animation_set_implementation(animation, &implementation);
+ 
+    _anim_direction_left = direction_left;
+    animation->context = (void*)&_anim_direction_left;
+    
+    // Play the animation
+    animation_schedule(animation);
 }
 
 /*
@@ -306,6 +333,10 @@ void rbl_window_draw(Window *window)
 
     GContext *context = rwatch_neographics_get_global_context();
     GRect frame = layer_get_frame(window->root_layer);
+    GRect windowframe = window->frame; 
+    frame.origin.y += windowframe.origin.y; 
+    frame.origin.x += windowframe.origin.x; 
+    /* Apply window offset too */
     context->offset = frame;
     context->fill_color = window->background_color;
     graphics_fill_rect(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
@@ -511,5 +542,47 @@ void window_load_click_config(Window *window)
             window_raw_click_subscribe(i, NULL, NULL, context);
         }
         window->click_config_provider(context); 
+    } 
+}
+
+
+/* This prob shouldn't be in here, but I feel it doesn't live in 
+   animation either */
+
+/* 
+ * Grab the screenbuffer and push it off the screen left or right by n
+ * pixels.
+ */
+void animation_util_push_fb(int width, int distance, bool left)
+{
+    uint8_t *fb = display_get_buffer(); 
+    if (left) 
+    { 
+        /* push the framebuffer out left.
+         * For every row get the beginning of the row
+         * and copy byte by byte
+         */ 
+        for (uint16_t i = 0; i < DISPLAY_ROWS; i++) 
+        { 
+            /* row start */ 
+            int rs = DISPLAY_COLS * i; 
+             
+            for (int j = 0; j < width; j++) 
+                fb[rs + j] = fb[rs + j + distance]; 
+        } 
+    } 
+    else 
+    { 
+        /* Push the framebuffer out right
+         * We get the row end and work inwards
+         */
+        for (uint16_t i = 0; i < DISPLAY_ROWS; i++) 
+        { 
+            /* row end. We will work backwards */ 
+            int rs = DISPLAY_COLS * i + DISPLAY_COLS - 1; 
+             
+            for (int j = 0; j < width; j++) 
+                fb[rs - j] = fb[rs - j - distance]; 
+        } 
     } 
 }
