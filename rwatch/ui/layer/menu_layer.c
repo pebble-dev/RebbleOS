@@ -33,6 +33,8 @@ MenuLayer *menu_layer_create(GRect frame)
     mlayer->bg_hi_color = GColorBlack;
     mlayer->fg_color = GColorBlack;
     mlayer->fg_hi_color = GColorWhite;
+    mlayer->is_reload_scheduled = false;
+    mlayer->reload_behaviour = MenuLayerReloadBehaviourManual;
 
     mlayer->is_bottom_padding_enabled = true;
 #ifdef PBL_RECT
@@ -165,6 +167,9 @@ void menu_layer_set_selected_index(MenuLayer *menu_layer, MenuIndex index, MenuR
     if (menu_index_compare(&menu_layer->selected, &index) != 0)
     {
         menu_layer->selected = index;
+
+        if (menu_layer->reload_behaviour == MenuLayerReloadBehaviourOnSelection)
+            menu_layer->is_reload_scheduled = true;
         
         _menu_layer_update_scroll_offset(menu_layer, scroll_align, animated);
         layer_mark_dirty(menu_layer->layer);
@@ -220,6 +225,9 @@ void menu_layer_set_callbacks(MenuLayer *menu_layer, void *callback_context, Men
 
 void menu_layer_reload_data(MenuLayer *menu_layer)
 {
+    SYS_LOG("menul", APP_LOG_LEVEL_DEBUG, "RELOAD RELOAD RELOAD");
+    menu_layer->is_reload_scheduled = false;
+
     int16_t sections = 1;
     if (menu_layer->callbacks.get_num_sections)
         sections = menu_layer->callbacks.get_num_sections(menu_layer, menu_layer->context);
@@ -356,6 +364,11 @@ void menu_layer_set_highlight_colors(MenuLayer *menu_layer, GColor background, G
     layer_mark_dirty(menu_layer->layer);
 }
 
+void menu_layer_set_reload_behaviour(MenuLayer* menu_layer, MenuLayerReloadBehaviour behaviour)
+{
+    menu_layer->reload_behaviour = behaviour;
+}
+
 static void menu_layer_draw_cell(GContext *context, const MenuLayer *menu_layer,
                                  MenuCellSpan *span,
                                  Layer *layer)
@@ -385,6 +398,9 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
 {
     MenuLayer *menu_layer = (MenuLayer *) layer->container;
     GRect frame = layer_get_frame(layer);
+
+    if (menu_layer->is_reload_scheduled || menu_layer->reload_behaviour == MenuLayerReloadBehaviourOnRender)
+        menu_layer_reload_data(menu_layer);
     
     // Draw background
     if (menu_layer->is_center_focus)
