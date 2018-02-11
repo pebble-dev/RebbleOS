@@ -12,8 +12,8 @@ extern void graphics_draw_bitmap_in_rect(GContext *, GBitmap *, GRect);
 
 static void menu_layer_update_proc(Layer *layer, GContext *nGContext);
 
-#define MenuRow(section, row, y, h) ((MenuCellSpan){ (y), (h), 0, false, MenuIndex((section), (row)) })
-#define MenuHeader(section, y, h) ((MenuCellSpan){ (y), (h), 0, true, MenuIndex((section), 0) })
+#define MenuRow(section, row, x, y, h) ((MenuCellSpan){ (x), (y), (h), 0, false, MenuIndex((section), (row)) })
+#define MenuHeader(section, x, y, h) ((MenuCellSpan){ (x), (y), (h), 0, true, MenuIndex((section), 0) })
 
 #define BUTTON_REPEAT_INTERVAL_MS 600
 #define BUTTON_LONG_CLICK_DELAY_MS 500
@@ -26,6 +26,7 @@ MenuLayer *menu_layer_create(GRect frame)
     mlayer->scroll_layer = scroll_layer_create(GRect(0, 0, frame.size.w, frame.size.h));
     mlayer->layer->container = mlayer;
 
+    mlayer->column_count = 1;
     mlayer->cells_count = 0;
     mlayer->selected = MenuIndex(0, 0);
     mlayer->end_index = MenuIndex(0, 1);
@@ -258,6 +259,9 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
 
     // generate cells
     size_t cell = 0;
+    uint16_t cell_width = menu_layer->layer->frame.size.w / menu_layer->column_count;
+    uint16_t oversized_columns = menu_layer->layer->frame.size.w % menu_layer->column_count;
+    int16_t column = 0;
     int16_t y = 0;
     int16_t h = 0;
     for (uint16_t section = 0; section < sections; ++section)
@@ -265,27 +269,46 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
         if (menu_layer->callbacks.get_header_height)
         {
             h = menu_layer->callbacks.get_header_height(menu_layer, section, menu_layer->context);
-            menu_layer->cells[cell++] = MenuHeader(section, y, h);
+            menu_layer->cells[cell++] = MenuHeader(section, 0, y, h);
             y += h;
             // TODO: add space for separator
         }
 
+        column = 0;
         uint16_t rows = menu_layer->callbacks.get_num_rows(menu_layer, section, menu_layer->context);
+        h = 0;
         for (uint16_t row = 0; row < rows; ++row)
         {
             MenuIndex index = MenuIndex(section, row);
-            h = menu_layer->callbacks.get_cell_height
+            int16_t cur_h = menu_layer->callbacks.get_cell_height
                 ? menu_layer->callbacks.get_cell_height(menu_layer, &index, menu_layer->context)
                 : MENU_CELL_BASIC_CELL_HEIGHT;
-            menu_layer->cells[cell++] = MenuRow(section, row, y, h);
-            y += h;
-            // TODO: add space for separator
+            if (cur_h > h)
+                h = cur_h;
+
+            int16_t x = column * cell_width + (column > 0 && column < oversized_columns);
+            menu_layer->cells[cell++] = MenuRow(section, row, x, y, h);
+
+            column++;
+            if (column >= menu_layer->column_count)
+            {
+                // the height of the row might have changed, reset all
+                for (uint16_t col = 0; col < menu_layer->column_count - 1; col++)
+                {
+                    menu_layer->cells[cell - menu_layer->column_count + col].h = h;
+                }
+
+                column = 0;
+                y += h;
+                h = 0;
+                // TODO: add space for separator
+            }
         }
     }
 
 
     GSize size = layer_get_frame(menu_layer->layer).size;
-    size.h = y;
+    size.h = y + (column == 0 ? 0 : h);
     scroll_layer_set_content_size(menu_layer->scroll_layer, size);
     _menu_layer_update_scroll_offset(menu_layer, MenuRowAlignCenter, false);
     layer_mark_dirty(menu_layer->layer);
@@ -369,6 +392,13 @@ void menu_layer_set_reload_behaviour(MenuLayer* menu_layer, MenuLayerReloadBehav
     menu_layer->reload_behaviour = behaviour;
 }
 
+void menu_layer_set_column_count(MenuLayer* menu_layer, uint16_t num_columns) {
+    if (menu_layer->column_count != num_columns && num_columns > 0) {
+        menu_layer->column_count = num_columns;
+        menu_layer->is_reload_scheduled = true;
+    }
+}
+
 static void menu_layer_draw_cell(GContext *context, const MenuLayer *menu_layer,
                                  MenuCellSpan *span,
                                  Layer *layer)
@@ -398,6 +428,7 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
 {
     MenuLayer *menu_layer = (MenuLayer *) layer->container;
     GRect frame = layer_get_frame(layer);
+    uint16_t cell_width = frame.size.w / menu_layer->column_count;
 
     if (menu_layer->is_reload_scheduled || menu_layer->reload_behaviour == MenuLayerReloadBehaviourOnRender)
         menu_layer_reload_data(menu_layer);
@@ -407,17 +438,20 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
     {
         GPoint scroll_offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
         MenuCellSpan* focused_cell = _get_cell_span(menu_layer, &menu_layer->selected);
-        GRect cursor_rect = GRect(0, (layer->frame.size.h / 2) - (focused_cell->h / 2) - scroll_offset.y, 
-                                  layer->frame.size.w, focused_cell->h);
+        GRect cursor_rect = GRect(focused_cell->x, (layer->frame.size.h / 2) - (focused_cell->h / 2) - scroll_offset.y,
+                                  cell_width, focused_cell->h);
 
-        if (menu_layer->is_center_focus) {
-            // draw everything except the cursor
-            graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
+        graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
+        if (menu_layer->column_count == 1) {
+            // fill everything except the cursor
             GRect background_rect = GRect(0, -scroll_offset.y, frame.size.w, cursor_rect.origin.y);
             graphics_fill_rect(nGContext, background_rect, 0, GCornerNone);
             background_rect = GRect(0, cursor_rect.origin.y + cursor_rect.size.h,
                                     layer->frame.size.w, layer->frame.size.h - (cursor_rect.origin.y + cursor_rect.size.h));
             graphics_fill_rect(nGContext, background_rect, 0, GCornerNone);
+        } else {
+            // fill everything, no real gain here anymore to split the work
+            graphics_fill_rect(nGContext, frame, 0, GCornerNone);
         }
 
         // draw the cursor
@@ -434,7 +468,7 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
         // TODO: only draw visible cells based on layer frame/bounds
         MenuCellSpan *span = menu_layer->cells + cell;
         layer->callback_data = span;
-        layer->frame = GRect(0, span->y, frame.size.w, span->h);
+        layer->frame = GRect(span->x, span->y, (span->header ? frame.size.w : cell_width), span->h);
         // TODO: update bounds
 
         GRect offset = nGContext->offset;

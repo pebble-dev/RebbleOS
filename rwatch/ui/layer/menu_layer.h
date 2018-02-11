@@ -34,6 +34,7 @@ int16_t menu_index_compare(const MenuIndex *a, const MenuIndex *b);
 
 typedef struct MenuCellSpan
 {
+  int16_t x;
   int16_t y;
   int16_t h;
   int16_t sep;
@@ -104,7 +105,9 @@ typedef struct MenuLayer
   struct MenuLayerCallbacks callbacks;
   ClickConfigProvider click_config_provider; // additional click provider for clients
   void *context;
+  MenuLayerReloadBehaviour reload_behaviour;
 
+  uint16_t column_count;
   size_t cells_count;
   MenuCellSpan *cells;
   MenuIndex selected;
@@ -117,6 +120,7 @@ typedef struct MenuLayer
 
   bool is_center_focus;
   bool is_bottom_padding_enabled;
+  bool is_reload_scheduled;
 } MenuLayer;
 
 
@@ -166,13 +170,13 @@ void menu_layer_set_center_focused(MenuLayer *menu_layer, bool center_focused);
 
 bool menu_layer_is_index_selected(const MenuLayer *menu_layer, MenuIndex *index);
 
-//! Sets the number of columns for the \ref MenuLayer. A cell then has a width of
+//! Sets the count of columns for the \ref MenuLayer. A cell then has a width of
 //! `frame.size.w / num_columns`. The height of a particular row is determined by the
 //! maximum height of the cells (and the separators). If there are less than
 //! `num_columns` in a row the additional space is not touched.
-//! @param menu_layer Pointer to the \ref MenuLayer for which to set the column number.
-//! @param num_columns The number of columns to set for the \ref MenuLayer.
-void menu_layer_set_column_number(MenuLayer *menu_layer, uint16_t num_columns);
+//! @param menu_layer Pointer to the \ref MenuLayer for which to set the column count.
+//! @param num_columns The count of columns to set for the \ref MenuLayer.
+void menu_layer_set_column_count(MenuLayer *menu_layer, uint16_t num_columns);
 
 //! Sets the reload behaviour for the \ref MenuLayer. This mode decides when the menu
 //! data is reloaded via the \ref MenuLayerCallbacks.
