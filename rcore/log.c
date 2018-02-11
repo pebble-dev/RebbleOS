@@ -8,6 +8,8 @@
 #include "rebbleos.h"
 #include "stm32_power.h"
 
+extern int vsfmt(char *buf, unsigned int len, const char *ifmt, va_list ap);
+
 static SemaphoreHandle_t _log_mutex = NULL;
 static StaticSemaphore_t _log_mutex_buf;
 static void _log_pad_string(const char *in_str, char *padded_str, uint16_t pad_len);

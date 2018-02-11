@@ -12,7 +12,7 @@ static void _layer_remove_node(Layer *to_be_removed);
 static void _layer_insert_node(Layer *layer_to_insert, Layer *sibling_layer, bool below);
 static void _layer_delete_tree(Layer *layer);
 static Layer *_layer_find_parent(Layer *orig_layer, Layer *layer);
-static void _layer_walk(/*const*/ Layer *layer, GContext *context);
+static void _layer_walk(const Layer *layer, GContext *context);
 
 // Layer Functions
 Layer *layer_create(GRect frame)
@@ -271,7 +271,7 @@ static void _layer_remove_node(Layer *to_be_removed)
  * When exhaused it will walk the siblings of the parent, etc etc until
  * either 1) no more ram 2) completion
  */
-static void _layer_walk(/*const*/ Layer *layer, GContext *context)
+static void _layer_walk(const Layer *layer, GContext *context)
 {
     if (layer)
     {
@@ -281,7 +281,7 @@ static void _layer_walk(/*const*/ Layer *layer, GContext *context)
             layer_apply_frame_offset(layer, context);
 
             if (layer->update_proc)
-                layer->update_proc(layer, context);
+                layer->update_proc((Layer *)layer, context);
 
             // walk this elements sub elements recursively before moving on to the next element
             _layer_walk(layer->child, context);

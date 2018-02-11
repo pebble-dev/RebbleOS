@@ -141,13 +141,13 @@ void vibrate_stop(void)
 
 static void _print_pattern(VibratePattern_t *pattern)
 {
-    printf(">>> vibrate @%u:\n", pattern);
-    printf("\tlength:%d, val[%d]=(.frequency=%u, .duration=%u)\n",
-           pattern->length,
-           pattern->cur_buffer_index,
-           pattern->buffer[pattern->cur_buffer_index].frequency,
-           pattern->buffer[pattern->cur_buffer_index].duration_ms
-    );
+//     printf(">>> vibrate @%u:\n", pattern);
+//     printf("\tlength:%d, val[%d]=(.frequency=%u, .duration=%u)\n",
+//            pattern->length,
+//            pattern->cur_buffer_index,
+//            pattern->buffer[pattern->cur_buffer_index].frequency,
+//            pattern->buffer[pattern->cur_buffer_index].duration_ms
+//     );
 }
 
 /**

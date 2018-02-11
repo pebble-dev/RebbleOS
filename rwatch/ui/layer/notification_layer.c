@@ -320,9 +320,9 @@ static void _notification_layer_update_proc(Layer *layer, GContext *ctx)
     GRect bounds = layer_get_unobstructed_bounds(layer);
     
     GBitmap *icon = notification->icon;
-    char *app = notification->app_name;
-    char *title = notification->title;
-    char *body = notification->body;
+    char *app = (char *)notification->app_name;
+    char *title = (char *)notification->title;
+    char *body = (char *)notification->body;
     
     // Draw the background:
     graphics_context_set_fill_color(ctx, notification->color);

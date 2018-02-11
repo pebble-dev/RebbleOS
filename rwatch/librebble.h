@@ -27,6 +27,7 @@
 #include "graphics_bitmap.h"
 #include "graphics_context.h"
 #include "graphics_resource.h"
+#include "graphics_wrapper.h"
 #include "click_config.h"
 #include "layer.h"
 #include "bitmap_layer.h"
@@ -42,6 +43,7 @@
 #include "appmanager.h"
 #include "libros_graphics.h"
 #include "app_timer.h"
+#include "font_loader.h"
 
 void rbl_draw(void);
 struct tm *rbl_get_tm(void);

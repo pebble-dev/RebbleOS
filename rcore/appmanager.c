@@ -9,6 +9,7 @@
 
 #include <stdlib.h>
 #include "rebbleos.h"
+#include "librebble.h"
 #include "appmanager.h"
 #include "systemapp.h"
 #include "test.h"
@@ -22,7 +23,7 @@
  * Hook the flags up. These contain app type etc.
  * 
  */
-extern  GFont *fonts_load_custom_font(ResHandle*, struct file *file);
+// extern  GFont *fonts_load_custom_font(ResHandle*, struct file *file);
 
 static void _app_management_thread(void *parameters);
 static TaskHandle_t _app_thread_manager_task_handle;

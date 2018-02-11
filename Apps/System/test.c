@@ -55,8 +55,8 @@ static void test_window_load(Window *window)
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
     
     // Setup the view
-    Layer *main = layer_create(bounds);
-    layer_add_child(window_layer, main);
+    Layer *wmain = layer_create(bounds);
+    layer_add_child(window_layer, wmain);
     
     // Initialize the action bar
     action_bar = action_bar_layer_create();
@@ -80,7 +80,7 @@ static void test_window_load(Window *window)
     
     // Status Bar
     status_bar = status_bar_layer_create();
-    layer_add_child(main, status_bar_layer_get_layer(status_bar));
+    layer_add_child(wmain, status_bar_layer_get_layer(status_bar));
 }
 
 static void test_window_unload(Window *window)

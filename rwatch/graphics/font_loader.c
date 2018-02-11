@@ -15,8 +15,6 @@
 
 uint16_t _fonts_get_resource_id_for_key(const char *key);
 
-
-void fonts_resetcache();
 GFont fonts_get_system_font_by_resource_id(uint32_t resource_id);
 
 typedef struct GFontCache

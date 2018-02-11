@@ -11,5 +11,5 @@
 #include "pebble.h"
 
 struct n_GRect;
-GFont fonts_get_system_font(const char *key);
+
 

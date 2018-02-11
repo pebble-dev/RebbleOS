@@ -4,7 +4,6 @@
 #include "graphics_wrapper.h"
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
 ResHandle *resource_get_handle_proxy(uint16_t resource_id);
-GFont *fonts_load_custom_font_proxy(ResHandle *handle);
 bool persist_exists(void);
 bool persist_exists(void) { return false; }
 

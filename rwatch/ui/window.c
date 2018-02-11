@@ -18,6 +18,10 @@ void _window_unload_proc(Window *window);
 void _window_load_proc(Window *window);
 
 bool _anim_direction_left = true;
+void animation_util_push_fb(int width, int distance, bool left);
+void _animation_setup(bool direction_left);
+static void push_animation_update(Animation *animation,
+                                  const AnimationProgress progress);
 
 /*
  * Create a new top level window and all of the contents therein
@@ -65,7 +69,8 @@ static void push_animation_setup(Animation *animation) {
 }
 
 static void push_animation_update(Animation *animation,
-                                  const AnimationProgress progress) {
+                                  const AnimationProgress progress)
+{
     Window *window = window_stack_get_top_window(); 
     int existx = window->frame.origin.x; 
     int newx, delta; 

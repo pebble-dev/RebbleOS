@@ -198,7 +198,7 @@ void BusFault_Handler()
     while(1);
 }
 
-void UsageFault_Handler_C(uint32_t *sp)
+void UsageFault_Handler_C(unsigned int *sp)
 {
     uint16_t ufsr = *(uint16_t *)0xE000ED2A;
     

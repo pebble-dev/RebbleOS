@@ -91,7 +91,6 @@ void gbitmap_destroy(GBitmap *bitmap);
 
 void gbitmap_draw(GBitmap *bitmap, GRect bounds);
 
-// void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect rect);
 /*
 
 GBitmapSequence *gbitmap_sequence_create_with_resource(uint32_t resource_id);
