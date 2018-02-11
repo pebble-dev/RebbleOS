@@ -198,13 +198,13 @@ void BusFault_Handler()
     while(1);
 }
 
-void UsageFault_Handler_C(unsigned int *sp)
+void UsageFault_Handler_C(uint32_t *sp)
 {
     uint16_t ufsr = *(uint16_t *)0xE000ED2A;
     
     printf("*** USAGE FAULT ***\n");
-    printf("   R0: %08x, R1: %08x, R2: %08x, R3: %08x\n", sp[0], sp[1], sp[2], sp[3]);
-    printf("  R12: %08x, LR: %08x, PC: %08x, SP: %08x\n", sp[4], sp[5], sp[6], sp);
+    printf("   R0: %08lx, R1: %08lx, R2: %08lx, R3: %08lx\n", sp[0], sp[1], sp[2], sp[3]);
+    printf("  R12: %08lx, LR: %08lx, PC: %08lx, SP: %08lx\n", sp[4], sp[5], sp[6], (uint32_t) sp);
     printf("  UFSR: %04x\n", ufsr);
     
     if (ufsr & 1) {
