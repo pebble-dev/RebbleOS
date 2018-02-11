@@ -28,10 +28,8 @@ static void _timer_callback(CoreTimer* timer) {
     _schedule_timer(status_bar);
 }
 
-StatusBarLayer *status_bar_layer_create(void)
+void status_bar_layer_ctor(StatusBarLayer *status_bar)
 {
-    StatusBarLayer *status_bar = (StatusBarLayer*)app_calloc(1, sizeof(StatusBarLayer));
-    
     GRect frame = GRect(0, 0, DISPLAY_COLS, STATUS_BAR_LAYER_HEIGHT);
     layer_ctor(&status_bar->layer, frame);
     layer_set_update_proc(&status_bar->layer, _draw);
@@ -45,13 +43,25 @@ StatusBarLayer *status_bar_layer_create(void)
 
     memcpy(&status_bar->last_time, rebble_time_get_tm(), sizeof(struct tm));
     _schedule_timer(status_bar);
+}
+
+void status_bar_layer_dtor(StatusBarLayer *sblayer)
+{
+    layer_destroy(&sblayer->layer);
+    app_free(sblayer);
+}
+
+StatusBarLayer *status_bar_layer_create(void)
+{
+    StatusBarLayer *status_bar = (StatusBarLayer*)app_calloc(1, sizeof(StatusBarLayer));    
+    status_bar_layer_ctor(status_bar);
     
     return status_bar;
 }
 
 void status_bar_layer_destroy(StatusBarLayer *status_bar)
 {
-    layer_destroy(&status_bar->layer);
+    status_bar_layer_dtor(status_bar);
 }
 
 Layer *status_bar_layer_get_layer(StatusBarLayer *status_bar)

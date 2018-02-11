@@ -31,6 +31,9 @@ typedef struct StatusBarLayer
     CoreTimer timer;
 } StatusBarLayer;
 
+void status_bar_layer_ctor(StatusBarLayer *sblayer);
+void status_bar_layer_dtor(StatusBarLayer *sblayer);
+
 StatusBarLayer* status_bar_layer_create(void);
 void status_bar_layer_destroy(StatusBarLayer *status_bar_layer);
 
