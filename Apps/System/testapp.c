@@ -68,6 +68,20 @@ app_test _tests[] = {
         .test_execute = &overlay_test_exec,
         .test_deinit = &overlay_test_deinit,
     },
+    {
+        .test_name = "Menu Test",
+        .test_desc = "Single-Column",
+        .test_init = &menu_simple_test_init,
+        .test_execute = &menu_simple_test_exec,
+        .test_deinit = &menu_simple_test_deinit
+    },
+    {
+        .test_name = "Menu MC Test",
+        .test_desc = "Multi-Column",
+        .test_init = &menu_multi_column_test_init,
+        .test_execute = &menu_multi_column_test_exec,
+        .test_deinit = &menu_multi_column_test_deinit
+    }
 };
 
 #define TEST_COUNT sizeof(_tests) / sizeof(app_test)

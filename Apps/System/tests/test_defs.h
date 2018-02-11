@@ -137,3 +137,11 @@ bool color_test_deinit(void);
 bool overlay_test_init(Window *window);
 bool overlay_test_exec(void);
 bool overlay_test_deinit(void);
+
+bool menu_simple_test_init(Window* window);
+bool menu_simple_test_exec(void);
+bool menu_simple_test_deinit(void);
+
+bool menu_multi_column_test_init(Window* window);
+bool menu_multi_column_test_exec(void);
+bool menu_multi_column_test_deinit(void);

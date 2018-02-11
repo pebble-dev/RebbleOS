@@ -4,3 +4,5 @@ CFLAGS_all += -IApps/System/tests
 SRCS_all += Apps/System/tests/test_test.c
 SRCS_all += Apps/System/tests/color_test.c
 SRCS_all += Apps/System/tests/overlay_test.c
+SRCS_all += Apps/System/tests/menu_simple_test.c
+SRCS_all += Apps/System/tests/menu_multi_column_test.c

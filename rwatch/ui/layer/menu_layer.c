@@ -226,7 +226,6 @@ void menu_layer_set_callbacks(MenuLayer *menu_layer, void *callback_context, Men
 
 void menu_layer_reload_data(MenuLayer *menu_layer)
 {
-    SYS_LOG("menul", APP_LOG_LEVEL_DEBUG, "RELOAD RELOAD RELOAD");
     menu_layer->is_reload_scheduled = false;
 
     int16_t sections = 1;
