@@ -119,7 +119,11 @@
 #define GColorIcterine n_GColorIcterine
 #define GColorPastelYellow n_GColorPastelYellow
 #define GColorWhite n_GColorWhite 
-#define GColorBlack n_GColorBlack 
+#define GColorBlack n_GColorBlack
+
+#define GColorClearARGB8 ((uint8_t)0b00000000)
+#define GColorClear ((GColor8){.argb=GColorClearARGB8})
+
 
 #define GCornerNone n_GCornerNone
 
