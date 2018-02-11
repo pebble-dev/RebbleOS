@@ -12,7 +12,7 @@ static n_GContext *nGContext;
 
 void rwatch_neographics_init(void)
 {
-    nGContext = n_graphics_context_from_buffer(display_get_buffer());
+    nGContext = n_root_graphics_context_from_buffer(display_get_buffer());
 }
 
 n_GContext *rwatch_neographics_get_global_context(void)

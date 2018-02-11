@@ -125,7 +125,7 @@ static void simple_update_proc(Layer *layer, GContext *nGContext)
     
     graphics_context_set_fill_color(nGContext, GColorWhite);
     //GPoint s_center = { .x = 70, .y = 90 };
-    GPoint s_center = n_graphics_center_point_rect(&full_bounds);
+    GPoint s_center = n_grect_center_point(&full_bounds);
     graphics_fill_circle(nGContext, s_center, s_radius);
  
     graphics_draw_circle(nGContext, s_center, s_radius);

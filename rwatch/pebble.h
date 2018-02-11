@@ -20,7 +20,6 @@
 #include "platform_config.h"
 
 // tell neographics we are using it as our core
-#define NGFX_IS_CORE
 
 #define TRIG_MAX_RATIO 0xffff
 #define TRIG_MAX_ANGLE 0x10000

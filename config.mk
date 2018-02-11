@@ -25,6 +25,7 @@ CFLAGS_all += -Irwatch/ui/animation
 CFLAGS_all += -Irwatch/input
 CFLAGS_all += -Irwatch/graphics
 CFLAGS_all += -Irwatch/event
+CFLAGS_all += -DNGFX_IS_CORE
 
 # XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
@@ -69,6 +70,7 @@ SRCS_all += lib/neographics/src/primitives/circle.c
 SRCS_all += lib/neographics/src/primitives/line.c
 SRCS_all += lib/neographics/src/primitives/rect.c
 SRCS_all += lib/neographics/src/text/text.c
+SRCS_all += lib/neographics/src/types/rect.c
 
 SRCS_all += lib/png/png.c
 SRCS_all += lib/png/upng.c

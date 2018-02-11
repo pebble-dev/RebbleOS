@@ -1,3 +1,6 @@
 [submodule "res"]
 	path = res
 	url = ../../pebble-dev/RebbleOS-resources
+[submodule "lib/ngfx"]
+	path = lib/neographics
+	url = http://github.com/pebble-dev/neographics
