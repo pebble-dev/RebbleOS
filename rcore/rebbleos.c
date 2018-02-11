@@ -10,6 +10,7 @@
 #include "stdio.h"
 #include "rebbleos.h"
 #include "ngfxwrap.h"
+#include "overlay_manager.h"
 
 
 // current status of te system

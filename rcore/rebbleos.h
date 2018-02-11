@@ -56,3 +56,4 @@ typedef struct SystemSettings {
 
 void rebbleos_init(void);
 uint8_t rebbleos_get_system_status(void);
+void rebbleos_set_system_status(uint8_t status);

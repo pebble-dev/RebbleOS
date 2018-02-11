@@ -50,7 +50,7 @@ static MenuItems* test_item_selected(const MenuItem *item)
 
 static MenuItems* run_test_item_selected(const MenuItem *item)
 {
-//     appmanager_app_start("TestApp");
+    appmanager_app_start("TestApp");
     return NULL;
 }
 

@@ -56,17 +56,9 @@
 #define GRect n_GRect
 #define GPoint n_GPoint
 
-#define GColorWhite n_GColorWhite
-#define GColorRed   n_GColorRed
-#define GColorNone  n_GColorNone
-#define GColorBlack n_GColorBlack
-#define GColorLightGray n_GColorLightGray
-#define GColorDarkGray n_GColorDarkGray
-#define GColorOrange n_GColorOrange
-#define GColorBlue  n_GColorBlue
 #define GColorOxfordBlue n_GColorOxfordBlue
 #define GColorDarkBlue n_GColorDarkBlue
-#define GColorGreen n_GColorGreen
+#define GColorBlue n_GColorBlue
 #define GColorDarkGreen n_GColorDarkGreen
 #define GColorMidnightGreen n_GColorMidnightGreen
 #define GColorCobaltBlue n_GColorCobaltBlue
@@ -75,6 +67,7 @@
 #define GColorJaegerGreen n_GColorJaegerGreen
 #define GColorTiffanyBlue n_GColorTiffanyBlue
 #define GColorVividCerulean n_GColorVividCerulean
+#define GColorGreen n_GColorGreen
 #define GColorMalachite n_GColorMalachite
 #define GColorMediumSpringGreen n_GColorMediumSpringGreen
 #define GColorCyan n_GColorCyan
@@ -82,6 +75,8 @@
 #define GColorImperialPurple n_GColorImperialPurple
 #define GColorIndigo n_GColorIndigo
 #define GColorElectricUltramarine n_GColorElectricUltramarine
+#define GColorArmyGreen n_GColorArmyGreen
+#define GColorDarkGray n_GColorDarkGray
 #define GColorLiberty n_GColorLiberty
 #define GColorVeryLightBlue n_GColorVeryLightBlue
 #define GColorKellyGreen n_GColorKellyGreen
@@ -102,14 +97,17 @@
 #define GColorLavenderIndigo n_GColorLavenderIndigo
 #define GColorLimerick n_GColorLimerick
 #define GColorBrass n_GColorBrass
+#define GColorLightGray n_GColorLightGray 
 #define GColorBabyBlueEyes n_GColorBabyBlueEyes
 #define GColorSpringBud n_GColorSpringBud
 #define GColorInchworm n_GColorInchworm
 #define GColorMintGreen n_GColorMintGreen
 #define GColorCeleste n_GColorCeleste
+#define GColorRed n_GColorRed 
 #define GColorFolly n_GColorFolly
 #define GColorFashionMagenta n_GColorFashionMagenta
 #define GColorMagenta n_GColorMagenta
+#define GColorOrange n_GColorOrange 
 #define GColorSunsetOrange n_GColorSunsetOrange
 #define GColorBrilliantRose n_GColorBrilliantRose
 #define GColorShockingPink n_GColorShockingPink
@@ -120,6 +118,8 @@
 #define GColorYellow n_GColorYellow
 #define GColorIcterine n_GColorIcterine
 #define GColorPastelYellow n_GColorPastelYellow
+#define GColorWhite n_GColorWhite 
+#define GColorBlack n_GColorBlack 
 
 #define GCornerNone n_GCornerNone
 

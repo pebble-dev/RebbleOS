@@ -126,6 +126,7 @@ SRCS_all += Watchfaces/nivz.c
 
 SRCS_all += Apps/System/systemapp.c
 SRCS_all += Apps/System/menu.c
+SRCS_all += Apps/System/testapp.c
 
 SRCS_all += Apps/System/test.c
 SRCS_all += Apps/System/notification.c
@@ -138,3 +139,4 @@ include hw/platform/snowy_family/config.mk
 include hw/platform/snowy/config.mk
 include hw/platform/tintin/config.mk
 include hw/platform/chalk/config.mk
+include Apps/System/tests/config.mk
