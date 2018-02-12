@@ -369,20 +369,20 @@ static void _notif_init(OverlayWindow *overlay_window)
     Window *window = window_create();
     window->background_color = GColorClear;
     overlay_window_stack_push_window(_overlay_window3, window, false);
-    
-    Layer *layer = window_get_root_layer(window);    
+
+    Layer *layer = window_get_root_layer(window);
     GRect bounds = layer_get_unobstructed_bounds(layer);
 
     _notif_layer = notification_layer_create(bounds);
-    Notification *notification = notification_create(app, title, body, gbitmap_create_with_resource(RESOURCE_ID_ROUNDRECT_THING), GColorRed);
-    
+    Notification *notification = notification_create(app, title, body, gbitmap_create_with_resource(RESOURCE_ID_UNKNOWN), GColorRed);
+
     notification_layer_stack_push_notification(_notif_layer, notification);
-    
+
     Notification *notification_two = notification_create("Discord", "Join Us", "Join us on the Pebble Discord in the #firmware channel", gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL_RINGING), GColorFromRGB(85, 0, 170));
     notification_layer_stack_push_notification(_notif_layer, notification_two);
-        
+
     layer_add_child(layer, notification_layer_get_layer(_notif_layer));
-        
+
     notification_layer_configure_click_config(_notif_layer, window);
     overlay_window_stack_push(overlay_window, true);
     layer_mark_dirty(layer);

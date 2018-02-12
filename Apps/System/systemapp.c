@@ -104,7 +104,7 @@ static void systemapp_window_load(Window *window)
 
     MenuItems *items = menu_items_create(4);
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", RESOURCE_ID_CLOCK, watch_list_item_selected));
-    menu_items_add(items, MenuItem("Settings", "Move Along", RESOURCE_ID_SPEECH_BUBBLE, test_item_selected));
+    menu_items_add(items, MenuItem("Settings", "Move Along", RESOURCE_ID_SPANNER, test_item_selected));
     menu_items_add(items, MenuItem("Tests", NULL, RESOURCE_ID_CLOCK, run_test_item_selected));
     menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", RESOURCE_ID_SPEECH_BUBBLE, NULL));
     menu_set_items(s_menu, items);
@@ -131,7 +131,7 @@ void systemapp_init(void)
         .load = systemapp_window_load,
         .unload = systemapp_window_unload,
     });
-    
+
     window_stack_push(s_main_window, true);
 }
 
@@ -150,7 +150,7 @@ void systemapp_main(void)
 void systemapp_tick(void)
 {
     struct tm *tick_time = rbl_get_tm();
-    
+
     // Store time
     s_last_time.hours = tick_time->tm_hour;
     s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;

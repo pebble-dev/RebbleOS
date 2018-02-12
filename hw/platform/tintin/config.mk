@@ -15,5 +15,7 @@ LIBS_tintin = $(LIBS_stm32f2xx)
 
 QEMUFLAGS_tintin = -machine pebble-bb2 -cpu cortex-m3
 QEMUSPITYPE_tintin = mtdblock
+QEMUPACKSIZE_tintin = 512000
+QEMUPACKOFS_tintin = 2621440
 
 PLATFORMS += tintin
