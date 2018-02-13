@@ -310,6 +310,7 @@ static void _app_management_thread(void *parms)
                     if (!app->is_internal)
                     {
                         appmanager_load_app(_this_thread, &header);
+                        total_app_size = header.virtual_size;
                     }
                     else
                     {
