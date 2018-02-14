@@ -54,7 +54,8 @@
 
 // BACK TO CORRECT?
 
-#define RES_START           0x100C
+/* XXX: issue pebble-dev/RebbleOS#43 */
+#define RES_START           0x200C
 
 /* Size of the app + stack + heap of the running app. 
    IN BYTES
