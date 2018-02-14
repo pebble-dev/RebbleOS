@@ -38,6 +38,9 @@ void *qalloc(qarena_t *arena, unsigned size) {
 	void *p = arena+1;
 	void *end = (char *)arena + arena->size;
 	void *n = NULL;
+	
+	if (size == 0)
+		return NULL;
 
 	size = RNDSZ(size);
 	
@@ -60,9 +63,13 @@ void *qalloc(qarena_t *arena, unsigned size) {
 }
 
 void qfree(qarena_t *arena, void *ptr) {
+	if (!ptr)
+		return;
+	
 	FREE(BPTR(ptr));
 	qjoin(arena);
 }
+
 static void qjoin(qarena_t *arena) {
 	void *p = arena+1;
 	void *end = (char *)arena + arena->size;
