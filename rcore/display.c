@@ -24,7 +24,7 @@ void display_init(void)
     hw_display_init();
       
     // set up the RTOS tasks
-    xTaskCreate(_display_thread, "Display", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_display_task);
+    xTaskCreate(_display_thread, "Display", 380 / 4 + portSTACK_FUDGE_FACTOR, NULL, tskIDLE_PRIORITY + 2UL, &_display_task);
     
     _display_queue = xQueueCreate(2, sizeof(uint8_t));
     _display_mutex = xSemaphoreCreateMutexStatic(&_display_mutex_buf);

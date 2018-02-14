@@ -101,6 +101,8 @@ extern "C" {
 
 #define portOFFSET_TO_PC                    ( 6 ) 
 
+#define portSTACK_FUDGE_FACTOR (26) /* words */
+
 typedef portSTACK_TYPE StackType_t;
 typedef long BaseType_t;
 typedef unsigned long UBaseType_t;
