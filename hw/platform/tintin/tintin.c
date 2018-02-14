@@ -236,6 +236,8 @@ void hw_display_start_frame(uint8_t x, uint8_t y) {
 
     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
+
+    display_done_ISR(0);
 }
 
 uint8_t *hw_display_get_buffer(void) {
