@@ -438,3 +438,42 @@ void log_clock_enable() {
 }
 void log_clock_disable() {
 }
+
+void HardFault_Handler()
+{
+    printf("*** HARD FAULT ***\n");
+    while(1);
+}
+
+void BusFault_Handler()
+{
+    printf("*** BUS FAULT ***\n");
+    while(1);
+}
+
+void UsageFault_Handler_C(uint32_t *sp)
+{
+    uint16_t ufsr = *(uint16_t *)0xE000ED2A;
+    
+    printf("*** USAGE FAULT ***\n");
+    printf("   R0: %08lx, R1: %08lx, R2: %08lx, R3: %08lx\n", sp[0], sp[1], sp[2], sp[3]);
+    printf("  R12: %08lx, LR: %08lx, PC: %08lx, SP: %08lx\n", sp[4], sp[5], sp[6], (uint32_t) sp);
+    printf("  UFSR: %04x\n", ufsr);
+    
+    if (ufsr & 1) {
+        printf("    *PC == %04x\n", *(uint16_t *)sp[6]);
+    }
+    while(1);
+}
+
+__attribute__((naked)) void UsageFault_Handler()
+{
+    asm volatile (
+        "TST   LR, #4\n\t"
+        "ITE   EQ\n\t"
+        "MRSEQ R0, MSP\n\t"
+        "MRSNE R0, PSP\n\t"
+        "LDR   R1, =UsageFault_Handler_C\n\t"
+        "BX    R1"
+    );
+}
