@@ -227,7 +227,7 @@ void hw_display_start_frame(uint8_t x, uint8_t y) {
     for (int i = 0; i < 168; i++) {
         _display_write(__RBIT(__REV(167-i)));
         for (int j = 0; j < 18; j++)
-            _display_write(__RBIT(__REV(_display_fb[i][j])));
+            _display_write(_display_fb[i][17-j]);
         _display_write(0);
     }
     _display_write(0);
