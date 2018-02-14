@@ -560,6 +560,10 @@ void window_load_click_config(Window *window)
  */
 void animation_util_push_fb(int width, int distance, bool left)
 {
+#ifdef PBL_BW
+#  warning XXX: PBL_BW no push_fb support
+    return;
+#else
     uint8_t *fb = display_get_buffer(); 
     if (left) 
     { 
@@ -589,5 +593,6 @@ void animation_util_push_fb(int width, int distance, bool left)
             for (int j = 0; j < width; j++) 
                 fb[rs - j] = fb[rs - j - distance]; 
         } 
-    } 
+    }
+#endif 
 }
