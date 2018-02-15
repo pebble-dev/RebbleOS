@@ -14,7 +14,7 @@
 #include "snowy_vibrate.h"
 #include "snowy_display.h"
 #include "stm32_buttons.h"
-#include "snowy_rtc.h"
+#include "stm32_rtc.h"
 #include "snowy_ambient.h"
 #include "snowy_ext_flash.h"
 

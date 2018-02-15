@@ -17,6 +17,7 @@
 #include <misc.h>
 
 #include "stm32_power.h"
+#include "stm32_rtc.h"
 
 extern void *strcpy(char *a2, const char *a1);
 
@@ -256,31 +257,6 @@ uint8_t hw_display_get_state() {
 //         _display_fb[y][17 - (x / 8)] &= ~(0x80 >> (x % 8));
 // }
 
-/* rtc */
-
-void rtc_init() {
-}
-
-void rtc_config() {
-}
-
-void hw_get_time_str(char *buf) {
-    strcpy(buf, "buttsquid");
-}
-
-#include <time.h>
-static struct tm _tm;
-struct tm *hw_get_time() {
-    return &_tm;
-}
-
-void rtc_set_timer_interval(TimeUnits tick_units)
-{
-}
-
-void rtc_disable_timer_interval(void)
-{
-}
 /* vibrate */
 
 void hw_vibrate_init() {
