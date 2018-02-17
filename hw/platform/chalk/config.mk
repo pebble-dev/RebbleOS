@@ -15,4 +15,6 @@ QEMUPACKSIZE_chalk = 512000
 QEMUPACKOFS_chalk = 3670016
 QEMUSPINAME_chalk = chalk/3.0
 
+HWREV_chalk = spalding
+
 PLATFORMS += chalk

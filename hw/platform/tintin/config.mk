@@ -21,4 +21,6 @@ QEMUPACKSIZE_tintin = 512000
 QEMUPACKOFS_tintin = 2621440
 QEMUSPINAME_tintin = aplite/3.0
 
+HWREV_tintin = ev2_4
+
 PLATFORMS += tintin

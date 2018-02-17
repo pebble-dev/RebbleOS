@@ -15,4 +15,6 @@ QEMUPACKSIZE_snowy = 512000
 QEMUPACKOFS_snowy = 3670016
 QEMUSPINAME_snowy = basalt/3.0
 
+HWREV_snowy = snowy_dvt
+
 PLATFORMS += snowy

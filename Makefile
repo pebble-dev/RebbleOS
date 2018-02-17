@@ -62,7 +62,7 @@ $(eval CFLAGS_$(1) = $(CFLAGS_$(1)) -I$(BUILD)/$(1)/res )
 
 -include $(DEPS_$(1))
 
-$(1): $(BUILD)/$(1)/tintin_fw.bin
+$(1): $(BUILD)/$(1)/$(1).pbz
 
 $(1)_qemu: $(BUILD)/$(1)/fw.qemu_flash.bin $(BUILD)/$(1)/fw.qemu_spi.bin
 	$(QEMU) -rtc base=localtime -serial null -serial null -serial stdio -gdb tcp::63770,server $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) $(BUILD)/$(1)/fw.qemu_spi.bin $(QEMUFLAGS)
@@ -97,9 +97,13 @@ Resources/$(1)_fpga.bin:
 	@echo "${RED}Error: platform '$(1)' needs an FPGA binary file in order to build.  Please extract or download one, and put it in $$@. ${STOP}"; exit 1
 
 $(BUILD)/$(1)/fw.qemu_flash.bin: Resources/$(1)_boot.bin $(BUILD)/$(1)/tintin_fw.bin
-	$(call SAY,[$(1)] QEMU-BIN $$<)
+	$(call SAY,[$(1)] QEMU-BIN $$@)
 	@mkdir -p $$(dir $$@)
 	$(QUIET)cat Resources/$(1)_boot.bin $(BUILD)/$(1)/tintin_fw.bin > $(BUILD)/$(1)/fw.qemu_flash.bin
+
+$(BUILD)/$(1)/$(1).pbz: $(BUILD)/$(1)/tintin_fw.bin $(BUILD)/$(1)/res/$(1)_res.pbpack LICENSE
+	$(call SAY,[$(1)] PBZ $$@)
+	$(QUIET)Utilities/mkpbz.py -p $(HWREV_$(1)) -c $(shell git describe --always --dirty --exclude '*') -v $(shell git describe --always --dirty) -l LICENSE $(BUILD)/$(1)/tintin_fw.bin $(BUILD)/$(1)/res/$(1)_res.pbpack $$@
 
 .PRECIOUS: $(BUILD)/$(1)/tintin_fw.bin $(BUILD)/$(1)/tintin_fw.elf
 
