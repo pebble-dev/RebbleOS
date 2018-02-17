@@ -145,3 +145,7 @@ bool menu_simple_test_deinit(void);
 bool menu_multi_column_test_init(Window* window);
 bool menu_multi_column_test_exec(void);
 bool menu_multi_column_test_deinit(void);
+
+bool action_menu_test_init(Window *window);
+bool action_menu_test_exec(void);
+bool action_menu_test_deinit(void);

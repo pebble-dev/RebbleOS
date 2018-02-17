@@ -167,6 +167,8 @@ void menu_layer_set_selected_index(MenuLayer *menu_layer, MenuIndex index, MenuR
 {
     if (menu_index_compare(&menu_layer->selected, &index) != 0)
     {
+        if (menu_layer->callbacks.selection_will_change != NULL)
+            menu_layer->callbacks.selection_will_change(menu_layer, &index, &menu_layer->selected, menu_layer->context);
         menu_layer->selected = index;
 
         if (menu_layer->reload_behaviour == MenuLayerReloadBehaviourOnSelection)
@@ -174,6 +176,9 @@ void menu_layer_set_selected_index(MenuLayer *menu_layer, MenuIndex index, MenuR
         
         _menu_layer_update_scroll_offset(menu_layer, scroll_align, animated);
         layer_mark_dirty(menu_layer->layer);
+
+        if (menu_layer->callbacks.selection_changed != NULL)
+            menu_layer->callbacks.selection_changed(menu_layer, &index, &menu_layer->selected, menu_layer->context);
     }
 }
 

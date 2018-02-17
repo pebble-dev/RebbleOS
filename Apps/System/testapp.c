@@ -81,6 +81,13 @@ app_test _tests[] = {
         .test_init = &menu_multi_column_test_init,
         .test_execute = &menu_multi_column_test_exec,
         .test_deinit = &menu_multi_column_test_deinit
+    },
+    {
+        .test_name = "Action Test",
+        .test_desc = "Action Menu Test",
+        .test_init = &action_menu_test_init,
+        .test_execute = &action_menu_test_exec,
+        .test_deinit = &action_menu_test_deinit
     }
 };
 

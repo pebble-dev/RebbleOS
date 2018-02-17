@@ -67,11 +67,11 @@ typedef void (*MenuLayerDrawSeparatorCallback)(GContext *ctx, const Layer *layer
 
 typedef void (*MenuLayerSelectCallback)(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context);
 
-typedef void (*MenuLayerSelectionChangedCallback)(struct MenuLayer *menu_layer, MenuIndex new_index,
-                                                  MenuIndex old_index, void *context);
+typedef void (*MenuLayerSelectionChangedCallback)(struct MenuLayer *menu_layer, MenuIndex *new_index,
+                                                  MenuIndex *old_index, void *context);
 
 typedef void (*MenuLayerSelectionWillChangeCallback)(struct MenuLayer *menu_layer, MenuIndex *new_index,
-                                                     MenuIndex old_index, void *context);
+                                                     MenuIndex *old_index, void *context);
 
 typedef struct MenuLayerCallbacks
 {
