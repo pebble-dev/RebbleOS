@@ -286,7 +286,7 @@ void window_destroy(Window *window)
     }
     
     /* Clean up the clink handler and remap back to our current window */
-    window_load_click_config(window);
+    window_load_click_config(window_stack_get_top_window());
     window_draw();
     window_dirty(true);
 }
