@@ -12,6 +12,7 @@
 #include <stm32f2xx_usart.h>
 #include <stm32f2xx_gpio.h>
 #include <stm32f2xx_spi.h>
+#include <stm32f2xx_iwdg.h>
 #include <stm32f2xx_rcc.h>
 #include <stm32f2xx_syscfg.h>
 #include <misc.h>
@@ -104,9 +105,16 @@ void platform_init_late() {
 /*** watchdog timer ***/
 
 void hw_watchdog_init() {
+    IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
+    IWDG_SetPrescaler(IWDG_Prescaler_32);
+    IWDG_SetReload(0xFFF);
+    IWDG_WriteAccessCmd(IWDG_WriteAccess_Disable);
+    IWDG_Enable();
+    IWDG_ReloadCounter();
 }
 
 void hw_watchdog_reset() {
+    /* I don't think so, homeslice. */
 }
 
 /*** ambient light sensor ***/
