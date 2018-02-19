@@ -21,7 +21,7 @@ struct BitmapLayer;
 // Make sure these are the same. 
 typedef struct BitmapLayer
 {
-    struct Layer *layer;
+    Layer layer;
     GBitmap *bitmap;
     ResHandle resource_handle;
     GAlign alignment;
@@ -29,8 +29,12 @@ typedef struct BitmapLayer
     GCompOp compositing_mode;
 } BitmapLayer;
 
+void bitmap_layer_dtor(BitmapLayer *blayer);
+void bitmap_layer_ctor(BitmapLayer *blayer, GRect frame);
+
 BitmapLayer *bitmap_layer_create(GRect frame);
 void bitmap_layer_destroy(BitmapLayer *bitmap_layer);
+
 Layer *bitmap_layer_get_layer(BitmapLayer *bitmap_layer);
 const GBitmap *bitmap_layer_get_bitmap(BitmapLayer *bitmap_layer);
 void bitmap_layer_set_bitmap(BitmapLayer *bitmap_layer, GBitmap *bitmap);

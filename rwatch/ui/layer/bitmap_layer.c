@@ -1,5 +1,5 @@
 /* bitmap_layer.c
- * routines for [...]
+ * routines for Loading a bitmap into a layer
  * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
@@ -12,32 +12,43 @@
 
 static void _bitmap_update_proc(Layer *layer, GContext *nGContext);
 
-BitmapLayer *bitmap_layer_create(GRect frame)
+void bitmap_layer_ctor(BitmapLayer *blayer, GRect frame)
 {
-    BitmapLayer* blayer = app_calloc(1, sizeof(BitmapLayer));
-    Layer* layer = layer_create(frame);
+    layer_ctor(&blayer->layer, frame);
     // give the layer a reference back to us
-    layer->container = blayer;
-    blayer->layer = layer;
+    blayer->layer.container = blayer;
     blayer->compositing_mode = GCompOpAssign;
     blayer->background = GColorWhite;
     blayer->alignment = GAlignCenter;
     
-    layer_set_update_proc(layer, _bitmap_update_proc);
+    layer_set_update_proc(&blayer->layer, _bitmap_update_proc);
+}
+
+void bitmap_layer_dtor(BitmapLayer *bitmap_layer)
+{
+    layer_dtor(&bitmap_layer->layer);
+    
+    if (bitmap_layer->bitmap)
+        gbitmap_destroy(bitmap_layer->bitmap);
+}
+
+BitmapLayer *bitmap_layer_create(GRect frame)
+{
+    BitmapLayer* blayer = app_calloc(1, sizeof(BitmapLayer));
+    bitmap_layer_ctor(blayer, frame);
     
     return blayer;
 }
 
 void bitmap_layer_destroy(BitmapLayer *bitmap_layer)
 {
-    gbitmap_destroy(bitmap_layer->bitmap);
+    bitmap_layer_dtor(bitmap_layer);
     app_free(bitmap_layer);
-    bitmap_layer = NULL;
 }
 
 Layer *bitmap_layer_get_layer(BitmapLayer *bitmap_layer)
 {
-    return bitmap_layer->layer;
+    return &bitmap_layer->layer;
 }
 
 const GBitmap *bitmap_layer_get_bitmap(BitmapLayer *bitmap_layer)
