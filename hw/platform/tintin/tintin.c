@@ -106,7 +106,7 @@ void platform_init_late() {
 
 void hw_watchdog_init() {
     IWDG_WriteAccessCmd(IWDG_WriteAccess_Enable);
-    IWDG_SetPrescaler(IWDG_Prescaler_32);
+    IWDG_SetPrescaler(IWDG_Prescaler_64);
     IWDG_SetReload(0xFFF);
     IWDG_WriteAccessCmd(IWDG_WriteAccess_Disable);
     IWDG_Enable();
@@ -114,7 +114,29 @@ void hw_watchdog_init() {
 }
 
 void hw_watchdog_reset() {
-    /* I don't think so, homeslice. */
+    /* We're exceedingly careful in this.  We turn on GPIO clocks, read the
+     * GPIO to see if the back button is not pressed, read the GPIO clock
+     * register to see if we got into trouble, and if and only if we meet
+     * all of those, we feed the watchdog.  */
+    
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
+    
+    if (!(GPIOC->IDR & (1 << 3))) /* pressed? */
+        goto nofeed;
+    if ((GPIOC->MODER & (0x3 << (3 * 2))) != (0x0 << (3 * 2)))
+        goto nofeed;
+    if ((GPIOC->PUPDR & (0x3 << (3 * 2))) != (0x1 << (3 * 2)))
+        goto nofeed;
+    
+    if (!(RCC->AHB1ENR & RCC_AHB1ENR_GPIOCEN)) /* GPIOC clocks? */
+        goto nofeed;
+    if (RCC->AHB1RSTR & RCC_AHB1RSTR_GPIOCRST) /* in reset? */
+        goto nofeed;
+
+    IWDG_ReloadCounter();
+    
+nofeed:
+    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 }
 
 /*** ambient light sensor ***/
@@ -283,7 +305,7 @@ void hw_vibrate_enable(uint8_t enabled) {
 
 #define JEDEC_RDSR_BUSY 0x01
 
-#define JEDEC_IDCODE_MICRON_N25Q032A11 0x20BB16
+#define JEDEC_IDCODE_MICRON_N25Q032A11 0x20BB16 /* bianca / qemu / ev2_5 */
 
 static uint8_t _hw_flash_txrx(uint8_t c) {
     while (!(SPI1->SR & SPI_SR_TXE))
@@ -351,7 +373,7 @@ void hw_flash_init(void) {
     
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI1);
 
-    SPI_I2S_DeInit(SPI2);
+    SPI_I2S_DeInit(SPI1);
     
     spiinit.SPI_Direction = SPI_Direction_2Lines_FullDuplex;
     spiinit.SPI_Mode = SPI_Mode_Master;
@@ -362,8 +384,8 @@ void hw_flash_init(void) {
     spiinit.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_2;
     spiinit.SPI_FirstBit = SPI_FirstBit_MSB;
     spiinit.SPI_CRCPolynomial = 7 /* Um. */;
-    SPI_Init(SPI2, &spiinit);
-    SPI_Cmd(SPI2, ENABLE);
+    SPI_Init(SPI1, &spiinit);
+    SPI_Cmd(SPI1, ENABLE);
     
     /* In theory, SPI is up.  Now let's see if we can talk to the part. */
     _hw_flash_enable(1);
@@ -389,7 +411,6 @@ void hw_flash_init(void) {
     }
     
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI1);
-
 }
 
 
