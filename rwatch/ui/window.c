@@ -77,13 +77,13 @@ static void push_animation_update(Animation *animation,
      
     if (*((bool*)animation->context) == true) 
     { 
-        newx = ANIM_LERP(DISPLAY_COLS, 0, progress); 
+        newx = ANIM_LERP(DISPLAY_COLS, 0, progress) - 1; 
         delta = (existx - newx); 
         animation_util_push_fb(existx, delta, true);
     } 
     else 
     { 
-        newx = ANIM_LERP(-DISPLAY_COLS, 0, progress); 
+        newx = ANIM_LERP(-DISPLAY_COLS, 0, progress) - 1;
         delta = newx - existx;
         animation_util_push_fb(DISPLAY_COLS - (existx + DISPLAY_COLS), delta, false);
     } 
