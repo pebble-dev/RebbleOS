@@ -10,14 +10,11 @@
 
 void text_layer_draw(struct Layer *layer, GContext *context);
 
-// Layer Functions
-TextLayer *text_layer_create(GRect bounds)
+void text_layer_ctor(TextLayer *tlayer, GRect frame)
 {
-    TextLayer* tlayer = app_calloc(1, sizeof(TextLayer));
-    Layer* layer = layer_create(bounds);
+    layer_ctor(&tlayer->layer, frame);
     // give the layer a reference back to us
-    layer->container = tlayer;
-    tlayer->layer = layer;
+    tlayer->layer.container = tlayer;
     tlayer->text_color = GColorBlack;
     tlayer->background_color = GColorWhite;
     tlayer->text_alignment = GTextAlignmentLeft;
@@ -25,25 +22,38 @@ TextLayer *text_layer_create(GRect bounds)
 
     // hook the draw callback to us
     // this way we control the text, bound, pagination etc
-    layer_set_update_proc(layer, text_layer_draw);
+    layer_set_update_proc(&tlayer->layer, text_layer_draw);
+}
+
+void text_layer_dtor(TextLayer *tlayer)
+{
+    layer_dtor(&tlayer->layer);
+}
+
+// Layer Functions
+TextLayer *text_layer_create(GRect frame)
+{
+    TextLayer* tlayer = app_calloc(1, sizeof(TextLayer));
+    text_layer_ctor(tlayer, frame);
+    
     return tlayer;
 }
 
 void text_layer_destroy(TextLayer *layer)
 {
-    layer_destroy(layer->layer);
+    text_layer_dtor(layer);
     app_free(layer);
 }
 
 Layer *text_layer_get_layer(TextLayer *text_layer)
 {
-    return text_layer->layer;
+    return &text_layer->layer;
 }
 
 void text_layer_set_text(TextLayer *text_layer, const char* text)
 {
     text_layer->text = text;
-    layer_mark_dirty(text_layer->layer);
+    layer_mark_dirty(&text_layer->layer);
 }
 
 const char *text_layer_get_text(TextLayer *text_layer)
@@ -54,42 +64,42 @@ const char *text_layer_get_text(TextLayer *text_layer)
 void text_layer_set_background_color(TextLayer *text_layer, GColor color)
 {
     text_layer->background_color = color;
-    layer_mark_dirty(text_layer->layer);
+    layer_mark_dirty(&text_layer->layer);
 }
 
 void text_layer_set_text_color(TextLayer *text_layer, GColor color)
 {
     text_layer->text_color = color;
-    layer_mark_dirty(text_layer->layer);
+    layer_mark_dirty(&text_layer->layer);
 }
 
 void text_layer_set_overflow_mode(TextLayer *text_layer, GTextOverflowMode line_mode)
 {
     text_layer->overflow_mode = line_mode;
-    layer_mark_dirty(text_layer->layer);
+    layer_mark_dirty(&text_layer->layer);
 }
 
 void text_layer_set_font(TextLayer * text_layer, GFont font)
 {   
     text_layer->font = font;
-    layer_mark_dirty(text_layer->layer);
+    layer_mark_dirty(&text_layer->layer);
 }
 
 void text_layer_set_text_alignment(TextLayer *text_layer, GTextAlignment text_alignment)
 {
     text_layer->text_alignment = text_alignment;
-    layer_mark_dirty(text_layer->layer);
+    layer_mark_dirty(&text_layer->layer);
 }
 
 GSize text_layer_get_content_size(TextLayer *text_layer)
 {
-    return text_layer->layer->bounds.size;
+    return text_layer->layer.bounds.size;
 }
 
 void text_layer_set_size(TextLayer *text_layer, const GSize max_size)
 {
-    text_layer->layer->frame.size = max_size;
-    layer_mark_dirty(text_layer->layer);
+    text_layer->layer.frame.size = max_size;
+    layer_mark_dirty(&text_layer->layer);
 }
 
 void text_layer_draw(struct Layer *layer, GContext *context)

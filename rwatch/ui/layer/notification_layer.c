@@ -39,11 +39,17 @@ static void notification_layer_dtor(NotificationLayer *notification_layer)
         SYS_LOG("noty", APP_LOG_LEVEL_ERROR, "Deleted all Notifications");
         break;
     }
+
     layer_remove_from_parent(&notification_layer->status_bar.layer);
-    status_bar_layer_destroy(&notification_layer->status_bar);
-    layer_destroy(&notification_layer->layer);
-    app_free(notification_layer);
-    window_dirty(true);
+    status_bar_layer_dtor(&notification_layer->status_bar);
+    layer_dtor(&notification_layer->layer);
+    
+#ifdef PBL_RECT
+    layer_remove_from_parent(&notification_layer->status_index_layer);
+    layer_dtor(&notification_layer->status_index_layer);    
+#endif
+   
+    SYS_LOG("noty", APP_LOG_LEVEL_ERROR, "N DTOR");
 }
 
 static void _status_index_draw(Layer *layer, GContext *ctx)
@@ -71,10 +77,10 @@ NotificationLayer *notification_layer_create(GRect frame)
     layer_add_child(&notification_layer->layer, status_bar_layer_get_layer(&notification_layer->status_bar));
     
 #ifdef PBL_RECT
-    Layer *status_index_layer = layer_create(status_bar_layer_get_layer(&notification_layer->status_bar)->frame);
-    status_index_layer->callback_data = notification_layer;
-    layer_set_update_proc(status_index_layer, _status_index_draw);
-    layer_add_child(status_bar_layer_get_layer(&notification_layer->status_bar), status_index_layer);
+    layer_ctor(&notification_layer->status_index_layer, notification_layer->status_bar.layer.frame);
+    notification_layer->status_index_layer.callback_data = notification_layer;
+    layer_set_update_proc(&notification_layer->status_index_layer, _status_index_draw);
+    layer_add_child(status_bar_layer_get_layer(&notification_layer->status_bar), &notification_layer->status_index_layer);
 #endif
     
     notification_layer->notif_count = 0;

@@ -8,6 +8,7 @@
  */
 
 #include "rect.h"
+#include "menu_layer.h"
 
 struct Window;
 struct MenuLayer;
@@ -32,7 +33,7 @@ typedef struct SimpleMenuSection
 
 typedef struct SimpleMenuLayer
 {
-    struct MenuLayer *menu_layer;
+    MenuLayer menu_layer;
     const SimpleMenuSection *sections;
     int32_t num_sections;
     void *callback_context;

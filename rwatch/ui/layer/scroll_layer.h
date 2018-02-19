@@ -24,9 +24,9 @@ typedef struct ScrollLayerCallbacks
 
 typedef struct ScrollLayer
 {
-    Layer *layer;
-    Layer *content_sublayer;
-    Layer *shadow_sublayer;
+    Layer layer;
+    Layer content_sublayer;
+//     Layer shadow_sublayer;
     PropertyAnimation *animation;
     GRect prev_scroll_offset;
     GRect scroll_offset;
@@ -34,10 +34,12 @@ typedef struct ScrollLayer
     void *context;
 } ScrollLayer;
 
+void scroll_layer_ctor(ScrollLayer* slayer, GRect frame);
+void scroll_layer_dtor(ScrollLayer* slayer);
 
 ScrollLayer *scroll_layer_create(GRect frame);
 void scroll_layer_destroy(ScrollLayer *layer);
-Layer *scroll_layer_get_layer(ScrollLayer *scroll_layer);
+Layer *scroll_layer_get_layer(const ScrollLayer *scroll_layer);
 
 void scroll_layer_add_child(ScrollLayer *scroll_layer, Layer *child);
 void scroll_layer_set_click_config_onto_window(ScrollLayer *scroll_layer, struct Window *window);

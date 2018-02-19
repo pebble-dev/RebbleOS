@@ -100,8 +100,8 @@ typedef struct MenuSection
 
 typedef struct MenuLayer
 {
-  ScrollLayer *scroll_layer;
-  Layer *layer; // content layer - all items are drawn here
+  Layer layer; // content layer - all items are drawn here
+  ScrollLayer scroll_layer;
   struct MenuLayerCallbacks callbacks;
   ClickConfigProvider click_config_provider; // additional click provider for clients
   void *context;
@@ -123,6 +123,8 @@ typedef struct MenuLayer
   bool is_reload_scheduled;
 } MenuLayer;
 
+void menu_layer_ctor(MenuLayer *mlayer, GRect frame);
+void menu_layer_dtor(MenuLayer *menu);
 
 MenuLayer *menu_layer_create(GRect frame);
 

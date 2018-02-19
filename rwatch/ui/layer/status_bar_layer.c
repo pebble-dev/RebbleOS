@@ -47,8 +47,7 @@ void status_bar_layer_ctor(StatusBarLayer *status_bar)
 
 void status_bar_layer_dtor(StatusBarLayer *sblayer)
 {
-    layer_destroy(&sblayer->layer);
-    app_free(sblayer);
+    layer_dtor(&sblayer->layer);
 }
 
 StatusBarLayer *status_bar_layer_create(void)
@@ -62,6 +61,7 @@ StatusBarLayer *status_bar_layer_create(void)
 void status_bar_layer_destroy(StatusBarLayer *status_bar)
 {
     status_bar_layer_dtor(status_bar);
+    app_free(status_bar);
 }
 
 Layer *status_bar_layer_get_layer(StatusBarLayer *status_bar)

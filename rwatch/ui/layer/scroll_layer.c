@@ -14,30 +14,40 @@
 #define CLICK_SCROLL_AMOUNT 16
 #define ANIMATE_ON_CLICK true
 
-ScrollLayer *scroll_layer_create(GRect frame)
+void scroll_layer_ctor(ScrollLayer* slayer, GRect frame)
 {
-    ScrollLayer* slayer = (ScrollLayer*)app_calloc(1, sizeof(ScrollLayer));
-    Layer* layer = layer_create(frame);
-    Layer* sublayer = layer_create(frame);
+    layer_ctor(&slayer->layer, frame);
+    layer_ctor(&slayer->content_sublayer, frame);
+
     // give the layer a reference back to us
-    layer->container = slayer;
-    slayer->layer = layer;
-    slayer->content_sublayer = sublayer;
+    slayer->layer.container = slayer;
     slayer->context = slayer;
 
-    layer_add_child(layer, sublayer);
+    layer_add_child(&slayer->layer, &slayer->content_sublayer);
+}
+
+void scroll_layer_dtor(ScrollLayer* slayer)
+{
+    layer_dtor(&slayer->layer);
+    layer_dtor(&slayer->content_sublayer);
+}
+
+ScrollLayer *scroll_layer_create(GRect frame)
+{
+    ScrollLayer* slayer = app_calloc(1, sizeof(ScrollLayer));
+    scroll_layer_ctor(slayer, frame);
 
     return slayer;
 }
 
 void scroll_layer_destroy(ScrollLayer *layer)
 {
-    layer_destroy(layer->layer);
+    scroll_layer_dtor(layer);
     app_free(layer);
 }
 
 static void scroll_layer_add_content_offset(ScrollLayer *layer, GPoint offset, bool animate) {
-    GPoint current = layer_get_frame(layer->content_sublayer).origin;
+    GPoint current = layer_get_frame(&layer->content_sublayer).origin;
     offset.x += current.x;
     offset.y += current.y;
 
@@ -68,14 +78,14 @@ static void scroll_layer_click_config_provider(ScrollLayer *layer)
     }
 }
 
-Layer *scroll_layer_get_layer(ScrollLayer *scroll_layer)
+Layer *scroll_layer_get_layer(const ScrollLayer *scroll_layer)
 {
-    return scroll_layer->layer;
+    return (Layer *)&scroll_layer->layer;
 }
 
 void scroll_layer_add_child(ScrollLayer *scroll_layer, Layer *child)
 {
-    layer_add_child(scroll_layer->content_sublayer, child);
+    layer_add_child(&scroll_layer->content_sublayer, child);
 }
 
 void scroll_layer_set_click_config_onto_window(ScrollLayer *scroll_layer, struct Window *window)
@@ -95,8 +105,8 @@ void scroll_layer_set_context(ScrollLayer *scroll_layer, void *context)
 
 void scroll_layer_set_content_offset(ScrollLayer *scroll_layer, GPoint offset, bool animated)
 {
-    GSize slayer_size = layer_get_frame(scroll_layer->layer).size;
-    GRect frame = layer_get_frame(scroll_layer->content_sublayer);
+    GSize slayer_size = layer_get_frame(&scroll_layer->layer).size;
+    GRect frame = layer_get_frame(&scroll_layer->content_sublayer);
     
     scroll_layer->prev_scroll_offset = scroll_layer->scroll_offset;
     scroll_layer->scroll_offset = GRect(CLAMP(offset.x, -frame.size.w, slayer_size.w),
@@ -104,7 +114,7 @@ void scroll_layer_set_content_offset(ScrollLayer *scroll_layer, GPoint offset, b
                                  frame.size.w,
                                  frame.size.h);
     
-    scroll_layer->animation = property_animation_create_layer_frame(scroll_layer->content_sublayer, &scroll_layer->prev_scroll_offset, &scroll_layer->scroll_offset);
+    scroll_layer->animation = property_animation_create_layer_frame(&scroll_layer->content_sublayer, &scroll_layer->prev_scroll_offset, &scroll_layer->scroll_offset);
     Animation *anim = property_animation_get_animation(scroll_layer->animation);
     animation_set_duration(anim, 100);
     animation_schedule(anim);
@@ -112,15 +122,15 @@ void scroll_layer_set_content_offset(ScrollLayer *scroll_layer, GPoint offset, b
 
 GPoint scroll_layer_get_content_offset(ScrollLayer *scroll_layer)
 {
-    GRect frame = layer_get_frame(scroll_layer->content_sublayer);
+    GRect frame = layer_get_frame(&scroll_layer->content_sublayer);
     return frame.origin;
 }
 
 void scroll_layer_set_content_size(ScrollLayer *scroll_layer, GSize size)
 {
-    GRect frame = layer_get_frame(scroll_layer->content_sublayer);
+    GRect frame = layer_get_frame(&scroll_layer->content_sublayer);
     frame.size = size;
-    layer_set_frame(scroll_layer->content_sublayer, frame);
+    layer_set_frame(&scroll_layer->content_sublayer, frame);
     scroll_layer->scroll_offset = scroll_layer->prev_scroll_offset = frame;
     // calling set_offset to ensure that offset is clamped to current size
     scroll_layer_set_content_offset(scroll_layer, frame.origin, false);
@@ -128,16 +138,16 @@ void scroll_layer_set_content_size(ScrollLayer *scroll_layer, GSize size)
 
 GSize scroll_layer_get_content_size(const ScrollLayer *scroll_layer)
 {
-    GRect bounds = layer_get_frame(scroll_layer->content_sublayer);
+    GRect bounds = layer_get_frame(&scroll_layer->content_sublayer);
     return bounds.size;
 }
 
 void scroll_layer_set_frame(ScrollLayer *scroll_layer, GRect frame)
 {
-    layer_set_frame(scroll_layer->layer, frame);
+    layer_set_frame(&scroll_layer->layer, frame);
 
     // clamp content offset to new size
-    GPoint offset = layer_get_frame(scroll_layer->content_sublayer).origin;
+    GPoint offset = layer_get_frame(&scroll_layer->content_sublayer).origin;
     scroll_layer_set_content_offset(scroll_layer, offset, false);
 }
 

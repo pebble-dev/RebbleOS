@@ -19,12 +19,11 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext);
 #define BUTTON_LONG_CLICK_DELAY_MS 500
 #define ANIMATE_ON_CLICK true
 
-MenuLayer *menu_layer_create(GRect frame)
+void menu_layer_ctor(MenuLayer *mlayer, GRect frame)
 {
-    MenuLayer *mlayer = (MenuLayer *)app_calloc(1, sizeof(MenuLayer));
-    mlayer->layer = layer_create(frame);
-    mlayer->scroll_layer = scroll_layer_create(GRect(0, 0, frame.size.w, frame.size.h));
-    mlayer->layer->container = mlayer;
+    layer_ctor(&mlayer->layer, frame);
+    scroll_layer_ctor(&mlayer->scroll_layer, GRect(0, 0, frame.size.w, frame.size.h));
+    mlayer->layer.container = mlayer;
 
     mlayer->column_count = 1;
     mlayer->cells_count = 0;
@@ -44,18 +43,29 @@ MenuLayer *menu_layer_create(GRect frame)
     mlayer->is_center_focus = true;
 #endif
 
-    layer_set_update_proc(mlayer->layer, menu_layer_update_proc);
+    layer_set_update_proc(&mlayer->layer, menu_layer_update_proc);
 
-    scroll_layer_add_child(mlayer->scroll_layer, mlayer->layer);
+    scroll_layer_add_child(&mlayer->scroll_layer, &mlayer->layer);
+}
 
+void menu_layer_dtor(MenuLayer *menu)
+{
+    layer_dtor(&menu->layer);
+    scroll_layer_dtor(&menu->scroll_layer);
+    if (menu->cells_count > 0)
+        app_free(menu->cells);
+}
+
+MenuLayer *menu_layer_create(GRect frame)
+{
+    MenuLayer *mlayer = (MenuLayer *)app_calloc(1, sizeof(MenuLayer));
+    menu_layer_ctor(mlayer, frame);
     return mlayer;
 }
 
 void menu_layer_destroy(MenuLayer *menu)
-{
-    scroll_layer_destroy(menu->scroll_layer);
-    if (menu->cells_count > 0)
-        app_free(menu->cells);
+{    
+    menu_layer_dtor(menu);
     app_free(menu);
 }
 
@@ -66,12 +76,12 @@ int16_t menu_index_compare(const MenuIndex *a, const MenuIndex *b)
 
 Layer *menu_layer_get_layer(const MenuLayer *menu_layer)
 {
-    return scroll_layer_get_layer(menu_layer->scroll_layer);
+    return scroll_layer_get_layer(&menu_layer->scroll_layer);
 }
 
 ScrollLayer *menu_layer_get_scroll_layer(const MenuLayer *menu_layer)
 {
-    return menu_layer->scroll_layer;
+    return (ScrollLayer*)&menu_layer->scroll_layer;
 }
 
 // Selected index handling -------------
@@ -145,21 +155,21 @@ void _menu_layer_update_scroll_offset(MenuLayer* menu_layer, MenuRowAlign scroll
     {
         if (menu_layer->is_center_focus)
             scroll_align = MenuRowAlignCenter;
-        GSize size = layer_get_frame(menu_layer->layer).size;
+        GSize size = layer_get_frame(&menu_layer->layer).size;
         int16_t span_pos = cell->y + _get_aligned_edge_position(cell->h, scroll_align);
         int16_t frame_pos = _get_aligned_edge_position(size.h, scroll_align);
 
-        int16_t full_content_height = scroll_layer_get_content_size(menu_layer->scroll_layer).h;
+        int16_t full_content_height = scroll_layer_get_content_size(&menu_layer->scroll_layer).h;
         if (menu_layer->is_bottom_padding_enabled)
             full_content_height += MENU_BOTTOM_PADDING;
 
-        GPoint new_offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
+        GPoint new_offset = scroll_layer_get_content_offset(&menu_layer->scroll_layer);
         new_offset.y = -(span_pos - frame_pos);
         if (menu_layer->is_center_focus == false) {
             int16_t min_offset = MIN(size.h - full_content_height, 0);
             new_offset.y = CLAMP(new_offset.y, min_offset, 0);
         }
-        scroll_layer_set_content_offset(menu_layer->scroll_layer, new_offset, animated);
+        scroll_layer_set_content_offset(&menu_layer->scroll_layer, new_offset, animated);
     }
 }
 
@@ -175,7 +185,7 @@ void menu_layer_set_selected_index(MenuLayer *menu_layer, MenuIndex index, MenuR
             menu_layer->is_reload_scheduled = true;
         
         _menu_layer_update_scroll_offset(menu_layer, scroll_align, animated);
-        layer_mark_dirty(menu_layer->layer);
+        layer_mark_dirty(&menu_layer->layer);
 
         if (menu_layer->callbacks.selection_changed != NULL)
             menu_layer->callbacks.selection_changed(menu_layer, &index, &menu_layer->selected, menu_layer->context);
@@ -263,8 +273,8 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
 
     // generate cells
     size_t cell = 0;
-    uint16_t cell_width = menu_layer->layer->frame.size.w / menu_layer->column_count;
-    uint16_t oversized_columns = menu_layer->layer->frame.size.w % menu_layer->column_count;
+    uint16_t cell_width = menu_layer->layer.frame.size.w / menu_layer->column_count;
+    uint16_t oversized_columns = menu_layer->layer.frame.size.w % menu_layer->column_count;
     int16_t column = 0;
     int16_t y = 0;
     int16_t h = 0;
@@ -311,11 +321,11 @@ void menu_layer_reload_data(MenuLayer *menu_layer)
     }
 
 
-    GSize size = layer_get_frame(menu_layer->layer).size;
+    GSize size = layer_get_frame(&menu_layer->layer).size;
     size.h = y + (column == 0 ? 0 : h);
-    scroll_layer_set_content_size(menu_layer->scroll_layer, size);
+    scroll_layer_set_content_size(&menu_layer->scroll_layer, size);
     _menu_layer_update_scroll_offset(menu_layer, MenuRowAlignCenter, false);
-    layer_mark_dirty(menu_layer->layer);
+    layer_mark_dirty(&menu_layer->layer);
 }
 
 // Input handling -------------
@@ -381,14 +391,14 @@ void menu_layer_set_normal_colors(MenuLayer *menu_layer, GColor background, GCol
 {
     menu_layer->bg_color = background;
     menu_layer->fg_color = foreground;
-    layer_mark_dirty(menu_layer->layer);
+    layer_mark_dirty(&menu_layer->layer);
 }
 
 void menu_layer_set_highlight_colors(MenuLayer *menu_layer, GColor background, GColor foreground)
 {
     menu_layer->bg_hi_color = background;
     menu_layer->fg_hi_color = foreground;
-    layer_mark_dirty(menu_layer->layer);
+    layer_mark_dirty(&menu_layer->layer);
 }
 
 void menu_layer_set_reload_behaviour(MenuLayer* menu_layer, MenuLayerReloadBehaviour behaviour)
@@ -440,7 +450,7 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
     // Draw background
     if (menu_layer->is_center_focus)
     {
-        GPoint scroll_offset = scroll_layer_get_content_offset(menu_layer->scroll_layer);
+        GPoint scroll_offset = scroll_layer_get_content_offset(&menu_layer->scroll_layer);
         MenuCellSpan* focused_cell = _get_cell_span(menu_layer, &menu_layer->selected);
         GRect cursor_rect = GRect(focused_cell->x, (layer->frame.size.h / 2) - (focused_cell->h / 2) - scroll_offset.y,
                                   cell_width, focused_cell->h);

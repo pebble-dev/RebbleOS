@@ -56,7 +56,9 @@ void layer_dtor(Layer *layer)
     SYS_LOG("layer", APP_LOG_LEVEL_ERROR, "Layer DTOR");
     _layer_remove_node(layer);
     // free the children too...
-    _layer_delete_tree(layer);
+    /* @ginge Actually, Pebble doesn't do this so we dont either */
+    /*_layer_delete_tree(layer);
+     * NOTE: cleanup after yourself! */
 }
 
 GRect layer_get_unobstructed_bounds(Layer *layer)

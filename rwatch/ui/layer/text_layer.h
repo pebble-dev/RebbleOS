@@ -10,7 +10,7 @@
 
 typedef struct TextLayer
 {
-    Layer *layer;
+    Layer layer;
     const char *text;
     GFont font;
 //     GTextLayoutCacheRef layout_cache;
@@ -22,8 +22,12 @@ typedef struct TextLayer
 //     bool should_cache_layout;
 } TextLayer;
 
+void text_layer_dtor(TextLayer *tlayer);
+void text_layer_ctor(TextLayer *tlayer, GRect frame);
+
 TextLayer *text_layer_create(GRect frame);
 void text_layer_destroy(TextLayer *text_layer);
+
 Layer *text_layer_get_layer(TextLayer *text_layer);
 void text_layer_set_text(TextLayer *text_layer, const char* text);
 const char *text_layer_get_text(TextLayer *text_layer);
