@@ -1,9 +1,12 @@
 CFLAGS_snowy = $(CFLAGS_snowy_family)
+CFLAGS_snowy += $(CFLAGS_bt)
 CFLAGS_snowy += -Ihw/platform/snowy
 CFLAGS_snowy += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=snowy -DREBBLE_PLATFORM_SNOWY
 
 SRCS_snowy = $(SRCS_snowy_family)
+SRCS_snowy += $(SRCS_bt)
 SRCS_snowy += hw/platform/snowy/snowy.c
+SRCS_snowy += hw/platform/snowy/snowy_bluetooth.c
 SRCS_snowy += Resources/snowy_fpga.bin
 
 LDFLAGS_snowy = $(LDFLAGS_snowy_family)

@@ -4,3 +4,6 @@
 [submodule "lib/ngfx"]
 	path = lib/neographics
 	url = ../../pebble-dev/neographics
+[submodule "lib/btstack/btstack"]
+	path=lib/btstack/btstack
+	url = https://github.com/ginge/btstack.git

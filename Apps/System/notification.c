@@ -58,7 +58,11 @@ static void _notif_window_load(Window *window)
 
 static void _notif_window_unload(Window *window)
 {
-    notification_layer_destroy(_notif_layer);
+    if (_notif_layer)
+    {
+        notification_layer_destroy(_notif_layer);
+        _notif_layer = NULL;
+    }
 }
 
 void notif_deinit(void)

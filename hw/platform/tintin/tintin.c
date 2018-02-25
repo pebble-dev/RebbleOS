@@ -16,11 +16,12 @@
 #include <stm32f2xx_rcc.h>
 #include <stm32f2xx_syscfg.h>
 #include <misc.h>
+#include "rebbleos.h"
 
 #include "stm32_power.h"
 #include "stm32_rtc.h"
 
-extern void *strcpy(char *a2, const char *a1);
+// extern void *strcpy(char *a2, const char *a1);
 
 /*** debug routines ***/
 
@@ -444,6 +445,14 @@ void ss_debug_write(const unsigned char *p, size_t len)
 void log_clock_enable() {
 }
 void log_clock_disable() {
+}
+
+
+void hw_bluetooth_init() {
+    rebbleos_module_set_status(MODULE_BLUETOOTH, MODULE_DISABLED, MODULE_ERROR);
+}
+
+void bt_device_request_tx() {
 }
 
 void HardFault_Handler()

@@ -16,5 +16,6 @@
 #include "stm32_rtc.h"
 #include "snowy_ambient.h"
 #include "snowy_ext_flash.h"
-
+#include "btstack_rebble.h"
+#include "snowy_bluetooth.h"
 #include "debug.h"

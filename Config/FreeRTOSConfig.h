@@ -133,6 +133,7 @@
 #define INCLUDE_vTaskSuspend   1
 #define INCLUDE_vTaskDelayUntil   1
 #define INCLUDE_vTaskDelay    1
+#define INCLUDE_xTaskGetCurrentTaskHandle 1
 
 /* Cortex-M specific definitions. */
 #ifdef __NVIC_PRIO_BITS

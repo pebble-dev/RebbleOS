@@ -39,3 +39,8 @@ Portions of this codebase are instead made available under other licenses:
  * musl, which is excerpted in lib/musl, is available under the terms of
    various permissive licenses.  Please see lib/musl/COPYRIGHT for more
    information.
+
+ * BTStack, which is in lib/btstack/btstack/ as a submodule, is available 
+   under the terms of a dual use proprietary license. BTStack is free for
+   use in a non-profit scenario, but commercial use will require a license.
+   See /lib/btstack/btstack/src/bluetooth.h for more information

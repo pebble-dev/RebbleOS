@@ -18,6 +18,7 @@ CFLAGS_all += -IApps
 CFLAGS_all += -IApps/System
 CFLAGS_all += -IConfig
 CFLAGS_all += -Ircore
+CFLAGS_all += -Ircore/protocol
 CFLAGS_all += -Irwatch
 CFLAGS_all += -Irwatch/ui
 CFLAGS_all += -Irwatch/ui/layer
@@ -83,6 +84,7 @@ SRCS_all += rcore/appmanager_app.c
 SRCS_all += rcore/appmanager_app_api.c
 SRCS_all += rcore/appmanager_app_runloop.c
 SRCS_all += rcore/backlight.c
+SRCS_all += rcore/bluetooth.c
 SRCS_all += rcore/buttons.c
 SRCS_all += rcore/display.c
 SRCS_all += rcore/debug.c
@@ -101,6 +103,9 @@ SRCS_all += rcore/resource.c
 SRCS_all += rcore/watchdog.c
 SRCS_all += rcore/overlay_manager.c
 SRCS_all += rcore/rebble_util.c
+
+SRCS_all += rcore/protocol/protocol_notification.c
+SRCS_all += rcore/protocol/protocol_system.c
 
 SRCS_all += rwatch/librebble.c
 SRCS_all += rwatch/ngfxwrap.c
@@ -144,3 +149,5 @@ include hw/platform/snowy/config.mk
 include hw/platform/tintin/config.mk
 include hw/platform/chalk/config.mk
 include Apps/System/tests/config.mk
+include lib/btstack/config.mk
+
