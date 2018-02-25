@@ -18,7 +18,7 @@ void _window_unload_proc(Window *window);
 void _window_load_proc(Window *window);
 
 bool _anim_direction_left = true;
-void animation_util_push_fb(int width, int distance, bool left);
+void animation_util_push_fb(GRect rect, int16_t distance);
 void _animation_setup(bool direction_left);
 static void push_animation_update(Animation *animation,
                                   const AnimationProgress progress);
@@ -37,7 +37,7 @@ Window *window_create(void)
     }
 
     window_ctor(window);
-
+    SYS_LOG("window", APP_LOG_LEVEL_INFO, "ctor 0x%x", window);
     return window;
 }
 
@@ -78,14 +78,18 @@ static void push_animation_update(Animation *animation,
     if (*((bool*)animation->context) == true) 
     { 
         newx = ANIM_LERP(DISPLAY_COLS, 0, progress) - 1; 
-        delta = (existx - newx); 
-        animation_util_push_fb(existx, delta, true);
+        delta = (existx - newx);
+        if (delta && existx > 0)
+        {
+            animation_util_push_fb(GRect(delta, 0, DISPLAY_COLS - delta, DISPLAY_ROWS), -delta);
+        }
     } 
     else 
-    { 
-        newx = ANIM_LERP(-DISPLAY_COLS, 0, progress) - 1;
+    {
+        newx = ANIM_LERP(-DISPLAY_COLS, 0, progress);
         delta = newx - existx;
-        animation_util_push_fb(DISPLAY_COLS - (existx + DISPLAY_COLS), delta, false);
+        if (delta && existx < 0)
+            animation_util_push_fb(GRect(DISPLAY_COLS + existx + 1, 0, DISPLAY_COLS - delta + 1, DISPLAY_ROWS), delta);
     } 
 
     window->frame.origin.x = newx; 
@@ -558,41 +562,46 @@ void window_load_click_config(Window *window)
  * Grab the screenbuffer and push it off the screen left or right by n
  * pixels.
  */
-void animation_util_push_fb(int width, int distance, bool left)
+void animation_util_push_fb(GRect rect, int16_t distance)
 {
 #ifdef PBL_BW
 #  warning XXX: PBL_BW no push_fb support
     return;
 #else
     uint8_t *fb = display_get_buffer(); 
-    if (left) 
-    { 
-        /* push the framebuffer out left.
-         * For every row get the beginning of the row
-         * and copy byte by byte
-         */ 
-        for (uint16_t i = 0; i < DISPLAY_ROWS; i++) 
-        { 
-            /* row start */ 
-            int rs = DISPLAY_COLS * i; 
-             
-            for (int j = 0; j < width; j++) 
-                fb[rs + j] = fb[rs + j + distance]; 
-        } 
-    } 
-    else 
-    { 
-        /* Push the framebuffer out right
-         * We get the row end and work inwards
-         */
-        for (uint16_t i = 0; i < DISPLAY_ROWS; i++) 
-        { 
-            /* row end. We will work backwards */ 
-            int rs = DISPLAY_COLS * i + DISPLAY_COLS - 1; 
-             
-            for (int j = 0; j < width; j++) 
-                fb[rs - j] = fb[rs - j - distance]; 
-        } 
+    
+    if (rect.origin.x < 0) rect.origin.x = 0;
+    if (rect.origin.x > DISPLAY_COLS) rect.origin.x = DISPLAY_COLS;
+    if (rect.origin.y < 0) rect.origin.y = 0;
+    if (rect.origin.y > DISPLAY_ROWS) rect.origin.y = DISPLAY_ROWS;
+    
+    uint8_t *origin = &fb[(rect.origin.y * DISPLAY_COLS) + rect.origin.x];
+    uint8_t *p;
+    int8_t incr = distance > 0 ? -1 : 1;
+
+    for (int16_t y = 0; y < rect.size.h; y++)
+    {
+        uint16_t x = distance > 0 ? rect.size.w - 1 : 0;
+       
+        p = origin + (y * DISPLAY_COLS) + x;
+        
+        for (;;)
+        {      
+            *(p + distance) = *p;
+            
+            x += incr;
+            p += incr;
+            
+            if (distance < 0 && x >= rect.size.w)
+                break;
+            else if (distance > 0 && x <= 0)
+                break;
+            
+            if ((p + distance > origin + (DISPLAY_COLS * rect.size.h) + rect.size.w) ||
+                p > origin + DISPLAY_ROWS * DISPLAY_COLS)
+                continue;
+        }
+        
     }
 #endif 
 }
