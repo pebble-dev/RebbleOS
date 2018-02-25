@@ -25,6 +25,7 @@
 #include "debug.h"
 #include "flash.h"
 #include "resource.h"
+#include "rebble_util.h"
 
 #define VERSION "v0.0.0.2"
 

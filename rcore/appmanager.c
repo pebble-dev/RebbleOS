@@ -41,36 +41,44 @@ StackType_t _app_thread_manager_stack[APP_THREAD_MANAGER_STACK_SIZE];  // stack 
  * it's tempting to over engineer this and make it a node list
  * or at least add dynamicness to it. But honestly we have 3 threads
  * max at the moment, so if we get there, maybe */
-uint8_t _heap_app[MEMORY_SIZE_APP];
-CCRAM uint8_t _heap_worker[MEMORY_SIZE_WORKER];
-CCRAM uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY];
+uint8_t _heap_app[MEMORY_SIZE_APP_HEAP];
+CCRAM uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
+CCRAM uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
+
+/* keep these stacks off CCRAM */
+StackType_t _stack_app[MEMORY_SIZE_APP_STACK];
+StackType_t _stack_worker[MEMORY_SIZE_WORKER_STACK];
+StackType_t _stack_overlay[MEMORY_SIZE_OVERLAY_STACK];
 
 /* Initialise everything we know about the different threads */
 app_running_thread _app_threads[MAX_APP_THREADS] = {
     {
         .thread_type = AppThreadMainApp,
         .thread_name = "MainApp",
-        .heap_size = MEMORY_SIZE_APP,
-        .heap = (app_stack_heap_proto*)&_heap_app,
+        .heap_size = MEMORY_SIZE_APP_HEAP,
+        .heap = _heap_app,
         .stack_size = MEMORY_SIZE_APP_STACK,
+        .stack = _stack_app,
         .thread_entry = &appmanager_app_main_entry,
         .thread_priority = 6UL,
     },
     {
         .thread_type = AppThreadWorker,
         .thread_name = "Worker",
-        .heap_size = MEMORY_SIZE_WORKER,
-        .heap = (app_stack_heap_proto*)&_heap_worker,
+        .heap_size = MEMORY_SIZE_WORKER_HEAP,
+        .heap = _heap_worker,
         .stack_size = MEMORY_SIZE_WORKER_STACK,
+        .stack = _stack_worker,
         /*.thread_entry = &appmanager_worker_main_entry */
         .thread_priority = 8UL,
     },
     {
         .thread_type = AppThreadOverlay,
         .thread_name = "Overlay",
-        .heap_size = MEMORY_SIZE_OVERLAY,
-        .heap = (app_stack_heap_proto*)&_heap_overlay,
+        .heap_size = MEMORY_SIZE_OVERLAY_HEAP,
+        .heap = _heap_overlay,
         .stack_size = MEMORY_SIZE_OVERLAY_STACK,
+        .stack = _stack_overlay,
         .thread_priority = 9UL,
     }
 };
@@ -364,43 +372,38 @@ static void _app_management_thread(void *parms)
 
 
 /*
-    Heres what is going down. We are going to load the app header file from flash
-    This contains sizes and offsets. The app bin sits directly after the app header.
-    Then we load the app itself as well as the header block (for future reference)
+    Heres what is going down. We are going to load the app from flash.
+    The app is stored in flash and is a butchered ELF position independant
+    compiled (-fPIC) library. It's layout is as so:
     
+     | AppicationHeader | App Binary (.text) | Data Section (.data) | Global offset  | BSS [and reloc table] |
+        
     There is a symbol table in each Pebble app that needs to have the address 
     of _our_ symbol table poked into it. 
-    The symbol table is a big lookup table of pointer functions. When an app calls aa function
-    such as window_create() it actually turns that into an integer id in the app.
-    When the app calls the function, it does function => id => RebbleOS => id to function => call
-    This allows the app to do a lookup of a function id internally, check it in our rebble sym table, and return a pointer address to to the function to jump to.
+    The symbol table is a big lookup table of pointer functions. 
+    When an app calls a function such as window_create() it actually turns 
+    that into an integer id in the app.
+    When the app calls the function, it does 
+      function => id => RebbleOS => id to function => call
+    This allows the app to do a lookup of a function id internally, check 
+    it in our rebble sym table, and return a pointer address to to the function 
+    to jump to.
     
-    We also have to take care of BSS section. This is defined int he app header for the size, 
-    and sits directly after the app binary. We alocate enough room for the BSS, and zero it out
+    We also have to take care of BSS section. This is virtual size - app size
     BSS. is always zeroed.
     
-    Then we set the Global Offset Table (GOT). Each Pebble app is compiled with
+    Then relocate entries. Each Pebble app is compiled with 
     Position Independant code (PIC) that means it can run from any address.
-    This is usually used on dlls .so files and the like, and a Pebble app is no different
-    It is the responsibility of the dynamic loader (us in this case) to get
-    the GOT (which is at the end of the binary) and relocate all of the data symbols
-    in the application binary.
-    The got is a clever way of doing relative lookups in the app for "shared" data.
+    This is usually used on dlls .so files and the like, and a Pebble app 
+    is no different. It is the responsibility of the dynamic loader 
+    (us in this case) to get the list of relocations (which is at the end of 
+    the binary) and "patch" or relocate all of the data symbols in the 
+    application binary.
     
+    (see)
     http://grantcurell.com/2015/09/21/what-is-the-symbol-table-and-what-is-the-global-offset-table/
     
-    In short, the app header defines how many relocations of memory we need to do, and where in the bin
-    these relocation registers are. 
-    The loader does this:
-    load GOT from end of binary using header offset value. for each entry, 
-    get the position in memory for our GOT lookup table
-    The value in the got table inside the .DATA section is updated to add the base address
-    of the executing app to the relative offset already stored in the register.
-    It is usual in a shred lib to have a shared data section between all apps. The data is copied
-    to a separate location for each instance. 
-    In this case we aer using the .DATA section in place. No sharing. no clever. Not required.
-    
-    When thwe app executes, any variables stored in the global are looked up...
+    When the app executes, any variables stored in the global are looked up...
     int global_a;
     printf(global_a);
     > go to the GOT in the DATA section by relative address and get the address of global_a
@@ -413,14 +416,9 @@ static void _app_management_thread(void *parms)
     
     For now, the statically allocated memory for the app task is also used
     to load the application into. The application needs uint8 size to execute 
-    from, while the stack is uint32. The stack is therefore partitioned into 
-    fixed_memory_for_app[n] = [ app binary | GOT || BSS | heap++....  | ...stack ]
-    
-    The entry point given to the task (that spawns the app) is the beginning of the
-    stack region, after the app binary. The relative bin and stack are then 
-    unioned through as the right sizes to the BX and the SP.
-    The app deals with 8 bit bytes where the staack is a word of uint32. To use the same array,
-    the value is unioned sto save epic bitshifting
+    from, while the stack is uint32.
+    Each app is given its own stack, while the heap is shared between the app
+    binary and the app memory
     
     We are leaning on Rtos here to actually spawn the app with it's own stack
     (cheap fork)  and make sure the (M)SP is set accordingly. 
@@ -431,111 +429,119 @@ static void _app_management_thread(void *parms)
     * Find app on flash
     * Load app into lower stack
     * Set symbol table address
-    * load relocs and reloc the GOT
+    * load relocs and reloc the GOT + DATA
     * zero BSS
     * fork
         
     */
 void appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
-{
-    app_stack_heap_proto *app_stack_heap = (app_stack_heap_proto *)thread->heap;
-    
+{   
     struct fd fd;
+    
+    /* de-fluff */
+    memset(thread->heap, 0, thread->heap_size);
+
     fs_open(&fd, &thread->app->app_file);
     fs_read(&fd, header, sizeof(ApplicationHeader));
 
     /* load the app from flash
      *  and any reloc entries too. */
     fs_seek(&fd, 0, FS_SEEK_SET);
-    fs_read(&fd, app_stack_heap->byte_buf, header->app_size + (header->reloc_entries_count * 4));
+    fs_read(&fd, thread->heap, header->app_size + (header->reloc_entries_count * 4));
     
     /* apps get loaded into heap like so
      * [App Header | App Binary | App Heap | App Stack]
      */
-    
+       
     /* re-allocate the GOT for -fPIC
-     * Pebble has the GOT at the end of the app.
-     * first get the GOT realloc table */
-    uint32_t *got = &app_stack_heap->word_buf[header->app_size / 4];
-
+     * A normal ELF dyn loader would look at the ELF header and relocate
+     * any addresses that need to be relocated. On a pebble, we only have the
+     * bin plus a table of relocations appeneded to the end.
+     * This table has the offset from app bin start to the register to reloc
+     * Some of the reloc will be from the .DATA section, some will be .GOT
+     * (global offset table) entries
+     * The reloc table actually sits in BSS section, so once we have done
+     * we wipe the BSS again. */
+    uint8_t *reloc_table_addr = thread->heap + header->app_size;
+    
+    /* Now we have the relocs to do, we are in standard ELF dyn loader mode 
+     * (albeit without having to deal with relocating PLTs)
+     * Each register to be relocated will be a relative offset.
+     * To make it all work we:
+     * address with relative offset = address of app bin + relative offset
+     */    
     if (header->reloc_entries_count > 0)
     {                
         /* go through all of the reloc entries and do the reloc dance */
         for (uint32_t i = 0; i < header->reloc_entries_count; i++)
         {
-            /* get the got out of the table. */
-            /* use that value to get the relative offset from the address */
-            uint32_t existing = app_stack_heap->word_buf[got[i]/4];
-
-            /* we are working in words */
-            existing /= 4;
+            uint32_t reloc_idx = i * 4;
+            /* get the offset from app base to the register to relocate */
+            uint32_t reg_to_reloc = read_32(&reloc_table_addr[reloc_idx]);          
+            assert(reg_to_reloc < header->virtual_size && "Reloc entry beyond app bounds");
             
-            /* take the offset and add the apps base address
-             * We are doing some nasty things with pointers here, where we are getting the base address
-             * adding the offset in the register and forcing its new adderss back in
-             * here we are going to go through a uint pointer for type safety */
-            uintptr_t wb = (uintptr_t)(app_stack_heap->word_buf + existing);
+            /* Get the value from the register we are relocating.
+             * This will contain the offset from the app base to the data */
+            uint32_t rel_off = read_32(thread->heap + reg_to_reloc);
             
-            /* write it back to the register */
-            app_stack_heap->word_buf[got[i]/4] = wb;
+            /* Add the app base absolute memory register address to the offset
+             * Write this absolute value back into the register to relocate */
+            write_32(thread->heap + reg_to_reloc, (uint32_t)((uintptr_t)(thread->heap + rel_off)));
         }
     }
     
-    /* init bss to 0 */
+    /* init bss to 0. We already zeros all of the heap, so only reset the reloc table */
     uint32_t bss_size = header->virtual_size - header->app_size;
-    memset(&app_stack_heap->byte_buf[header->app_size], 0, bss_size);
+    
+    memset(thread->heap + header->app_size, 0, header->reloc_entries_count * 4);
+    memset(thread->stack, 0, thread->stack_size * 4);
     
     /* load the address of our lookup table into the 
-     * special register in the app. hopefully in a platformish independant way */
-    app_stack_heap->byte_buf[header->sym_table_addr]     =  (uint32_t)(sym)        & 0xFF;
-    app_stack_heap->byte_buf[header->sym_table_addr + 1] = ((uint32_t)(sym) >> 8)  & 0xFF;
-    app_stack_heap->byte_buf[header->sym_table_addr + 2] = ((uint32_t)(sym) >> 16) & 0xFF;
-    app_stack_heap->byte_buf[header->sym_table_addr + 3] = ((uint32_t)(sym) >> 24) & 0xFF;
+     * special register in the app. */
+    write_32(&thread->heap[header->sym_table_addr], (int32_t)sym);
+
+    assert(read_32(&thread->heap[header->sym_table_addr]) == (int32_t)sym && "PLT rewrite failed");
+     
+    /* Patch the app's entry point... make sure its THUMB bit set! */
+    thread->app->main = (AppMainHandler)((uint32_t)&thread->heap[header->offset] | 1);
     
-    /* Patch the app's entry point... make sure it's THUMB bit set! */
-    thread->app->main = (AppMainHandler)((uint32_t)&app_stack_heap->byte_buf[header->offset] | 1);
-    
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App signature:");
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "H:    %s",    header->header);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "SDKv: %d.%d", header->sdk_version.major, 
-                                                        header->sdk_version.minor);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Appv: %d.%d", header->app_version.major, 
-                                                        header->app_version.minor);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "AppSz:%x",    header->app_size);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "AppOf:0x%x",  header->offset);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "AppCr:%d",    header->crc);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Name: %s",    header->name);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Cmpy: %s",    header->company);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Icon: %d",    header->icon_resource_id);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Sym:  0x%x",  header->sym_table_addr);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Flags:%d",    header->flags);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Reloc:%d",    header->reloc_entries_count);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "VSize 0x%x",  header->virtual_size);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "== App signature ==");
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Header  : %s",    header->header);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "SDK ver : %d.%d", header->sdk_version.major, 
+                                                          header->sdk_version.minor);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App ver : %d.%d", header->app_version.major, 
+                                                          header->app_version.minor);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App Size: 0x%x",  header->app_size);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App Main: 0x%x",  header->offset);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "CRC     : %d",    header->crc);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Name    : %s",    header->name);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Company : %s",    header->company);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Icon    : %d",    header->icon_resource_id);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Pbl Sym : 0x%x",  header->sym_table_addr);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Flags   : %d",    header->flags);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Reloc   : %d",    header->reloc_entries_count);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "== Memory signature ==");
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "VSize   : 0x%x",  header->virtual_size);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Bss Size: %d",    bss_size);
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Heap    : 0x%x",  thread->heap + header->virtual_size);
 }
 
 /* 
  * Given a thread, execute the application inside of a vTask
  */
-void appmanager_execute_app(app_running_thread *thread, int total_app_size)
+void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size)
 {    
-    uint32_t stack_size = thread->stack_size;
-    app_stack_heap_proto *app_stack_heap = (app_stack_heap_proto *)thread->heap;
-    uint8_t *app_stack = thread->heap->byte_buf + thread->heap_size - total_app_size - stack_size;
-    
-    /* Get the start point of the stack in the array */
-//     StackType_t *stack_entry = &app_stack_heap->word_buf[(thread->heap_size - total_app_size - stack_size) / 4];
-    StackType_t *stack_entry = (StackType_t *)app_stack;
     /* Calculate the heap size of the remaining memory */
-    uint32_t heap_size = thread->heap_size - total_app_size - stack_size;
+    uint32_t heap_size = thread->heap_size - total_app_size;
     /* Where is our heap going to start. It's directly after the app + bss */
-    uint32_t *heap_entry = (uint32_t *)&app_stack_heap->byte_buf[total_app_size];
+    uint8_t *heap_entry = &thread->heap[total_app_size];
 
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Exec: Base %x, heap %x, sz %d (b), stack %x, sz %d (w)", 
-            app_stack_heap->word_buf,
+    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Exec: Base 0x%x, heap 0x%x, sz %d (b), stack 0x%x, sz %d (w)", 
+            thread->heap,
             heap_entry,
             heap_size,
-            stack_entry, 
-            stack_size / 4);
+            thread->stack, 
+            thread->stack_size);
     
     /* heap is all uint8_t */
     thread->arena = qinit(heap_entry, heap_size);
@@ -543,11 +549,11 @@ void appmanager_execute_app(app_running_thread *thread, int total_app_size)
     /* Load the app in a vTask */
     thread->task_handle = xTaskCreateStatic((TaskFunction_t)thread->thread_entry, 
                                             "dynapp", 
-                                            stack_size / 4, 
+                                            thread->stack_size, 
                                             NULL, 
                                             tskIDLE_PRIORITY + thread->thread_priority, 
-                                            (StackType_t*) stack_entry, 
-                                            (StaticTask_t* )&thread->static_task);
+                                            thread->stack, 
+                                            (StaticTask_t*)&thread->static_task);
 }
 
 

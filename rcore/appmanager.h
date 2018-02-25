@@ -144,13 +144,6 @@ typedef enum AppThreadType {
 #define THREAD_MANAGER_APP_LOAD       0
 #define THREAD_MANAGER_APP_QUIT_CLEAN 1
 
-/* Ugh. A prototype for time saving the casts. It probably just adds work */
-typedef union {
-    uint8_t byte_buf[0]; // app memory
-    StackType_t word_buf[0];
-} app_stack_heap_proto;
-
-
 /* This struct hold all information about the task that is executing
  * There are many runing apps, such as main app, worker or background.
  */
@@ -166,8 +159,9 @@ typedef struct app_running_thread_t {
     StaticTask_t static_task;
     size_t stack_size;
     size_t heap_size;
+    StackType_t *stack;
+    uint8_t *heap;
     struct CoreTimer *timer_head;
-    app_stack_heap_proto *heap;
     qarena_t *arena;
 } app_running_thread;
 
@@ -184,7 +178,7 @@ bool appmanager_is_thread_worker(void);
 bool appmanager_is_thread_app(void);
 bool appmanager_is_thread_overlay(void);
 void appmanager_load_app(app_running_thread *thread, ApplicationHeader *header);
-void appmanager_execute_app(app_running_thread *thread, int total_app_size);
+void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size);
 app_running_thread *appmanager_get_thread(AppThreadType type);
 AppThreadType appmanager_get_thread_type(void);
 

@@ -58,18 +58,23 @@
 /* XXX: issue pebble-dev/RebbleOS#43 */
 #define RES_START           0x200C
 
+
 /* Size of the app + stack + heap of the running app. 
    IN BYTES
  */ 
-#define MEMORY_SIZE_APP         40000
-#define MEMORY_SIZE_WORKER      10500
-#define MEMORY_SIZE_OVERLAY     3000
+#define MEMORY_SIZE_APP           40000
+#define MEMORY_SIZE_WORKER        1500
+#define MEMORY_SIZE_OVERLAY       10000
 
-/* Size of the stack in bytes */
-/* Size of the stack in bytes */
-#define MEMORY_SIZE_APP_STACK     8000
-#define MEMORY_SIZE_WORKER_STACK  500
-#define MEMORY_SIZE_OVERLAY_STACK 2000
+/* Size of the stack in WORDS */
+#define MEMORY_SIZE_APP_STACK     2500
+#define MEMORY_SIZE_WORKER_STACK  200
+#define MEMORY_SIZE_OVERLAY_STACK 350
+
+
+#define MEMORY_SIZE_APP_HEAP      MEMORY_SIZE_APP - (MEMORY_SIZE_APP_STACK * 4)
+#define MEMORY_SIZE_WORKER_HEAP   MEMORY_SIZE_WORKER - (MEMORY_SIZE_WORKER_STACK * 4)
+#define MEMORY_SIZE_OVERLAY_HEAP  MEMORY_SIZE_OVERLAY - (MEMORY_SIZE_OVERLAY_STACK * 4)
 
 #define CCRAM 
 

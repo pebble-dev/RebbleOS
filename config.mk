@@ -100,6 +100,7 @@ SRCS_all += rcore/log.c
 SRCS_all += rcore/resource.c
 SRCS_all += rcore/watchdog.c
 SRCS_all += rcore/overlay_manager.c
+SRCS_all += rcore/rebble_util.c
 
 SRCS_all += rwatch/librebble.c
 SRCS_all += rwatch/ngfxwrap.c
