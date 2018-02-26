@@ -11,6 +11,7 @@
 #include "property_animation.h"
 #include "animation.h"
 #include "overlay_manager.h"
+#include "notification_manager.h"
 
 static list_head _window_list_head = LIST_HEAD(_window_list_head);
 
@@ -110,8 +111,8 @@ list_head *window_thread_get_head(Window *window)
 {
     if (appmanager_get_thread_type() == AppThreadMainApp)
         return &_window_list_head;
-    else if (appmanager_get_thread_type() == AppThreadOverlay)
-        return overlay_window_thread_get_head(window);
+//     else if (appmanager_get_thread_type() == AppThreadOverlay)
+//         return overlay_window_thread_get_head(window);
     
     assert(!"I don't know how to deal with a window in this thread!");
     return NULL;
@@ -123,7 +124,11 @@ list_head *window_thread_get_head(Window *window)
  */
 void window_stack_push(Window *window, bool animated)
 {
-    assert(!appmanager_is_thread_overlay() && "Please use overlay_window_stack_push");
+    if(appmanager_is_thread_overlay())
+    {
+        overlay_window_stack_push_window(window, animated);
+        return;
+    }
 
     list_init_node(&window->node);
     /* It is only valid to window push into a window */
@@ -190,6 +195,9 @@ Window * window_stack_pop(bool animated)
  */
 bool window_stack_remove(Window *window, bool animated)
 {
+    if (overlay_window_stack_contains_window(window))
+        return overlay_window_stack_remove(container_of(window, OverlayWindow, window), animated);
+    
     list_head *lh = window_thread_get_head(window);
     Window* top_window = list_elem(list_get_head(lh), Window, node);
     list_remove(lh, &window->node);
@@ -219,8 +227,7 @@ uint16_t window_count(void)
     Window *w;
     
     assert(!appmanager_is_thread_overlay() && "Please use overlay_window_count");
-    
-    
+        
     if (list_get_head(&_window_list_head) == NULL)
         return 0;
     
@@ -239,6 +246,9 @@ uint16_t window_count(void)
  */
 bool window_stack_contains_window(Window *window)
 {
+    if (overlay_window_stack_contains_window(window))
+        return true;
+            
     list_head *lh = window_thread_get_head(window);
     Window *w;
     
@@ -257,6 +267,13 @@ bool window_stack_contains_window(Window *window)
 void window_destroy(Window *window)
 {
     uint8_t _count;
+    
+    if (overlay_window_stack_contains_window(window))
+    {
+        overlay_window_destroy_window(window);
+        return;
+    }
+    
     list_head *lh = window_thread_get_head(window);
     
     if (window->load_state != WindowLoadStateLoaded &&
@@ -539,9 +556,13 @@ void window_load_click_config(Window *window)
 {
     /* A window is being configured. If it is a normal window and we are
      * in an overlay thread, ignore */
-    if (appmanager_is_thread_overlay() && window_stack_contains_window(window))
+    /* Commented out for now to give the overlays and notifications
+     * opportunity to override clicks instead of exclusively owning them
+    if (appmanager_is_thread_app() && overlay_window_accepts_keypress())
+    {
         return;
-    
+    }*/
+   
     if (window->click_config_provider) {
         void* context = window->click_config_context ? window->click_config_context : window;
         for (int i = 0; i < NUM_BUTTONS; i++) {
@@ -550,7 +571,17 @@ void window_load_click_config(Window *window)
             window_multi_click_subscribe(i, 0, 0, 0, false, NULL);
             window_raw_click_subscribe(i, NULL, NULL, context);
         }
-        window->click_config_provider(context); 
+        window->click_config_provider(context);
+        
+        /* As well as applying the window click config, we are going to apply 
+         * the notifications config too 
+         * if a notification is displayed, it will then get chance to override any app clicks
+         * Why? Well If i'm popping up a batttery low warning for 3 seconds, you want to be able
+         * to dismiss it, and also carry on scrolling, working underneath
+         * Will need to review how annying this is in real life use.
+         * (i.e. should we just block calls (see code commented out above)
+         */
+        notification_load_click_config(window);
     } 
 }
 

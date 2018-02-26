@@ -23,11 +23,13 @@ static OverlayWindow *_overlay_window;
 static OverlayWindow *_overlay_window2;
 static OverlayWindow *_overlay_window3;
 static void _color_test_layer_update_proc(Layer *layer, GContext *ctx);
-static void _creation_callback(OverlayWindow *overlay_window);
-static void _creation_callback2(OverlayWindow *overlay_window);
+static void _creation_callback(OverlayWindow *overlay_window, Window *window);
+static void _creation_callback2(OverlayWindow *overlay_window, Window *window);
 void _ovl_tick(struct tm *tick_time, TimeUnits tick_units);
 static void _test_layer_update_proc(Layer *layer, GContext *nGContext);
-static void _notif_init(OverlayWindow *overlay_window);
+static void _notif_init(OverlayWindow *overlay_window, Window *window);
+static void _notif_test_window_load(Window *window);
+static void _notif_test_window_unload(Window *window);
 bool _notif_deinit(void);
 
 static int _total_elapsed;
@@ -114,9 +116,6 @@ bool _test_notif_destroy_test(NotificationLayer **ol, OverlayWindow **ow, GPoint
 {
      switch(_sub_stage) {
         case 0:
-            if (*ol)
-                notification_layer_destroy(*ol);
-            *ol = NULL;
             overlay_window_destroy(*ow);
             *ow = NULL;
             _sub_stage = 1;
@@ -138,7 +137,7 @@ bool _test_overlay_notif_destroy()
      switch(ss) {
         case 0:
             test_assert_point_is_color(GPoint(10,10), GColorFromRGB(85, 0, 170));
-            _notif_deinit();
+//             _notif_deinit();
             ss = 1;
             return false;
         case 1:
@@ -310,13 +309,13 @@ static void _overlayer_update(Layer *layer, GContext *ctx)
     graphics_fill_rect(ctx, GRect(10, 10, 50, 50), 0, GCornerNone);
 }
 
-static void _creation_callback(OverlayWindow *overlay_window)
+static void _creation_callback(OverlayWindow *overlay_window, Window *window)
 {
     SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Overlay Create CB");
     _overlay_window = overlay_window;
-    Window *window = window_create();
+    
     window->background_color = GColorClear;
-    overlay_window_stack_push_window(_overlay_window, window, false);
+    
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
     _overlay_layer = layer_create(bounds);
@@ -337,12 +336,11 @@ static void _overlayer_update2(Layer *layer, GContext *ctx)
     graphics_fill_rect(ctx, GRect(0, DISPLAY_ROWS - 50, DISPLAY_COLS, 50), 0, GCornerNone);
 }
 
-static void _creation_callback2(OverlayWindow *overlay_window)
+static void _creation_callback2(OverlayWindow *overlay_window, Window *window)
 {
     _overlay_window2 = overlay_window;
-    Window *window = window_create();
     window->background_color = GColorClear;
-    overlay_window_stack_push_window(_overlay_window2, window, false);
+    
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
     _overlay_layer2 = layer_create(bounds);
@@ -360,21 +358,33 @@ static void _creation_callback2(OverlayWindow *overlay_window)
 
 // static NotificationWindow *notif_window;
 
-static void _notif_init(OverlayWindow *overlay_window)
+static void _notif_init(OverlayWindow *overlay_window, Window *window)
 {
-    _overlay_window3 = overlay_window;
+    _overlay_window3 = overlay_window;    
+    window_set_window_handlers(window, (WindowHandlers) {
+        .load = _notif_test_window_load,
+        .unload = _notif_test_window_unload,
+    });
+    
+}
+
+bool _notif_deinit(void)
+{
+    return true;
+}
+
+static void _notif_test_window_load(Window *window)
+{    
     char *app = "RebbleOS";
     char *title = "Test Alert";
     char *body = "Testing a basic notification on RebbleOS. Create it using notification_window_create, with an app_name, title, body, and optional icon.";
-    Window *window = window_create();
     window->background_color = GColorClear;
-    overlay_window_stack_push_window(_overlay_window3, window, false);
-
-    Layer *layer = window_get_root_layer(window);
+        
+    Layer *layer = window_get_root_layer(window);    
     GRect bounds = layer_get_unobstructed_bounds(layer);
 
     _notif_layer = notification_layer_create(bounds);
-    Notification *notification = notification_create(app, title, body, gbitmap_create_with_resource(RESOURCE_ID_UNKNOWN), GColorRed);
+    Notification *notification = notification_create(app, title, body, gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE), GColorRed);
 
     notification_layer_stack_push_notification(_notif_layer, notification);
 
@@ -382,15 +392,14 @@ static void _notif_init(OverlayWindow *overlay_window)
     notification_layer_stack_push_notification(_notif_layer, notification_two);
 
     layer_add_child(layer, notification_layer_get_layer(_notif_layer));
+    notification_layer_configure_click_config(_notif_layer, window, NULL);
+    overlay_window_stack_push(_overlay_window3, true);
 
-    notification_layer_configure_click_config(_notif_layer, window);
-    overlay_window_stack_push(overlay_window, true);
     layer_mark_dirty(layer);
     window_dirty(true);
 }
 
-bool _notif_deinit(void)
+static void _notif_test_window_unload(Window *window)
 {
     notification_layer_destroy(_notif_layer);
-    return true;
 }

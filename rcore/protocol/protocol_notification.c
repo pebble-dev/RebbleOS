@@ -10,6 +10,7 @@
 #include "systemapp.h"
 #include "test.h"
 #include "protocol_notification.h"
+#include "notification_manager.h"
 
 static void _copy_and_null_term_string(uint8_t **dest, uint8_t *src, uint16_t len);
 
@@ -18,7 +19,8 @@ static void _copy_and_null_term_string(uint8_t **dest, uint8_t *src, uint16_t le
 void process_notification_packet(uint8_t *data)
 {
     full_msg_t *msg;
-    /*notification_packet_push(data, &msg);*/
+    notification_packet_push(data, &msg);
+    notification_show_message(msg, 5000);
 }
 
 void notification_packet_push(uint8_t *data, full_msg_t **message)
@@ -31,9 +33,9 @@ void notification_packet_push(uint8_t *data, full_msg_t **message)
 
     SYS_LOG("PHPKT", APP_LOG_LEVEL_INFO, "X attrc %d actc %d", msg->attr_count, msg->action_count);
     
-    new_msg = app_calloc(1, sizeof(full_msg_t));
+    new_msg = noty_calloc(1, sizeof(full_msg_t));
     assert(new_msg);
-    new_msg->header = app_calloc(1, sizeof(cmd_phone_notify_t));
+    new_msg->header = noty_calloc(1, sizeof(cmd_phone_notify_t));
     memcpy(new_msg->header, msg, sizeof(cmd_phone_notify_t));
     list_init_head(&new_msg->attributes_list_head);
     list_init_head(&new_msg->actions_list_head);
@@ -46,7 +48,7 @@ void notification_packet_push(uint8_t *data, full_msg_t **message)
         cmd_phone_attribute_hdr_t *att = (cmd_phone_attribute_hdr_t *)p;
         uint8_t *data = p + sizeof(cmd_phone_attribute_hdr_t);
         SYS_LOG("PHPKT", APP_LOG_LEVEL_INFO, "X ATTR ID:%d L:%d", att->attr_idx, att->str_len);
-        cmd_phone_attribute_t *new_attr = app_calloc(1, sizeof(cmd_phone_attribute_t));
+        cmd_phone_attribute_t *new_attr = noty_calloc(1, sizeof(cmd_phone_attribute_t));
         /* copy the head to the new attribute */
         memcpy(new_attr, att, sizeof(cmd_phone_attribute_hdr_t));
         /* copy the data in now */
@@ -66,7 +68,7 @@ void notification_packet_push(uint8_t *data, full_msg_t **message)
         cmd_phone_action_hdr_t *act = (cmd_phone_action_hdr_t *)p;
         uint8_t *data = p + sizeof(cmd_phone_action_hdr_t);
         SYS_LOG("PHPKT", APP_LOG_LEVEL_INFO, "X ACT ID:%d L:%d AID:%d ALEN:%d", act->id, act->attr_count, act->attr_id, act->str_len);
-        cmd_phone_action_t *new_act = app_calloc(1, sizeof(cmd_phone_action_t));
+        cmd_phone_action_t *new_act = noty_calloc(1, sizeof(cmd_phone_action_t));
         /* copy the head to the new action */
         memcpy(new_act, act, sizeof(cmd_phone_action_hdr_t));
         /* copy the data in now */
@@ -93,9 +95,9 @@ void _full_msg_free(full_msg_t *message)
         m = list_elem(l, cmd_phone_attribute_t, node);
         list_remove(&message->attributes_list_head, &m->node);
         /* free the string */
-        app_free(m->data);
+        noty_free(m->data);
         /* free the attribute */
-        app_free(m);
+        noty_free(m);
     }
     
     cmd_phone_action_t *a;
@@ -106,14 +108,14 @@ void _full_msg_free(full_msg_t *message)
         list_remove(&message->actions_list_head, &a->node);
         
         /* free the string */
-        app_free(a->data);
+        noty_free(a->data);
         /* free the attribute */
-        app_free(a);
+        noty_free(a);
     }
     
-    app_free(message->header);
+    noty_free(message->header);
     message->header = NULL;
-    app_free(message);
+    noty_free(message);
     message = NULL;
 }
 
@@ -123,27 +125,17 @@ static void _copy_and_null_term_string(uint8_t **dest, uint8_t *src, uint16_t le
 {
     if (src[len - 1] != '\0')
     {
-        *dest = app_calloc(1, len + 1);
+        *dest = noty_calloc(1, len + 1);
         assert(*dest && "Malloc Failed!");
-            
-        // this causes a lockup when copying an odd number of bytes
-        //memcpy((uint8_t *)*dest, src, len);
+
         for(uint16_t i = 0; i < len; i++)
             *(*dest + i) = src[i];
-        //strncpy((uint8_t*)*dest, (uint8_t*)src, len);
-        SYS_LOG("PHPKT", APP_LOG_LEVEL_INFO, "DEST");
+
         *(*dest + len) = '\0';
-        SYS_LOG("PHPKT", APP_LOG_LEVEL_INFO, "DEST %s", *dest);
     }
     else
     {
-        *dest = app_calloc(1, len);
+        *dest = noty_calloc(1, len);
         memcpy((uint8_t *)*dest, src, len);
     }
 }
-
-/*
-strncpy((char*)notification, (char*)pkt->data, 150); 
-notification_len = pkt->len; 
-appmanager_post_notification();
-*/

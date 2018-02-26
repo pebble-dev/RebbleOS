@@ -1,0 +1,148 @@
+/* notification_manager.c
+ * Routines for loading notification in an overlay window
+ * Each notification is loaded with its own stack and heap.
+ * RebbleOS
+ * 
+ * Author: Barry Carter <barry.carter@gmail.com>.
+ */
+#include "rebbleos.h"
+#include "protocol_notification.h"
+#include "notification_manager.h"
+#include "overlay_manager.h"
+#include "platform_res.h"
+#include "notification_message.h"
+
+/*
+ * XXXX TODO
+ * font loader uses ram from overlay, and cache from where?!?
+ * fix cache loader!
+ * 
+ */
+
+static void _notif_timeout_cb(void *data);
+static void _notif_init(OverlayWindow *overlay_window);
+static void _notification_window_creating(OverlayWindow *overlay_window, Window *window);
+static void _notification_quit_click(ClickRecognizerRef _, void *context);
+
+void notification_init(void)
+{
+    messages_init();
+}
+
+void notification_show_message(full_msg_t *msg, uint32_t timeout_ms)
+{
+    message_add(msg);
+    
+    if (!message_count())
+    {
+        SYS_LOG("NOTY", APP_LOG_LEVEL_ERROR, "No Messages?");
+        return;
+    }
+
+    notification_message *nmsg = noty_calloc(1, sizeof(notification_message));
+    nmsg->data.create_callback = &notification_message_display;
+    nmsg->message = msg;
+    nmsg->data.timeout_ms = timeout_ms;
+    
+    /* get an overlay */
+    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
+    
+    SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "Done");
+}
+
+void notification_show_battery(uint32_t timeout_ms)
+{
+    /* construct a BatteryLayer */
+    notification_battery *nmsg = noty_calloc(1, sizeof(notification_battery));
+    nmsg->data.create_callback = &battery_overlay_display;
+    nmsg->data.destroy_callback = &battery_overlay_destroy;
+    nmsg->data.timeout_ms = timeout_ms;
+    
+    /* get an overlay */
+    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
+}
+
+void notification_show_small_message(const char *message, GRect frame)
+{
+    notification_mini_msg *nmsg = noty_calloc(1, sizeof(notification_mini_msg));
+    nmsg->data.create_callback = &mini_message_overlay_display;
+    nmsg->data.destroy_callback = &mini_message_overlay_destroy;
+    nmsg->data.timeout_ms = 5000;
+    nmsg->message = (char *)message;
+    nmsg->icon = 0;
+    nmsg->frame = frame;
+    /* get an overlay */
+    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
+}
+
+void notification_show_incoming_call(const char *caller)
+{
+    
+}
+
+void notification_show_alarm(uint8_t alarm_id)
+{
+    
+}
+
+void notification_window_dismiss()
+{
+}
+
+/* window click config will call into here to apply the settings */
+void notification_load_click_config(Window *app_window)
+{
+    if (!overlay_window_count() || overlay_window_stack_contains_window(app_window))
+        return;
+    
+    /* if there are any windows that have their own click config, then it
+     * will always get preference over any notification without a click config */
+    Window *ov_wind = overlay_window_get_next_window_with_click_config();
+    if (!ov_wind)
+    {
+        window_single_click_subscribe(BUTTON_ID_BACK, _notification_quit_click);
+        Window *top_ov_window = overlay_window_stack_get_top_window();
+        window_set_click_context(BUTTON_ID_BACK, top_ov_window->context);
+        return;
+    }
+    window_load_click_config(ov_wind);
+}
+
+static void _notification_quit_click(ClickRecognizerRef _, void *context)
+{
+    notification_message *nm = (notification_message *)context;
+    if (nm->data.destroy_callback)
+        nm->data.destroy_callback(nm->data.overlay_window, &nm->data.overlay_window->window);
+    overlay_window_destroy(nm->data.overlay_window);
+    window_set_click_context(BUTTON_ID_BACK, NULL);
+    printf("DESTROY _notification_quit_click\n\n");
+    window_dirty(true);
+}
+
+static void _notification_window_creating(OverlayWindow *overlay_window, Window *window)
+{
+    notification_message *nm = (notification_message *)overlay_window->context;
+    nm->data.overlay_window = overlay_window;
+        
+    /* the overlay context has the message data 
+     * lets take it with us */
+    window->context = overlay_window->context;
+    
+    /* call the function that we should execute */
+    if (!nm->data.create_callback)
+        return;
+    
+    nm->data.create_callback(overlay_window, &overlay_window->window);
+
+    if (nm->data.timeout_ms)
+        nm->data.timer = app_timer_register(nm->data.timeout_ms, 
+                                            (AppTimerCallback)_notif_timeout_cb, nm);
+    
+    overlay_window_stack_push(overlay_window, false);
+}
+
+
+static void _notif_timeout_cb(void *data)
+{
+    _notification_quit_click(NULL, data);
+}

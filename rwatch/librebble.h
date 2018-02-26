@@ -44,6 +44,7 @@
 #include "libros_graphics.h"
 #include "app_timer.h"
 #include "font_loader.h"
+#include "notification_layer.h"
 
 void rbl_draw(void);
 struct tm *rbl_get_tm(void);

@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include "rebbleos.h"
 #include "appmanager.h"
+#include "overlay_manager.h"
 
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
@@ -78,7 +79,8 @@ void app_event_loop(void)
     KERN_LOG("app", APP_LOG_LEVEL_INFO, "App entered mainloop");
     
     /* Do this before window load, that way they have a chance to override */
-    if (_running_app->type != APP_TYPE_FACE)
+    if (_running_app->type != APP_TYPE_FACE &&
+        overlay_window_count() == 0)
     {
         /* Enables default closing of windows, and through that, apps */
         window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
@@ -106,17 +108,7 @@ void app_event_loop(void)
     for ( ;; )
     {
         /* Is there something queued up to do?  If so, we have the potential to do it. */
-        TickType_t next_timer;
-        
-        if (_this_thread->timer_head) {
-            TickType_t curtime = xTaskGetTickCount();
-            if (curtime > _this_thread->timer_head->when)
-                next_timer = 0;
-            else
-                next_timer = _this_thread->timer_head->when - curtime;
-        } else {
-            next_timer = portMAX_DELAY; /* Just block forever. */
-        }
+        TickType_t next_timer = appmanager_timer_get_next_expiry(_this_thread);
         
         /* we are inside the apps main loop event handler now */
         if (xQueueReceive(_app_message_queue, &data, next_timer))
@@ -125,6 +117,11 @@ void app_event_loop(void)
             KERN_LOG("app", APP_LOG_LEVEL_INFO, "Queue Receive");
             if (data.message_type_id == APP_BUTTON)
             {
+                if (overlay_window_accepts_keypress())
+                {
+                    overlay_window_post_button_message(data.payload);
+                    continue;
+                }
                 /* execute the button's callback */
                 ButtonMessage *message = (ButtonMessage *)data.payload;
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
@@ -149,17 +146,7 @@ void app_event_loop(void)
                 window_draw();
             }
         } else {
-            /* We woke up because we hit a timer expiry.  Dequeue first,
-             * then invoke -- otherwise someone else could insert themselves
-             * at the head, and we would wrongfully dequeue them!  */
-            CoreTimer *timer = _this_thread->timer_head;
-            assert(timer);
-            
-            KERN_LOG("app", APP_LOG_LEVEL_INFO, "woke up for a timer");
-
-            _this_thread->timer_head = timer->next;
-            
-            timer->callback(timer);
+            appmanager_timer_expired(_this_thread);
         }
     }
     KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Signalled shutdown...");
@@ -167,6 +154,35 @@ void app_event_loop(void)
      * We will hand back control to appmanager_app_main_entry above */
 }
 
+/* Timer util */
+TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread)
+{
+    TickType_t next_timer;
+        
+    if (thread->timer_head) {
+        TickType_t curtime = xTaskGetTickCount();
+        if (curtime > thread->timer_head->when)
+            next_timer = 0;
+        else
+            next_timer = thread->timer_head->when - curtime;
+    } else {
+        next_timer = portMAX_DELAY; /* Just block forever. */
+    }
+    return next_timer;
+}
+
+void appmanager_timer_expired(app_running_thread *thread)
+{
+    /* We woke up because we hit a timer expiry.  Dequeue first,
+     * then invoke -- otherwise someone else could insert themselves
+     * at the head, and we would wrongfully dequeue them!  */
+    CoreTimer *timer = thread->timer_head;
+    assert(timer);
+
+    thread->timer_head = timer->next;
+
+    timer->callback(timer);
+}
 
 /* Apps click handlers */
 

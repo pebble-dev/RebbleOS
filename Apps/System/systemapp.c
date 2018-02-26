@@ -14,8 +14,6 @@
 
 extern void flash_dump(void);
 
-const char *systemapp_name = "System";
-
 static Window *s_main_window;
 static Menu *s_menu;
 
@@ -42,7 +40,7 @@ static MenuItems* app_item_selected(const MenuItem *item)
     return NULL;
 }
 
-static MenuItems* test_item_selected(const MenuItem *item)
+static MenuItems* settings_item_selected(const MenuItem *item)
 {
     appmanager_app_start("Settings");
     return NULL;
@@ -102,11 +100,12 @@ static void systemapp_window_load(Window *window)
 
     menu_set_click_config_onto_window(s_menu, window);
 
-    MenuItems *items = menu_items_create(4);
+    MenuItems *items = menu_items_create(5);
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", RESOURCE_ID_CLOCK, watch_list_item_selected));
-    menu_items_add(items, MenuItem("Settings", "Move Along", RESOURCE_ID_SPANNER, test_item_selected));
+    menu_items_add(items, MenuItem("Settings", "Config", RESOURCE_ID_SPANNER, settings_item_selected));
     menu_items_add(items, MenuItem("Tests", NULL, RESOURCE_ID_CLOCK, run_test_item_selected));
-    menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.1", RESOURCE_ID_SPEECH_BUBBLE, NULL));
+    menu_items_add(items, MenuItem("Notifications", NULL, RESOURCE_ID_SPEECH_BUBBLE, notification_item_selected));
+    menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.2", RESOURCE_ID_SPEECH_BUBBLE, NULL));
     menu_set_items(s_menu, items);
 
 #ifdef PBL_RECT

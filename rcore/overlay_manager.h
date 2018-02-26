@@ -14,8 +14,7 @@
  * once you create one. Just deal with the underlying \ref Window object. You will know
  * with an assert if you do something that isn't allowed.
  * 
- * The \ref OverlayWindow has a list of \ref Window objects in it. You can push as many
- * \ref Window objects into an \ref OverlayWindow as you like. Memory permitting.
+ * The \ref OverlayWindow has a child of a \ref Window object in it.
  * 
  * The window is isolated away from normal window functions, but please don't
  * try and push one of these windows into a normal apps running stack. It will break.
@@ -38,7 +37,8 @@ typedef enum OverlayMode {
  * @brief A special window that overlays all others
  */
 typedef struct OverlayWindow {
-    list_head window_list_head;
+    Window window;
+    void *context;
     list_node node;
 } OverlayWindow;
 
@@ -48,10 +48,15 @@ typedef struct OverlayWindow {
  * 
  * @param overlay An \ref OverlayWindow pointer with the newly created window
  */
-typedef void (*OverlayCreateCallback)(OverlayWindow *overlay);
+typedef void (*OverlayCreateCallback)(OverlayWindow *overlay, Window *window);
 
 /* Internal initialiser */
 void overlay_window_init(void);
+
+/* Internal. Check if any overlays or windows want a keypress */
+bool overlay_window_accepts_keypress(void);
+void overlay_window_post_button_message(ButtonMessage *message);
+
 
 /**
  * @brief Creates a new managed \ref OverlayWindow.
@@ -61,6 +66,16 @@ void overlay_window_init(void);
  * creation of the window.
  */
 void overlay_window_create(OverlayCreateCallback creation_callback);
+
+/**
+ * @brief Creates a new managed \ref OverlayWindow but also sets a custom context
+ * By default context is set to the \ref OverlayWindow
+ * 
+ * The \ref OverlayWindow is provided in the callback \ref OverlayCreateCallback
+ * @param creation_callback Is a provided function that will be called on the
+ * creation of the window.
+ */
+void overlay_window_create_with_context(OverlayCreateCallback creation_callback, void *context);
 
 /** 
  * @brief Directly draw an \ref OverlayWindow.
@@ -78,14 +93,6 @@ void overlay_window_draw(void);
 void overlay_window_destroy(OverlayWindow *overlay_window);
 
 /**
- * @brief Get the \ref list_node linked list node's head
- * 
- * The head object contains a linked list of all \ref Window objects in this \ref OverlayWindow
- * @param window Pointer to the \ref Window you wish to find the head of
- */
-list_head *overlay_window_thread_get_head(Window *window);
-
-/**
  * @brief Get a count of all \ref OverlayWindow objects
  * @return uint8_t count of \ref OverlayWindow objects in existance
  */
@@ -100,21 +107,26 @@ uint8_t overlay_window_count(void);
 void overlay_window_stack_push(OverlayWindow *overlay_window, bool animated);
 
 /**
- * @brief Push a new \ref Window to the top of the \ref Window stack in an \ref OverlayWindow
+ * @brief Push a \ref OverlayWindow to the top of the stack. Push by \ref Window
  * 
- * @param overlay_window Pointer to the \ref OverlayWindow to push the \ref Window into
  * @param window Pointer to the \ref Window to push to the top of the overlay
  * @param animated will enable any animated transistions on the window 
  */ 
-void overlay_window_stack_push_window(OverlayWindow *overlay_window, Window *window, bool animated);
+void overlay_window_stack_push_window(Window *window, bool animated);
 
 /**
- * @brief Given an \ref OverlayWindow, return the top \ref Window
+ * @brief Pop a \ref OverlayWindow from the stack, returning the \ref Window removed
  * 
- * @param overlay_window Pointer to the \ref OverlayWindow to find the top window for
+ * @param animated will enable any animated transistions on the window 
+ */ 
+Window *overlay_window_stack_pop_window(bool animated);
+
+/**
+ * @brief Return the top \ref Window in a stack of \ref OverlayWindow
+ * 
  * @return \ref Window object of the found top window. NULL for no window.
  */
-Window *overlay_window_stack_get_top_window(OverlayWindow *overlay_window);
+Window *overlay_window_stack_get_top_window(void);
 
 /** 
  * @brief Given an \ref OverlayWindow, return the top \ref Window
@@ -122,3 +134,32 @@ Window *overlay_window_stack_get_top_window(OverlayWindow *overlay_window);
  * @return \ref OverlayWindow that is very topmost
  */
 OverlayWindow *overlay_stack_get_top_overlay_window(void);
+
+/** 
+ * @brief Given a \ref Window, check all \ref OverlayWindow objects for any match
+ * 
+ * @param window Pointer to the \ref Window to find the existance of
+ * @return bool if window exists anywhere in an overlay
+ */
+bool overlay_window_stack_contains_window(Window *window);
+
+/**
+ * @brief Destroy an \ref OverlayWindow by reference of it's \ref Window
+ * 
+ * @param window Pointer to the \ref Window to destroy
+ */
+void overlay_window_destroy_window(Window *window);
+
+/**
+ * @brief Destroy an \ref OverlayWindow by reference of it's \ref OverlayWindow
+ * 
+ * @param animated If we should animate this overlay
+ */
+bool overlay_window_stack_remove(OverlayWindow *overlay_window, bool animated);
+
+/**
+ * @brief Get the next \ref Window available that has a \ref ClickConfigProvider
+ * 
+ * @return the pointer to the \ref Window with a click provider
+ */ 
+Window *overlay_window_get_next_window_with_click_config(void);

@@ -10,16 +10,20 @@
 typedef struct OverlayMessage {
     uint8_t command;
     void *data;
+    void *context;
 } OverlayMessage;
 
-#define OVERLAY_CREATE    0
-#define OVERLAY_DRAW      1
-#define OVERLAY_DESTROY   2
+#define OVERLAY_CREATE     0
+#define OVERLAY_DRAW       1
+#define OVERLAY_DESTROY    2
+#define OVERLAY_APP_BUTTON 3
 
 static xQueueHandle _overlay_queue;
 static void _overlay_thread(void *pvParameters);
 static list_head _overlay_window_list_head = LIST_HEAD(_overlay_window_list_head);
 static void _overlay_window_draw(void);
+static void _overlay_window_create(OverlayCreateCallback create_callback, void *context);
+static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated);
 
 void overlay_window_init(void)
 {
@@ -42,7 +46,18 @@ void overlay_window_create(OverlayCreateCallback creation_callback)
 {
     OverlayMessage om = (OverlayMessage) {
         .command = OVERLAY_CREATE,
-        .data = (void *)creation_callback
+        .data = (void *)creation_callback,
+        .context = NULL
+    };
+    xQueueSendToBack(_overlay_queue, &om, 0);
+}
+
+void overlay_window_create_with_context(OverlayCreateCallback creation_callback, void *context)
+{
+    OverlayMessage om = (OverlayMessage) {
+        .command = OVERLAY_CREATE,
+        .data = (void *)creation_callback,
+        .context = context
     };
     xQueueSendToBack(_overlay_queue, &om, 0);
 }
@@ -58,35 +73,31 @@ void overlay_window_draw(void)
 
 void overlay_window_destroy(OverlayWindow *overlay_window)
 {
-        OverlayMessage om = (OverlayMessage) {
+    OverlayMessage om = (OverlayMessage) {
         .command = OVERLAY_DESTROY,
         .data = (void *)overlay_window
     };
     xQueueSendToBack(_overlay_queue, &om, 0);
 }
 
-list_head *overlay_window_thread_get_head(Window *window)
+void overlay_window_post_button_message(ButtonMessage *message)
 {
-    OverlayWindow *ow;
-    Window *w;
-    list_foreach(ow, &_overlay_window_list_head, OverlayWindow, node)
-    {
-        list_foreach(w, &ow->window_list_head, Window, node)
-        {
-            if (w == window)
-            {
-                return &ow->window_list_head;
-            }
-        }
-    }
-    
-    return NULL;
+    OverlayMessage om = (OverlayMessage) {
+        .command = OVERLAY_APP_BUTTON,
+        .data = (void *)message
+    };
+    xQueueSendToBack(_overlay_queue, &om, 0);
 }
 
-Window *overlay_window_stack_get_top_window(OverlayWindow *overlay_window)
+Window *overlay_window_get_window(OverlayWindow *overlay_window)
 {
-    list_head *lh = &overlay_window->window_list_head;
-    return list_elem(list_get_head(lh), Window, node);
+    return &overlay_window->window;
+}
+
+Window *overlay_window_stack_get_top_window(void)
+{
+    OverlayWindow *ow = list_elem(list_get_head(&_overlay_window_list_head), OverlayWindow, node);
+    return &ow->window;
 }
 
 OverlayWindow *overlay_stack_get_top_overlay_window(void)
@@ -103,6 +114,9 @@ uint8_t overlay_window_count(void)
 {
     uint16_t count = 0;
     
+    if (list_get_head(&_overlay_window_list_head) == NULL)
+        return 0;
+    
     OverlayWindow *w;
     list_foreach(w, &_overlay_window_list_head, OverlayWindow, node)
     {
@@ -117,65 +131,107 @@ void overlay_window_stack_push(OverlayWindow *overlay_window, bool animated)
     list_init_node(&overlay_window->node);
     list_insert_head(&_overlay_window_list_head, &overlay_window->node);
     
-    Window* window = overlay_window_stack_get_top_window(overlay_window);
-    assert(window);
-    window->is_render_scheduled = true;
+    overlay_window->window.is_render_scheduled = true;
     window_dirty(true);
 }
 
-void overlay_window_stack_push_window(OverlayWindow *overlay_window, Window *window, bool animated)
+void overlay_window_stack_push_window(Window *window, bool animated)
 {
-    list_init_node(&window->node);
-    list_insert_head(&overlay_window->window_list_head, &window->node);
-    window_stack_push_configure(window, animated);
+    OverlayWindow *overlay_window = container_of(window, OverlayWindow, window);
+    overlay_window_stack_push(overlay_window, animated);
 }
 
-static void _overlay_window_create(OverlayCreateCallback create_callback)
+Window *overlay_window_stack_pop_window(bool animated)
 {
-    OverlayWindow *overlay_window = app_calloc(1, sizeof(OverlayWindow));
-    assert(overlay_window && "No memory for Overlay window");
-    list_init_head(&overlay_window->window_list_head);
+    Window *window = overlay_window_stack_get_top_window();
+    overlay_window_destroy_window(window);
     
-    /* invoke creation callback so it can be drawn in the right heap */
-    ((OverlayCreateCallback)create_callback)(overlay_window);
+    return window;
 }
 
-static void _overlay_window_destroy(OverlayWindow *overlay_window)
-{                   
-    Window *w;
-    list_node *l = list_get_head(&overlay_window->window_list_head);
-    while(l)
+bool overlay_window_stack_remove(OverlayWindow *overlay_window, bool animated)
+{
+    _overlay_window_destroy(overlay_window, animated);
+    
+    overlay_window->window.is_render_scheduled = true;
+    window_dirty(true);
+    
+    return true;
+}
+
+void overlay_window_destroy_window(Window *window)
+{
+    OverlayWindow *overlay_window = container_of(window, OverlayWindow, window);
+    _overlay_window_destroy(overlay_window, false);
+    
+    overlay_window->window.is_render_scheduled = true;
+    window_dirty(true);
+}
+
+bool overlay_window_stack_contains_window(Window *window)
+{
+    OverlayWindow *w;
+    list_foreach(w, &_overlay_window_list_head, OverlayWindow, node)
     {
-        w = list_elem(l, Window, node);
-        list_remove(&overlay_window->window_list_head, &w->node);
-        window_destroy(w);
-        l = list_get_head(&overlay_window->window_list_head);
-        if (l->prev == l->next)
+        if (&w->window == window)
+            return true;
+    }
+    return false;
+}
+
+bool overlay_window_accepts_keypress(void)
+{
+   return overlay_window_get_next_window_with_click_config() != NULL;
+}
+
+Window *overlay_window_get_next_window_with_click_config(void)
+{
+    OverlayWindow *w;
+    list_foreach(w, &_overlay_window_list_head, OverlayWindow, node)
+    {
+        if (w->window.click_config_provider)
         {
-            SYS_LOG("overlay", APP_LOG_LEVEL_ERROR, "Deleted all overlay windows");
-            break;
+            return &w->window;
         }
     }
     
+    return NULL;
+}
+
+static void _overlay_window_create(OverlayCreateCallback create_callback, void *context)
+{
+    OverlayWindow *overlay_window = app_calloc(1, sizeof(OverlayWindow));
+    assert(overlay_window && "No memory for Overlay window");
+
+    window_ctor(&overlay_window->window);
+    overlay_window->window.is_overlay = true;
+    
+    if (context)
+        overlay_window->context = context;
+    else
+        overlay_window->context = overlay_window;
+    
+    /* invoke creation callback so it can be drawn in the right heap */
+    ((OverlayCreateCallback)create_callback)(overlay_window, &overlay_window->window);
+    window_stack_push_configure(&overlay_window->window, false);
+}
+
+static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated)
+{                   
+    window_dtor(&overlay_window->window);
+        
     list_remove(&_overlay_window_list_head, &overlay_window->node);
     app_free(overlay_window);
     
-    Window *top_window;
-    if (overlay_window_count() == 0)
+    Window *top_window = overlay_window_get_next_window_with_click_config();
+    if (top_window == NULL)
     {
         /* we are out of overlay windows, restore click 
          * first get the top normal window. Grab it's click context
          * then restore it. Then configure it. */
         top_window = window_stack_get_top_window();
     }
-    else
-    {
-        /* We still have overlay windows, so we set the click 
-         * config handler to the topmost OverlayWindow.
-         * Then get that ow's top Window. */
-        OverlayWindow *ow = overlay_stack_get_top_overlay_window();
-        top_window = overlay_window_stack_get_top_window(ow);
-    }
+
     if (top_window)
         window_load_click_config(top_window);
 }
@@ -192,7 +248,7 @@ static void _overlay_window_draw(void)
     OverlayWindow *ow;
     list_foreach(ow, &_overlay_window_list_head, OverlayWindow, node)
     {
-        Window *window = overlay_window_stack_get_top_window(ow);
+        Window *window = &ow->window;
         assert(window);
         
         rbl_window_draw(window);
@@ -205,18 +261,23 @@ static void _overlay_window_draw(void)
 static void _overlay_thread(void *pvParameters)
 {
     OverlayMessage data;
-    
+    app_running_thread *_this_thread = appmanager_get_current_thread();
     SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Starting overlay thread...");
     
     while(1)
     {
-        if (xQueueReceive(_overlay_queue, &data, portMAX_DELAY))
+        TickType_t next_timer = appmanager_timer_get_next_expiry(_this_thread);
+        
+        if (xQueueReceive(_overlay_queue, &data, next_timer))
         {
             switch(data.command)
             {
                 case OVERLAY_CREATE:
                     assert(data.data && "You MUST provide a callback");
-                    _overlay_window_create((OverlayCreateCallback)data.data);                    
+                    if (data.context)
+                        _overlay_window_create((OverlayCreateCallback)data.data, data.context);
+                    else
+                        _overlay_window_create((OverlayCreateCallback)data.data, NULL);
                     break;
                 case OVERLAY_DRAW:
                     _overlay_window_draw();
@@ -224,11 +285,19 @@ static void _overlay_thread(void *pvParameters)
                 case OVERLAY_DESTROY:
                     assert(data.data && "You MUST provide a valid overlay window");
                     OverlayWindow *ow = (OverlayWindow *)data.data;
-                    _overlay_window_destroy(ow);
+                    _overlay_window_destroy(ow, false);
+                    break;
+                case OVERLAY_APP_BUTTON:
+                    assert(data.data && "You MUST provide a valid button message");
+                    /* execute the button's callback */
+                    ButtonMessage *message = (ButtonMessage *)data.data;
+                    ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
                     break;
                 default:
                     assert(!"I don't know this command!");
             }
+        } else {
+            appmanager_timer_expired(_this_thread);
         }
     }
 }

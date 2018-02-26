@@ -47,6 +47,7 @@ typedef struct Window
     //bool on_screen : 1;
     WindowLoadState load_state;
     //bool overrides_back_button : 1;
+    bool is_overlay : 1;
     //bool is_fullscreen : 1;
     const char *debug_name;
     void *context;

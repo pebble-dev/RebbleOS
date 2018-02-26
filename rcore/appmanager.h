@@ -191,6 +191,8 @@ void appmanager_post_draw_message(void);
 void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
 void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
+void appmanager_timer_expired(app_running_thread *thread);
+TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);
 
 /* in appmanager_app.c */
 App *appmanager_get_app(char *app_name);
