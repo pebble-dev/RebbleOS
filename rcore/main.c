@@ -9,6 +9,8 @@
 #include "watchdog.h"
 #include "ambient.h"
 
+extern const char git_version[];
+
 int main(void)
 {
     SystemInit();
@@ -17,7 +19,7 @@ int main(void)
 
     rebbleos_init();
     
-    KERN_LOG("main", APP_LOG_LEVEL_INFO, "RebbleOS", VERSION);
+    KERN_LOG("main", APP_LOG_LEVEL_INFO, "RebbleOS git: %s", git_version);
     
     vTaskStartScheduler();  // should never return
     

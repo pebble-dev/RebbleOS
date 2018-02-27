@@ -9,8 +9,9 @@
 #include "stm32f4xx.h"
 
 typedef struct {
-    uint16_t Pin;
-    GPIO_TypeDef *Port;
+    uint16_t pin;
+    GPIO_TypeDef *port;
+    uint32_t clock;
 } vibrate_t;
 
 

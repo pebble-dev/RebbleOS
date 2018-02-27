@@ -16,6 +16,7 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"
+#include "snowy_vibrate.h"
 
 // ENABLE this if you want smartstrap debugging output. For now if you do this qemu might not work
 #define DEBUG_UART_SMARTSTRAP
@@ -23,6 +24,15 @@
 void init_USART3(void);
 void init_USART8(void);
 void ss_debug_write(const unsigned char *p, size_t len);
+
+
+/* Configs */
+const vibrate_t hw_vibrate_config = {
+    .pin     = GPIO_Pin_4,
+    .port    = GPIOF,
+    .clock   = RCC_AHB1Periph_GPIOF,
+};
+
 
 /* 
  * Begin device init 
