@@ -73,7 +73,7 @@ these steps:
 [Building on Windows](docs/windows_build.md)
 
 If you wish to build firmware to run on your device, you may also wish to
-consider a script like [buildfw.sh](buildfw.sh). Running RebbleOS on hardware is
+consider a script like [Utilities/flash_device_adb.sh](Utilities/flash_device_adb.sh). Running RebbleOS on hardware is
 currently out of scope for this document.
 
 > You need the `snowy_fpga.bin` and `chalk_fpga.bin` files to compile on their respective firmwares. They can be found on the `#firmware` channel in the [Rebble Discord](http://discord.gg/aRUAYFN).
