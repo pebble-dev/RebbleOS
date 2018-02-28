@@ -7,7 +7,7 @@
  *
  * Please add your test in testapp.c with your code submission
  * tests live in the SystemApp/tests folder. Put them in config.mk
- * 
+ *
  * Guide:
  * once you have added your test and compiled it in, there is a lifecycle:
  * (it's much like a pebble app's lifecycle)
@@ -18,22 +18,22 @@
  * @endcode
  * exec is where the main test is expected to happen, but any time after this
  * is considered ok.
- * 
- * To complete a test use test_complete(true) which terminates it 
+ *
+ * To complete a test use test_complete(true) which terminates it
  * immediately (and calls deinit)
- * 
+ *
  * There are various asserts to use below. They will set the test state
  * appropriately and fail it is required.
- * 
+ *
  * NOTES:
  * You are provided a window to draw on. Please use it.
- * 
+ *
  * A test doesn't have to end. By default back fails, select is pass.
  *  - override buttons if you want
- * 
- * If you test has subtests, or lots of assertions, it's up to you 
+ *
+ * If you test has subtests, or lots of assertions, it's up to you
  * to track the failure. There will be log entries.
- * 
+ *
  * @note Once you fail a test, you can not make it pass again
  */
 void testapp_main(void);
@@ -42,14 +42,14 @@ void testapp_init(void);
 
 /**
  * @brief Get current success state.
- * 
+ *
  * @return bool success or failure state of the test
  */
 bool test_get_success(void);
 
 /**
  * @brief Set current success state.
- * 
+ *
  * @param bool success or failure state of the test
  * @note If the test is set to fail, it can't be a success again
  * at least until a re-run
@@ -58,7 +58,7 @@ void test_set_success(bool success);
 
 /**
  * @brief Finish up a test now.
- * 
+ *
  * Complete a test right now. Wil call deinit and clean up
  * returning to the menu
  * @param bool success or failure state of the test
@@ -67,7 +67,7 @@ void test_complete(bool success);
 
 /**
  * @brief test assertion helpers
- * 
+ *
  * These are test helpers to allow tests to be run safely
  * Use these to check if the draw worked, or things are null etc
  */
@@ -149,3 +149,7 @@ bool menu_multi_column_test_deinit(void);
 bool action_menu_test_init(Window *window);
 bool action_menu_test_exec(void);
 bool action_menu_test_deinit(void);
+
+bool vibes_test_init(Window *window);
+bool vibes_test_exec(void);
+bool vibes_test_deinit(void);

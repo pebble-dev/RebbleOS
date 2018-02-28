@@ -2,6 +2,8 @@
 #include "rebbleos.h"
 #include "librebble.h"
 #include "graphics_wrapper.h"
+#include "vibes.h"
+
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
 ResHandle *resource_get_handle_proxy(uint16_t resource_id);
 bool persist_exists(void);
@@ -977,11 +979,11 @@ unalloc262,
 unalloc264,
 (VoidFunc)pbl_time_deprecated,
 (VoidFunc)pbl_time_ms_deprecated,
-unalloc267,
-unalloc268,
-unalloc269,
-unalloc270,
-unalloc271,
+(VoidFunc)vibes_cancel,
+(VoidFunc)vibes_double_pulse,
+(VoidFunc)vibes_enqueue_custom_pattern,
+(VoidFunc)vibes_long_pulse,
+(VoidFunc)vibes_short_pulse,
 (VoidFunc)window_create,
 (VoidFunc)window_destroy,
 unalloc274,
@@ -990,7 +992,7 @@ unalloc275,
 unalloc277,
 unalloc278,
 unalloc279,
-unalloc280,
+(VoidFunc)window_set_click_config_provider_with_context,
 unalloc281,
 unalloc282,
 (VoidFunc)window_set_window_handlers,

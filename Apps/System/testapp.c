@@ -41,7 +41,7 @@ typedef struct app_test_t {
  * i'm sure tests will want input sometimes. Leave it to them?
  * either way stop the menu doing it's thing in the background
  *  - menu destroy/rebuild?
- * 
+ *
  * move tests to test file
  */
 
@@ -88,6 +88,13 @@ app_test _tests[] = {
         .test_init = &action_menu_test_init,
         .test_execute = &action_menu_test_exec,
         .test_deinit = &action_menu_test_deinit
+    },
+    {
+        .test_name = "Vibes Test",
+        .test_desc = "Vibrate Motor",
+        .test_init = &vibes_test_init,
+        .test_execute = &vibes_test_exec,
+        .test_deinit = &vibes_test_deinit
     }
 };
 
@@ -99,21 +106,21 @@ static bool _window_initialised = false;
 
 /* Part of the test app's execution mechanism */
 
-/* 
+/*
  * Test signalled test completion
  * Shut down test
  */
 void test_complete(bool success)
 {
-    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] TC Test Complete: %s", 
+    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] TC Test Complete: %s",
             success ? "PASS" : "FAIL", _running_test->test_name);
     _running_test->success = success;
-    
+
     if (_test_window)
         window_destroy(_test_window);
-    
+
     _test_window = NULL;
-    
+
     if (_window_initialised)
     {
         _reset_menu_items();
@@ -130,7 +137,7 @@ void test_set_success(bool success)
 {
     if (!_running_test->success)
         return;
-    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] Test Complete: %s", 
+    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] Test Complete: %s",
             success ? "PASS" : "FAIL", _running_test->test_name);
     _running_test->success = success;
 }
@@ -147,7 +154,7 @@ bool test_assert(bool pass)
 {
     if (pass)
         return _test_pass(true, "[ASSERT] TRUE: Assertion PASS");
-    
+
     return _test_pass(false, "[ASSERT] FALSE: Assertion FAIL");
 }
 
@@ -155,7 +162,7 @@ bool test_assert_point_is_not_null(void *ptr)
 {
     if (ptr)
         return _test_pass(true, "[ASSERT] TRUE: value is NOT null");
-    
+
     return _test_pass(false, "[ASSERT] FALSE: value IS null");
 }
 
@@ -165,7 +172,7 @@ bool test_assert_point_is_null(void *ptr)
     {
         return _test_pass(true, "[ASSERT] TRUE: value IS null");
     }
-    
+
     return _test_pass(false, "[ASSERT] FALSE: value is NOT null");
 }
 
@@ -185,13 +192,13 @@ bool test_assert_point_is_value(GPoint point, uint8_t value)
     {
         return _test_pass(true, "[ASSERT] TRUE: Point is valid");
     }
-    
+
     return _test_pass(false, "[ASSERT] FALSE: Point is NOT valid");
 }
 
 /* The test's running Click handlers */
 
-/* 
+/*
  * Test was exited
  * Default behaviour is to fail
  */
@@ -216,32 +223,32 @@ void test_down_single_click_handler(ClickRecognizerRef recognizer, void *context
 }
 
 
-/* 
+/*
  * Test was loaded
  */
 static void testapp_exec_window_load(Window *window)
 {
     assert(_running_test);
-    /* Get rid of the menu */    
+    /* Get rid of the menu */
     window_single_click_subscribe(BUTTON_ID_BACK, test_back_single_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, test_select_single_click_handler);
     window_single_click_subscribe(BUTTON_ID_UP, test_up_single_click_handler);
     window_single_click_subscribe(BUTTON_ID_DOWN, test_down_single_click_handler);
-    
+
     _window_initialised = true;
     _test_exec_timer = app_timer_register(10, (AppTimerCallback)_testapp_start_test_callback, NULL);
     window_dirty(true);
 }
-    
+
 static void testapp_exec_window_unload(Window *window)
 {
     SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "Test Cleanup");
     _running_test->test_deinit(_test_window);
-    
-    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] Test Complete: %s", 
+
+    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] Test Complete: %s",
             _running_test->success ? "PASS" : "FAIL", _running_test->test_name);
     _running_test = NULL;
-    
+
     if (_window_initialised)
     {
         _reset_menu_items();
@@ -253,7 +260,7 @@ static void testapp_exec_window_unload(Window *window)
 static MenuItems* test_test_item_selected(const MenuItem *item)
 {
     app_test *test = (app_test *)item->context;
-    
+
     _test_window = window_create();
     assert(_test_window);
 
@@ -261,15 +268,15 @@ static MenuItems* test_test_item_selected(const MenuItem *item)
         .load = testapp_exec_window_load,
         .unload = testapp_exec_window_unload,
     });
-    
+
     SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "Running Test: %s", test->test_name);
     _running_test = test;
     test->test_init(_test_window);
     test->run_count++;
-    
+
     window_stack_push(_test_window, true);
     return NULL;
-        
+
 }
 
 static void exit_to_watchface(struct Menu *menu, void *context)
@@ -290,7 +297,7 @@ static MenuItems *_create_menu_items(void)
 
     for(int i = 0; i < TEST_COUNT; i++)
     {
-        /* choose our icon */        
+        /* choose our icon */
         uint16_t icon = RESOURCE_ID_CLOCK;
         if (_tests[i].run_count > 0)
         {
@@ -305,7 +312,7 @@ static MenuItems *_create_menu_items(void)
         mi.context = &_tests[i];
         menu_items_add(items, mi);
     }
-    
+
     return items;
 }
 
@@ -313,12 +320,12 @@ static void _reset_menu_items(void)
 {
     MenuItems *back = s_menu->items->back;
     MenuIndex *index = &s_menu->items->back_index;
-    
+
     MenuItems *items = _create_menu_items();
     menu_set_items(s_menu, items);
-    
+
     items->back = back;
-    items->back_index = *index;    
+    items->back_index = *index;
 }
 
 static void testapp_window_load(Window *window)
@@ -336,7 +343,7 @@ static void testapp_window_load(Window *window)
     });
     layer_add_child(window_layer, menu_get_layer(s_menu));
     menu_set_click_config_onto_window(s_menu, window);
-    
+
     _reset_menu_items();
 
     // Status Bar
@@ -350,7 +357,7 @@ void _testapp_start_test_callback(void *data)
     app_timer_cancel(_test_exec_timer);
     _running_test->success = true;
     _running_test->test_execute();
-    
+
 }
 
 static void testapp_window_unload(Window *window)
@@ -366,7 +373,7 @@ void testapp_init(void)
         .load = testapp_window_load,
         .unload = testapp_window_unload,
     });
-    
+
     window_stack_push(s_main_window, true);
 }
 

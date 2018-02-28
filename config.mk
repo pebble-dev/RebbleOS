@@ -134,6 +134,7 @@ SRCS_all += rwatch/ui/animation/property_animation.c
 SRCS_all += rwatch/ui/notifications/notification_window.c
 SRCS_all += rwatch/ui/notifications/battery_overlay.c
 SRCS_all += rwatch/ui/notifications/mini_message.c
+SRCS_all += rwatch/ui/vibes.c
 
 SRCS_all += Watchfaces/simple.c
 SRCS_all += Watchfaces/nivz.c
@@ -156,4 +157,3 @@ include hw/platform/tintin/config.mk
 include hw/platform/chalk/config.mk
 include Apps/System/tests/config.mk
 include lib/btstack/config.mk
-
