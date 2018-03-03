@@ -307,7 +307,7 @@ void hw_vibrate_enable(uint8_t enabled) {
 #define JEDEC_RDSR_BUSY 0x01
 
 #define JEDEC_IDCODE_MICRON_N25Q032A11 0x20BB16 /* bianca / qemu / ev2_5 */
-
+#define JEDEC_IDCODE_MICRON_N25Q064A11 0x20BB17 /* v1_5 */
 static uint8_t _hw_flash_txrx(uint8_t c) {
     while (!(SPI1->SR & SPI_SR_TXE))
         ;
@@ -406,8 +406,8 @@ void hw_flash_init(void) {
     _hw_flash_enable(0);
     
     printf("tintin flash: JEDEC ID %08lx\n", part_id);
-    
-    if (part_id != JEDEC_IDCODE_MICRON_N25Q032A11) {
+
+    if (part_id != JEDEC_IDCODE_MICRON_N25Q032A11 && part_id != JEDEC_IDCODE_MICRON_N25Q064A11) {
         panic("tintin flash: unsupported part ID");
     }
     
