@@ -75,10 +75,14 @@ void _animation_update(Animation *anim)
         /* Ok, we're done. */
         if (anim->impl.update)
             anim->impl.update(anim, ANIMATION_NORMALIZED_MAX);
+
+        anim->scheduled = 0;
+
+        /* After teardown, the anim might not even exist anymore.  So don't
+         * ever use it again afterwards!  */
         if (anim->impl.teardown)
             anim->impl.teardown(anim);            
         
-        anim->scheduled = 0;
         return;
     }
     
