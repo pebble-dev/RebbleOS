@@ -8,7 +8,7 @@
  */
 
 #include "rect.h"
-#include "menu_layer.h"
+#include "librebble.h"
 
 struct Window;
 struct MenuLayer;

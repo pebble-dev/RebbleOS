@@ -37,8 +37,6 @@ void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout)
  */
 void appmanager_app_main_entry(void)
 {
-    /* This is cheesy, but there is a condition there the thread isn't assigned yet */
-    vTaskDelay(10);
     app_running_thread *_this_thread = appmanager_get_current_thread();
     
     _this_thread->status = AppThreadLoaded;

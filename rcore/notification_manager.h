@@ -9,6 +9,7 @@
  * inject the relevant subcontent. 
  */
 #include "overlay_manager.h"
+#include "notification_layer.h"
 #include "protocol_notification.h"
 #include "notification_message.h"
 

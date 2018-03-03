@@ -29,6 +29,7 @@ static void _app_management_thread(void *parameters);
 static TaskHandle_t _app_thread_manager_task_handle;
 static xQueueHandle _app_thread_queue;
 static StaticTask_t _app_thread_manager_task;
+static void _appmanager_thread_init(void *pvParameters);
 
 static void _running_app_loop(void);
 
@@ -547,16 +548,22 @@ void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size)
     thread->arena = qinit(heap_entry, heap_size);
     
     /* Load the app in a vTask */
-    thread->task_handle = xTaskCreateStatic((TaskFunction_t)thread->thread_entry, 
+    thread->task_handle = xTaskCreateStatic(_appmanager_thread_init, 
                                             "dynapp", 
                                             thread->stack_size, 
-                                            NULL, 
+                                            (void *)thread, 
                                             tskIDLE_PRIORITY + thread->thread_priority, 
                                             thread->stack, 
                                             (StaticTask_t*)&thread->static_task);
 }
 
-
+static void _appmanager_thread_init(void *thread_handle)
+{
+    app_running_thread *thread = (app_running_thread *)thread_handle;
+    assert(thread && "Invalid thread on init!");
+    thread->task_handle = xTaskGetCurrentTaskHandle();
+    ((VoidFunc)thread->thread_entry)();
+}
 
 /* Some stubs below for testing etc */
 void api_unimpl(void)

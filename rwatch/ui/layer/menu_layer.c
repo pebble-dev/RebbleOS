@@ -3,8 +3,7 @@
  * MenuLayer component.
  * RebbleOS
  */
-#include "menu_layer.h"
-#include "menu.h"
+#include "librebble.h"
 #include "utils.h"
 #include "graphics_wrapper.h"
 
