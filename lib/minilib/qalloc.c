@@ -55,7 +55,7 @@ qarena_t *qinit(void *start, unsigned size) {
 	blk->cookie1 = ~BLK_COOKIE(arena, blk);
 #endif
 #ifdef HEAP_PARANOID
-	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk));
+	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk) - sizeof(qblock_t));
 #endif
 	BLK_FREE(blk);
 	
@@ -119,7 +119,7 @@ void qfree(qarena_t *arena, void *ptr) {
 	qcheck(arena, blk);
 #endif
 #ifdef HEAP_PARANOID
-	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk));
+	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk) - sizeof(qblock_t));
 #endif
 
 	BLK_FREE(blk);
@@ -135,7 +135,11 @@ static void qjoin(qarena_t *arena) {
 	while (blk && blk < end) {
 		qcheck(arena, blk);
 		if (BLK_NEXT(blk) < end && BLK_ISFREE(blk) && BLK_ISFREE(BLK_NEXT(blk))) {
-			blk->szflag += BLK_SZ(BLK_NEXT(blk));
+			qblock_t *nblk = BLK_NEXT(blk);
+			blk->szflag += BLK_SZ(nblk);
+#ifdef HEAP_PARANOID
+			memset(nblk, 0xAA, sizeof(qblock_t));
+#endif
 		} else {
 			blk = BLK_NEXT(blk);
 		}
@@ -161,7 +165,7 @@ static void qcheck(qarena_t *arena, qblock_t *blk) {
 		unsigned i;
 		uint8_t *p = BLK_PAYLOAD(blk);
 		
-		for (i = 0; i < BLK_SZ(blk); i++)
+		for (i = 0; i < BLK_SZ(blk) - sizeof(qblock_t); i++)
 			if (p[i] != 0xAA) {
 				printf("%08x %08x %08x %02x\n", p, i, &p[i], p[i]);
 				panic("qcheck: paranoia pays off -- heap corruption deep inside free block");
