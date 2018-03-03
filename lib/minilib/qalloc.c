@@ -7,57 +7,102 @@
 
 #include <minilib.h>
 #include <qalloc.h>
+#include <debug.h>
 
-#define FFREE	0x00000001
+/* XXX: when we have debug/release builds, we should have this only in debug builds */
+#define HEAP_INTEGRITY
+// #define HEAP_PARANOID
+
 #define MINBSZ	4
 
-#define SZ(ptr)		*((unsigned*)ptr)
-#define BSZ(p)		(SZ(p) & ~3)
-#define NX(ptr)		(void*)((char*)ptr + BSZ(ptr))
-#define ALIGN(s)	((s + 3) & ~3)
-#define RNDSZ(s)	(ALIGN(s) + 4)
-#define UPTR(p)		(void*)((char*)p + sizeof(unsigned))
-#define BPTR(p)		(void*)((char*)p - sizeof(unsigned))
+#define SZFLAG_SZ (~3)
+#define SZFLAG_FFREE 1
 
-#define ISFREE(p)	(SZ(p) & FFREE)
-#define FREE(p)		SZ(p) |= FFREE
-#define ALLOC(p)	SZ(p) &= ~FFREE;
+
+typedef struct qblock {
+#ifdef HEAP_INTEGRITY
+	unsigned long cookie0;
+#endif
+	unsigned long szflag;
+#ifdef HEAP_INTEGRITY
+	unsigned long cookie1;
+#endif
+} qblock_t;
+
+#define ALIGN(s)	((s + 3) & ~3)
+
+#define BLK(blk)        ((qblock_t *)(blk))
+#define BLK_FROMPAYLOAD(p)	(void*)((char*)(p) - sizeof(qblock_t))
+#define BLK_SZ(blk)	((blk)->szflag & SZFLAG_SZ)
+#define BLK_NEXT(blk)	((qblock_t *)((char*)(blk) + BLK_SZ(blk)))
+#define BLK_ISFREE(blk)	((blk)->szflag & SZFLAG_FFREE)
+#define BLK_FREE(blk)	((blk)->szflag |= SZFLAG_FFREE)
+#define BLK_ALLOC(blk)	((blk)->szflag &= ~SZFLAG_FFREE)
+#define BLK_PAYLOAD(p)	(void*)((char*)(p) + sizeof(qblock_t))
+#define BLK_COOKIE(arena, blk) ((unsigned)(arena) >> 4 ^ (unsigned)(blk))
 
 static void qjoin(qarena_t *arena);
+static void qcheck(qarena_t *arena, qblock_t *blk);
 
 qarena_t *qinit(void *start, unsigned size) {
 	qarena_t *arena = start;
 	arena->size = size;
-	start = arena+1; // start = &arena[1], so arena[0] is left alone.
-	SZ(start) = size - sizeof(*arena);
-	FREE(start);
+	
+	qblock_t *blk = BLK(arena + 1); // start = &arena[1], so arena[0] is left alone.
+	blk->szflag = size - sizeof(*arena);
+#ifdef HEAP_INTEGRITY
+	blk->cookie0 = BLK_COOKIE(arena, blk);
+	blk->cookie1 = ~BLK_COOKIE(arena, blk);
+#endif
+#ifdef HEAP_PARANOID
+	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk));
+#endif
+	BLK_FREE(blk);
+	
 	return arena;
 }
 
 void *qalloc(qarena_t *arena, unsigned size) {
-	void *p = arena+1;
-	void *end = (char *)arena + arena->size;
+	qblock_t *blk = BLK(arena+1);
+	qblock_t *end = BLK((char *)arena + arena->size);
 	void *n = NULL;
 	
 	if (size == 0)
 		return NULL;
 
-	size = RNDSZ(size);
+	size = ALIGN(size) + sizeof(qblock_t);
 	
-	while (p && p < end) {
-		if (!ISFREE(p) || BSZ(p) < size) {
-			p = NX(p);
+	while (blk && blk < end) {
+		qcheck(arena, blk);
+		
+		/* We need either exactly enough room for this block, or we
+		 * need enough room for this and one more block to be
+		 * constructed at the end.  */
+		if (!BLK_ISFREE(blk) ||
+		    ((BLK_SZ(blk) != size) &&
+		     (BLK_SZ(blk) < size + sizeof(qblock_t)))) {
+			blk = BLK_NEXT(blk);
 			continue;
 		}
 
-		if (BSZ(p) > size) {
-			n = (char*)p + size;
-			SZ(n) = SZ(p) - size;
-			SZ(p) = size;
+		if (BLK_SZ(blk) > size) {
+			qblock_t *nblk = BLK((char*)blk + size);
+			nblk->szflag = BLK_SZ(blk) - size;
+			blk->szflag = size;
+#ifdef HEAP_INTEGRITY
+			nblk->cookie0 = BLK_COOKIE(arena, nblk);
+			nblk->cookie1 = ~BLK_COOKIE(arena, nblk);
+#endif
+			BLK_FREE(nblk);
 		}
 
-		ALLOC(p);
-		return UPTR(p);
+#ifdef HEAP_INTEGRITY
+		blk->cookie0 = ~BLK_COOKIE(arena, blk);
+		blk->cookie1 = BLK_COOKIE(arena, blk);
+#endif
+		BLK_ALLOC(blk);
+		
+		return BLK_PAYLOAD(blk);
 	}
 	return NULL;
 }
@@ -65,19 +110,62 @@ void *qalloc(qarena_t *arena, unsigned size) {
 void qfree(qarena_t *arena, void *ptr) {
 	if (!ptr)
 		return;
-	
-	FREE(BPTR(ptr));
+		
+	qblock_t *blk = BLK_FROMPAYLOAD(ptr);
+
+#ifdef HEAP_INTEGRITY
+	if (BLK_ISFREE(blk))
+		panic("qfree: double free");	/* XXX: this "panic" needs to not panic if we are in an app */
+	qcheck(arena, blk);
+#endif
+#ifdef HEAP_PARANOID
+	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk));
+#endif
+
+	BLK_FREE(blk);
+	blk->cookie0 = BLK_COOKIE(arena, blk);
+	blk->cookie1 = ~BLK_COOKIE(arena, blk);
 	qjoin(arena);
 }
 
 static void qjoin(qarena_t *arena) {
-	void *p = arena+1;
-	void *end = (char *)arena + arena->size;
-	while (p && p < end) {
-		if (NX(p) < end && ISFREE(p) && ISFREE(NX(p))) {
-			SZ(p) += BSZ(NX(p));
+	qblock_t *blk = BLK(arena+1);
+	qblock_t *end = (qblock_t *)((char *)arena + arena->size);
+	
+	while (blk && blk < end) {
+		qcheck(arena, blk);
+		if (BLK_NEXT(blk) < end && BLK_ISFREE(blk) && BLK_ISFREE(BLK_NEXT(blk))) {
+			blk->szflag += BLK_SZ(BLK_NEXT(blk));
 		} else {
-			p = NX(p);
+			blk = BLK_NEXT(blk);
 		}
 	}
+}
+
+static void qcheck(qarena_t *arena, qblock_t *blk) {
+#ifdef HEAP_INTEGRITY
+	if (BLK_ISFREE(blk)) {
+		if (blk->cookie0 != BLK_COOKIE(arena, blk))
+			panic("qcheck: cookie0 corrupt on free blk");
+		if (blk->cookie1 != ~BLK_COOKIE(arena, blk))
+			panic("qcheck: cookie1 corrupt on free blk");
+	} else {
+		if (blk->cookie0 != ~BLK_COOKIE(arena, blk))
+			panic("qcheck: cookie0 corrupt on alloc blk");
+		if (blk->cookie1 != BLK_COOKIE(arena, blk))
+			panic("qcheck: cookie1 corrupt on alloc blk");
+	}
+#endif
+#ifdef HEAP_PARANOID
+	if (BLK_ISFREE(blk)) {
+		unsigned i;
+		uint8_t *p = BLK_PAYLOAD(blk);
+		
+		for (i = 0; i < BLK_SZ(blk); i++)
+			if (p[i] != 0xAA) {
+				printf("%08x %08x %08x %02x\n", p, i, &p[i], p[i]);
+				panic("qcheck: paranoia pays off -- heap corruption deep inside free block");
+			}
+	}
+#endif
 }
