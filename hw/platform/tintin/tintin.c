@@ -25,7 +25,7 @@
 
 /*** debug routines ***/
 
-static void _init_USART3();
+static inline void _init_USART3();
 static int _debug_initialized;
 
 void debug_init() {
@@ -40,20 +40,21 @@ void debug_write(const unsigned char *p, size_t len) {
     if (!_debug_initialized)
         return;
 
-    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
-    
     for (i = 0; i < len; i++) {
+        if (p[i] == '\n') {
+            while (!(USART3->SR & USART_SR_TC));
+            USART3->DR = '\r';
+        }
+
         while (!(USART3->SR & USART_SR_TC));
         USART3->DR = p[i];
     }
-
-    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
 }
 
 /*
  * Configure USART3(PB10, PB11) to redirect printf data to host PC.
  */
-static void _init_USART3(void)
+static inline void _init_USART3(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
     USART_InitTypeDef USART_InitStruct;
@@ -71,7 +72,7 @@ static void _init_USART3(void)
     GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_USART3);
     GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_USART3);
 
-    USART_InitStruct.USART_BaudRate = 115200;
+    USART_InitStruct.USART_BaudRate = 230400;
     USART_InitStruct.USART_WordLength = USART_WordLength_8b;
     USART_InitStruct.USART_StopBits = USART_StopBits_1;
     USART_InitStruct.USART_Parity = USART_Parity_No;
@@ -80,7 +81,6 @@ static void _init_USART3(void)
     USART_Init(USART3, &USART_InitStruct);
     USART_Cmd(USART3, ENABLE);
 
-    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_USART3);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 }
 
@@ -455,9 +455,11 @@ void hw_bluetooth_init() {
 void bt_device_request_tx() {
 }
 
-void HardFault_Handler()
+void HardFault_Handler(uint32_t *sp)
 {
     printf("*** HARD FAULT ***\n");
+    printf("   R0: %08lx, R1: %08lx, R2: %08lx, R3: %08lx\n", sp[0], sp[1], sp[2], sp[3]);
+    printf("  R12: %08lx, LR: %08lx, PC: %08lx, SP: %08lx\n", sp[4], sp[5], sp[6], (uint32_t) sp);
     while(1);
 }
 
