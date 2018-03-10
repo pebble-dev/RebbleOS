@@ -662,13 +662,13 @@ void _snowy_display_full_init(void)
     {
         DRV_LOG("Display", APP_LOG_LEVEL_INFO, "Display is ready");
     }
-    
+/*    
     // get the splashscreen resource handle and read it directly into the framebuffer
     ResHandle resource_handle = resource_get_handle_system(SPLASH_RESOURCE_ID);
     hw_flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, display.frame_buffer, resource_handle.size);
     // send raw splashscreen image to display
     _snowy_display_send_frame_slow();
-
+*/
     // enable interrupts now we have the splash up
     // Interrupt handler is in with bluetooth :/
     _snowy_display_init_intn();   
