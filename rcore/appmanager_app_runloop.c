@@ -14,6 +14,7 @@ void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context);
 void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
+bool booted = false;
 
 static xQueueHandle _app_message_queue;
 
@@ -101,6 +102,14 @@ void app_event_loop(void)
     xQueueReset(_app_message_queue);
 
     window_draw();
+    
+    
+    if (!booted)
+    {
+        GRect frame = GRect(0, DISPLAY_ROWS - 20, DISPLAY_COLS, 20);
+        notification_show_small_message("Welcome to RebbleOS", frame);
+        booted = true;
+    }
     
     /* App is now fully initialised and inside the runloop. */
     for ( ;; )

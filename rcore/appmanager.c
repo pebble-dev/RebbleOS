@@ -166,7 +166,8 @@ app_running_thread *_get_current_thread(void)
 app_running_thread *appmanager_get_current_thread(void)
 {
     app_running_thread *th = _get_current_thread();
-    assert(th && "I have no idea what thread I am running from! (System?)");
+//     assert(th && "I have no idea what thread I am running from! (System?)");
+//     KERN_LOG("app", APP_LOG_LEVEL_INFO, "I have no idea what thread I am running from! (System?)");
     
     return th;
 }
@@ -275,6 +276,18 @@ static void _app_management_thread(void *parms)
                          * in reality this isn't a big issue. A concern maybe
                          */
                         appmanager_app_quit();
+                        xQueueSendToBack(_app_thread_queue, &am, (TickType_t)100);
+                        continue;
+                    }
+                    else if (_this_thread->status == AppThreadUnloading)
+                    {
+                        /* it's closing down, keep reposting the message 
+                         * until we are free to launch 
+                         * TODO: this is pretty weak 
+                         * Make this a proper state machine, wait on completion 
+                         * and launch the app
+                         */
+                        KERN_LOG("app", APP_LOG_LEVEL_INFO, "Waiting for app to close...");
                         xQueueSendToBack(_app_thread_queue, &am, (TickType_t)100);
                         continue;
                     }
@@ -509,9 +522,9 @@ void appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "== App signature ==");
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Header  : %s",    header->header);
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "SDK ver : %d.%d", header->sdk_version.major, 
-                                                          header->sdk_version.minor);
+                                                            header->sdk_version.minor);
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App ver : %d.%d", header->app_version.major, 
-                                                          header->app_version.minor);
+                                                            header->app_version.minor);
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App Size: 0x%x",  header->app_size);
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App Main: 0x%x",  header->offset);
     KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "CRC     : %d",    header->crc);
@@ -548,13 +561,13 @@ void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size)
     thread->arena = qinit(heap_entry, heap_size);
     
     /* Load the app in a vTask */
-    thread->task_handle = xTaskCreateStatic(_appmanager_thread_init, 
-                                            "dynapp", 
-                                            thread->stack_size, 
-                                            (void *)thread, 
-                                            tskIDLE_PRIORITY + thread->thread_priority, 
-                                            thread->stack, 
-                                            (StaticTask_t*)&thread->static_task);
+    xTaskCreateStatic(_appmanager_thread_init, 
+                        "dynapp", 
+                        thread->stack_size, 
+                        (void *)thread, 
+                        tskIDLE_PRIORITY + thread->thread_priority, 
+                        thread->stack, 
+                        (StaticTask_t*)&thread->static_task);
 }
 
 static void _appmanager_thread_init(void *thread_handle)

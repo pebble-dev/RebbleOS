@@ -111,8 +111,6 @@ list_head *window_thread_get_head(Window *window)
 {
     if (appmanager_get_thread_type() == AppThreadMainApp)
         return &_window_list_head;
-//     else if (appmanager_get_thread_type() == AppThreadOverlay)
-//         return overlay_window_thread_get_head(window);
     
     assert(!"I don't know how to deal with a window in this thread!");
     return NULL;
@@ -382,7 +380,6 @@ void window_draw(void)
 {
     if (appmanager_is_thread_overlay())
     {
-        SYS_LOG("window", APP_LOG_LEVEL_ERROR, "XXX Overlay Thread!!.");
         return;
     }
     else if (appmanager_get_thread_type() != AppThreadMainApp)

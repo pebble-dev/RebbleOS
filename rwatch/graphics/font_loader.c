@@ -9,13 +9,12 @@
 #include "librebble.h"
 #include "platform_res.h"
 
-#define MAX_CACHED_COUNT 5
-// TODO This is still somewhat sketchy in that I'm not convinced some of these magic offsets
-// are right
 
-uint16_t _fonts_get_resource_id_for_key(const char *key);
 
-GFont fonts_get_system_font_by_resource_id(uint32_t resource_id);
+
+/* totally hacky, but at least vaguely thread safe
+ * We now have a cache size of 1 for each thread
+ */
 
 typedef struct GFontCache
 {
@@ -23,12 +22,41 @@ typedef struct GFontCache
     GFont font;
 } GFontCache;
 
-static GFontCache _cached_fonts[MAX_CACHED_COUNT];
-static uint8_t _cached_count = 0;
+uint16_t _fonts_get_resource_id_for_key(const char *key);
+GFont fonts_get_system_font_by_resource_id(uint32_t resource_id);
+
+static GFontCache _app_font_cache;
+static GFontCache _ovl_font_cache;
+
+void fonts_init(void)
+{
+//     KERN_LOG("font", APP_LOG_LEVEL_ERROR, "font init");
+
+}
 
 void fonts_resetcache()
 {
-	_cached_count=0;
+    AppThreadType thread_type = appmanager_get_thread_type();
+    
+    KERN_LOG("font", APP_LOG_LEVEL_DEBUG, "Purging fonts");
+    /* This is pretty terrible. We assume that the app is removing the memory 
+     * for the font before we kill the cache entry */
+    if (thread_type == AppThreadMainApp)
+    {
+        /* reset it to available. */
+        _app_font_cache.resource_id = 0;
+        _app_font_cache.font = NULL;
+    }
+    else if (thread_type == AppThreadOverlay)
+    {
+        /* reset it to available. */
+        _ovl_font_cache.resource_id = 0;
+        _ovl_font_cache.font = NULL;
+    }
+    else
+    {
+        KERN_LOG("font", APP_LOG_LEVEL_ERROR, "Why you need fonts?");
+    }
 }
 
 // get a system font and then cache it. Ugh.
@@ -46,46 +74,46 @@ GFont fonts_get_system_font(const char *font_key)
  */
 GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 {
-    if (_cached_count == 0)
+    GFontCache *cache_item;
+    AppThreadType thread_type = appmanager_get_thread_type();  
+    
+    if (thread_type == AppThreadMainApp)
     {
-        for (uint8_t i = 0; i < MAX_CACHED_COUNT; i++)
-        {
-            _cached_fonts[i].resource_id = 0;
-        }
+        cache_item = &_app_font_cache;
+    }
+    else if (thread_type == AppThreadOverlay)
+    {
+        cache_item = &_ovl_font_cache;
     }
     else
     {
-        for (uint8_t i = 0; i < MAX_CACHED_COUNT; i++)
-        {
-            if (_cached_fonts[i].resource_id == resource_id)
-            {
-                return _cached_fonts[i].font;
-            }
-        }
+        KERN_LOG("font", APP_LOG_LEVEL_ERROR, "Why you need fonts?");
     }
 
-    uint8_t *buffer = resource_fully_load_id_system(resource_id);
-
-    GFont font = (GFont)buffer;
-
-    if (_cached_count<MAX_CACHED_COUNT)
+    if (cache_item->resource_id == resource_id)
     {
-        _cached_fonts[_cached_count].resource_id = resource_id;
-        _cached_fonts[_cached_count].font = font;
-        _cached_count++;
+        return cache_item->font;
     }
-    // TODO else
-    return font;
+    
+    /* not cached, load */   
+    if (cache_item->resource_id > 0 && cache_item->font)
+    {
+        app_free(cache_item->font);
+    }
+    
+    uint8_t *buffer = resource_fully_load_id_system(resource_id);
+    
+    cache_item->font = (GFont)buffer;
+    cache_item->resource_id = resource_id;
+
+    return cache_item->font;
 }
 
 /*
  * Load a custom font
  */
 GFont *fonts_load_custom_font(ResHandle *handle, const struct file* file)
-{
-    // The font is offset. account for it.
-    //handle->offset += APP_FONT_START;
-    
+{   
     uint8_t *buffer = resource_fully_load_res_app(*handle, file);
 
     return (GFont *)buffer;
