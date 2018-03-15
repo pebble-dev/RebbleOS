@@ -523,7 +523,11 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
     if (subtitle)
     {
         has_subtitle = true;
+        #ifdef PBL_BW
+        GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
+        #else
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
+        #endif
         GRect subtitle_rect;
         subtitle_rect = GRect(x, frame.size.h / 2 - 2,
                               frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
