@@ -111,10 +111,23 @@ void notification_load_click_config(Window *app_window)
 static void _notification_quit_click(ClickRecognizerRef _, void *context)
 {
     notification_message *nm = (notification_message *)context;
+    
+    if (!nm->data.overlay_window) {
+        printf("notification window was already dead?\n");
+        return;
+    }
+    
     if (nm->data.destroy_callback)
         nm->data.destroy_callback(nm->data.overlay_window, &nm->data.overlay_window->window);
     overlay_window_destroy(nm->data.overlay_window);
+    nm->data.overlay_window = NULL;
     window_set_click_context(BUTTON_ID_BACK, NULL);
+    
+    if (nm->data.timer) {
+        app_timer_cancel(nm->data.timer);
+        nm->data.timer = NULL;
+    }
+    
     printf("DESTROY _notification_quit_click\n\n");
     window_dirty(true);
 }
@@ -134,6 +147,7 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
     
     nm->data.create_callback(overlay_window, &overlay_window->window);
 
+    nm->data.timer = NULL;
     if (nm->data.timeout_ms)
         nm->data.timer = app_timer_register(nm->data.timeout_ms, 
                                             (AppTimerCallback)_notif_timeout_cb, nm);
