@@ -27,7 +27,7 @@
  * 
  * TODO Maybe load these dinamically at some point
  */
-static VibratePattern_t _default_vibrate_patterns[VIBRATE_CMD_MAX] = {
+static const VibratePattern_t _default_vibrate_patterns[VIBRATE_CMD_MAX] = {
     // VIBRATE_CMD_PLAY_PATTERN_1
     {
         .length =  1, 
@@ -123,9 +123,8 @@ void vibrate_command(VibrateCmd_t command)
  * Play a given pattern.
  * @param pattern Pointer to a struct containing a defined pattern.
  */
-void vibrate_play_pattern(VibratePattern_t *pattern)
+void vibrate_play_pattern(const VibratePattern_t *pattern)
 {
-    pattern->cur_buffer_index = 0;
     (void) xQueueSendToBack(_vibrate_queue, &pattern, VIBRATE_QUEUE_MAX_WAIT_TICKS);   
 }
 
@@ -175,26 +174,30 @@ static void _vibrate_thread(void *pvParameters)
 
     while(1)
     {
+        uint32_t buf_idx = 0;
+        
         if (!xQueueReceive(_vibrate_queue, &current_pattern, portMAX_DELAY))
         {
             continue;
         }
         
-        while (current_pattern->cur_buffer_index < current_pattern->length)
+        buf_idx = 0;
+        
+        while (buf_idx < current_pattern->length)
         {
-            _set_frequency(current_pattern->buffer[current_pattern->cur_buffer_index].frequency);
+            _set_frequency(current_pattern->buffer[buf_idx].frequency);
             _enable(true);
-            vTaskDelay(current_pattern->buffer[current_pattern->cur_buffer_index].duration_ms / portTICK_RATE_MS);
+            vTaskDelay(current_pattern->buffer[buf_idx].duration_ms / portTICK_RATE_MS);
             _enable(false);
             
             if (xQueueReceive(_vibrate_queue, &current_pattern, 0))
             {
                 // if we just received another pattern (including stop), start playing it from the beginning
-                current_pattern->cur_buffer_index = 0;
+                buf_idx = 0;
             }
             else
             {
-                current_pattern->cur_buffer_index++;
+                buf_idx++;
             }
             
             _print_pattern(current_pattern);

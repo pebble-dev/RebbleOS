@@ -40,10 +40,9 @@ typedef struct
 {
     const uint8_t length;
     const VibratePatternPair_t * const buffer;
-    uint8_t cur_buffer_index;
 } VibratePattern_t;
 
 void vibrate_init(void);
 void vibrate_command(VibrateCmd_t command);
-void vibrate_play_pattern(VibratePattern_t *pattern);
+void vibrate_play_pattern(const VibratePattern_t *pattern);
 void vibrate_stop(void);

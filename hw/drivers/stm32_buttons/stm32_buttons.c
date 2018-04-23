@@ -41,7 +41,7 @@ static hw_button_isr_t _isr = NULL;
 void hw_button_init(void)
 {
     for (int i = 0; i < HW_BUTTON_MAX; i++) {
-        stm32_button_t *btn = &platform_buttons[i];
+        const stm32_button_t *btn = &platform_buttons[i];
         
         /* Initialize the GPIO. */
         GPIO_InitTypeDef gpioinit;
@@ -93,7 +93,7 @@ void hw_button_set_isr(hw_button_isr_t isr)
 void stm32_buttons_raw_isr()
 {
     for (int i = 0; i < HW_BUTTON_MAX; i++) {
-        stm32_button_t *btn = &platform_buttons[i];
+        const stm32_button_t *btn = &platform_buttons[i];
         uint32_t exti_line = 1 << btn->exti_pinsource;
         
         if (EXTI_GetITStatus(exti_line) == RESET)
@@ -110,7 +110,7 @@ void stm32_buttons_raw_isr()
 int hw_button_pressed(hw_button_t button_id)
 {
     assert(button_id < HW_BUTTON_MAX);
-    stm32_button_t *btn = &platform_buttons[button_id];
+    const stm32_button_t *btn = &platform_buttons[button_id];
     
     /* XXX: should push and pop.  calling this from an ISR could be real exciting! */
     stm32_power_request(STM32_POWER_AHB1, btn->gpio_clock);

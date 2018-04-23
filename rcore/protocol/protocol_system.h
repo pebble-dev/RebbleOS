@@ -4,7 +4,7 @@ void process_set_time_packet(uint8_t *data);
 
 /* This isn't actually our version, this is a faked out version for Pebble
  * app to at least consider talking to us over bluetooth */
-static char * FW_VERSION = "v3.4-RebbleOS";
+static const char * const FW_VERSION = "v3.4-RebbleOS";
 
 
 

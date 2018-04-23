@@ -14,7 +14,7 @@ static Window *_main_window;
 static Layer *_test_layer;
 static void _color_test_layer_update_proc(Layer *layer, GContext *ctx);
 
-static uint8_t colors[] = {
+static const uint8_t colors[] = {
     n_GColorOxfordBlueARGB8,
     n_GColorDarkBlueARGB8,
     n_GColorBlueARGB8,

@@ -10,24 +10,21 @@
 #include "vibrate.h"
 #include "rebbleos.h"
 
-static VibratePattern_t short_pattern = {
+const static VibratePattern_t short_pattern = {
     .length = 1,
-    .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 250}},
-    .cur_buffer_index = 0
+    .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 250}}
 };
 
-static VibratePattern_t long_pattern = {
+const static VibratePattern_t long_pattern = {
     .length = 1,
-    .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 500}},
-    .cur_buffer_index = 0
+    .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 500}}
 };
 
-static VibratePattern_t double_pattern = {
+const static VibratePattern_t double_pattern = {
     .length = 3,
     .buffer = (const VibratePatternPair_t [])  {{.frequency = 255, .duration_ms = 100},
                                                 {.frequency = 0, .duration_ms = 100},
-                                                {.frequency = 255, .duration_ms = 100}},
-    .cur_buffer_index = 0
+                                                {.frequency = 255, .duration_ms = 100}}
 };
 
 static VibratePattern_t custom_pattern;
@@ -61,8 +58,7 @@ void vibes_enqueue_custom_pattern(VibePattern pattern) {
     //play it. Create locally then copy to global variable
     VibratePattern_t native_pattern = {
         .length = pattern.num_segments,
-        .buffer = custom_pattern_pairs,
-        .cur_buffer_index = 0
+        .buffer = custom_pattern_pairs
     };
     memcpy(&custom_pattern, &native_pattern, sizeof(VibratePattern_t));
 

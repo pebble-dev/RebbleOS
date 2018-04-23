@@ -13,7 +13,7 @@
 #include "status_bar_layer.h"
 #include "platform_res.h"
 
-const char *test_name = "Test";
+const char * const test_name = "Test";
 
 static Window *s_main_window;
 

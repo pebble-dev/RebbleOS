@@ -11,7 +11,7 @@
 
 /* XXX: when we have debug/release builds, we should have this only in debug builds */
 #define HEAP_INTEGRITY
-// #define HEAP_PARANOID
+//#define HEAP_PARANOID
 
 #define MINBSZ	4
 

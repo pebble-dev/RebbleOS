@@ -325,7 +325,7 @@ UNIMPL(_health_service_sum_averaged);
 UNIMPL(_health_service_get_measurement_system_for_display);
 UNIMPL(_gdraw_command_frame_get_command_list);
 
-VoidFunc sym[] = {
+const VoidFunc sym[] = {
 
     [31]  = (VoidFunc)app_event_loop,                                                           // app_event_loop@0000007c
     [34]  = (VoidFunc)app_log_trace,                                                            // app_log@00000088

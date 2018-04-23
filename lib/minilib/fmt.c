@@ -116,7 +116,7 @@ static void _fmtpct(struct fmtctx *ctx, char c, va_list *va) {
 struct {
 	char f;
 	void (*func)(struct fmtctx *ctx, char c, va_list *va);
-} fmts[] = {
+} const fmts[] = {
 	{ 's', _fmts },
 	{ 'p', _fmtp },
 	{ 'd', _fmtd },

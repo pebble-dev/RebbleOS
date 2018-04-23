@@ -161,7 +161,7 @@ void hw_backlight_set(uint16_t val) {
 
 #include "stm32_buttons_platform.h"
 
-stm32_button_t platform_buttons[HW_BUTTON_MAX] = {
+const stm32_button_t platform_buttons[HW_BUTTON_MAX] = {
     [HW_BUTTON_BACK]   = { GPIO_Pin_3, GPIOC, EXTI_PortSourceGPIOC, EXTI_PinSource3, RCC_AHB1Periph_GPIOC, EXTI3_IRQn },
     [HW_BUTTON_UP]     = { GPIO_Pin_2, GPIOA, EXTI_PortSourceGPIOA, EXTI_PinSource2, RCC_AHB1Periph_GPIOA, EXTI2_IRQn },
     [HW_BUTTON_SELECT] = { GPIO_Pin_6, GPIOC, EXTI_PortSourceGPIOC, EXTI_PinSource6, RCC_AHB1Periph_GPIOC, EXTI9_5_IRQn },

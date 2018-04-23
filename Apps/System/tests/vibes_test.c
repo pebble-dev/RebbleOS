@@ -15,8 +15,8 @@
 static Window *_main_window;
 static TextLayer *_output_text_layer;
 
-static uint32_t vibe_durations[] = {250, 300, 500};
-static VibePattern custom_pattern = {
+static const uint32_t vibe_durations[] = {250, 300, 500};
+static const VibePattern custom_pattern = {
     .durations = vibe_durations,
     .num_segments = 3
 };

@@ -60,7 +60,7 @@ void platform_init_late()
 }
 
 /* Snowy platform button definitions */
-stm32_button_t platform_buttons[HW_BUTTON_MAX] = {
+const stm32_button_t platform_buttons[HW_BUTTON_MAX] = {
     [HW_BUTTON_BACK]   = { GPIO_Pin_4, GPIOG, EXTI_PortSourceGPIOG, EXTI_PinSource4, RCC_AHB1Periph_GPIOG, EXTI4_IRQn },
     [HW_BUTTON_UP]     = { GPIO_Pin_3, GPIOG, EXTI_PortSourceGPIOG, EXTI_PinSource3, RCC_AHB1Periph_GPIOG, EXTI3_IRQn },
     [HW_BUTTON_SELECT] = { GPIO_Pin_1, GPIOG, EXTI_PortSourceGPIOG, EXTI_PinSource1, RCC_AHB1Periph_GPIOG, EXTI1_IRQn },

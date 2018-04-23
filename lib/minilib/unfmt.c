@@ -143,7 +143,7 @@ static int _unfmtpct(struct fmtctx *ctx, char c, struct va_list_wrap *va) {
 static struct {
 	char f;
 	int (*func)(struct fmtctx *ctx, char c, struct va_list_wrap *va);
-} unfmts[] = {
+} const unfmts[] = {
 	{ 'd', _unfmti },
 	{ 'x', _unfmti },
 	{ '%', _unfmtpct },

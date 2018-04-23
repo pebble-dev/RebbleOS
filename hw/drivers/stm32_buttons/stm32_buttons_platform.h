@@ -32,7 +32,7 @@ typedef struct {
     uint32_t exti_irq;
 } stm32_button_t;
 
-extern stm32_button_t platform_buttons[HW_BUTTON_MAX];
+extern const stm32_button_t platform_buttons[HW_BUTTON_MAX];
 
 extern void stm32_buttons_raw_isr();
 

@@ -43,6 +43,7 @@ typedef struct app_test_t {
  *  - menu destroy/rebuild?
  *
  * move tests to test file
+ * figure out a way to make _tests const (have icons be separate or something?)
  */
 
 
