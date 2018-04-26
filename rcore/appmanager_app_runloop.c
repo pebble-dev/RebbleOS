@@ -41,6 +41,12 @@ void appmanager_app_main_entry(void)
     app_running_thread *_this_thread = appmanager_get_current_thread();
     
     _this_thread->status = AppThreadLoaded;
+    
+    /* Before we even see them, we have to reset fonts -- otherwise, the
+     * font cache does some free business on old pointers, corrupting the
+     * heap before we even had a fighting chance!  */
+    fonts_resetcache();
+    
     /* Call into the apps main runtime */
     _this_thread->app->main();
     _this_thread->status = AppThreadUnloading;
@@ -73,7 +79,6 @@ void app_event_loop(void)
         KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Naughty! You tried to run an app runloop!. You are not an app");
         return;
     }
-    fonts_resetcache();
     
     KERN_LOG("app", APP_LOG_LEVEL_INFO, "App entered mainloop");
     
