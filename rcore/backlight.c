@@ -44,7 +44,7 @@ void rcore_backlight_init(void)
     
     _backlight_task = xTaskCreateStatic(_backlight_thread, "Bl", configMINIMAL_STACK_SIZE + 90, NULL, tskIDLE_PRIORITY + 2UL, _backlight_task_stack, &_backlight_task_buf);
     
-    _backlight_queue = xQueueCreateStatic(2, sizeof(backlight_message_t *), (uint8_t *)&_backlight_queue_contents, &_backlight_queue_buf);
+    _backlight_queue = xQueueCreateStatic(2, sizeof(backlight_message_t), (uint8_t *)&_backlight_queue_contents, &_backlight_queue_buf);
     KERN_LOG("backl", APP_LOG_LEVEL_INFO, "Backlight Tasks Created");
     _backlight_is_on = 0;
     _backlight_brightness = 0;
@@ -58,14 +58,12 @@ void rcore_backlight_init(void)
 // use the backlight as additional alert by flashing it
 void rcore_backlight_on(uint16_t brightness_pct, uint16_t time)
 {
-    // create the message, malloc some memory for it. 
-    // We then add the pointer to this message into the queue
-    backlight_message_t *msg = malloc(sizeof(backlight_message_t));
+    backlight_message_t msg;
 
     //  send the queue the backlight on task
-    msg->cmd = BACKLIGHT_ON;
-    msg->val1 = brightness_pct;
-    msg->val2 = time;
+    msg.cmd = BACKLIGHT_ON;
+    msg.val1 = brightness_pct;
+    msg.val2 = time;
     xQueueSendToBack(_backlight_queue, (void *)&msg, 0);
 }
 
@@ -120,7 +118,7 @@ static void _backlight_set_from_ambient(void)
  */
 static void _backlight_thread(void *pvParameters)
 {
-    backlight_message_t *message;
+    backlight_message_t message;
     uint8_t wait = 0;  
     TickType_t on_expiry_time = xTaskGetTickCount();
     uint8_t backlight_status = BACKLIGHT_OFF;
@@ -166,7 +164,7 @@ static void _backlight_thread(void *pvParameters)
         
         if (xQueueReceive(_backlight_queue, &message, wait))
         {
-            switch(message->cmd)
+            switch(message.cmd)
             {
                 case BACKLIGHT_FADE:
                     break;
@@ -177,14 +175,12 @@ static void _backlight_thread(void *pvParameters)
                     backlight_status = BACKLIGHT_ON;
                     // timestamp the tick counter so we can stay on for
                     // the right amount of time
-                    bri_scale = message->val1;
-                    on_expiry_time = xTaskGetTickCount() + (message->val2 / portTICK_RATE_MS);
-                    _backlight_set(message->val1);
+                    bri_scale = message.val1;
+                    on_expiry_time = xTaskGetTickCount() + (message.val2 / portTICK_RATE_MS);
+                    _backlight_set(message.val1);
                     break;
                 ;
             }
-            // Free memory allocated for this message (we only queue pointers)
-            free(message);
         }
     }
 }
