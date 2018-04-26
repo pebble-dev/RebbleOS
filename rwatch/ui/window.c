@@ -577,6 +577,8 @@ void window_load_click_config(Window *window)
          * to dismiss it, and also carry on scrolling, working underneath
          * Will need to review how annying this is in real life use.
          * (i.e. should we just block calls (see code commented out above)
+         *
+         * XXX: note that this ends up running on the app thread!
          */
         notification_load_click_config(window);
     } 

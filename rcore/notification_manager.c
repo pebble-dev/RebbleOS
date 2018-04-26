@@ -43,6 +43,7 @@ void notification_show_message(full_msg_t *msg, uint32_t timeout_ms)
     nmsg->data.create_callback = &notification_message_display;
     nmsg->message = msg;
     nmsg->data.timeout_ms = timeout_ms;
+    nmsg->data.timer = NULL;
     
     /* get an overlay */
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
@@ -89,7 +90,9 @@ void notification_window_dismiss()
 {
 }
 
-/* window click config will call into here to apply the settings */
+/* window click config will call into here to apply the settings.
+ *
+ * XXX: note that this happens on the app thread, not the overlay thread! */
 void notification_load_click_config(Window *app_window)
 {
     if (!overlay_window_count() || overlay_window_stack_contains_window(app_window))
@@ -108,6 +111,11 @@ void notification_load_click_config(Window *app_window)
     window_load_click_config(ov_wind);
 }
 
+/* XXX: this could happen on *either* the app thread *or* the overlay
+ * thread, depending on how we get called.  If we come in from the click
+ * recognizer, then we end up on the app thread; if we come in from the
+ * timer callback, then we end up on the overlay thread.  Ick, but oh well.
+ */
 static void _notification_quit_click(ClickRecognizerRef _, void *context)
 {
     notification_message *nm = (notification_message *)context;
@@ -123,15 +131,17 @@ static void _notification_quit_click(ClickRecognizerRef _, void *context)
     nm->data.overlay_window = NULL;
     window_set_click_context(BUTTON_ID_BACK, NULL);
     
-    if (nm->data.timer) {
-        app_timer_cancel(nm->data.timer);
-        nm->data.timer = NULL;
-    }
+    /* We don't cancel the timer here (if there was one), because we're
+     * running from the app thread, and the app timer lives on the overlay
+     * thread.  So if it needs to, we just let it die off on its own, and
+     * waste the wakeup later.  Oh, well.
+     */
     
     printf("DESTROY _notification_quit_click\n\n");
     window_dirty(true);
 }
 
+/* overlay thread */
 static void _notification_window_creating(OverlayWindow *overlay_window, Window *window)
 {
     notification_message *nm = (notification_message *)overlay_window->context;
@@ -147,6 +157,8 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
     
     nm->data.create_callback(overlay_window, &overlay_window->window);
 
+    if (nm->data.timer)
+        app_timer_cancel(nm->data.timer);
     nm->data.timer = NULL;
     if (nm->data.timeout_ms)
         nm->data.timer = app_timer_register(nm->data.timeout_ms, 
@@ -158,5 +170,10 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
 
 static void _notif_timeout_cb(void *data)
 {
+    notification_message *nm = (notification_message *)data;
+    
+    app_timer_cancel(nm->data.timer);
+    nm->data.timer = NULL;
+    
     _notification_quit_click(NULL, data);
 }
