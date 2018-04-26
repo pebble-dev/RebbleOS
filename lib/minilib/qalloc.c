@@ -114,9 +114,9 @@ void qfree(qarena_t *arena, void *ptr) {
 	qblock_t *blk = BLK_FROMPAYLOAD(ptr);
 
 #ifdef HEAP_INTEGRITY
+	qcheck(arena, blk);
 	if (BLK_ISFREE(blk))
 		panic("qfree: double free");	/* XXX: this "panic" needs to not panic if we are in an app */
-	qcheck(arena, blk);
 #endif
 #ifdef HEAP_PARANOID
 	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk) - sizeof(qblock_t));
