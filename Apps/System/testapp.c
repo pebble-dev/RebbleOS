@@ -308,7 +308,6 @@ static MenuItems *_create_menu_items(void)
                 icon = RESOURCE_ID_MUSIC_PAUSE;
         }
 
-        _tests[i].context = &icon;
         MenuItem mi = MenuItem((char *)_tests[i].test_name, (char *)_tests[i].test_desc, icon, test_test_item_selected);
         mi.context = &_tests[i];
         menu_items_add(items, mi);
