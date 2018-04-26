@@ -4,21 +4,40 @@
 
 void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
 {
+    /* Set up the bitmap, assuming we will fail. */
+    bitmap->palette = NULL;
+    bitmap->palette_size = 0;
+    bitmap->bounds.origin.x = 0;
+    bitmap->bounds.origin.y = 0;
+    bitmap->bounds.size.w = 0;
+    bitmap->bounds.size.h = 0;
+    bitmap->raw_bitmap_size.w = 0;
+    bitmap->raw_bitmap_size.h = 0;
+    bitmap->addr = NULL;
+    bitmap->format = GBitmapFormat8Bit;
+
     upng_t *upng = upng_new_from_bytes(raw_buffer, png_size, &(bitmap->addr));
     
     if (upng == NULL)
     {
         SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG malloc error");
+        return;
     }
     if (upng_get_error(upng) != UPNG_EOK)
     {
         SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG Loaded:%d line:%d", 
       upng_get_error(upng), upng_get_error_line(upng));
+        if (upng_get_buffer(upng))
+            app_free((void *)upng_get_buffer(upng));
+        goto freepng;
     }
     if (upng_decode(upng) != UPNG_EOK)
     {
         SYS_LOG("png", APP_LOG_LEVEL_ERROR, "UPNG Decode:%d line:%d", 
       upng_get_error(upng), upng_get_error_line(upng));
+        if (upng_get_buffer(upng))
+            app_free((void *)upng_get_buffer(upng));
+        goto freepng;
     }
 
     /* XXX: this leaks the buffer if we don't take this codepath */
@@ -120,6 +139,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
     }
 
     // Free the png, no longer needed
+freepng:
     upng_free(upng);
     upng = NULL;
 }

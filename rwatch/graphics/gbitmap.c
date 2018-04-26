@@ -267,6 +267,9 @@ GBitmap *gbitmap_create_with_resource(uint32_t resource_id)
     uint8_t *png_data = resource_fully_load_id_system(resource_id);
     ResHandle res_handle = resource_get_handle_system(resource_id);
     size_t png_data_size = resource_size(res_handle);
+    
+    if (!png_data)
+        return NULL;
         
     return gbitmap_create_from_png_data(png_data, png_data_size);
 }
@@ -276,6 +279,9 @@ GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, const struct fil
     uint8_t *png_data = (uint8_t*)resource_fully_load_id_app(resource_id, file);
     ResHandle res_handle = resource_get_handle_app(resource_id, file);
     size_t png_data_size = resource_size(res_handle);
+    
+    if (!png_data)
+        return NULL;
         
     return gbitmap_create_from_png_data(png_data, png_data_size);
 }

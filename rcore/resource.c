@@ -238,7 +238,7 @@ uint8_t *resource_fully_load_res_system(ResHandle res_handle)
     
     if (buffer == NULL)
     {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Resource alloc failed");
+        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Resource alloc of %d bytes for res %d failed", sz, res_handle.index);
         return NULL;
     }
 
