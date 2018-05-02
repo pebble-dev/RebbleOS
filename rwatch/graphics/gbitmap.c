@@ -35,6 +35,9 @@ GBitmap *gbitmap_create(GRect frame)
  */
 void gbitmap_destroy(GBitmap *bitmap)
 {
+    if (!bitmap)
+        return;
+    
     if (bitmap->free_palette_on_destroy)
         app_free(bitmap->palette);
     if (bitmap->free_data_on_destroy)
