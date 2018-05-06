@@ -29,12 +29,12 @@ static Time s_last_time;
 
 static void play_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    printf("UP");
+    printf("UP\n");
 }
 
 static void pause_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    printf("DOWN");
+    printf("DOWN\n");
 }
 
 static void click_config_provider(void *context)

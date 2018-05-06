@@ -131,7 +131,6 @@ static void _draw(Layer *layer, GContext *context)
     if (status_bar->text == NULL) {
         char time_string[8];
         rcore_strftime(time_string, 8, "%R", &status_bar->last_time);
-        printf("%s", time_string);
 
         graphics_draw_text(context, time_string, text_font, text_bounds,
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);

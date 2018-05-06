@@ -115,7 +115,6 @@ static void draw(Layer *layer, GContext *context)
         if (action_bar->icons[i] != NULL) {
             // Draw the icon:
             GSize icon_size = action_bar->icons[i]->raw_bitmap_size;
-            printf(action_bar->icons[i]);
 #ifdef PBL_RECT
             graphics_draw_bitmap_in_rect(context, action_bar->icons[i], GRect(full_bounds.size.w - icon_size.w - 2, y - (increment / 2) - (icon_size.h / 2), icon_size.w, icon_size.h));
 #else
