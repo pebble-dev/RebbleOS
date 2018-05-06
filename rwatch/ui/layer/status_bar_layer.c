@@ -107,24 +107,24 @@ void status_bar_layer_set_text(StatusBarLayer *status_bar, const char *status_te
 static void _draw(Layer *layer, GContext *context)
 {
     StatusBarLayer *status_bar = (StatusBarLayer *) layer;
-    GRect full_bounds = layer_get_bounds(layer);
+    GRect full_frame = layer_get_frame(layer);
     
     // Draw the background
     graphics_context_set_fill_color(context, status_bar->background_color);
-    graphics_fill_rect(context, full_bounds, 0, GCornerNone);
+    graphics_fill_rect(context, full_frame, 0, GCornerNone);
 
     if (status_bar->separator_mode == StatusBarLayerSeparatorModeDotted)
     {
         graphics_context_set_stroke_color(context, status_bar->foreground_color);
-        for(int i = 0; i < full_bounds.size.w; i += 2)
+        for(int i = 0; i < full_frame.size.w; i += 2)
         {
-            n_graphics_draw_pixel(context, n_GPoint(i, full_bounds.size.h - 2));
+            n_graphics_draw_pixel(context, n_GPoint(i, full_frame.size.h - 2));
         }
     }
     
     // Draw the text
-    GRect text_bounds = full_bounds;
-    text_bounds.origin.y = full_bounds.size.h - 18;
+    GRect text_frame = full_frame;
+    text_frame.origin.y = full_frame.size.h - 18;
     graphics_context_set_text_color(context, status_bar->foreground_color);
     GFont text_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
 
@@ -132,11 +132,11 @@ static void _draw(Layer *layer, GContext *context)
         char time_string[8];
         rcore_strftime(time_string, 8, "%R", &status_bar->last_time);
 
-        graphics_draw_text(context, time_string, text_font, text_bounds,
+        graphics_draw_text(context, time_string, text_font, text_frame,
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
     }
     else {
-        graphics_draw_text(context, status_bar->text, text_font, text_bounds,
+        graphics_draw_text(context, status_bar->text, text_font, text_frame,
                                GTextOverflowModeTrailingEllipsis, n_GTextAlignmentCenter, 0);
     }
 }
