@@ -17,6 +17,7 @@
 #include <stm32f4xx_spi.h>
 #include <stm32f4xx_tim.h>
 #include "stm32_power.h"
+#include "stm32_spi.h"
 #include "platform_config.h"
 #include "rebble_memory.h"
 #include "resource.h"
@@ -45,6 +46,7 @@ void _snowy_display_init_intn(void);
 void _snowy_display_dma_send(uint8_t *data, uint32_t len);
 void _snowy_display_next_column(uint8_t col_index);
 void _snowy_display_init_dma(void);
+static void _spi_tx_done(void);
 
 // pointer to the place in flash where the FPGA image resides
 // extern unsigned char fpga_address; // _binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
@@ -86,12 +88,54 @@ CCRAM display_t display = {
     .pin_intn        = GPIO_Pin_10,
 };
 
+
+static const stm32_spi_config_t _spi6_config = {
+    .spi               = SPI6,
+    .spi_periph_bus    = STM32_POWER_APB2,
+    .gpio_pin_miso_num = 12,
+    .gpio_pin_mosi_num = 14,
+    .gpio_pin_sck_num  = 13,
+    .gpio_ptr          = GPIOG,
+    .gpio_clock        = RCC_AHB1Periph_GPIOG,
+    .spi_clock         = RCC_APB2Periph_SPI6,
+    .af                = GPIO_AF_SPI6,
+    .crc_poly          = 7,
+    .line_polarity     = SPI_CPOL_High,
+    .txrx_dir          = STM32_SPI_DIR_RXTX
+};
+
+static const stm32_dma_t _spi6_dma = {
+    .dma_clock            = RCC_AHB1Periph_DMA2,
+    .dma_tx_stream        = DMA2_Stream5,
+    .dma_rx_stream        = DMA2_Stream6,
+    .dma_tx_channel       = DMA_Channel_1,
+    .dma_rx_channel       = DMA_Channel_0,
+    .dma_irq_tx_pri       = 9,
+    .dma_irq_rx_pri       = 9,
+    .dma_irq_tx_channel   = DMA2_Stream5_IRQn,
+    .dma_irq_rx_channel   = DMA2_Stream6_IRQn,
+    .dma_tx_channel_flags = STM32_DMA_MK_FLAGS(5),
+    .dma_rx_channel_flags = STM32_DMA_MK_FLAGS(6),
+    .dma_tx_irq_flag      = DMA_IT_TCIF5,
+    .dma_rx_irq_flag      = DMA_IT_TCIF6,
+};
+
+static stm32_spi_t _spi6 = {
+    &_spi6_config,
+    &_spi6_dma, /* dma */
+};
+
+void _spi_tx_done(void);
+
+// SPI6 	DMA2 	DMA Stream 5 	DMA Channel 1 	DMA Stream 6 	DMA Channel 0
+STM32_SPI_MK_TX_IRQ_HANDLER(&_spi6, 2, 5, _spi_tx_done)
+
 /*
  * Initialise the hardware. This means all GPIOs and SPI for the display
  */
 void hw_display_init(void)
 {
-    display.power_on = 0;
+//     display.power_on = 0;
     _display_ready = 0;
 
     // init display variables
@@ -128,8 +172,8 @@ void hw_display_init(void)
     GPIO_Init(display.port_display, &gpio_init_disp_o);       
         
     // start SPI
-    _snowy_display_init_SPI6();   
-    _snowy_display_init_dma();
+    _snowy_display_init_SPI6();
+//     _snowy_display_init_dma();
 
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
@@ -179,119 +223,21 @@ void _snowy_display_init_intn(void)
  */
 void _snowy_display_init_SPI6(void)
 {
-    GPIO_InitTypeDef gpio_init_struct;
-    SPI_InitTypeDef spi_init_struct;
-
-    // enable clock for used IO pins
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
-
-    /* configure pins used by SPI6
-        * PG13 = SCK
-        * PG12 = MISO
-        * PG14 = MOSI
-        */
-    gpio_init_struct.GPIO_Pin = display.pin_miso | display.pin_mosi | display.pin_sck;
-    gpio_init_struct.GPIO_Mode = GPIO_Mode_AF;
-    gpio_init_struct.GPIO_OType = GPIO_OType_PP;
-    gpio_init_struct.GPIO_Speed = GPIO_Speed_50MHz;
-    gpio_init_struct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(display.port_display, &gpio_init_struct);
-
-    // connect SPI6 pins to SPI alternate function
-    GPIO_PinAFConfig(display.port_display, GPIO_PinSource13, GPIO_AF_SPI6);
-    GPIO_PinAFConfig(display.port_display, GPIO_PinSource12, GPIO_AF_SPI6);
-    GPIO_PinAFConfig(display.port_display, GPIO_PinSource14, GPIO_AF_SPI6);
-
-
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
-
-    // enable peripheral clock
-    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
-
-    spi_init_struct.SPI_Direction = SPI_Direction_2Lines_FullDuplex; // set to full duplex mode, seperate MOSI and MISO lines
-    spi_init_struct.SPI_Mode = SPI_Mode_Master;     // transmit in master mode, NSS pin has to be always high
-    spi_init_struct.SPI_DataSize = SPI_DataSize_8b; // one packet of data is 8 bits wide
-    spi_init_struct.SPI_CPOL = SPI_CPOL_High;        // clock is low when idle
-    spi_init_struct.SPI_CPHA = SPI_CPHA_1Edge;      // data sampled at first edge
-    spi_init_struct.SPI_NSS = SPI_NSS_Soft | SPI_NSSInternalSoft_Set; // set the NSS management to internal and pull internal NSS high
-    spi_init_struct.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8; // SPI frequency is APB2 frequency / 8
-    spi_init_struct.SPI_FirstBit = SPI_FirstBit_MSB;// data is transmitted LSB first
-    // pebble additionally has these Set
-
-    SPI_Init(SPI6, &spi_init_struct); 
-
-    SPI_Cmd(SPI6, ENABLE); // enable SPI
-
-    stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
+    stm32_spi_init_device(&_spi6);
 }
 
 static void _snowy_display_request_clocks()
 {
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+//     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
 
 static void _snowy_display_release_clocks()
 {
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
+//     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
-}
-
-/*
- * Initialise DMA for sending frames.
- * DMA is only used for doing a full frame transfer
- * once frame mode select is sent
- */
-void _snowy_display_init_dma(void)
-{
-    NVIC_InitTypeDef nvic_init_struct;
-    DMA_InitTypeDef dma_init_struct;
-    
-    _snowy_display_request_clocks();
-    
-    // spi6 dma config:
-    // SPI6 	DMA2 	DMA Stream 5 	DMA Channel 1 	DMA Stream 6 	DMA Channel 0
-    // De-init DMA configuration just to be sure. No Boom
-    DMA_DeInit(DMA2_Stream5);
-    // Configure DMA controller to manage TX DMA requests
-    DMA_Cmd(DMA2_Stream5, DISABLE);
-    while (DMA2_Stream5->CR & DMA_SxCR_EN);
-
-    DMA_ClearFlag(DMA2_Stream5, DMA_FLAG_FEIF5|DMA_FLAG_DMEIF5|DMA_FLAG_TEIF5|DMA_FLAG_HTIF5|DMA_FLAG_TCIF5);
-    
-    DMA_StructInit(&dma_init_struct);
-    // set the pointer to the SPI6 DR register
-    dma_init_struct.DMA_PeripheralBaseAddr = (uint32_t) &(SPI6->DR);
-    dma_init_struct.DMA_Channel = DMA_Channel_1;
-    dma_init_struct.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-    dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    dma_init_struct.DMA_Memory0BaseAddr = (uint32_t)0; // set this to bypass assert
-    dma_init_struct.DMA_BufferSize = 1;
-    dma_init_struct.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
-    dma_init_struct.DMA_FIFOMode  = DMA_FIFOMode_Disable;
-    dma_init_struct.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
-    dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-    dma_init_struct.DMA_Priority = DMA_Priority_High;
-    dma_init_struct.DMA_MemoryBurst = DMA_MemoryBurst_Single;
-    dma_init_struct.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-    DMA_Init(DMA2_Stream5, &dma_init_struct);
-    
-    // enable the tx interrupt.
-    DMA_ITConfig(DMA2_Stream5, DMA_IT_TC, ENABLE);
-     
-    // Enable dma
-    SPI_I2S_DMACmd(SPI6, SPI_I2S_DMAReq_Tx, ENABLE);
-    
-    _snowy_display_release_clocks();
-    
-    // tell the NVIC to party
-    nvic_init_struct.NVIC_IRQChannel = DMA2_Stream5_IRQn;
-    nvic_init_struct.NVIC_IRQChannelPreemptionPriority = 9;
-    nvic_init_struct.NVIC_IRQChannelSubPriority = 0;
-    nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&nvic_init_struct);
 }
 
 /*
@@ -301,77 +247,48 @@ void _snowy_display_init_dma(void)
  */
 void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
 {
-    DMA_InitTypeDef dma_init_struct;
-
-    // Configure DMA controller to manage TX DMA requests
-    DMA_Cmd(DMA2_Stream5, DISABLE);
-    while (DMA2_Stream5->CR & DMA_SxCR_EN);
-
-    DMA_ClearFlag(DMA2_Stream5, DMA_FLAG_FEIF5|DMA_FLAG_DMEIF5|DMA_FLAG_TEIF5|DMA_FLAG_HTIF5|DMA_FLAG_TCIF5);
-    DMA_StructInit(&dma_init_struct);
-    // set the pointer to the SPI6 DR register
-    dma_init_struct.DMA_PeripheralBaseAddr = (uint32_t) &SPI6->DR;
-    dma_init_struct.DMA_Channel = DMA_Channel_1;
-    dma_init_struct.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-    dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
-    dma_init_struct.DMA_Memory0BaseAddr = (uint32_t)data;
-    dma_init_struct.DMA_BufferSize = length;
-    dma_init_struct.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
-    dma_init_struct.DMA_FIFOMode  = DMA_FIFOMode_Disable;
-    dma_init_struct.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
-    dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-    dma_init_struct.DMA_Priority = DMA_Priority_High;
-
-    DMA_Init(DMA2_Stream5, &dma_init_struct);
-    
-    // enable the tx interrupt.
-    DMA_ITConfig(DMA2_Stream5, DMA_IT_TC, ENABLE);
-     
-    // Enable dma
-    SPI_I2S_DMACmd(SPI6, SPI_I2S_DMAReq_Tx, ENABLE);
+//     _snowy_display_request_clocks();
+    stm32_spi_send_dma(&_spi6, data, length);
 }
+
+
 
 /*
  * DMA2 handler for SPI6
  */
-void DMA2_Stream5_IRQHandler()
+static void _spi_tx_done(void)
 {
     static uint8_t col_index = 0;
-    
-    if (DMA_GetITStatus(DMA2_Stream5, DMA_IT_TCIF5))
+
+    // check the tx finished
+    while (SPI_I2S_GetFlagStatus(SPI6, SPI_I2S_FLAG_TXE) == RESET)
     {
-        DMA_ClearITPendingBit(DMA2_Stream5, DMA_IT_TCIF5);
+    };
+    
+    // make sure we are not busy
+    while (SPI_I2S_GetFlagStatus(SPI6, SPI_I2S_FLAG_BSY) == SET)
+    {
+    };
 
-        // check the tx finished
-        while (SPI_I2S_GetFlagStatus(SPI6, SPI_I2S_FLAG_TXE) == RESET)
-        {
-        };
-        
-        // make sure we are not busy
-        while (SPI_I2S_GetFlagStatus(SPI6, SPI_I2S_FLAG_BSY) == SET)
-        {
-        };
-
-        // if we are finished sending  each column, then reset and stop
-        if (col_index < ROW_LENGTH - 1)
-        {
-            ++col_index;
-            // ask for convert and display the next column
-            _snowy_display_next_column(col_index);
-            return;
-        }
-                
-        // done. We are still in control of the SPI select, so lets let go
-        col_index = 0;
-        
-        _snowy_display_cs(0);
-        _display_ready = 1;
-        
-        /* request_clocks in _snowy_display_start_frame */
-        _snowy_display_release_clocks();
-        
-        display_done_ISR(0);
+    // if we are finished sending  each column, then reset and stop
+    if (col_index < ROW_LENGTH - 1)
+    {
+        ++col_index;
+        // ask for convert and display the next column
+        _snowy_display_next_column(col_index);
+        return;
     }
+    // done. We are still in control of the SPI select, so lets let go
+    col_index = 0;
+    
+    
+    _snowy_display_cs(0);
+    _display_ready = 1;
+    
+    /* request_clocks in _snowy_display_start_frame */
+    _snowy_display_release_clocks();
+    
+    display_done_ISR(0);
 }
 
 /*
@@ -470,11 +387,11 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
 
     // Pull out reset
     _snowy_display_cs(mode);
-    delay_ms(1);
+    delay_large(1);
     _snowy_display_reset(0);
     _snowy_display_cs(1);
 
-    delay_ms(1);
+    delay_large(1);
     
     _snowy_display_reset(1);
     delay_us(1);
@@ -669,6 +586,7 @@ void _snowy_display_full_init(void)
     // send raw splashscreen image to display
     _snowy_display_send_frame_slow();
 */
+
     // enable interrupts now we have the splash up
     // Interrupt handler is in with bluetooth :/
     _snowy_display_init_intn();   
@@ -758,7 +676,7 @@ void delay_us(uint16_t us)
             ;;
 }
 
-void delay_ms(uint16_t ms)
+void delay_large(uint16_t ms)
 {
     delay_us(1000 * ms);
 }

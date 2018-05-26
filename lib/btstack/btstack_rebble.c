@@ -48,7 +48,7 @@ static void packet_handler (uint8_t packet_type, uint16_t channel, uint8_t *pack
 static const hci_transport_config_uart_t config = {
     HCI_TRANSPORT_CONFIG_UART,
     115200, /* start slow */
-    460800,  /* This is pretty hast, but can we go faster? */
+    460800,  /* This is pretty fast, but can we go faster? */
     1,  /* Use hardware flow control */
     NULL
 };
@@ -87,6 +87,12 @@ void bt_device_init(void)
     /* This is to enable the packet dumps */
     
 #ifdef PACKET_LOGGING
+    /* Becuase we want the HCI debug output */
+#ifdef DEBUG_UART_SMARTSTRAP 
+    /* Becuase we want the HCI debug output */ 
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE); 
+    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8); 
+#endif 
     hci_dump_open( NULL, HCI_DUMP_STDOUT );
 #endif
 
@@ -155,7 +161,7 @@ void bt_device_init(void)
  */
 void bt_device_request_tx(uint8_t *data, uint16_t len)
 {
-    if (len > sizeof(HCI_ACL_PAYLOAD_SIZE))
+    if (len > HCI_ACL_PAYLOAD_SIZE)
     {
         SYS_LOG("BTSPP", APP_LOG_LEVEL_ERROR, "Data size %d > buffer size %d", len, HCI_ACL_PAYLOAD_SIZE);
         return;
@@ -180,7 +186,7 @@ void bt_device_request_tx(uint8_t *data, uint16_t len)
 
 /*
  * HAL-x functions are stubs that BTStack requires
- * These wil proxy BTstack functionality to our own RebbleOS funcs
+ * These will proxy BTstack functionality to our own RebbleOS funcs
  */
 uint32_t hal_time_ms(void)
 {
@@ -239,24 +245,24 @@ void hal_uart_dma_set_csr_irq_handler( void (*the_irq_handler)(void))
 
 int  hal_uart_dma_set_baud(uint32_t baud)
 {
-    hw_bluetooth_set_baud(baud);
+    stm32_usart_set_baud(hw_bluetooth_get_usart(), baud);
     return 0;
 }
 
 void hal_uart_dma_send_block(const uint8_t *data, uint16_t size)
 {
-    hw_bluetooth_send_dma((uint32_t *)data, size);
+    stm32_usart_send_dma(hw_bluetooth_get_usart(), (uint32_t *)data, size);
 }
 
 void hal_uart_dma_receive_block(uint8_t *data, uint16_t size)
 {
-    hw_bluetooth_recv_dma((uint32_t *)data, size);
+    stm32_usart_recv_dma(hw_bluetooth_get_usart(), (uint32_t *)data, size);
 }
 
 
 /* 
  * BTStack wants to reset.
- * Call up to RebbleOS to fund out how to do that
+ * Call up to RebbleOS to find out how to do that
  */
 void bluetooth_power_cycle(void)
 {

@@ -59,5 +59,5 @@ void scanline_convert(uint8_t *out_buffer, uint8_t *frame_buffer, uint8_t column
 // void scanline_rgb888pixel_to_frambuffer(UG_S16 x, UG_S16 y, UG_COLOR c);
 
 void delay_us(uint16_t us);
-void delay_ms(uint16_t ms);
+void delay_large(uint16_t ms);
 

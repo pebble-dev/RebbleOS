@@ -146,30 +146,12 @@ void bluetooth_data_rx(uint8_t *data, size_t len)
 {
     static pbl_transport_packet pkt;
     uint8_t *buf_p;  /* pointer to the message in the buffer */
-    bool done = false;
-    /* We are thread safe here because of btstack */
     
-    /* loop through the messages (should there be more than one) */
-    buf_p = data;
-    uint16_t flen = len;
-    while (1)
-    {
-        if (!_parse_packet(&pkt, buf_p, flen))
-            return; // we are done, no point looking as we have no data left
-        
-        // seems legit
-        _process_packet(&pkt);
-        
-        // set the data pointer to the end of this packet
-        buf_p = pkt.data + len + 4;
-        if (flen <= pkt.length)
-            return;
-        
-        flen -= pkt.length;
-        
-        if (flen == 0)
-            return;
-    }
+    if (!_parse_packet(&pkt, data, len))
+        return; // we are done, no point looking as we have no data left
+    
+    // seems legit
+    _process_packet(&pkt);
 }
 
 /*
@@ -204,27 +186,19 @@ static bool _parse_packet(pbl_transport_packet *pkt, uint8_t *data, size_t len)
 {
     uint16_t pkt_length = (data[0] << 8) | (data[1] & 0xff);
     uint16_t pkt_endpoint = (data[2] << 8) | (data[3] & 0xff);
-       
-    if (len + 4 < pkt_length)
-    {
-        SYS_LOG("BT", APP_LOG_LEVEL_DEBUG, "RX: DANGER! Data still coming %d %d", pkt_length, len);
-        return false;
-    }
 
-    SYS_LOG("BT", APP_LOG_LEVEL_INFO, "RX: GOOD packet. len %d end %d", pkt_length, pkt_endpoint);
-       
+    /* done! (usually) */
+    if (pkt_length == 0)
+        return false;
+
     /* Seems sensible */
     if (pkt_length > 2048)
     {
         SYS_LOG("BT", APP_LOG_LEVEL_ERROR, "RX: payload length %d. Seems suspect!", pkt_length);
         return false;
-    }
+    }   
     
-    if (pkt_length == 0)
-    {
-        SYS_LOG("BT", APP_LOG_LEVEL_WARNING, "RX: payload length 0. Seems suspect!");
-        return false;
-    }
+    SYS_LOG("BT", APP_LOG_LEVEL_INFO, "RX: GOOD packet. len %d end %d", pkt_length, pkt_endpoint);
 
     /* it's a valid packet. fill out passed packet and finish up */
     pkt->length = pkt_length;
@@ -347,10 +321,10 @@ static void _bt_cmd_thread(void *pvParameters)
 void bluetooth_send_packet(uint16_t endpoint, uint8_t *data, uint16_t len)
 {
     uint8_t tx_buf[len + 4];
-    tx_buf[0] = len >> 8;
-    tx_buf[1] = len << 8;
-    tx_buf[2] = endpoint >> 8;
-    tx_buf[3] = endpoint << 8;
+    tx_buf[0] = ((uint8_t)(len >> 8));
+    tx_buf[1] = ((uint8_t)(len & 0xff));
+    tx_buf[2] = ((uint8_t)(endpoint >> 8));
+    tx_buf[3] = ((uint8_t)(endpoint & 0xff));
 
     memcpy(&tx_buf[4], data, len);
     bluetooth_send(tx_buf, len + 4);

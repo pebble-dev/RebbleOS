@@ -18,8 +18,10 @@
 #include <misc.h>
 #include "rebbleos.h"
 
+#include "stm32_usart.h"
 #include "stm32_power.h"
 #include "stm32_rtc.h"
+#include "stm32_spi.h"
 
 // extern void *strcpy(char *a2, const char *a1);
 
@@ -27,6 +29,65 @@
 
 static inline void _init_USART3();
 static int _debug_initialized;
+
+
+static const stm32_usart_config_t _u3_config = {
+    .usart                = USART3,
+    .flow_control_enabled = FLOW_CONTROL_DISABLED,
+    .usart_periph_bus     = STM32_POWER_APB1,
+    .gpio_pin_tx_num      = 10,
+    .gpio_pin_rx_num      = 11,
+    .gpio_pin_rts_num     = 0,
+    .gpio_pin_cts_num     = 0,
+    .gpio_ptr             = GPIOC,
+    .gpio_clock           = RCC_AHB1Periph_GPIOC,
+    .usart_clock          = RCC_APB1Periph_USART3,
+    .af                   = GPIO_AF_USART3,
+};
+
+static stm32_usart_t _usart3 = {
+    &_u3_config,
+    NULL,
+    230400
+};
+
+
+static const stm32_spi_config_t _spi2_config = {
+    .spi                  = SPI2,
+    .spi_periph_bus       = STM32_POWER_APB1,
+    .gpio_pin_miso_num    = 0,
+    .gpio_pin_mosi_num    = 15,
+    .gpio_pin_sck_num     = 13,
+    .gpio_ptr             = GPIOB,
+    .gpio_clock           = RCC_AHB1Periph_GPIOB,
+    .spi_clock            = RCC_APB1Periph_SPI2,
+    .af                   = GPIO_AF_SPI2,
+    .txrx_dir             = STM32_SPI_DIR_TX,
+    .crc_poly             = 7 /* Um */
+};
+
+static const stm32_dma_t _spi2_dma = {
+    .dma_clock            = RCC_AHB1Periph_DMA1,
+    .dma_tx_stream        = DMA1_Stream4,
+    .dma_rx_stream        = DMA1_Stream3,
+    .dma_tx_channel       = DMA_Channel_0,
+    .dma_rx_channel       = DMA_Channel_0,
+    .dma_irq_tx_pri       = 10,
+    .dma_irq_rx_pri       = 9,
+    .dma_irq_tx_channel   = DMA1_Stream4_IRQn,
+    .dma_irq_rx_channel   = DMA1_Stream3_IRQn,
+    .dma_tx_channel_flags = STM32_DMA_MK_FLAGS(4),
+    .dma_rx_channel_flags = STM32_DMA_MK_FLAGS(3),
+    .dma_tx_irq_flag      = DMA_IT_TCIF4,
+    .dma_rx_irq_flag      = DMA_IT_TCIF3
+};
+
+static stm32_spi_t _spi2 = {
+    &_spi2_config,
+    &_spi2_dma, /* dma */
+};
+
+//STM32_SPI_MK_TX_IRQ_HANDLER(&_spi2, 2, 5, _spi_tx_done)
 
 void debug_init() {
     _init_USART3();
@@ -40,15 +101,7 @@ void debug_write(const unsigned char *p, size_t len) {
     if (!_debug_initialized)
         return;
 
-    for (i = 0; i < len; i++) {
-        if (p[i] == '\n') {
-            while (!(USART3->SR & USART_SR_TC));
-            USART3->DR = '\r';
-        }
-
-        while (!(USART3->SR & USART_SR_TC));
-        USART3->DR = p[i];
-    }
+    stm32_usart_write(&_usart3, p, len);
 }
 
 /*
@@ -56,32 +109,9 @@ void debug_write(const unsigned char *p, size_t len) {
  */
 static inline void _init_USART3(void)
 {
-    GPIO_InitTypeDef GPIO_InitStruct;
-    USART_InitTypeDef USART_InitStruct;
-
-    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_USART3);
-    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
-
-    GPIO_InitStruct.GPIO_Pin = GPIO_Pin_10 | GPIO_Pin_11;
-    GPIO_InitStruct.GPIO_Mode = GPIO_Mode_AF;
-    GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_UP;
-    GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-    GPIO_PinAFConfig(GPIOC, GPIO_PinSource10, GPIO_AF_USART3);
-    GPIO_PinAFConfig(GPIOC, GPIO_PinSource11, GPIO_AF_USART3);
-
-    USART_InitStruct.USART_BaudRate = 230400;
-    USART_InitStruct.USART_WordLength = USART_WordLength_8b;
-    USART_InitStruct.USART_StopBits = USART_StopBits_1;
-    USART_InitStruct.USART_Parity = USART_Parity_No;
-    USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStruct.USART_Mode = USART_Mode_Tx | USART_Mode_Rx;
-    USART_Init(USART3, &USART_InitStruct);
-    USART_Cmd(USART3, ENABLE);
-
-    stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
+    /* leave the usart clock on */
+    stm32_power_request(_usart3.config->usart_periph_bus, _usart3.config->usart_clock);
+    stm32_usart_init_device(&_usart3);    
 }
 
 /*** platform ***/
@@ -152,9 +182,23 @@ uint16_t hw_ambient_get() {
 /*** backlight init ***/
 
 void hw_backlight_init() {
+    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
+
+    GPIO_InitTypeDef GPIO_InitDef;
+
+    GPIO_InitDef.GPIO_Pin = GPIO_Pin_5;
+    GPIO_InitDef.GPIO_Mode = GPIO_Mode_OUT;
+    GPIO_InitDef.GPIO_OType = GPIO_OType_PP;
+    GPIO_InitDef.GPIO_PuPd = GPIO_PuPd_NOPULL;
+    GPIO_InitDef.GPIO_Speed = GPIO_Speed_50MHz;
+    GPIO_Init(GPIOB, &GPIO_InitDef);
+
+    /* And multivac pronounced "and let there be backlight" */
+    GPIO_SetBits(GPIOB, GPIO_Pin_5);
 }
 
 void hw_backlight_set(uint16_t val) {
+
 }
 
 /* buttons */
@@ -181,26 +225,16 @@ static uint8_t _display_fb[168][20];
 void hw_display_init() {
     printf("tintin: hw_display_init\n");
 
-    stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 
     GPIO_WriteBit(GPIOB, 1 << 12, 0);
     GPIO_PinAFConfig(GPIOB, 1, GPIO_AF_TIM3);
-    GPIO_PinAFConfig(GPIOB, 13, GPIO_AF_SPI2);
-    GPIO_PinAFConfig(GPIOB, 15, GPIO_AF_SPI2);
-
+   
     GPIO_InitTypeDef gpioinit;
     
     gpioinit.GPIO_Pin = (1 << 12);
     gpioinit.GPIO_Mode = GPIO_Mode_OUT;
-    gpioinit.GPIO_Speed = GPIO_Speed_50MHz;
-    gpioinit.GPIO_OType = GPIO_OType_PP;
-    gpioinit.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_Init(GPIOB, &gpioinit);
-
-    gpioinit.GPIO_Pin = (1 << 13) | (1 << 15);
-    gpioinit.GPIO_Mode = GPIO_Mode_AF;
     gpioinit.GPIO_Speed = GPIO_Speed_50MHz;
     gpioinit.GPIO_OType = GPIO_OType_PP;
     gpioinit.GPIO_PuPd = GPIO_PuPd_NOPULL;
@@ -214,22 +248,8 @@ void hw_display_init() {
     GPIO_Init(GPIOB, &gpioinit);
 
     /* Set up the SPI controller, SPI2. */
-    SPI_InitTypeDef spiinit;
+    stm32_spi_init_device(&_spi2);
     
-    SPI_I2S_DeInit(SPI2);
-    spiinit.SPI_Direction = SPI_Direction_1Line_Tx;
-    spiinit.SPI_Mode = SPI_Mode_Master;
-    spiinit.SPI_DataSize = SPI_DataSize_8b;
-    spiinit.SPI_CPOL = SPI_CPOL_Low;
-    spiinit.SPI_CPHA = SPI_CPHA_1Edge;
-    spiinit.SPI_NSS = SPI_NSS_Soft;
-    spiinit.SPI_BaudRatePrescaler = SPI_BaudRatePrescaler_8;
-    spiinit.SPI_FirstBit = SPI_FirstBit_MSB;
-    spiinit.SPI_CRCPolynomial = 7 /* Um. */;
-    SPI_Init(SPI2, &spiinit);
-    SPI_Cmd(SPI2, ENABLE);
-
-    stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOC);
 }
@@ -242,12 +262,6 @@ void hw_display_start() {
     printf("tintin: hw_display_start\n");
 }
 
-static void _display_write(unsigned char c) {
-    SPI2->DR = c;
-    while (!(SPI2->SR & SPI_SR_TXE))
-        ;
-}
-
 void hw_display_start_frame(uint8_t x, uint8_t y) {
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
@@ -255,14 +269,14 @@ void hw_display_start_frame(uint8_t x, uint8_t y) {
     printf("tintin: here we go, slowly blitting %d %d\n", x, y);
     GPIO_WriteBit(GPIOB, 1 << 12, 1);
     delay_us(7);
-    _display_write(0x80);
+    stm32_spi_write(&_spi2, 0x80);
     for (int i = 0; i < 168; i++) {
-        _display_write(__RBIT(__REV(168-i)));
+        stm32_spi_write(&_spi2, __RBIT(__REV(168-i)));
         for (int j = 0; j < 18; j++)
-            _display_write(_display_fb[i][17-j]);
-        _display_write(0);
+            stm32_spi_write(&_spi2, _display_fb[i][17-j]);
+        stm32_spi_write(&_spi2, 0);
     }
-    _display_write(0);
+    stm32_spi_write(&_spi2, 0);
     delay_us(7);
     GPIO_WriteBit(GPIOB, 1 << 12, 0);
 
@@ -432,8 +446,10 @@ void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
     for (int i = 0; i < len; i++)
         buf[i] = _hw_flash_txrx(JEDEC_DUMMY);
     
+    /* make sure we are fully clocked out before we drop enable */
+//     delay_us(100);
     _hw_flash_enable(0);
-    
+
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI1);
 }
 

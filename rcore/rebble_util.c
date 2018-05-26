@@ -18,3 +18,13 @@ void write_32(uint8_t *addr, int32_t val)
     addr[2] = (val >> 16)  & 0xFF;
     addr[3] = (val >> 24)  & 0xFF;
 }
+
+
+/* Do delay for nTime milliseconds 
+ * NOT safe unless scheduler is running
+ */
+void delay_ms(uint32_t ms)
+{
+    vTaskDelay(pdMS_TO_TICKS(ms));
+    return;   
+}
