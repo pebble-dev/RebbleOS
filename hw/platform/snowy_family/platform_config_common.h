@@ -57,3 +57,6 @@
  * into memory bank 2. Note bank 2 is NOT DMA capable
  */
 #define CCRAM __attribute__((section(".ccmram")))
+
+//Snowy uses OC1 for backlight
+#define BL_TIM_CH 1

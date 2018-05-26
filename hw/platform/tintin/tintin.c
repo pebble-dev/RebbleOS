@@ -21,6 +21,7 @@
 #include "stm32_usart.h"
 #include "stm32_power.h"
 #include "stm32_rtc.h"
+#include "stm32_backlight.h"
 #include "stm32_spi.h"
 
 // extern void *strcpy(char *a2, const char *a1);
@@ -216,6 +217,19 @@ STM32_BUTTONS_MK_IRQ_HANDLER(3)
 STM32_BUTTONS_MK_IRQ_HANDLER(2)
 STM32_BUTTONS_MK_IRQ_HANDLER(9_5)
 STM32_BUTTONS_MK_IRQ_HANDLER(1)
+
+/* backlight */
+
+#include "stm32_backlight_platform.h"
+
+stm32_backlight_config_t platform_backlight = {
+  .pin = GPIO_Pin_5,
+  .tim = TIM3,
+  .pin_source = GPIO_PinSource5,
+  .port = RCC_AHB1Periph_GPIOB,
+  .af = GPIO_AF_TIM3,
+  .rcc_tim = RCC_APB1Periph_TIM3
+};
 
 /* display */
 

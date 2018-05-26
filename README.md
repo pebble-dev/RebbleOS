@@ -19,10 +19,10 @@ The firmware is based on FreeRTOS, and aims to be binary-compatible with applica
 |Gyro:            |N                |N                       |N            |N              |
 |Magnetometer:    |N                |N                       |N            |N              |
 |Vibrate:         |N                |Y                       |Y            |N              |
-|Backlight:       |N                |Y                       |Y            |N              |
+|Backlight:       |Y                |Y                       |Y            |N              |
 |Power Management:|N                |N                       |N            |N              |
 |Bluetooth:       |N                |Y (Alpha)               |N            |N              |
-|Overall (%):     |1%               |20%                     |10%          |0%             |
+|Overall (%):     |5%               |20%                     |10%          |0%             |
 
 ## FAQ
 

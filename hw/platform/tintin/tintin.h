@@ -18,9 +18,6 @@ void platform_init_late();
 void hw_ambient_init();
 uint16_t hw_ambient_get();
 
-void hw_backlight_init();
-void hw_backlight_set(uint16_t pwm);
-
 void delay_us(uint32_t us);
 
 void hw_display_init();

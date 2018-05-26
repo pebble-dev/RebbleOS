@@ -13,6 +13,7 @@
 #include "log.h"
 #include "stm32_power.h"
 #include "stm32_buttons_platform.h"
+#include "stm32_backlight.h"
 #include "stm32_usart.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
@@ -165,7 +166,18 @@ void init_USART8(void)
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE);
 }
 
+/* backlight */
 
+#include "stm32_backlight_platform.h"
+
+stm32_backlight_config_t platform_backlight = {
+  .pin = GPIO_Pin_14,
+  .tim = TIM12,
+  .pin_source = GPIO_PinSource14,
+  .port = RCC_AHB1Periph_GPIOB,
+  .af = GPIO_AF_TIM12,
+  .rcc_tim = RCC_APB1Periph_TIM12
+};
 
 /*
  * Initialise the system watchdog timer

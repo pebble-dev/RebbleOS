@@ -4,7 +4,7 @@
 #include "tintin.h"
 #include "stm32_buttons.h"
 #include "stm32_rtc.h"
-
+#include "stm32_backlight.h"
 #define DISPLAY_ROWS 168
 #define DISPLAY_COLS 144
 
@@ -26,7 +26,7 @@
 
 // XXX TODO these are from Snowy. NOT correct
 /* App slots are a chunk of flash that holds the information.
-    Seems to be paged 
+    Seems to be paged
 */
 #define APP_SLOT_0_START        0xB3E000
 #define APP_SLOT_8_START        0xc34000
@@ -58,6 +58,6 @@
 /* XXX: issue pebble-dev/RebbleOS#43 */
 #define RES_START           0x200C
 
-#define CCRAM 
+#define CCRAM
 
 #endif

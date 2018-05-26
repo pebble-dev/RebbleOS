@@ -9,7 +9,7 @@
 
 #include "platform_config.h"
 #include "chalk.h"
-#include "snowy_backlight.h"
+#include "stm32_backlight.h"
 #include "snowy_power.h"
 #include "snowy_vibrate.h"
 #include "snowy_display.h"
