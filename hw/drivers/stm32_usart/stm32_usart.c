@@ -23,11 +23,6 @@
 #include "log.h"
 #include "stm32_usart.h"
 
-void hw_usart_init(void)
-{
-    
-}
-
 #define USART_FLOW_CONTROL_DISABLED 0
 #define USART_FLOW_CONTROL_ENABLED  1
 
@@ -126,7 +121,7 @@ void stm32_usart_send_dma(stm32_usart_t *usart, uint32_t *data, size_t len)
     /* Turn off the USART DMA for initialisation */
     USART_DMACmd(usart->config->usart, USART_DMAReq_Tx, DISABLE);
     /* ready for DMA */
-    stm32_dma_tx_init(usart->dma, (volatile)&usart->config->usart->DR, data, len);
+    stm32_dma_tx_init(usart->dma, (void *)(&usart->config->usart->DR), data, len);
     
     /* Turn on our USART and then the USART DMA */
     USART_Cmd(usart->config->usart, ENABLE);
@@ -154,7 +149,7 @@ void stm32_usart_recv_dma(stm32_usart_t *usart, uint32_t *data, size_t len)
     USART_DMACmd(usart->config->usart, USART_DMAReq_Rx, DISABLE);
     
     /* init the DMA RX mode */
-    stm32_dma_rx_init(usart->dma, &usart->config->usart->DR, data, len);
+    stm32_dma_rx_init(usart->dma, (void *)&usart->config->usart->DR, data, len);
     USART_Cmd(usart->config->usart, ENABLE);
 
     USART_DMACmd(usart->config->usart, USART_DMAReq_Rx, ENABLE);

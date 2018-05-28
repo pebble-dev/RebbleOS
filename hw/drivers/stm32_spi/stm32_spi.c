@@ -122,7 +122,7 @@ void stm32_spi_send_dma(stm32_spi_t *spi, uint32_t *data, size_t len)
     SPI_I2S_DMACmd(spi->config->spi, SPI_I2S_DMAReq_Tx, DISABLE);
     /* ready for DMA */
     SPI_Cmd(spi->config->spi, ENABLE);
-    stm32_dma_tx_init(spi->dma, &spi->config->spi->DR, data, len);
+    stm32_dma_tx_init(spi->dma, (void *)&spi->config->spi->DR, data, len);
     
     /* Turn on our SPI and then the SPI DMA */
     SPI_I2S_DMACmd(spi->config->spi, SPI_I2S_DMAReq_Tx, ENABLE);
@@ -147,7 +147,7 @@ void stm32_spi_recv_dma(stm32_spi_t *spi, uint32_t *data, size_t len)
 
     /* init the DMA RX mode */
     SPI_Cmd(spi->config->spi, ENABLE);
-    stm32_dma_rx_init(spi->dma, &spi->config->spi->DR, data, len);
+    stm32_dma_rx_init(spi->dma, (void *)&spi->config->spi->DR, data, len);
 
     SPI_I2S_DMACmd(spi->config->spi, SPI_I2S_DMAReq_Rx, ENABLE);
     stm32_dma_rx_begin(spi->dma);

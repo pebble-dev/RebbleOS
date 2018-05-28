@@ -30,6 +30,18 @@ const typedef struct {
 
 typedef void (*dma_callback)(void);
 
+   
+void stm32_dma_init_device(stm32_dma_t *dma);
+void stm32_dma_tx_reset(stm32_dma_t *dma);
+void stm32_dma_tx_init(stm32_dma_t *dma, void *periph_address, uint32_t *data, uint32_t len);
+void stm32_dma_tx_begin(stm32_dma_t *dma);
+void stm32_dma_rx_reset(stm32_dma_t *dma);
+void stm32_dma_rx_init(stm32_dma_t *dma, void *periph_addr, uint32_t *data, size_t len);
+void stm32_dma_rx_begin(stm32_dma_t *dma);
+
+void stm32_dma_rx_isr(stm32_dma_t *dma);
+void stm32_dma_tx_isr(stm32_dma_t *dma);
+
 #define STM32_DMA_MK_TX_IRQ_HANDLER(dma_t, dma_channel, dma_stream, callback) \
     void DMA ## dma_channel ## _Stream ## dma_stream ## _IRQHandler(void) \
     { \
@@ -47,17 +59,6 @@ typedef void (*dma_callback)(void);
         stm32_power_release(STM32_POWER_AHB1, dma_t->dma_clock); \
     }
 
-    
-void stm32_dma_init_device(stm32_dma_t *dma);
-void stm32_dma_tx_reset(stm32_dma_t *dma);
-void stm32_dma_tx_init(stm32_dma_t *dma, void *periph_address, uint32_t *data, uint32_t len);
-void stm32_dma_tx_begin(stm32_dma_t *dma);
-void stm32_dma_rx_reset(stm32_dma_t *dma);
-void stm32_dma_rx_init(stm32_dma_t *dma, void *periph_addr, uint32_t *data, size_t len);
-void stm32_dma_rx_begin(stm32_dma_t *dma);
-
-void stm32_dma_rx_isr(stm32_dma_t *dma);
-void stm32_dma_tx_isr(stm32_dma_t *dma);
 
 /* Util */
 /* Do the donkey work of filling the struct with the channel data */

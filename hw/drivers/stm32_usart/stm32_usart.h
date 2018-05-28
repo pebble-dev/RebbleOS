@@ -49,6 +49,8 @@ size_t stm32_usart_read(stm32_usart_t *usart, uint8_t *buf, size_t len);
 void stm32_usart_send_dma(stm32_usart_t *usart, uint32_t *data, size_t len);
 void stm32_usart_recv_dma(stm32_usart_t *usart, uint32_t *data, size_t len);
 
+void stm32_usart_tx_isr(stm32_usart_t *usart, dma_callback callback);
+void stm32_usart_rx_isr(stm32_usart_t *usart, dma_callback callback);
 
 static inline void _stm32_usart_tx_isr(void);
 static inline void _stm32_usart_rx_isr(void);

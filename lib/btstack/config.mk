@@ -11,8 +11,6 @@ CFLAGS_bt += -Ilib/btstack
 
 CFLAGS_bt += -DREBBLE_BT_STACK=btstack
 
-SRCS_bt += lib/btstack/btstack_rebble.c
-SRCS_bt += lib/btstack/bluetooth_init_cc2564B_1.6_BT_Spec_4.1.c
 
 #lib/btstack/btstack/3rd-party/bluedroid/decoder/srce/
 SRCS_bt += lib/btstack/btstack/3rd-party/bluedroid/decoder/srce/alloc.c

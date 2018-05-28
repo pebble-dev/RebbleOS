@@ -155,6 +155,7 @@ include hw/drivers/stm32_buttons/config.mk
 include hw/drivers/stm32_power/config.mk
 include hw/drivers/stm32_rtc/config.mk
 include hw/drivers/stm32_backlight/config.mk
+include hw/drivers/stm32_bluetooth_cc2264/config.mk
 include hw/platform/snowy_family/config.mk
 include hw/platform/snowy/config.mk
 include hw/platform/tintin/config.mk

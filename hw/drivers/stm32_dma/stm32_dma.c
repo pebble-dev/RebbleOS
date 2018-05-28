@@ -23,6 +23,8 @@
 #include "debug.h"
 #include "log.h"
 #include "stm32_usart.h"
+#include "stm32_dma.h"
+#include "rebble_util.h"
 
 void hw_dma_init(void)
 {
