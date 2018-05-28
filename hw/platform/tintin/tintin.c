@@ -180,27 +180,6 @@ uint16_t hw_ambient_get() {
     return 0;
 }
 
-/*** backlight init ***/
-
-void hw_backlight_init() {
-    RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOB, ENABLE);
-
-    GPIO_InitTypeDef GPIO_InitDef;
-
-    GPIO_InitDef.GPIO_Pin = GPIO_Pin_5;
-    GPIO_InitDef.GPIO_Mode = GPIO_Mode_OUT;
-    GPIO_InitDef.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitDef.GPIO_PuPd = GPIO_PuPd_NOPULL;
-    GPIO_InitDef.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(GPIOB, &GPIO_InitDef);
-
-    /* And multivac pronounced "and let there be backlight" */
-    GPIO_SetBits(GPIOB, GPIO_Pin_5);
-}
-
-void hw_backlight_set(uint16_t val) {
-
-}
 
 /* buttons */
 
