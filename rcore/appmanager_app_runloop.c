@@ -105,9 +105,6 @@ void app_event_loop(void)
     /* clear the queue of any work from the previous app
     * ... such as an errant quit */
     xQueueReset(_app_message_queue);
-
-    window_draw();
-    
     
     if (!booted)
     {
@@ -126,7 +123,6 @@ void app_event_loop(void)
         if (xQueueReceive(_app_message_queue, &data, next_timer))
         {
             /* We woke up for some kind of event that someone posted.  But what? */
-            KERN_LOG("app", APP_LOG_LEVEL_INFO, "Queue Receive");
             if (data.message_type_id == APP_BUTTON)
             {
                 if (overlay_window_accepts_keypress())
@@ -160,6 +156,9 @@ void app_event_loop(void)
         } else {
             appmanager_timer_expired(_this_thread);
         }
+        
+        /* Something changed, lets see if we can draw */
+        window_draw();
     }
     KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Signalled shutdown...");
     /* We fall out of the apps main_ now and into deinit and thread completion
@@ -170,7 +169,7 @@ void app_event_loop(void)
 TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread)
 {
     TickType_t next_timer;
-        
+
     if (thread->timer_head) {
         TickType_t curtime = xTaskGetTickCount();
         if (curtime > thread->timer_head->when)
@@ -180,6 +179,7 @@ TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread)
     } else {
         next_timer = portMAX_DELAY; /* Just block forever. */
     }
+
     return next_timer;
 }
 
@@ -188,11 +188,21 @@ void appmanager_timer_expired(app_running_thread *thread)
     /* We woke up because we hit a timer expiry.  Dequeue first,
      * then invoke -- otherwise someone else could insert themselves
      * at the head, and we would wrongfully dequeue them!  */
+    assert(thread);
     CoreTimer *timer = thread->timer_head;
     assert(timer);
+    
+    if (!timer->callback) {
+        /* assert(!"BAD"); // actually this is pretty bad. I've seen this 
+         * happen only once before when the app draw was happening while the
+         * ovelay thread was coming up. The ov thread memory was memset to 0. */
+        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Bad Callback!");
+        thread->timer_head = timer->next;
+        return;
+    }
 
     thread->timer_head = timer->next;
-
+    
     timer->callback(timer);
 }
 

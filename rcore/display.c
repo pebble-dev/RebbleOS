@@ -16,6 +16,11 @@ static void _display_thread(void *pvParameters);
 static void _display_start_frame(uint8_t offset_x, uint8_t offset_y);
 static void _display_cmd(uint8_t cmd, char *data);
 
+/* A mutex to use for locking buffers */
+static StaticSemaphore_t _draw_mutex_mem;
+static SemaphoreHandle_t _draw_mutex;
+
+
 /*
  * Start the display driver and tasks. Show splash
  */
@@ -28,6 +33,7 @@ void display_init(void)
     
     _display_queue = xQueueCreate(2, sizeof(uint8_t));
     _display_mutex = xSemaphoreCreateMutexStatic(&_display_mutex_buf);
+    _draw_mutex    = xSemaphoreCreateMutexStatic(&_draw_mutex_mem);
     
     _display_cmd(DISPLAY_CMD_DRAW, NULL);
     
@@ -113,7 +119,6 @@ void display_draw(void)
 static void _display_thread(void *pvParameters)
 {
     uint8_t data;
-    const TickType_t max_block_time = pdMS_TO_TICKS(1000);
 
     // XXX Assume once screen is up, we are up.
     rebbleos_set_system_status(SYSTEM_STATUS_STARTED);
@@ -122,7 +127,7 @@ static void _display_thread(void *pvParameters)
     {
         // commands to be executed are send to this queue and processed
         // one at a time
-        if (xQueueReceive(_display_queue, &data, max_block_time))
+        if (xQueueReceive(_display_queue, &data, portMAX_DELAY))
         {
             switch(data)
             {
@@ -137,9 +142,21 @@ static void _display_thread(void *pvParameters)
                     break;
             }
         }
-        else
-        {
-            // nothing emerged from the buffer
-        }        
     }
+}
+
+inline bool display_buffer_lock_take(uint16_t timeout)
+{
+    /* If the display is currently drawing out the framebuffer, we 
+     * wait for completion before we do any drawing. */
+    xSemaphoreTake(_display_mutex, (TickType_t)timeout); //portMAX_DELAY);
+    xSemaphoreGive(_display_mutex);
+    
+    /* Now we can give the mutex out */
+    return xSemaphoreTake(_draw_mutex, (TickType_t)timeout);
+}
+
+inline bool display_buffer_lock_give(void)
+{
+    return xSemaphoreGive(_draw_mutex);
 }

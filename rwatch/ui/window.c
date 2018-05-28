@@ -15,14 +15,15 @@
 
 static list_head _window_list_head = LIST_HEAD(_window_list_head);
 
-void _window_unload_proc(Window *window);
-void _window_load_proc(Window *window);
+static void _window_unload_proc(Window *window);
+static void _window_load_proc(Window *window);
 
-bool _anim_direction_left = true;
-void animation_util_push_fb(GRect rect, int16_t distance);
-void _animation_setup(bool direction_left);
-static void push_animation_update(Animation *animation,
+static bool _anim_direction_left = true;
+static void _animation_util_push_fb(GRect rect, int16_t distance);
+static void _animation_setup(bool direction_left);
+static void _push_animation_update(Animation *animation,
                                   const AnimationProgress progress);
+
 
 /*
  * Create a new top level window and all of the contents therein
@@ -65,11 +66,11 @@ void window_set_window_handlers(Window *window, WindowHandlers handlers)
     window->window_handlers = handlers;
 }
 
-static void push_animation_setup(Animation *animation) {
+static void _push_animation_setup(Animation *animation) {
     SYS_LOG("window", APP_LOG_LEVEL_INFO, "Anim window ease in.");
 }
 
-static void push_animation_update(Animation *animation,
+static void _push_animation_update(Animation *animation,
                                   const AnimationProgress progress)
 {
     Window *window = window_stack_get_top_window(); 
@@ -82,7 +83,7 @@ static void push_animation_update(Animation *animation,
         delta = (existx - newx);
         if (delta && existx > 0)
         {
-            animation_util_push_fb(GRect(delta, 0, DISPLAY_COLS - delta, DISPLAY_ROWS), -delta);
+            _animation_util_push_fb(GRect(delta, 0, DISPLAY_COLS - delta, DISPLAY_ROWS), -delta);
         }
     } 
     else 
@@ -90,15 +91,14 @@ static void push_animation_update(Animation *animation,
         newx = ANIM_LERP(-DISPLAY_COLS, 0, progress);
         delta = newx - existx;
         if (delta && existx < 0)
-            animation_util_push_fb(GRect(DISPLAY_COLS + existx + 1, 0, DISPLAY_COLS - delta + 1, DISPLAY_ROWS), delta);
+            _animation_util_push_fb(GRect(DISPLAY_COLS + existx + 1, 0, DISPLAY_COLS - delta + 1, DISPLAY_ROWS), delta);
     } 
 
     window->frame.origin.x = newx; 
     window_dirty(true); 
-    window_draw(); 
 }
 
-static void push_animation_teardown(Animation *animation) {
+static void _push_animation_teardown(Animation *animation) {
     SYS_LOG("window", APP_LOG_LEVEL_INFO, "Animation finished!");
     animation_destroy(animation);
 }
@@ -154,16 +154,16 @@ void window_stack_push_configure(Window *window, bool animated)
     window_dirty(true);
 }
 
-void _animation_setup(bool direction_left)
+static void _animation_setup(bool direction_left)
 {
     // Animate the window change
     Animation *animation = animation_create();
     animation_set_duration(animation, 300);
     
     const AnimationImplementation implementation = {
-        .setup = push_animation_setup,
-        .update = push_animation_update,
-        .teardown = push_animation_teardown
+        .setup = _push_animation_setup,
+        .update = _push_animation_update,
+        .teardown = _push_animation_teardown
     };
     animation_set_implementation(animation, &implementation);
  
@@ -306,7 +306,6 @@ void window_destroy(Window *window)
     
     /* Clean up the clink handler and remap back to our current window */
     window_load_click_config(window_stack_get_top_window());
-    window_draw();
     window_dirty(true);
 }
 
@@ -333,19 +332,12 @@ Layer *window_get_root_layer(Window *window)
  */
 void window_dirty(bool is_dirty)
 {
-    list_head *lh = &_window_list_head;
-    Window* wind = list_elem(list_get_head(lh), Window, node);
-        
-    if (wind == NULL)
-        return;
+    Window *wind = window_stack_get_top_window();
     
-    if (wind->is_render_scheduled != is_dirty)
-    {
-        wind->is_render_scheduled = is_dirty;
-        
-        if (is_dirty)
-            appmanager_post_draw_message();
-    }
+    if (!wind)
+        return;
+
+    wind->is_render_scheduled = is_dirty;
 }
 
 /* 
@@ -371,10 +363,15 @@ void rbl_window_draw(Window *window)
 /*
  * Draw the window, which in general means painting the background
  * and then walking all layers and drawing them
- * Last of all we go and see if overlay wants anything
- * Usually we are drawn from a request through the thread, so all contexts
- * are app thread.
- * However for speed we need to draw the overlay too
+ * 
+ * This will draw and lock all further calls behind a mutex.
+ * Once the app layers are drawn, a request is sent to the overlay
+ * thread to draw itself.
+ * After the request is sent, we sleep the thread awaiting wakeup from the 
+ * overlay draw completion.
+ * Overlay will call to paint out the framebuffer.
+ * Display drawing is async, so if a display draw is already in progress, we 
+ * also wait for that to complete.
  */
 void window_draw(void)
 {
@@ -389,36 +386,26 @@ void window_draw(void)
         return;
     }
     
-    bool draw = false;
+    /* Make sure noone else can draw while we are drawing */
+    display_buffer_lock_take(500);
+
     Window *wind = window_stack_get_top_window();
 
     if (wind == NULL)
         return;
     
     if (wind->is_render_scheduled)
-    {
         rbl_window_draw(wind);
-        draw = true;
-    }
 
-    /* We now decide if we are going to draw, or if we need overlay
-     * to do the drawing for us
-     * XXX might be better to have a sync mechanism here. It's not likely
-     * that a draw request on the app thread could cause a paint over the
-     * overlay thread, as it gets draw control
-     */
-    /* yeah so to that end if we have an overlay, let that guy draw.
-     * In fact we are going to hand off control to do the drawing to the
-     * overlay thread itself. The logic is that if an overlay is going to
-     * be creating things in memory during the layer paint, best it be 
-     * allocated to the overlay thread draw.
-     */
-    if (overlay_window_count() > 0)
-        overlay_window_draw();
-    else if (draw)
-        rbl_draw();
-       
     wind->is_render_scheduled = false;
+    
+    /* This will be deferred to the overlay renderer */
+    overlay_window_draw();
+    /* Now sit and wait for the overlay to signal done */
+    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+    /* Unlock the draw mutex */
+    display_buffer_lock_give();
 }
 
 
@@ -592,7 +579,7 @@ void window_load_click_config(Window *window)
  * Grab the screenbuffer and push it off the screen left or right by n
  * pixels.
  */
-void animation_util_push_fb(GRect rect, int16_t distance)
+static void _animation_util_push_fb(GRect rect, int16_t distance)
 {
 #ifdef PBL_BW
 #  warning XXX: PBL_BW no push_fb support
@@ -633,5 +620,5 @@ void animation_util_push_fb(GRect rect, int16_t distance)
         }
         
     }
-#endif 
+#endif
 }

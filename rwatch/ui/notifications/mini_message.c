@@ -103,8 +103,7 @@ static void _minimsg_animation_update(Animation *animation,
     
     window->frame.origin.y = ANIM_LERP(DISPLAY_ROWS, DISPLAY_ROWS - 20, progress);
     
-    window_dirty(true); 
-    window_draw(); 
+    window_dirty(true);
 }
 
 

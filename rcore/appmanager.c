@@ -34,22 +34,21 @@ static void _appmanager_thread_init(void *pvParameters);
 static void _running_app_loop(void);
 
 /* The manager thread needs only a small stack */
-#define APP_THREAD_MANAGER_STACK_SIZE 300
-StackType_t _app_thread_manager_stack[APP_THREAD_MANAGER_STACK_SIZE];  // stack + heap for app (in words)
-
+#define APP_THREAD_MANAGER_STACK_SIZE 250
+static StackType_t _app_thread_manager_stack[APP_THREAD_MANAGER_STACK_SIZE];  // stack + heap for app (in words)
 
 /* Our pre allocated heaps for the different threads 
  * it's tempting to over engineer this and make it a node list
  * or at least add dynamicness to it. But honestly we have 3 threads
  * max at the moment, so if we get there, maybe */
-uint8_t _heap_app[MEMORY_SIZE_APP_HEAP];
-CCRAM uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
-CCRAM uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
+static uint8_t _heap_app[MEMORY_SIZE_APP_HEAP];
+static CCRAM uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
+static CCRAM uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
 
 /* keep these stacks off CCRAM */
-StackType_t _stack_app[MEMORY_SIZE_APP_STACK];
-StackType_t _stack_worker[MEMORY_SIZE_WORKER_STACK];
-StackType_t _stack_overlay[MEMORY_SIZE_OVERLAY_STACK];
+static StackType_t _stack_app[MEMORY_SIZE_APP_STACK];
+static StackType_t _stack_worker[MEMORY_SIZE_WORKER_STACK];
+static StackType_t _stack_overlay[MEMORY_SIZE_OVERLAY_STACK];
 
 /* Initialise everything we know about the different threads */
 /* FIXME, static stuff should live statically */
@@ -90,9 +89,9 @@ void appmanager_init(void)
 {
     appmanager_app_loader_init();
     appmanager_app_runloop_init();
-    
+
     _app_thread_queue = xQueueCreate(3, sizeof(struct AppMessage));
-   
+
     appmanager_app_start("System");
     
     _app_thread_manager_task_handle = xTaskCreateStatic(_app_management_thread, 

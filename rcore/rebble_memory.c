@@ -38,7 +38,7 @@ void *app_malloc(size_t size)
 void *app_calloc(size_t count, size_t size)
 {
     app_running_thread *thread = appmanager_get_current_thread();
-
+    assert(thread && "invalid thread");
     void *x = qalloc(thread->arena, count * size);
     if (x != NULL)
         memset(x, 0, count * size);

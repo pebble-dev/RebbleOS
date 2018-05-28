@@ -7,6 +7,7 @@
  */
 
 #include "FreeRTOS.h"
+#include <stdbool.h>
 
 #define DISPLAY_MODE_BOOTLOADER      0
 #define DISPLAY_MODE_FULLFAT         1
@@ -31,3 +32,5 @@ void display_reset(uint8_t enabled);
 void display_draw(void);
 uint8_t *display_get_buffer(void);
 
+bool display_buffer_lock_give(void);
+bool display_buffer_lock_take(uint16_t timeout);
