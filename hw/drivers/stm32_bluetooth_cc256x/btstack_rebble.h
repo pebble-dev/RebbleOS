@@ -9,3 +9,7 @@ void bluetooth_power_cycle(void);
 void bt_stack_tx_done();
 void bt_stack_rx_done();
 void bt_stack_cts_irq();
+
+#define BLUETOOTH_MODULE_TYPE_NONE    0
+#define BLUETOOTH_MODULE_TYPE_CC2564  1
+#define BLUETOOTH_MODULE_TYPE_CC2564B 2

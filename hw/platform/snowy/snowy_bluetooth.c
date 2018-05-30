@@ -17,7 +17,7 @@
 #include "btstack_rebble.h"
 #include "snowy_bluetooth.h"
 #include "stm32_usart.h"
-#include "stm32_cc2264.h"
+#include "stm32_cc256x.h"
 
 static const stm32_usart_config_t _usart1_config = {
     .usart                = USART1,
@@ -44,7 +44,7 @@ static stm32_usart_t _usart1 = {
 };
 
 
-static const stm32_bluetooth_config_t stm32_cc2264_config = {
+static const stm32_bluetooth_config_t stm32_cc256x_config = {
     .usart                = &_usart1,
     .shutdown_power       = STM32_POWER_AHB1,
     .shutdown_power_port  = RCC_AHB1Periph_GPIOB,
@@ -56,11 +56,11 @@ static const stm32_bluetooth_config_t stm32_cc2264_config = {
 /* IRQ handlers
  * TX: DMA 2 stream 7.
  * RX: DMA 2 stream 2. */
-STM32_CC2264_MK_IRQ_HANDLERS(&_usart1, 2, 7, 2)
+STM32_CC256X_MK_IRQ_HANDLERS(&_usart1, 2, 7, 2)
 
 uint8_t hw_bluetooth_init(void)
 {
-    stm32_cc2264_init(&stm32_cc2264_config);
+    stm32_cc256x_init(&stm32_cc256x_config);
     
     return 0;
 }
@@ -72,7 +72,7 @@ uint8_t hw_bluetooth_init(void)
  */
 inline void hw_bluetooth_clock_on(void)
 {
-    stm32_cc2264_clock_on();
+    stm32_cc256x_clock_on();
 }
 
 /*
@@ -85,7 +85,7 @@ inline void hw_bluetooth_clock_on(void)
  */
 inline uint8_t hw_bluetooth_power_cycle(void)
 {
-    return stm32_cc2264_power_cycle();
+    return stm32_cc256x_power_cycle();
 }
 
 
@@ -97,7 +97,7 @@ inline uint8_t hw_bluetooth_power_cycle(void)
  */
 void hw_bluetooth_enable_cts_irq()
 {
-    stm32_cc2264_enable_cts_irq();
+    stm32_cc256x_enable_cts_irq();
 }
 
 /*
@@ -105,7 +105,7 @@ void hw_bluetooth_enable_cts_irq()
  */
 void hw_bluetooth_disable_cts_irq(void)
 {
-    stm32_cc2264_disable_cts_irq();
+    stm32_cc256x_disable_cts_irq();
 }
 
 stm32_usart_t *hw_bluetooth_get_usart(void)

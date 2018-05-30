@@ -9,6 +9,7 @@
 #include "rebbleos.h"
 #include "appmanager.h"
 #include "overlay_manager.h"
+#include "notification_manager.h"
 
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);

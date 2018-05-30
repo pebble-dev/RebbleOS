@@ -16,32 +16,26 @@
  * XXX when we have write
  * 
  */
+#define MSG_HEAP_SIZE 10000
 
-static uint8_t _notification_messages_heap[10000] CCRAM;
+static uint8_t _notification_messages_heap[MSG_HEAP_SIZE] CCRAM;
 static qarena_t *_notification_arena;
-full_msg_t *_fake_message(char *text, char *action);
+static list_head _messages_head = LIST_HEAD(_messages_head);
 
-typedef struct notification_config {
-    list_head messages_head;
-    
-} notification_config;
-
-static notification_config *_notif;
+static full_msg_t *_fake_message(char *text, char *action);
 
 
 void messages_init(void)
 {
-    _notification_arena = qinit(_notification_messages_heap, sizeof(_notification_messages_heap) );
-    _notif = noty_calloc(1, sizeof(notification_config));
-    list_init_head(&_notif->messages_head);
-    
+    _notification_arena = qinit(_notification_messages_heap, MSG_HEAP_SIZE);
+
     /* create three samples */
-    message_add(_fake_message("RebbleOS is here!", "To Moon"));
-    message_add(_fake_message("Join the rebblution", "Dismiss"));
-    message_add(_fake_message("Missed Call: Bob", "Dismiss"));
+//     message_add(_fake_message("RebbleOS is here!", "To Moon"));
+//     message_add(_fake_message("Join the rebblution", "Dismiss"));
+//     message_add(_fake_message("Missed Call: Bob", "Dismiss"));
 }
 
-full_msg_t *_fake_message(char *text, char *action)
+static full_msg_t *_fake_message(char *text, char *action)
 {
     full_msg_t *m = noty_calloc(1, sizeof(full_msg_t));
     cmd_phone_notify_t *n = noty_calloc(1, sizeof(cmd_phone_notify_t));
@@ -68,23 +62,22 @@ void message_add(full_msg_t *msg)
     /* we need to get the message into our list
      * it should already be allocated on our heap */
     list_init_node(&msg->node);
-    /* It is only valid to window push into a window */
-    list_insert_head(&_notif->messages_head, &msg->node);
+    list_insert_head(&_messages_head, &msg->node);
 }
 
 list_head *message_get_head(void)
 {
-    return &_notif->messages_head;
+    return &_messages_head;
 }
 
 uint16_t message_count(void)
 {
     uint16_t count = 0;
-    if (list_get_head(&_notif->messages_head) == NULL)
+    if (list_get_head(&_messages_head) == NULL)
         return 0;
     
     full_msg_t *w;
-    list_foreach(w, &_notif->messages_head, full_msg_t, node)
+    list_foreach(w, &_messages_head, full_msg_t, node)
         count++;
 
     return count;

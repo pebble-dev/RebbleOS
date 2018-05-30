@@ -23,6 +23,8 @@
 #include "stm32_rtc.h"
 #include "stm32_backlight.h"
 #include "stm32_spi.h"
+#include "stm32_cc256x.h"
+#include "btstack_rebble.h"
 
 // extern void *strcpy(char *a2, const char *a1);
 
@@ -31,6 +33,7 @@
 static inline void _init_USART3();
 static int _debug_initialized;
 
+uint8_t hw_bluetooth_power_cycle(void);
 
 static const stm32_usart_config_t _u3_config = {
     .usart                = USART3,
@@ -119,7 +122,6 @@ static inline void _init_USART3(void)
 
 void platform_init() {
     stm32_power_init();
-    
     SCB->VTOR = 0x08004000;
     NVIC_SetVectorTable(0x08004000, 0);
     NVIC_PriorityGroupConfig(NVIC_PriorityGroup_4);
@@ -457,12 +459,79 @@ void log_clock_disable() {
 }
 
 
-void hw_bluetooth_init() {
-    rebbleos_module_set_status(MODULE_BLUETOOTH, MODULE_DISABLED, MODULE_ERROR);
+/* Bluetooth */
+static const stm32_usart_config_t _usart1_config = {
+    .usart                = USART1,
+    .flow_control_enabled = FLOW_CONTROL_ENABLED,
+    .usart_periph_bus     = STM32_POWER_APB2,
+    .gpio_pin_tx_num      = 9,
+    .gpio_pin_rx_num      = 10,
+    .gpio_pin_rts_num     = 12,
+    .gpio_pin_cts_num     = 11,
+    .gpio_ptr             = GPIOA,
+    .gpio_clock           = RCC_AHB1Periph_GPIOA,
+    .usart_clock          = RCC_APB2Periph_USART1,
+    .af                   = GPIO_AF_USART1,
+};
+
+/* dma tx: dma stream 7 chan 4, rx: stream 2 chan 4. 
+ * irq tx: 6, rx: 8 */
+static const stm32_dma_t _usart1_dma = STM32_DMA_MK_INIT(RCC_AHB1Periph_DMA2, 2, 7, 2, 4, 4, 6, 8); 
+
+static stm32_usart_t _usart1 = {
+    &_usart1_config,
+    &_usart1_dma, /* dma */
+    115200 /* initial slow handshake */
+};
+
+
+static const stm32_bluetooth_config_t stm32_cc256x_config = {
+    .usart                = &_usart1,
+    .shutdown_power       = STM32_POWER_AHB1,
+    .shutdown_power_port  = RCC_AHB1Periph_GPIOA,
+    .shutdown_pin_num     = 3,
+    .shutdown_port        = GPIOA,
+};    
+
+
+/* IRQ handlers
+ * TX: DMA 2 stream 7.
+ * RX: DMA 2 stream 2. */
+STM32_CC256X_MK_IRQ_HANDLERS(&_usart1, 2, 7, 2)
+
+uint8_t hw_bluetooth_init(void)
+{
+    stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
+    stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_USART1);
+    stm32_cc256x_init(&stm32_cc256x_config);
+    return 0;
 }
 
-void bt_device_request_tx() {
+inline void hw_bluetooth_clock_on(void)
+{
+    stm32_cc256x_clock_on();
 }
+
+inline uint8_t hw_bluetooth_power_cycle(void)
+{
+    return stm32_cc256x_power_cycle();
+}
+
+void hw_bluetooth_enable_cts_irq()
+{
+    stm32_cc256x_enable_cts_irq();
+}
+
+void hw_bluetooth_disable_cts_irq(void)
+{
+    stm32_cc256x_disable_cts_irq();
+}
+
+stm32_usart_t *hw_bluetooth_get_usart(void)
+{
+    return &_usart1;
+}
+
 
 void HardFault_Handler(uint32_t *sp)
 {

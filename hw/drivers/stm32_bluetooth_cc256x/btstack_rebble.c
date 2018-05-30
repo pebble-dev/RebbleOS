@@ -11,11 +11,21 @@
 #include "rebbleos.h"
 #include "btstack_spp.h"
 #include "hal_time_ms.h"
-#include "snowy_bluetooth.h"
 #include "rbl_bluetooth.h"
+#include "platform_config.h"
 
 /* The standard chanel we will use for RFCOMM serial proto comms */
 #define RFCOMM_SERVER_CHANNEL 1
+
+#ifndef BLUETOOTH_MODULE_TYPE
+#  error You must define BLUETOOTH_MODULE_TYPE of CC2564 or CC2564B
+#else
+#  if BLUETOOTH_MODULE_TYPE==BLUETOOTH_MODULE_TYPE_CC2564B
+#     include "bluetooth_init_cc2564B_1.6_BT_Spec_4.1.c"
+#  elif BLUETOOTH_MODULE_TYPE==BLUETOOTH_MODULE_TYPE_CC2564
+#     include "bluetooth_init_cc2564_2.14.c"
+#  endif
+#endif
 
 static uint16_t  rfcomm_channel_id;
 static uint8_t   spp_service_buffer[98];
@@ -68,7 +78,7 @@ static const uint8_t adv_data[] = {
     0x02, BLUETOOTH_DATA_TYPE_FLAGS, 0x06, 
     // Name
 //    0x0b, BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME, 'R', 'e', 'b', 'b', 'l', 'e', 'O', 'S', 'L', 'E', 
-    0x0d, BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME, 'P', 'e', 'b', 'b', 'l', 'e', ' ', 'T', 'i', 'm', 'e', 'L', 
+    BLUETOOTH_MODULE_NAME_LENGTH + 1, BLUETOOTH_DATA_TYPE_COMPLETE_LOCAL_NAME, BLUETOOTH_MODULE_LE_NAME, 
     // Incomplete List of 16-bit Service Class UUIDs -- FF10 - only valid for testing!
     0x03, BLUETOOTH_DATA_TYPE_INCOMPLETE_LIST_OF_16_BIT_SERVICE_CLASS_UUIDS, 0x54, 0x01 // 0x10, 0xff,
 };
@@ -81,10 +91,12 @@ uint8_t adv_data_len = sizeof(adv_data);
  */
 void bt_device_init(void)
 {
+#if BLUETOOTH_MODULE_TYPE==BLUETOOTH_MODULE_TYPE_NONE
+    return;
+#endif
     btstack_memory_init();
     /* Initialise the FREERtos runloop */
     btstack_run_loop_init(btstack_run_loop_freertos_get_instance());
-    /* This is to enable the packet dumps */
     
 #ifdef PACKET_LOGGING
     /* Becuase we want the HCI debug output */
@@ -93,6 +105,7 @@ void bt_device_init(void)
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOE); 
     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_UART8); 
 #endif 
+    /* This is to enable the packet dumps */
     hci_dump_open( NULL, HCI_DUMP_STDOUT );
 #endif
 
@@ -124,7 +137,7 @@ void bt_device_init(void)
     /* Set our advertisement name 
      * We are set as Pebble Time x so the apps can see us
      */
-    gap_set_local_name("Pebble Time RblOS");
+    gap_set_local_name(BLUETOOTH_MODULE_GAP_NAME);
     gap_ssp_set_io_capability(SSP_IO_CAPABILITY_DISPLAY_YES_NO);
     gap_discoverable_control(1);
 
@@ -351,7 +364,6 @@ static int att_write_callback(hci_con_handle_t con_handle, uint16_t att_handle, 
 static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packet, uint16_t size)
 {
     bd_addr_t event_addr;
-    uint8_t   rfcomm_channel_nr;
     uint16_t  mtu;
     int i;
     uint8_t event;
@@ -378,82 +390,82 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
     
     switch (packet_type)
     {
-            case HCI_EVENT_PACKET:              
-                    switch (event)
+        case HCI_EVENT_PACKET:              
+            switch (event)
+            {
+                case HCI_EVENT_PIN_CODE_REQUEST:
+                    /* We do pin handshake */
+                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "Pin code request - using '0000'");
+                    hci_event_pin_code_request_get_bd_addr(packet, event_addr);
+                    gap_pin_code_response(event_addr, "0000");
+                    break;
+
+                case HCI_EVENT_USER_CONFIRMATION_REQUEST:
+    //                             SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "SSP User Confirmation Request with numeric value '%06"PRIu32"'", little_endian_read_32(packet, 8));
+                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "SSP User Confirmation Auto accept");
+                    break;
+
+                case HCI_EVENT_DISCONNECTION_COMPLETE:
+                    le_notification_enabled = 0;
+                    break;
+
+                case ATT_EVENT_CAN_SEND_NOW:
+                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "ATT %d %d", packet_type, channel);
+                    
+                    if (_tx_buf_len == 0)
+                        break;
+                    att_server_notify(att_con_handle, ATT_CHARACTERISTIC_0000FF11_0000_1000_8000_00805F9B34FB_01_VALUE_HANDLE, (uint8_t*)  _tx_buf, _tx_buf_len);
+                    break;
+
+                case RFCOMM_EVENT_INCOMING_CONNECTION:
+                    /* data: event (8), len(8), address(48), channel (8), rfcomm_cid (16) */
+                    rfcomm_event_incoming_connection_get_bd_addr(packet, event_addr); 
+                    uint8_t rfcomm_channel_nr = rfcomm_event_incoming_connection_get_server_channel(packet);
+                    rfcomm_channel_id = rfcomm_event_incoming_connection_get_rfcomm_cid(packet);
+                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel requested for %s", /*rfcomm_channel_nr, */bd_addr_to_str(event_addr));
+                    rfcomm_accept_connection(rfcomm_channel_id);
+                    break;
+                                        
+                case RFCOMM_EVENT_CHANNEL_OPENED:
+                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM CO %d %d", packet_type, channel);
+                    /* data: event(8), len(8), status (8), address (48), server channel(8), rfcomm_cid(16), max frame size(16) */
+                    if (rfcomm_event_channel_opened_get_status(packet))
                     {
-                        case HCI_EVENT_PIN_CODE_REQUEST:
-                            /* We do pin handshake */
-                            SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "Pin code request - using '0000'");
-                            hci_event_pin_code_request_get_bd_addr(packet, event_addr);
-                            gap_pin_code_response(event_addr, "0000");
-                            break;
-
-                        case HCI_EVENT_USER_CONFIRMATION_REQUEST:
-//                             SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "SSP User Confirmation Request with numeric value '%06"PRIu32"'", little_endian_read_32(packet, 8));
-                            SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "SSP User Confirmation Auto accept");
-                            break;
-
-                        case HCI_EVENT_DISCONNECTION_COMPLETE:
-                            le_notification_enabled = 0;
-                            break;
-
-                        case ATT_EVENT_CAN_SEND_NOW:
-                            SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "ATT %d %d", packet_type, channel);
-                            
-                            if (_tx_buf_len == 0)
-                                break;
-                            att_server_notify(att_con_handle, ATT_CHARACTERISTIC_0000FF11_0000_1000_8000_00805F9B34FB_01_VALUE_HANDLE, (uint8_t*)  _tx_buf, _tx_buf_len);
-                            break;
-
-                        case RFCOMM_EVENT_INCOMING_CONNECTION:
-                            /* data: event (8), len(8), address(48), channel (8), rfcomm_cid (16) */
-                            rfcomm_event_incoming_connection_get_bd_addr(packet, event_addr); 
-                            rfcomm_channel_nr = rfcomm_event_incoming_connection_get_server_channel(packet);
-                            rfcomm_channel_id = rfcomm_event_incoming_connection_get_rfcomm_cid(packet);
-                            SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel requested for %s", /*rfcomm_channel_nr, */bd_addr_to_str(event_addr));
-                            rfcomm_accept_connection(rfcomm_channel_id);
-                            break;
-                                                
-                        case RFCOMM_EVENT_CHANNEL_OPENED:
-                            SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM CO %d %d", packet_type, channel);
-                                /* data: event(8), len(8), status (8), address (48), server channel(8), rfcomm_cid(16), max frame size(16) */
-                                if (rfcomm_event_channel_opened_get_status(packet))
-                                {
-                                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel open failed, status %d\n", rfcomm_event_channel_opened_get_status(packet));
-                                }
-                                else
-                                {
-                                    rfcomm_channel_id = rfcomm_event_channel_opened_get_rfcomm_cid(packet);
-                                    mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
-                                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel open succeeded. New RFCOMM Channel ID %d, max frame size %d\n", rfcomm_channel_id, mtu);
-                                }
-                                break;
-
-                        case RFCOMM_EVENT_CAN_SEND_NOW:
-                            /* We have been instructed to send data safely. We;re ready */
-                            rfcomm_send(rfcomm_channel_id, _tx_buf, _tx_buf_len);
-                            break;
-
-                        case RFCOMM_EVENT_CHANNEL_CLOSED:
-                            SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel closed\n");
-                            rfcomm_channel_id = 0;
-                            break;
-                        
-                        default:
-                            break;
+                        SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel open failed, status %d", rfcomm_event_channel_opened_get_status(packet));
+                    }
+                    else
+                    {
+                        rfcomm_channel_id = rfcomm_event_channel_opened_get_rfcomm_cid(packet);
+                        mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
+                        SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel open succeeded. New RFCOMM Channel ID %d, max frame size %d", rfcomm_channel_id, mtu);
                     }
                     break;
-                    
-            case RFCOMM_DATA_PACKET:
-                SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RCV: '");
-                for (i = 0; i < size; i++)
-                {
-                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "0x%x", packet[i]);
-                }
+
+                case RFCOMM_EVENT_CAN_SEND_NOW:
+                    /* We have been instructed to send data safely. We;re ready */
+                    rfcomm_send(rfcomm_channel_id, _tx_buf, _tx_buf_len);
+                    break;
+
+                case RFCOMM_EVENT_CHANNEL_CLOSED:
+                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel closed");
+                    rfcomm_channel_id = 0;
+                    break;
                 
-                /* pack the packet onto the bluetooth generic handler */
-                bluetooth_data_rx(packet, size);
-                break;
+                default:
+                    break;
+            }
+            break;
+                
+        case RFCOMM_DATA_PACKET:
+            SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RCV: '");
+            for (i = 0; i < size; i++)
+            {
+                SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "0x%x", packet[i]);
+            }
+            
+            /* pack the packet onto the bluetooth generic handler */
+            bluetooth_data_rx(packet, size);
+            break;
 
         default:
             break;

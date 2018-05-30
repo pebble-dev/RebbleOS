@@ -1,6 +1,8 @@
 #pragma once
 #include "stm32f4xx.h"
 
+#define RTOS_HEAP_SIZE 30 * 1024
+
 /* Size of the app + stack + heap of the running app. 
    IN BYTES
  */ 

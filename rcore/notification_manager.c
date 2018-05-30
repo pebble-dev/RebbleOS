@@ -12,13 +12,6 @@
 #include "platform_res.h"
 #include "notification_message.h"
 
-/*
- * XXXX TODO
- * font loader uses ram from overlay, and cache from where?!?
- * fix cache loader!
- * 
- */
-
 static void _notif_timeout_cb(void *data);
 static void _notif_init(OverlayWindow *overlay_window);
 static void _notification_window_creating(OverlayWindow *overlay_window, Window *window);

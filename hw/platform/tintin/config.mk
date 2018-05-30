@@ -6,6 +6,8 @@ CFLAGS_tintin += $(CFLAGS_driver_stm32_backlight)
 CFLAGS_tintin += $(CFLAGS_driver_stm32_dma)
 CFLAGS_tintin += $(CFLAGS_driver_stm32_spi)
 CFLAGS_tintin += $(CFLAGS_driver_stm32_usart)
+CFLAGS_tintin += $(CFLAGS_bt)
+CFLAGS_tintin += $(CFLAGS_driver_stm32_bluetooth_cc256x)
 CFLAGS_tintin += -Ihw/platform/tintin
 CFLAGS_tintin += -DHSI_VALUE=16000000 -DREBBLE_PLATFORM=tintin -DREBBLE_PLATFORM_TINTIN -DPBL_BW
 
@@ -17,6 +19,9 @@ SRCS_tintin += $(SRCS_driver_stm32_backlight)
 SRCS_tintin += $(SRCS_driver_stm32_usart)
 SRCS_tintin += $(SRCS_driver_stm32_dma)
 SRCS_tintin += $(SRCS_driver_stm32_spi)
+SRCS_tintin += $(SRCS_bt)
+SRCS_tintin += $(SRCS_driver_stm32_bluetooth_cc256x)
+
 SRCS_tintin += hw/platform/tintin/tintin.c
 SRCS_tintin += hw/platform/tintin/tintin_asm.s
 

@@ -273,6 +273,8 @@ static void _overlay_thread(void *pvParameters)
 {
     OverlayMessage data;
     app_running_thread *_this_thread = appmanager_get_current_thread();
+    
+    appmanager_init();
     SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Starting overlay thread...");
 
     _this_thread->status = AppThreadLoaded;

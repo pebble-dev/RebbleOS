@@ -16,6 +16,7 @@
 #include "notification.h"
 #include "api_func_symbols.h"
 #include "qalloc.h"
+#include "ngfxwrap.h"
 
 /*
  * Module TODO
@@ -51,8 +52,7 @@ static StackType_t _stack_worker[MEMORY_SIZE_WORKER_STACK];
 static StackType_t _stack_overlay[MEMORY_SIZE_OVERLAY_STACK];
 
 /* Initialise everything we know about the different threads */
-/* FIXME, static stuff should live statically */
-app_running_thread _app_threads[MAX_APP_THREADS] = {
+static app_running_thread _app_threads[MAX_APP_THREADS] = {
     {
         .thread_type = AppThreadMainApp,
         .thread_name = "MainApp",
@@ -559,6 +559,9 @@ void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size)
     
     /* heap is all uint8_t */
     thread->arena = qinit(heap_entry, heap_size);
+    
+    /* DANGER fix this properly. It should not reset here (overlay might be using it) */
+    rwatch_neographics_init();
     
     /* Load the app in a vTask */
     xTaskCreateStatic(_appmanager_thread_init, 

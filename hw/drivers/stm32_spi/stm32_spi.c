@@ -194,6 +194,6 @@ void stm32_spi_write(stm32_spi_t *spi, unsigned char c)
 //         ;
     spi->config->spi->DR = c; // write data to be transmitted to the SPI data register
     while( !(spi->config->spi->SR & SPI_I2S_FLAG_TXE) ); // wait until transmit complete
-    while( !(spi->config->spi->SR & SPI_I2S_FLAG_RXNE) ); // wait until receive complete
-    while( spi->config->spi->SR & SPI_I2S_FLAG_BSY ); // wait until SPI is not busy anymore
+//     while( !(spi->config->spi->SR & SPI_I2S_FLAG_RXNE) ); // wait until receive complete
+//     while( spi->config->spi->SR & SPI_I2S_FLAG_BSY ); // wait until SPI is not busy anymore
 }

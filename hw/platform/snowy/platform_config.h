@@ -18,3 +18,10 @@ extern unsigned char _binary_Resources_snowy_fpga_bin_size;
 extern unsigned char _binary_Resources_snowy_fpga_bin_start;
 #define DISPLAY_FPGA_ADDR &_binary_Resources_snowy_fpga_bin_start
 #define DISPLAY_FPGA_SIZE &_binary_Resources_snowy_fpga_bin_size
+
+
+/* Bluetooth config */
+#define BLUETOOTH_MODULE_TYPE        BLUETOOTH_MODULE_TYPE_CC2564B
+#define BLUETOOTH_MODULE_NAME_LENGTH 0x0d
+#define BLUETOOTH_MODULE_LE_NAME     'P', 'e', 'b', 'b', 'l', 'e', ' ', 'T', 'i', 'm', 'e', 'L', 'E'
+#define BLUETOOTH_MODULE_GAP_NAME    "Pebble Time RblOs"

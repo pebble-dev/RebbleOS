@@ -42,7 +42,7 @@
 
 /* Stack sizes of the threads */
 #define STACK_SZ_CMD configMINIMAL_STACK_SIZE + 200
-#define STACK_SZ_BT 800
+#define STACK_SZ_BT 1000
 
 /* Bit commands for the binary semaphore */
 #define TX_NOTIFY_COMPLETE 1

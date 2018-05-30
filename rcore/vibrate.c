@@ -84,7 +84,7 @@ static xQueueHandle _vibrate_queue;
 static void _enable(uint8_t enabled);
 static void _set_frequency(uint16_t frequency);
 static void _vibrate_thread(void *pvParameters);
-static void _print_pattern(VibratePattern_t *pattern);
+static void _print_pattern(const VibratePattern_t *pattern);
 
 
 /*
@@ -138,7 +138,7 @@ void vibrate_stop(void)
     (void) xQueueSendToBack(_vibrate_queue, &_default_vibrate_patterns[VIBRATE_CMD_STOP], VIBRATE_QUEUE_MAX_WAIT_TICKS);    
 }
 
-static void _print_pattern(VibratePattern_t *pattern)
+static void _print_pattern(const VibratePattern_t *pattern)
 {
 //     printf(">>> vibrate @%u:\n", pattern);
 //     printf("\tlength:%d, val[%d]=(.frequency=%u, .duration=%u)\n",
@@ -170,7 +170,7 @@ static void _set_frequency(uint16_t frequency)
  */
 static void _vibrate_thread(void *pvParameters)
 {
-    static VibratePattern_t *current_pattern = &_default_vibrate_patterns[VIBRATE_CMD_STOP];
+    static const VibratePattern_t *current_pattern = &_default_vibrate_patterns[VIBRATE_CMD_STOP];
 
     while(1)
     {

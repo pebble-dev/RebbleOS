@@ -28,12 +28,6 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id);
 static GFontCache _app_font_cache;
 static GFontCache _ovl_font_cache;
 
-void fonts_init(void)
-{
-//     KERN_LOG("font", APP_LOG_LEVEL_ERROR, "font init");
-
-}
-
 void fonts_resetcache()
 {
     AppThreadType thread_type = appmanager_get_thread_type();

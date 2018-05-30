@@ -7,6 +7,7 @@
 #include "stm32f2xx.h"
 #include "appmanager.h"
 #include "flash.h"
+#include "stm32_usart.h"
 
 extern int printf ( const char* , ... );
 
@@ -47,4 +48,13 @@ void hw_flash_init(void);
 void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len);
 #define REGION_FPGA_START       0x0
 #define REGION_FPGA_SIZE        0x0
+
+/* Hardware implementation */
+uint8_t hw_bluetooth_init(void);
+void hw_bluetooth_clock_on(void);
+uint8_t hw_bluetooth_power_cycle(void);
+void hw_bluetooth_disable_cts_irq(void);
+void hw_bluetooth_enable_cts_irq(void);
+stm32_usart_t *hw_bluetooth_get_usart(void);
+
 #endif
