@@ -57,4 +57,7 @@ void hw_bluetooth_disable_cts_irq(void);
 void hw_bluetooth_enable_cts_irq(void);
 stm32_usart_t *hw_bluetooth_get_usart(void);
 
+void log_clock_enable(void);
+void log_clock_disable(void);
+
 #endif

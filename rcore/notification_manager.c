@@ -17,9 +17,11 @@ static void _notif_init(OverlayWindow *overlay_window);
 static void _notification_window_creating(OverlayWindow *overlay_window, Window *window);
 static void _notification_quit_click(ClickRecognizerRef _, void *context);
 
-void notification_init(void)
+uint8_t notification_init(void)
 {
     messages_init();
+    
+    return 0;
 }
 
 void notification_show_message(full_msg_t *msg, uint32_t timeout_ms)

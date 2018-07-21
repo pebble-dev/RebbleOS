@@ -6,38 +6,41 @@
  */
  
 #include "rebbleos.h"
+#include "appmanager.h"
+
+#define TASK_DISPLAY_STACK_SIZE 920
 
 static TaskHandle_t _display_task;
-static xQueueHandle _display_queue;
-static SemaphoreHandle_t _display_mutex;
-static StaticSemaphore_t _display_mutex_buf;
+static StaticTask_t _display_task_buf;
+static StackType_t _display_task_stack[TASK_DISPLAY_STACK_SIZE];
+
+/* Semaphore to start drawing */
+static SemaphoreHandle_t _display_start_sem;
+static StaticSemaphore_t _display_start_sem_buf;
 
 static void _display_thread(void *pvParameters);
 static void _display_start_frame(uint8_t offset_x, uint8_t offset_y);
 static void _display_cmd(uint8_t cmd, char *data);
 
 /* A mutex to use for locking buffers */
-static StaticSemaphore_t _draw_mutex_mem;
+static StaticSemaphore_t _draw_mutex_buf;
 static SemaphoreHandle_t _draw_mutex;
-
 
 /*
  * Start the display driver and tasks. Show splash
  */
-void display_init(void)
+uint8_t display_init(void)
 {   
-    hw_display_init();
-      
+    _display_start_sem = xSemaphoreCreateBinaryStatic(&_display_start_sem_buf);
+    _draw_mutex    = xSemaphoreCreateMutexStatic(&_draw_mutex_buf);
+    
     // set up the RTOS tasks
-    xTaskCreate(_display_thread, "Display", 480 / 4 + portSTACK_FUDGE_FACTOR, NULL, tskIDLE_PRIORITY + 2UL, &_display_task);
+    _display_task = xTaskCreateStatic(_display_thread, "Display", TASK_DISPLAY_STACK_SIZE, 
+                                      NULL, tskIDLE_PRIORITY + 11UL, 
+                                      _display_task_stack, &_display_task_buf);
+   
     
-    _display_queue = xQueueCreate(2, sizeof(uint8_t));
-    _display_mutex = xSemaphoreCreateMutexStatic(&_display_mutex_buf);
-    _draw_mutex    = xSemaphoreCreateMutexStatic(&_draw_mutex_mem);
-    
-    _display_cmd(DISPLAY_CMD_DRAW, NULL);
-    
-    KERN_LOG("Display", APP_LOG_LEVEL_INFO, "Display Tasks Created");
+    return INIT_RESP_ASYNC_WAIT;
 }
 
 /*
@@ -75,16 +78,13 @@ void display_reset(uint8_t enabled)
  */
 static void _display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
-    xSemaphoreTake(_display_mutex, portMAX_DELAY);
-    
     hw_display_start_frame(xoffset, yoffset);
     
     // block wait for the draw to finish
     // this is invoked via the ISR
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-    
-    // unlock the mutex
-    xSemaphoreGive(_display_mutex);
+
+    appmanager_app_display_done();
 }
 
 /*
@@ -96,20 +96,11 @@ uint8_t *display_get_buffer(void)
 }
 
 /*
- * Request a command from the display driver. 
- * Such as DISPLAY_CMD_DRAW
- */
-static void _display_cmd(uint8_t cmd, char *data)
-{
-    xQueueSendToBack(_display_queue, &cmd, 0);
-}
-
-/*
  * Queue a draw when available
  */
 void display_draw(void)
 {
-    _display_cmd(DISPLAY_CMD_DRAW, 0);
+    xSemaphoreGive(_display_start_sem);
 }
 
 /*
@@ -119,40 +110,18 @@ void display_draw(void)
 static void _display_thread(void *pvParameters)
 {
     uint8_t data;
-
-    // XXX Assume once screen is up, we are up.
-    rebbleos_set_system_status(SYSTEM_STATUS_STARTED);
+    hw_display_init();
+    os_module_init_complete(0);
     
     while(1)
     {
-        // commands to be executed are send to this queue and processed
-        // one at a time
-        if (xQueueReceive(_display_queue, &data, portMAX_DELAY))
-        {
-            switch(data)
-            {
-                // in the case of draw, we are going to leave locking to
-                // the outer laters. If someone calls an overlapping draw into here
-                // it's just going to fail
-                case DISPLAY_CMD_DRAW:
-                    // all we are responsible for is starting a frame draw
-                    _display_start_frame(0, 0);
-                    break;
-                case DISPLAY_CMD_DONE:
-                    break;
-            }
-        }
+        xSemaphoreTake(_display_start_sem, portMAX_DELAY);
+        _display_start_frame(0, 0);
     }
 }
 
-inline bool display_buffer_lock_take(uint16_t timeout)
+inline bool display_buffer_lock_take(uint32_t timeout)
 {
-    /* If the display is currently drawing out the framebuffer, we 
-     * wait for completion before we do any drawing. */
-    xSemaphoreTake(_display_mutex, (TickType_t)timeout); //portMAX_DELAY);
-    xSemaphoreGive(_display_mutex);
-    
-    /* Now we can give the mutex out */
     return xSemaphoreTake(_draw_mutex, (TickType_t)timeout);
 }
 

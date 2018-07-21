@@ -35,26 +35,6 @@
 // Reset the watchdog timer manually
 void watchdog_reset(void);
 
-#define NOWT                 0
-#define SYSTEM_RUNNING_APP   1
-#define SYSTEM_IN_MAIN_MENU  2
-
-typedef struct SystemStatus {
-    uint8_t booted;
-    uint8_t app_mode; // like in menu
-} SystemStatus;
-
-#define MODULE_DISABLED     0
-#define MODULE_ENABLED      1
-
-#define MODULE_NO_ERROR     0
-#define MODULE_ERROR        1
-
-#define MODULE_BLUETOOTH    1
-#define MODULE_DISPLAY      2
-#define MODULE_VIBRATE      4
-
-#define SYSTEM_STATUS_STARTED 1
 
 
 typedef struct SystemSettings {
@@ -68,10 +48,10 @@ typedef struct SystemSettings {
 } SystemSettings;
 
 void rebbleos_init(void);
-uint8_t rebbleos_get_system_status(void);
-void rebbleos_set_system_status(uint8_t status);
-
+void os_module_init_complete(uint8_t result);
 SystemSettings *rebbleos_get_settings(void);
-void rebbleos_module_set_status(uint8_t module, uint8_t enabled, uint8_t error);
-uint8_t rebbleos_module_is_enabled(uint8_t module);
-uint8_t rebbleos_module_is_error(uint8_t module);
+
+#define INIT_RESP_OK            0
+#define INIT_RESP_ASYNC_WAIT    1
+#define INIT_RESP_NOT_SUPPORTED 2
+#define INIT_RESP_ERROR         3

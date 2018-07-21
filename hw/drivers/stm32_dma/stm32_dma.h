@@ -32,31 +32,33 @@ typedef void (*dma_callback)(void);
 
    
 void stm32_dma_init_device(stm32_dma_t *dma);
-void stm32_dma_tx_reset(stm32_dma_t *dma);
-void stm32_dma_tx_init(stm32_dma_t *dma, void *periph_address, uint32_t *data, uint32_t len);
+void stm32_dma_tx_disable(stm32_dma_t *dma);
+void stm32_dma_tx_init(stm32_dma_t *dma, void *periph_address, uint8_t *data, size_t len, uint8_t mem_inc);
 void stm32_dma_tx_begin(stm32_dma_t *dma);
-void stm32_dma_rx_reset(stm32_dma_t *dma);
-void stm32_dma_rx_init(stm32_dma_t *dma, void *periph_addr, uint32_t *data, size_t len);
-void stm32_dma_rx_begin(stm32_dma_t *dma);
 
-void stm32_dma_rx_isr(stm32_dma_t *dma);
-void stm32_dma_tx_isr(stm32_dma_t *dma);
+void stm32_dma_rx_disable(stm32_dma_t *dma);
+void stm32_dma_rx_init(stm32_dma_t *dma, void *periph_addr, uint8_t *data, size_t len);
+void stm32_dma_rx_begin(stm32_dma_t *dma);
+uint8_t stm32_dma_rx_isr(stm32_dma_t *dma);
+uint8_t stm32_dma_tx_isr(stm32_dma_t *dma);
 
 #define STM32_DMA_MK_TX_IRQ_HANDLER(dma_t, dma_channel, dma_stream, callback) \
     void DMA ## dma_channel ## _Stream ## dma_stream ## _IRQHandler(void) \
     { \
-        stm32_dma_tx_isr(dma_t); \
-        callback  (); \
-        stm32_power_release(STM32_POWER_AHB1, dma_t->dma_clock); \
+        if(stm32_dma_tx_isr(dma_t)) { \
+            callback  (); \
+            stm32_power_release(STM32_POWER_AHB1, dma_t->dma_clock); \
+        } \
     }
 
 
 #define STM32_DMA_MK_RX_IRQ_HANDLER(dma_t, dma_channel, dma_stream, callback) \
     void DMA ## dma_channel ## _Stream ## dma_stream ## _IRQHandler(void) \
     { \
-        stm32_dma_rx_isr(dma_t); \
-        callback  (); \
-        stm32_power_release(STM32_POWER_AHB1, dma_t->dma_clock); \
+        if(stm32_dma_rx_isr(dma_t)) { \
+            callback  (); \
+            stm32_power_release(STM32_POWER_AHB1, dma_t->dma_clock); \
+        } \
     }
 
 

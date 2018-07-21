@@ -42,7 +42,7 @@ typedef struct
     const VibratePatternPair_t * const buffer;
 } VibratePattern_t;
 
-void vibrate_init(void);
+uint8_t vibrate_init(void);
 void vibrate_command(VibrateCmd_t command);
 void vibrate_play_pattern(const VibratePattern_t *pattern);
 void vibrate_stop(void);

@@ -51,7 +51,7 @@ typedef struct OverlayWindow {
 typedef void (*OverlayCreateCallback)(OverlayWindow *overlay, Window *window);
 
 /* Internal initialiser */
-void overlay_window_init(void);
+uint8_t overlay_window_init(void);
 
 /* Internal. Check if any overlays or windows want a keypress */
 bool overlay_window_accepts_keypress(void);
@@ -81,8 +81,10 @@ void overlay_window_create_with_context(OverlayCreateCallback creation_callback,
  * @brief Directly draw an \ref OverlayWindow.
  * 
  * This will also cause a full redraw of all \ref Window objects
+ * @param window_is_dirty When set the existing window we are overlaying 
+ * is already dirty
  */
-void overlay_window_draw(void);
+void overlay_window_draw(bool window_is_dirty);
 
 /**
  * @brief Clean up an \ref OverlayWindow.
@@ -163,3 +165,8 @@ bool overlay_window_stack_remove(OverlayWindow *overlay_window, bool animated);
  * @return the pointer to the \ref Window with a click provider
  */ 
 Window *overlay_window_get_next_window_with_click_config(void);
+
+
+
+
+void overlay_await_draw_complete(void);

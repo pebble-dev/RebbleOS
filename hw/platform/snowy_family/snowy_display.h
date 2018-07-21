@@ -21,26 +21,6 @@
 #define DISPLAY_CTYPE_FRAME       0x05
 
 
-typedef struct {
-//    SPI *spi;  // SPI6
-    GPIO_TypeDef *port_display;
-    uint32_t clock_display;
-    uint16_t pin_reset;
-    uint16_t pin_cs;   
-    uint16_t pin_miso;
-    uint16_t pin_mosi;
-    uint16_t pin_sck;
-    
-    // inputs
-    uint16_t pin_reset_done;
-    uint16_t pin_intn;
-    
-    //state
-    uint8_t power_on;   
-    uint8_t frame_buffer[DISPLAY_ROWS * DISPLAY_COLS];
-} display_t;
-
-
 void hw_display_init(void);
 void hw_display_deinit(void);
 int hw_display_test(void);

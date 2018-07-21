@@ -35,6 +35,7 @@ const typedef struct {
     GPIO_TypeDef *gpio_ptr;
     uint32_t gpio_clock;
     uint32_t spi_clock;
+    uint16_t spi_prescaler;
     uint32_t af;
     uint8_t txrx_dir;
     uint16_t crc_poly;
@@ -66,9 +67,15 @@ static inline void _stm32_spi_rx_isr(void);
     }
 
 void stm32_spi_init_device(stm32_spi_t *spi);
-void stm32_spi_send_dma(stm32_spi_t *spi, uint32_t *data, size_t len);
-void stm32_spi_recv_dma(stm32_spi_t *spi, uint32_t *data, size_t len);
-void stm32_spi_write(stm32_spi_t *spi, unsigned char c);
+void stm32_spi_send_dma(stm32_spi_t *spi, uint8_t *data, size_t len);
+uint8_t stm32_spi_recv_dma(stm32_spi_t *spi, uint8_t *data, uint8_t dummy_char, size_t len);
+uint8_t stm32_spi_recv_dma_async(stm32_spi_t *spi, uint8_t *data, uint8_t dummy_char, size_t len);
+uint8_t stm32_spi_send_recv_dma(stm32_spi_t *spi, uint8_t *outdata, size_t outlen, uint8_t *indata, size_t inlen);
+uint8_t stm32_spi_send_recv_dma_async(stm32_spi_t *spi, uint8_t *outdata, size_t outlen, uint8_t *indata, size_t inlen);
+uint8_t stm32_spi_poll_wait(stm32_spi_t *spi, uint16_t timeout);
 
 void stm32_spi_rx_isr(stm32_spi_t *spi, dma_callback callback);
 void stm32_spi_tx_isr(stm32_spi_t *spi, dma_callback callback);
+
+void stm32_spi_write(stm32_spi_t *spi, unsigned char c);
+uint8_t stm32_spi_write_read(stm32_spi_t *spi, unsigned char c);

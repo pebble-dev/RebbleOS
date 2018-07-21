@@ -19,17 +19,20 @@
 #include "queue.h"
 #include "buttons.h"
 
+#define STACK_SIZE_BUTTON_THREAD    configMINIMAL_STACK_SIZE + 210
+#define STACK_SIZE_BUTTON_DEBOUNCE  configMINIMAL_STACK_SIZE + 210
+
 static TaskHandle_t _button_debounce_task;
 static StaticTask_t _button_debounce_task_buf;
-static StackType_t _button_debounce_task_stack[configMINIMAL_STACK_SIZE + 130];
+static StackType_t _button_debounce_task_stack[STACK_SIZE_BUTTON_DEBOUNCE];
 
 static TaskHandle_t _button_message_task;
 static StaticTask_t _button_message_task_buf;
-static StackType_t _button_message_task_stack[configMINIMAL_STACK_SIZE + 160];
+static StackType_t _button_message_task_stack[STACK_SIZE_BUTTON_THREAD];
 
 static xQueueHandle _button_queue;
 static StaticQueue_t _button_queue_buf;
-#define BUTTON_QUEUE_SIZE 3
+#define BUTTON_QUEUE_SIZE 2
 static uint8_t _button_queue_contents[BUTTON_QUEUE_SIZE];
 
 static ButtonMessage _button_message;
@@ -49,24 +52,35 @@ static uint8_t _button_pressed(ButtonId button_id);
 /*
  * Start the button processor
  */
-void rcore_buttons_init(void)
+uint8_t rcore_buttons_init(void)
 {
     hw_button_init();
-    
-    _button_message_task = xTaskCreateStatic(_button_message_thread, "Button", configMINIMAL_STACK_SIZE + 160, NULL, tskIDLE_PRIORITY + 5UL, _button_message_task_stack, &_button_message_task_buf);
-    _button_debounce_task = xTaskCreateStatic(_button_debounce_thread, "Debounce", configMINIMAL_STACK_SIZE + 130, NULL, tskIDLE_PRIORITY + 5UL, _button_debounce_task_stack, &_button_debounce_task_buf);
-    
-    _button_queue = xQueueCreateStatic(5, sizeof(uint8_t), _button_queue_contents, &_button_queue_buf);
-    
+
     hw_button_set_isr(_button_isr);
-        
+
     // Initialise the button click configs
     for (uint8_t i = 0; i < NUM_BUTTONS; i++)
     {
         button_add_click_config(i, (ClickConfig) {});
     }
     
-    KERN_LOG("buttons", APP_LOG_LEVEL_INFO, "Button Task Created");
+    _button_queue = xQueueCreateStatic(BUTTON_QUEUE_SIZE, sizeof(uint8_t), _button_queue_contents, &_button_queue_buf);
+    
+    _button_message_task = xTaskCreateStatic(_button_message_thread, 
+                                             "Button", 
+                                             STACK_SIZE_BUTTON_THREAD, 
+                                             NULL, 
+                                             tskIDLE_PRIORITY + 5UL, 
+                                             _button_message_task_stack, 
+                                             &_button_message_task_buf);
+    
+    _button_debounce_task = xTaskCreateStatic(_button_debounce_thread, "Debounce", STACK_SIZE_BUTTON_DEBOUNCE, NULL, tskIDLE_PRIORITY + 5UL, _button_debounce_task_stack, &_button_debounce_task_buf);
+    
+    
+   
+//     KERN_LOG("buttons", APP_LOG_LEVEL_INFO, "Button Task Created");
+    
+    return 0;
 }
 
 /*
@@ -255,7 +269,7 @@ static uint8_t _button_check_time(void)
 static void _button_message_thread(void *pvParameters)
 {
     uint8_t data;
-    printf("BM\n");
+    
     TickType_t time_increment = portMAX_DELAY;
            
     for( ;; )
@@ -264,7 +278,7 @@ static void _button_message_thread(void *pvParameters)
         {           
             _button_update(data, _button_pressed(data));
         }
-        
+
         time_increment = _button_check_time();
 
         if (time_increment == 0)
@@ -279,12 +293,11 @@ static void _button_message_thread(void *pvParameters)
  */
 static void _button_debounce_thread(void *pvParameters)
 {
-    printf("BD\n");
     for( ;; )
     {
         // sleep forever waiting for something on the interrupts to wake us
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-        
+
         // tell the main worker we have something
         xQueueSendToBack(_button_queue, &_last_press, (TickType_t)100);
 

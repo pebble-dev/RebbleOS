@@ -303,5 +303,6 @@ void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length)
         buffer[i] = *(__IO uint8_t *)((Bank1_NOR_ADDR + address + i));
     }
     _nor_clock_release();
+    flash_operation_complete(0);
 }
 

@@ -25,7 +25,9 @@ typedef struct ResourceHeader {
     uint32_t unknownoffset;
 } __attribute__((__packed__)) ResourceHeader;
  
+uint8_t flash_init(void);
 void flash_test(uint16_t resource_id);
-void flash_init(void);
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes);
 void flash_dump(void);
+void flash_operation_complete(uint8_t cmd);
+void flash_operation_complete_isr(uint8_t cmd);

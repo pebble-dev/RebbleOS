@@ -15,6 +15,7 @@
 #    include "stm32f2xx_rtc.h"
 #    include "stm32f2xx_rcc.h"
 #    include "stm32f2xx_exti.h"
+#    include "stm32f2xx_pwr.h"
 #    include "misc.h"
 #else
 #    error "I have no idea what kind of stm32 this is; sorry"

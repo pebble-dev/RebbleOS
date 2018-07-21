@@ -385,27 +385,18 @@ void window_draw(void)
         SYS_LOG("window", APP_LOG_LEVEL_ERROR, "XXX Please find the correct mechanism! (did you mean overlay_x?).");
         return;
     }
-    
-    /* Make sure noone else can draw while we are drawing */
-    display_buffer_lock_take(500);
 
     Window *wind = window_stack_get_top_window();
 
-    if (wind == NULL)
-        return;
-    
-    if (wind->is_render_scheduled)
+    if (wind && wind->is_render_scheduled)
+    {
         rbl_window_draw(wind);
+    }
 
-    wind->is_render_scheduled = false;
-    
     /* This will be deferred to the overlay renderer */
-    overlay_window_draw();
-    /* Now sit and wait for the overlay to signal done */
-    ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-    /* Unlock the draw mutex */
-    display_buffer_lock_give();
+    overlay_window_draw(wind && wind->is_render_scheduled);
+        
+    wind->is_render_scheduled = false;
 }
 
 
@@ -585,7 +576,14 @@ static void _animation_util_push_fb(GRect rect, int16_t distance)
 #  warning XXX: PBL_BW no push_fb support
     return;
 #else
-    uint8_t *fb = display_get_buffer(); 
+    /* To revisit at some later time.
+     * The issue I can't find time to fix is that pushfb happens
+     * while we are painting */
+    return;
+    
+    uint8_t *fb = display_get_buffer();
+    if (!display_buffer_lock_take(0))
+        return;
     
     if (rect.origin.x < 0) rect.origin.x = 0;
     if (rect.origin.x > DISPLAY_COLS) rect.origin.x = DISPLAY_COLS;
@@ -620,5 +618,6 @@ static void _animation_util_push_fb(GRect rect, int16_t distance)
         }
         
     }
+    display_buffer_lock_give();
 #endif
 }

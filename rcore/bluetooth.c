@@ -36,6 +36,7 @@
 #include "rbl_bluetooth.h"
 #include "pebble_protocol.h"
 #include "stdarg.h"
+#include "btstack_rebble.h"
 
 /* macro to swap bytes from big > little endian */
 #define SWAP_UINT16(x) (((x) >> 8) | ((x) << 8))
@@ -86,8 +87,10 @@ static void _process_packet(pbl_transport_packet *pkt);
 static uint8_t _bluetooth_tx(uint8_t *data, uint16_t len);
 
 /* Initialise the bluetooth module */
-void bluetooth_init(void)
+uint8_t bluetooth_init(void)
 {
+    _bt_cmd_queue = xQueueCreate(1, sizeof(rebble_bt_packet));
+    _bt_tx_mutex = xSemaphoreCreateMutexStatic(&_bt_tx_mutex_buf);
     _bt_task = xTaskCreateStatic(_bt_thread, 
                                      "BT", STACK_SZ_BT, NULL, 
                                      tskIDLE_PRIORITY + 3UL, 
@@ -98,10 +101,13 @@ void bluetooth_init(void)
                                      tskIDLE_PRIORITY + 4UL, 
                                      _bt_cmd_task_stack, &_bt_cmd_task_buf);
 
-    _bt_tx_mutex = xSemaphoreCreateMutexStatic(&_bt_tx_mutex_buf);
-    _bt_cmd_queue = xQueueCreate(1, sizeof(rebble_bt_packet));
-        
-    SYS_LOG("BT", APP_LOG_LEVEL_INFO, "Bluetooth Tasks Created");
+    
+    return INIT_RESP_ASYNC_WAIT;
+}
+
+void bluetooth_init_complete(uint8_t state)
+{
+    os_module_init_complete(state);
 }
 
 /*
@@ -111,8 +117,6 @@ void bluetooth_init(void)
  */
 uint32_t bluetooth_send_serial_raw(uint8_t *data, size_t len)
 {
-    if (!rebbleos_module_is_enabled(MODULE_BLUETOOTH)) return 0;
-
     xSemaphoreTake(_bt_tx_mutex, portMAX_DELAY);
 
     bt_device_request_tx(data, len);
@@ -249,18 +253,10 @@ static void _process_packet(pbl_transport_packet *pkt)
  * XXX move freertos runloop code to here?
  */
 static void _bt_thread(void *pvParameters)
-{  
-    SYS_LOG("BT", APP_LOG_LEVEL_INFO, "Starting Bluetooth Module");
-    /* We are going to start the hardware right now, even thought the system
-     * is technically already up. This is becuase bluetooth needs to work on a thread
-     * and we don't have any before system init
-     */
-    hw_bluetooth_init();
+{
     /* We are blocked here while bluetooth further delegates a runloop */
-    
-    SYS_LOG("BT", APP_LOG_LEVEL_ERROR, "Bluetooth Module DISABLED");
-    rebbleos_module_set_status(MODULE_BLUETOOTH, MODULE_DISABLED, MODULE_ERROR);
-    
+    hw_bluetooth_init();
+
     /* Delete ourself and die */
     vTaskDelete(_bt_task);
     return;
@@ -345,10 +341,8 @@ void bluetooth_send_async(uint8_t *data, size_t len, tx_complete_callback cb)
     xQueueSendToBack(_bt_cmd_queue, &packet, portMAX_DELAY);
 }
     
-uint8_t bluetooth_send(uint8_t *data, size_t len)
+inline uint8_t bluetooth_send(uint8_t *data, size_t len)
 {
-    if (!rebbleos_module_is_enabled(MODULE_BLUETOOTH)) return 0;
-
     return _bluetooth_tx(data, len);
 }
 

@@ -39,10 +39,7 @@ static void _init_dma(stm32_dma_t *dma);
 void stm32_dma_init_device(stm32_dma_t *dma)
 {
     NVIC_InitTypeDef nvic_init_struct;
-    DMA_InitTypeDef dma_init_struct;
-    
-    stm32_power_request(STM32_POWER_AHB1, dma->dma_clock);
-        
+       
     /* Enable the interrupt for stream copy completion */
     nvic_init_struct.NVIC_IRQChannel = dma->dma_irq_rx_channel;
     nvic_init_struct.NVIC_IRQChannelPreemptionPriority = dma->dma_irq_rx_pri;
@@ -54,9 +51,7 @@ void stm32_dma_init_device(stm32_dma_t *dma)
     nvic_init_struct.NVIC_IRQChannelPreemptionPriority = dma->dma_irq_tx_pri;
     nvic_init_struct.NVIC_IRQChannelSubPriority = 0;
     nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
-    NVIC_Init(&nvic_init_struct);    
-    
-    stm32_power_release(STM32_POWER_AHB1, dma->dma_clock);
+    NVIC_Init(&nvic_init_struct);
 }
 
 /*
@@ -72,23 +67,26 @@ void stm32_dma_init_device(stm32_dma_t *dma)
 /*
  * Reset the DMA channel and wait for completion
  */
-void stm32_dma_tx_reset(stm32_dma_t *dma)
+void stm32_dma_tx_disable(stm32_dma_t *dma)
 {
-    /* XXX released in IRQ */
     stm32_power_request(STM32_POWER_AHB1, dma->dma_clock);
 
+    DMA_ClearFlag(dma->dma_tx_stream, dma->dma_tx_channel_flags);
     DMA_Cmd(dma->dma_tx_stream, DISABLE);
     while (dma->dma_tx_stream->CR & DMA_SxCR_EN);
+    
+    stm32_power_release(STM32_POWER_AHB1, dma->dma_clock);
 }
 
 /*
  * Initialise the DMA channel, and set the data pointers
  * NOTE: This will not send data yet
  */
-void stm32_dma_tx_init(stm32_dma_t *dma, void *periph_address, uint32_t *data, uint32_t len)
+void stm32_dma_tx_init(stm32_dma_t *dma, void *periph_address, uint8_t *data, size_t len, uint8_t single_byte)
 {
+    stm32_power_request(STM32_POWER_AHB1, dma->dma_clock);
+
     DMA_InitTypeDef dma_init_struct;
-    NVIC_InitTypeDef nvic_init_struct;
 
     /* Configure DMA controller to manage TX DMA requests */
     DMA_DeInit(dma->dma_tx_stream);
@@ -100,20 +98,19 @@ void stm32_dma_tx_init(stm32_dma_t *dma, void *periph_address, uint32_t *data, u
     dma_init_struct.DMA_Memory0BaseAddr = (uint32_t)data;
     dma_init_struct.DMA_BufferSize = len;
     dma_init_struct.DMA_DIR = DMA_DIR_MemoryToPeripheral;
-    dma_init_struct.DMA_MemoryInc = DMA_MemoryInc_Enable;
+    dma_init_struct.DMA_MemoryInc =  single_byte == 1 ? DMA_MemoryInc_Disable : DMA_MemoryInc_Enable;
     dma_init_struct.DMA_Mode = DMA_Mode_Normal;
     dma_init_struct.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
     dma_init_struct.DMA_FIFOMode  = DMA_FIFOMode_Disable;
-    dma_init_struct.DMA_FIFOThreshold = DMA_FIFOThreshold_Full;
+    dma_init_struct.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
     dma_init_struct.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
     dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
-    dma_init_struct.DMA_Priority = DMA_Priority_Low;
+    dma_init_struct.DMA_Priority = DMA_Priority_High;
     DMA_Init(dma->dma_tx_stream, &dma_init_struct);
 
     /* Enable the stream IRQ, periph, DMA and then DMA interrupts in that order */
     NVIC_EnableIRQ(dma->dma_irq_tx_channel);
-
-    DMA_Cmd(dma->dma_tx_stream, ENABLE);
+    DMA_ITConfig(dma->dma_tx_stream, DMA_IT_TC, ENABLE);
 }
 
 /*
@@ -121,31 +118,37 @@ void stm32_dma_tx_init(stm32_dma_t *dma, void *periph_address, uint32_t *data, u
  */
 void stm32_dma_tx_begin(stm32_dma_t *dma)
 {
-    DMA_ITConfig(dma->dma_tx_stream, DMA_IT_TC, ENABLE);
+    DMA_Cmd(dma->dma_tx_stream, ENABLE);
 }
 
 /*
  * Reset the RX DMA channel and wait for completion
  */
-void stm32_dma_rx_reset(stm32_dma_t *dma)
+void stm32_dma_rx_disable(stm32_dma_t *dma)
 {
-    /* XXX released in IRQ */
     stm32_power_request(STM32_POWER_AHB1, dma->dma_clock);
 
+    DMA_ClearFlag(dma->dma_rx_stream, dma->dma_rx_channel_flags);
     DMA_Cmd(dma->dma_rx_stream, DISABLE);
     while (dma->dma_rx_stream->CR & DMA_SxCR_EN);
+
+    stm32_power_release(STM32_POWER_AHB1, dma->dma_clock);
 }
 
 /*
  * Initialise the DMA channel for RX, and set the data pointers
  * NOTE: This will not receive data yet
  */
-void stm32_dma_rx_init(stm32_dma_t *dma, void *periph_addr, uint32_t *data, size_t len)
+void stm32_dma_rx_init(stm32_dma_t *dma, void *periph_addr, uint8_t *data, size_t len)
 {
+    stm32_power_request(STM32_POWER_AHB1, dma->dma_clock);
+
     DMA_InitTypeDef dma_init_struct;
     
     /* Configure DMA controller to manage RX DMA requests */
+    DMA_DeInit(dma->dma_rx_stream);   
     DMA_ClearFlag(dma->dma_rx_stream, dma->dma_rx_channel_flags);
+    
     DMA_StructInit(&dma_init_struct);
     dma_init_struct.DMA_PeripheralBaseAddr = (uint32_t)periph_addr;
     dma_init_struct.DMA_Channel = dma->dma_rx_channel;
@@ -154,13 +157,17 @@ void stm32_dma_rx_init(stm32_dma_t *dma, void *periph_addr, uint32_t *data, size
     dma_init_struct.DMA_Memory0BaseAddr = (uint32_t)data;
     dma_init_struct.DMA_BufferSize = len;
     dma_init_struct.DMA_PeripheralInc  = DMA_PeripheralInc_Disable;
+    dma_init_struct.DMA_Mode = DMA_Mode_Normal;
     dma_init_struct.DMA_FIFOMode  = DMA_FIFOMode_Disable;
-    dma_init_struct.DMA_PeripheralDataSize = DMA_MemoryDataSize_Byte;
-    dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+    dma_init_struct.DMA_FIFOThreshold = DMA_FIFOThreshold_1QuarterFull;
+    dma_init_struct.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
     dma_init_struct.DMA_Priority = DMA_Priority_High;
-    
+    dma_init_struct.DMA_MemoryDataSize = DMA_MemoryDataSize_Byte;
+    dma_init_struct.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
     DMA_Init(dma->dma_rx_stream, &dma_init_struct);
-    DMA_Cmd(dma->dma_rx_stream, ENABLE);
+
+    NVIC_EnableIRQ(dma->dma_irq_rx_channel);
+    DMA_ITConfig(dma->dma_rx_stream, DMA_IT_TC, ENABLE);
 }
 
 /*
@@ -169,7 +176,7 @@ void stm32_dma_rx_init(stm32_dma_t *dma, void *periph_addr, uint32_t *data, size
 void stm32_dma_rx_begin(stm32_dma_t *dma)
 {
     /* XXX released in IRQ */
-    DMA_ITConfig(dma->dma_rx_stream, DMA_IT_TC, ENABLE);
+    DMA_Cmd(dma->dma_rx_stream, ENABLE);
 }
 
 /*
@@ -177,34 +184,26 @@ void stm32_dma_rx_begin(stm32_dma_t *dma)
  * The actual IRQ handler is constructed by the implementation 
  * using a MK_XXX_ wrapper.
  */
-void stm32_dma_rx_isr(stm32_dma_t *dma)
+uint8_t stm32_dma_rx_isr(stm32_dma_t *dma)
 {
     if (DMA_GetITStatus(dma->dma_rx_stream, dma->dma_rx_irq_flag) != RESET)
     {
         DMA_ClearITPendingBit(dma->dma_rx_stream, dma->dma_rx_irq_flag);
-        
-        /* release the clocks we are no longer requiring */
-//         stm32_power_release(STM32_POWER_AHB1, dma->dma_clock);
-        /* Trigger the recipient interrupt handler automatically */
+        return 1;
     }
-    else
-    {
-        DRV_LOG("dma", APP_LOG_LEVEL_DEBUG, "DMA2 RX ERROR");
-    }        
+    return 0;
 }
 
 /*
  * IRQ Handler for TX of data complete
  */
-void stm32_dma_tx_isr(stm32_dma_t *dma)
+uint8_t stm32_dma_tx_isr(stm32_dma_t *dma)
 {
     if (DMA_GetITStatus(dma->dma_tx_stream, dma->dma_tx_irq_flag) != RESET)
     {
         DMA_ClearITPendingBit(dma->dma_tx_stream, dma->dma_tx_irq_flag);
+        return 1;
         /* Trigger the stack's interrupt handler */
     }
-    else
-    {
-//         DRV_LOG("dma", APP_LOG_LEVEL_ERROR, "DMA TX ERROR TEIF");
-    }
+    return 0;
 }

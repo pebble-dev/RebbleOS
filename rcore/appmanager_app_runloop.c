@@ -21,7 +21,7 @@ static xQueueHandle _app_message_queue;
 
 void appmanager_app_runloop_init(void)
 {
-    _app_message_queue = xQueueCreate(5, sizeof(struct AppMessage));    
+    _app_message_queue = xQueueCreate(5, sizeof(struct AppMessage));
 }
 
 /* 
@@ -64,6 +64,12 @@ void appmanager_app_main_entry(void)
     vTaskDelay(portMAX_DELAY);
 }
 
+static bool _app_shutting_down(void)
+{
+    app_running_thread *_this_thread = appmanager_get_current_thread();
+    return _this_thread->status == AppThreadUnloading;
+}
+
 /*
  * Once an application is spawned, it calls into app_event_loop
  * This function is a busy loop, but with the benefit that it is also a task
@@ -74,10 +80,11 @@ void app_event_loop(void)
     AppMessage data;
     app_running_thread *_this_thread = appmanager_get_current_thread();
     App *_running_app = _this_thread->app;
+    bool draw_requested = false;
     
     if (_this_thread->thread_type != AppThreadMainApp)
     {
-        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Naughty! You tried to run an app runloop!. You are not an app");
+        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Runloop: You are not an app");
         return;
     }
     
@@ -106,7 +113,7 @@ void app_event_loop(void)
     /* clear the queue of any work from the previous app
     * ... such as an errant quit */
     xQueueReset(_app_message_queue);
-    
+
     if (!booted)
     {
         GRect frame = GRect(0, DISPLAY_ROWS - 20, DISPLAY_COLS, 20);
@@ -114,18 +121,30 @@ void app_event_loop(void)
         booted = true;
     }
     
+    TickType_t next_timer;
+    
     /* App is now fully initialised and inside the runloop. */
     for ( ;; )
     {
-        /* Is there something queued up to do?  If so, we have the potential to do it. */
-        TickType_t next_timer = appmanager_timer_get_next_expiry(_this_thread);
-        
+        next_timer = pdMS_TO_TICKS(1);
+               
+        if (!_app_shutting_down())
+        {
+            next_timer = appmanager_timer_get_next_expiry(_this_thread);
+            
+            if (next_timer < 0)
+                next_timer = portMAX_DELAY;
+        }
+
         /* we are inside the apps main loop event handler now */
         if (xQueueReceive(_app_message_queue, &data, next_timer))
         {
             /* We woke up for some kind of event that someone posted.  But what? */
             if (data.message_type_id == APP_BUTTON)
             {
+                if (_app_shutting_down())
+                    continue;
+                
                 if (overlay_window_accepts_keypress())
                 {
                     overlay_window_post_button_message(data.payload);
@@ -135,31 +154,94 @@ void app_event_loop(void)
                 ButtonMessage *message = (ButtonMessage *)data.payload;
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
             }
+            /* Someone has requested the application close.
+             * We will attempt graceful shutdown by unsubscribing timers
+             * Any app timers will fire and be nulled, or get erased.
+             * XXX could do with a timer mutex to wait on
+             */
             else if (data.message_type_id == APP_QUIT)
             {
+                /* Set the shutdown time for this app. We will kill it then */
+                if (!_app_shutting_down())
+                {
+                    _this_thread->shutdown_at_tick = xTaskGetTickCount() + pdMS_TO_TICKS(5000);
+                    _this_thread->status = AppThreadUnloading;
+                }
+
                 /* remove all of the clck handlers */
                 button_unsubscribe_all();
+
                 /* remove the ticktimer service handler and stop it */
                 tick_timer_service_unsubscribe();
 
-                /* Set the shutdown time for this app. We will kill it then */
-                _this_thread->shutdown_at_tick = xTaskGetTickCount() + pdMS_TO_TICKS(5000);
+                /* Check we are not doing anything important
+                 * If we are, then defer the render */
+                if (!display_buffer_lock_take(0))
+                {
+                    _this_thread->status = AppThreadUnloading;
+                    appmanager_app_quit();
+                    continue;
+                }
+                else
+                {
+                    display_buffer_lock_give();
+                }
                 
                 KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Quit");
 
                 /* app was quit, break out of this loop into the main handler */
                 break;
             }
+            /* A draw is requested. Get a lock and then draw. if we can't lock we..
+             * try, try, try again
+             */
             else if (data.message_type_id == APP_DRAW)
             {
-                window_draw();
+                if (_app_shutting_down())
+                    continue;
+                
+                /* Request a draw. This is mostly from an app invalidating something */
+                if (display_buffer_lock_take(0))
+                {
+                    window_draw();
+                }
+                else
+                {
+                    /* We didn't get the mutex. Set a flag for when the draw completes */
+                    draw_requested = true;
+                }
+                continue;
+            }
+            /* Buffer is full from all drawing threads. If there are changes, 
+             * we request a display draw, otherwise we wait
+             */
+            else if (data.message_type_id == APP_DRAW_DONE)
+            {
+                uint8_t should_draw = (uint8_t)*((uint8_t *)data.payload);
+                if (should_draw == 1)
+                    display_draw();
+                else
+                    display_buffer_lock_give();
+            }
+            else if (data.message_type_id == APP_DISPLAY_DONE)
+            {
+                if (draw_requested)
+                {
+                    draw_requested = false;
+                    appmanager_post_draw_message(0);
+                }
+
+                display_buffer_lock_give();
+                continue;
             }
         } else {
+            if (_app_shutting_down())
+                continue;
+
             appmanager_timer_expired(_this_thread);
+            /* Something changed, lets see if we can draw */
+            appmanager_post_draw_message(0);
         }
-        
-        /* Something changed, lets see if we can draw */
-        window_draw();
     }
     KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Signalled shutdown...");
     /* We fall out of the apps main_ now and into deinit and thread completion
@@ -173,8 +255,9 @@ TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread)
 
     if (thread->timer_head) {
         TickType_t curtime = xTaskGetTickCount();
-        if (curtime > thread->timer_head->when)
+        if (curtime > thread->timer_head->when) {
             next_timer = 0;
+        }
         else
             next_timer = thread->timer_head->when - curtime;
     } else {
@@ -204,7 +287,9 @@ void appmanager_timer_expired(app_running_thread *thread)
 
     thread->timer_head = timer->next;
     
-    timer->callback(timer);
+    app_running_thread *_this_thread = appmanager_get_current_thread();
+    if (!_app_shutting_down())
+        timer->callback(timer);
 }
 
 /* Apps click handlers */

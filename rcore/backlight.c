@@ -17,7 +17,7 @@
 static TaskHandle_t _backlight_task;
 static StaticTask_t _backlight_task_buf;
 
-static StackType_t _backlight_task_stack[configMINIMAL_STACK_SIZE + 90];
+static StackType_t _backlight_task_stack[configMINIMAL_STACK_SIZE + 190];
 static void _backlight_thread(void *pvParameters);
 
 typedef struct backlight_message
@@ -28,7 +28,7 @@ typedef struct backlight_message
 } backlight_message_t;
 
 #define BACKLIGHT_QUEUE_SIZE 2
-static backlight_message_t _backlight_queue_contents[BACKLIGHT_QUEUE_SIZE];
+static uint8_t _backlight_queue_contents[BACKLIGHT_QUEUE_SIZE * sizeof(backlight_message_t)];
 static xQueueHandle _backlight_queue;
 static StaticQueue_t _backlight_queue_buf;
 
@@ -38,18 +38,20 @@ static uint8_t _backlight_is_on;
 /*
  * Backlight is a go
  */
-void rcore_backlight_init(void)
+uint8_t rcore_backlight_init(void)
 {
     hw_backlight_init();
     
-    _backlight_task = xTaskCreateStatic(_backlight_thread, "Bl", configMINIMAL_STACK_SIZE + 90, NULL, tskIDLE_PRIORITY + 2UL, _backlight_task_stack, &_backlight_task_buf);
-    
-    _backlight_queue = xQueueCreateStatic(2, sizeof(backlight_message_t), (uint8_t *)&_backlight_queue_contents, &_backlight_queue_buf);
-    KERN_LOG("backl", APP_LOG_LEVEL_INFO, "Backlight Tasks Created");
     _backlight_is_on = 0;
     _backlight_brightness = 0;
+   
+    _backlight_queue = xQueueCreateStatic(BACKLIGHT_QUEUE_SIZE, sizeof(backlight_message_t), _backlight_queue_contents, &_backlight_queue_buf);
+    
+    _backlight_task = xTaskCreateStatic(_backlight_thread, "Bl", configMINIMAL_STACK_SIZE + 190, NULL, tskIDLE_PRIORITY + 2UL, _backlight_task_stack, &_backlight_task_buf);
 
     rcore_backlight_on(100, 3000);
+    
+    return 0;
 }
 
 // In here goes the functions to dim the backlight
@@ -119,7 +121,7 @@ static void _backlight_set_from_ambient(void)
 static void _backlight_thread(void *pvParameters)
 {
     backlight_message_t message;
-    uint8_t wait = 0;  
+    uint32_t wait = 0;  
     TickType_t on_expiry_time = xTaskGetTickCount();
     uint8_t backlight_status = BACKLIGHT_OFF;
     uint16_t bri_scale = 100;
@@ -130,7 +132,7 @@ static void _backlight_thread(void *pvParameters)
         if (backlight_status == BACKLIGHT_FADE)
         {
             uint16_t newbri = (_backlight_brightness - bri_scale);
-            wait = 10;
+            wait = 80;
             _backlight_set_raw(newbri);
 
             bri_it--;
@@ -144,7 +146,7 @@ static void _backlight_thread(void *pvParameters)
         else if (backlight_status == BACKLIGHT_ON)
         {
             // set the queue reader to immediately return
-            wait = 50;
+            wait = 500;
             
 //             backlight_set_from_ambient();
             _backlight_set(bri_scale);
@@ -159,10 +161,10 @@ static void _backlight_thread(void *pvParameters)
         else
         {
             // We are idle so we can sleep for a bit
-            wait = 1000 / portTICK_RATE_MS;
+            wait = 1000;
         }
         
-        if (xQueueReceive(_backlight_queue, &message, wait))
+        if (xQueueReceive(_backlight_queue, &message, pdMS_TO_TICKS(wait)))
         {
             switch(message.cmd)
             {
@@ -171,7 +173,7 @@ static void _backlight_thread(void *pvParameters)
                 case BACKLIGHT_OFF:
                     break;
                 case BACKLIGHT_ON:
-                    KERN_LOG("backl", APP_LOG_LEVEL_DEBUG, "Backlight ON");
+//                     KERN_LOG("backl", APP_LOG_LEVEL_DEBUG, "Backlight ON");
                     backlight_status = BACKLIGHT_ON;
                     // timestamp the tick counter so we can stay on for
                     // the right amount of time

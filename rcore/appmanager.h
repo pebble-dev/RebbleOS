@@ -112,6 +112,8 @@ typedef struct AppTypeHeader {
 #define APP_QUIT         1
 #define APP_TICK         2
 #define APP_DRAW         3
+#define APP_DRAW_DONE    4
+#define APP_DISPLAY_DONE 5
 
 #define APP_TYPE_SYSTEM  0
 #define APP_TYPE_FACE    1
@@ -166,7 +168,7 @@ typedef struct app_running_thread_t {
 } app_running_thread;
 
 /* in appmanager.c */
-void appmanager_init(void);
+uint8_t appmanager_init(void);
 void appmanager_timer_add(CoreTimer *timer);
 void appmanager_timer_remove(CoreTimer *timer);
 void app_event_loop(void);
@@ -187,9 +189,13 @@ void appmanager_app_runloop_init(void);
 void appmanager_app_main_entry(void);
 App *app_manager_get_apps_head();
 void appmanager_post_button_message(ButtonMessage *bmessage);
-void appmanager_post_draw_message(void);
+void appmanager_post_draw_message(uint32_t timeout_ms);
+void appmanager_post_draw_display_message(uint8_t *draw_to_display);
+
 void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
+void appmanager_app_display_done(void);
+
 void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
 void appmanager_timer_expired(app_running_thread *thread);
 TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);

@@ -11,8 +11,6 @@
 #include "display.h"
 #include "snowy_display.h"
 
-extern display_t display;
-
 /*
  * Bulk convert the buffer from its native format for a sigle column
  * (y0: xxxxxxx

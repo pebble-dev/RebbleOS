@@ -10,6 +10,14 @@
 #include "rebbleos.h"
 #include "menu.h"
 
+static list_head _res_list_head = LIST_HEAD(_res_list_head);
+
+typedef struct {
+    uint16_t res_id;
+    GBitmap *gbitmap;
+    list_node node;
+} _gbitmap_pair;
+
 MenuItems* menu_items_create(uint16_t capacity)
 {
     MenuItems *result = (MenuItems *) app_calloc(1, sizeof(MenuItems));
@@ -18,6 +26,7 @@ MenuItems* menu_items_create(uint16_t capacity)
     result->back = NULL;
     if (capacity > 0)
         result->items = (MenuItem *) app_calloc(capacity, sizeof(MenuItem));
+    
     return result;
 }
 
@@ -65,10 +74,32 @@ static void select_click_callback(MenuLayer *menu_layer, MenuIndex *index, Menu 
     }
 }
 
+static GBitmap *_cached_resource(uint16_t res_id, uint16_t capacity)
+{
+    _gbitmap_pair *fb = NULL;
+    
+    list_foreach(fb, &_res_list_head, _gbitmap_pair, node)
+    {
+        if (fb->res_id == res_id)
+            return fb->gbitmap;
+    }
+       
+    fb = app_calloc(1, sizeof(_gbitmap_pair));
+    GBitmap *gbitmap = gbitmap_create_with_resource(res_id);
+    fb->res_id = res_id;
+    fb->gbitmap = gbitmap;
+
+    list_init_node(&fb->node);
+    list_insert_head(&_res_list_head, &fb->node);
+        
+    return gbitmap;
+}
+
 static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex *index, Menu *menu)
 {
     MenuItem *item = &menu->items->items[index->row];
-    GBitmap *gbitmap = gbitmap_create_with_resource(item->image_res_id);
+    GBitmap *gbitmap = _cached_resource(item->image_res_id, menu->items->count);
+    
 #ifdef PBL_RECT
     menu_cell_basic_draw(ctx, cell_layer, item->text, item->sub_text, gbitmap);
 #else
@@ -79,7 +110,6 @@ static void draw_row_callback(GContext *ctx, const Layer *cell_layer, MenuIndex 
     menu_cell_basic_draw_ex(ctx, frame, item->text, item->sub_text, gbitmap, GTextAlignmentLeft);
     frame.origin.x -= rightShift;
 #endif
-    gbitmap_destroy(gbitmap);
 }
 
 
@@ -104,6 +134,15 @@ void menu_destroy(Menu *menu)
         menu_items_destroy(menu->items);
     menu_layer_destroy(menu->layer);
     app_free(menu);
+    
+    _gbitmap_pair *fb = list_elem(list_get_head(&_res_list_head), _gbitmap_pair, node);
+    while(fb)
+    {
+        list_remove(&_res_list_head, &fb->node);
+        app_free(fb->gbitmap);
+        app_free(fb);
+        fb = list_elem(list_get_head(&_res_list_head), _gbitmap_pair, node);
+    }
 }
 
 Layer* menu_get_layer(Menu *menu)

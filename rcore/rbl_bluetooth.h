@@ -14,7 +14,8 @@ typedef struct pbl_transport_packet_t {
 
 typedef void (*tx_complete_callback)();
 
-void bluetooth_init(void);
+uint8_t bluetooth_init(void);
+void bluetooth_init_complete(uint8_t state);
 void bluetooth_data_rx_notify(size_t len);
 uint32_t bluetooth_send_serial_raw(uint8_t *data, size_t len);
 uint8_t bluetooth_send(uint8_t *data, size_t len);

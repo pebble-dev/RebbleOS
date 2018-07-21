@@ -10,7 +10,7 @@
 
 struct file;
 
-void resource_init();
+uint8_t resource_init();
 void resource_load_id_system(uint16_t resource_id, uint8_t *buffer);
 ResHandle resource_get_handle_system(uint16_t resource_id);
 ResHandle resource_get_handle_app(uint32_t resource_id, const struct file *file);

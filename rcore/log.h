@@ -8,6 +8,7 @@
 
 #include <stdarg.h>
 
+#define NULL_LOG(module_, lvl_, fmt_, ...) {;}
 #define SYS_LOG(module_, lvl_, fmt_, ...) \
             log_printf_to_ar(module_, "SYS", lvl_, __FILE__, __LINE__, fmt_, ##__VA_ARGS__)
 #define KERN_LOG(module_, lvl_, fmt_, ...) \

@@ -11,14 +11,11 @@
 
 extern size_t xPortGetFreeAppHeapSize(void);
 
-static SemaphoreHandle_t _res_mutex;
-static StaticSemaphore_t _res_mutex_buf;
-
 uint32_t _resource_get_app_res_slot_address(const struct file *file);
 
-void resource_init()
-{
-    _res_mutex = xSemaphoreCreateMutexStatic(&_res_mutex_buf);
+uint8_t resource_init()
+{   
+    return 0;
 }
 
 /*
@@ -42,7 +39,6 @@ void resource_load_id_system(uint16_t resource_id, uint8_t *buffer)
  */
 ResHandle resource_get_handle_system(uint16_t resource_id)
 {
-    xSemaphoreTake(_res_mutex, portMAX_DELAY);
     ResHandle resHandle;
 
     // get the resource from the flash.
@@ -56,7 +52,6 @@ ResHandle resource_get_handle_system(uint16_t resource_id)
         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: WARN. Suspect res id %d size %d", resource_id, resHandle.size);
         while(1);
     }
-    xSemaphoreGive(_res_mutex);
 
     return resHandle;
 }
@@ -66,16 +61,13 @@ ResHandle resource_get_handle_system(uint16_t resource_id)
  */
 ResHandle resource_get_handle_app(uint32_t resource_id, const struct file *file)
 {
-    xSemaphoreTake(_res_mutex, portMAX_DELAY);
-
-
     ResHandle resHandle;
 
-     if (resource_id == 0)
-     {
+    if (resource_id == 0)
+    {
         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "App asked for resource 0. I don't know what that means");
         return resHandle;
-     }
+    }
 
     uint32_t res_base = ((resource_id - 1) * sizeof(ResHandle)) + 0xC;
 
@@ -98,7 +90,6 @@ ResHandle resource_get_handle_app(uint32_t resource_id, const struct file *file)
         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: WARN. Suspect res size %d", resHandle.size);
         while(1);
     }
-    xSemaphoreGive(_res_mutex);
 
     return resHandle;
 }
@@ -168,12 +159,7 @@ void resource_load_system(ResHandle resource_handle, uint8_t *buffer)
 //         return;
 //     }
     
-    xSemaphoreTake(_res_mutex, portMAX_DELAY);
-    
     flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
-    
-    xSemaphoreGive(_res_mutex);
-
 }
 
 /*

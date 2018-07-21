@@ -90,16 +90,17 @@ static void _print_pattern(const VibratePattern_t *pattern);
 /*
  * Initialize the vibration controller and tasks
  */
-void vibrate_init(void)
+uint8_t vibrate_init(void)
 {
     int rv;
-    
     hw_vibrate_init();
+    _vibrate_queue = xQueueCreate(VIBRATE_QUEUE_MAX_ITEMS, sizeof(VibratePattern_t*));
     
     rv = xTaskCreate(_vibrate_thread, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_vibrate_task); /* XXX: allocate statically later */
     assert(rv == pdPASS);
     
-    _vibrate_queue = xQueueCreate(VIBRATE_QUEUE_MAX_ITEMS, sizeof(VibratePattern_t*));
+    
+    return 0;
 }
 
 /**

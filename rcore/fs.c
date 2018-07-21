@@ -77,7 +77,7 @@ struct file_hdr_with_name {
 };
 
 static void _fs_read_file_hdr(int pg, struct file_hdr_with_name *p) {
-    hw_flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct file_hdr_with_name));
+    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct file_hdr_with_name));
 
     p->name[(MAX_FILENAME_LEN < p->hdr.filename_len) ? MAX_FILENAME_LEN : p->hdr.filename_len] = 0;
 }
@@ -128,7 +128,7 @@ void fs_init()
      * a fileystem here.  */
     _fs_read_file_hdr(0, &buffer);
     if (hdr->v_0x5001 != 0x5001) {
-        KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "this doesn't appear to be a Pebble filesystem");
+        KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "this doesn't appear to be a Pebble filesystem %x", hdr->v_0x5001);
         _fs_valid = 0;
         return;
     }

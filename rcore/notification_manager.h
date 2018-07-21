@@ -14,7 +14,7 @@
 #include "notification_message.h"
 
 /* internal init */
-void notification_init(void);
+uint8_t notification_init(void);
 
 /**
  * @brief Show a fullscreen message

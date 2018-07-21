@@ -11,7 +11,7 @@
 #include "rebbleos.h"
 #include "librebble.h"
 
-#define butDEBOUNCE_DELAY       ( portTICK_RATE_MS )
+#define butDEBOUNCE_DELAY       ( pdMS_TO_TICKS(2) )
 
 #define BUTTON_STATE_PRESSED    0
 #define BUTTON_STATE_RELEASED   1
@@ -28,7 +28,7 @@ typedef struct ButtonHolder {
     uint8_t state;
 } ButtonHolder;
 
-void rcore_buttons_init(void);
+uint8_t rcore_buttons_init(void);
 
 void button_single_click_subscribe(ButtonId button_id, ClickHandler handler);
 void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat_interval_ms, ClickHandler handler);

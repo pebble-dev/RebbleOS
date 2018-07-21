@@ -117,16 +117,16 @@ void stm32_usart_send_dma(stm32_usart_t *usart, uint32_t *data, size_t len)
     stm32_power_request(STM32_POWER_AHB1, usart->config->gpio_clock);
     stm32_power_request(STM32_POWER_AHB1, usart->dma->dma_clock);
     /* reset the DMA controller ready for tx */
-    stm32_dma_tx_reset(usart->dma);
+    stm32_dma_tx_disable(usart->dma);
     /* Turn off the USART DMA for initialisation */
     USART_DMACmd(usart->config->usart, USART_DMAReq_Tx, DISABLE);
     /* ready for DMA */
-    stm32_dma_tx_init(usart->dma, (void *)(&usart->config->usart->DR), data, len);
+    stm32_power_release(STM32_POWER_AHB1, usart->dma->dma_clock);
+    stm32_dma_tx_init(usart->dma, (void *)(&usart->config->usart->DR), (uint8_t *)data, len, 0);
     
     /* Turn on our USART and then the USART DMA */
     USART_Cmd(usart->config->usart, ENABLE);
     USART_DMACmd(usart->config->usart, USART_DMAReq_Tx, ENABLE);
-
     /* Lets go! */
     stm32_dma_tx_begin(usart->dma);
 }
@@ -144,12 +144,12 @@ void stm32_usart_recv_dma(stm32_usart_t *usart, uint32_t *data, size_t len)
     stm32_power_request(STM32_POWER_AHB1, usart->dma->dma_clock);
 
     /* reset the DMA controller ready for rx */
-    stm32_dma_rx_reset(usart->dma);
-
+    stm32_dma_rx_disable(usart->dma);
+    stm32_power_release(STM32_POWER_AHB1, usart->dma->dma_clock);
     USART_DMACmd(usart->config->usart, USART_DMAReq_Rx, DISABLE);
     
     /* init the DMA RX mode */
-    stm32_dma_rx_init(usart->dma, (void *)&usart->config->usart->DR, data, len);
+    stm32_dma_rx_init(usart->dma, (void *)&usart->config->usart->DR, (uint8_t *)data, len);
     USART_Cmd(usart->config->usart, ENABLE);
 
     USART_DMACmd(usart->config->usart, USART_DMAReq_Rx, ENABLE);
@@ -180,7 +180,6 @@ void stm32_usart_rx_isr(stm32_usart_t *usart, dma_callback callback)
     
     /* Trigger the recipient interrupt handler */
     callback();
-    stm32_power_release(STM32_POWER_AHB1, usart->dma->dma_clock);
 }
 
 /*
@@ -195,7 +194,6 @@ void stm32_usart_tx_isr(stm32_usart_t *usart, dma_callback callback)
 
     /* Trigger the stack's interrupt handler */
     callback();
-    stm32_power_release(STM32_POWER_AHB1, usart->dma->dma_clock);
 }
 
 

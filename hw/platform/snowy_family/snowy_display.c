@@ -24,6 +24,7 @@
 
 #define ROW_LENGTH    DISPLAY_COLS
 #define COLUMN_LENGTH DISPLAY_ROWS
+static uint8_t _frame_buffer[DISPLAY_ROWS * DISPLAY_COLS] CCRAM;
 static uint8_t _column_buffer[COLUMN_LENGTH];
 static uint8_t _display_ready;
 
@@ -33,10 +34,7 @@ void _snowy_display_splash(uint8_t scene);
 void _snowy_display_full_init(void);
 void _snowy_display_program_FPGA(void);
 void _snowy_display_send_frame(void);
-void _snowy_display_init_SPI6(void);
 void _snowy_display_cs(uint8_t enabled);
-uint8_t _snowy_display_SPI6_getver(uint8_t data);
-uint8_t _snowy_display_SPI6_send(uint8_t data);
 uint8_t _snowy_display_FPGA_reset(uint8_t mode);
 void _snowy_display_reset(uint8_t enabled);
 void _snowy_display_SPI_start(void);
@@ -47,6 +45,22 @@ void _snowy_display_dma_send(uint8_t *data, uint32_t len);
 void _snowy_display_next_column(uint8_t col_index);
 void _snowy_display_init_dma(void);
 static void _spi_tx_done(void);
+
+
+typedef struct {
+    GPIO_TypeDef *port_display;
+    uint32_t clock_display;
+    uint16_t pin_reset;
+    uint16_t pin_cs;   
+    uint16_t pin_miso;
+    uint16_t pin_mosi;
+    uint16_t pin_sck;
+    
+    // inputs
+    uint16_t pin_reset_done;
+    uint16_t pin_intn;    
+} display_t;
+
 
 // pointer to the place in flash where the FPGA image resides
 // extern unsigned char fpga_address; // _binary_Resources_FPGA_4_3_snowy_dumped_bin_start;
@@ -75,7 +89,7 @@ static void _spi_tx_done(void);
 
 
 // Display configuration for the Pebble TIME
-CCRAM display_t display = {
+static const display_t display = {
     .port_display    = GPIOG,
     .clock_display   = RCC_AHB1Periph_GPIOG,
     .pin_reset       = GPIO_Pin_15,
@@ -83,7 +97,6 @@ CCRAM display_t display = {
     .pin_miso        = GPIO_Pin_12,
     .pin_mosi        = GPIO_Pin_14,
     .pin_sck         = GPIO_Pin_13,
-    
     .pin_reset_done  = GPIO_Pin_9,
     .pin_intn        = GPIO_Pin_10,
 };
@@ -99,6 +112,7 @@ static const stm32_spi_config_t _spi6_config = {
     .gpio_clock        = RCC_AHB1Periph_GPIOG,
     .spi_clock         = RCC_APB2Periph_SPI6,
     .af                = GPIO_AF_SPI6,
+    .spi_prescaler     = SPI_BaudRatePrescaler_2,
     .crc_poly          = 7,
     .line_polarity     = SPI_CPOL_High,
     .txrx_dir          = STM32_SPI_DIR_RXTX
@@ -109,7 +123,7 @@ static const stm32_dma_t _spi6_dma = {
     .dma_tx_stream        = DMA2_Stream5,
     .dma_rx_stream        = DMA2_Stream6,
     .dma_tx_channel       = DMA_Channel_1,
-    .dma_rx_channel       = DMA_Channel_0,
+    .dma_rx_channel       = DMA_Channel_1,
     .dma_irq_tx_pri       = 9,
     .dma_irq_rx_pri       = 9,
     .dma_irq_tx_channel   = DMA2_Stream5_IRQn,
@@ -135,13 +149,12 @@ STM32_SPI_MK_TX_IRQ_HANDLER(&_spi6, 2, 5, _spi_tx_done)
  */
 void hw_display_init(void)
 {
-//     display.power_on = 0;
     _display_ready = 0;
 
     // init display variables
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
-    
+
     //GPIO_InitTypeDef gpio_init_structure;
     GPIO_InitTypeDef gpio_init_disp;
     GPIO_InitTypeDef gpio_init_disp_o;
@@ -172,11 +185,14 @@ void hw_display_init(void)
     GPIO_Init(display.port_display, &gpio_init_disp_o);       
         
     // start SPI
-    _snowy_display_init_SPI6();
-//     _snowy_display_init_dma();
+    stm32_spi_init_device(&_spi6);
+    
+    hw_display_start();
 
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
+
+    return;
 }
 
 
@@ -218,14 +234,6 @@ void _snowy_display_init_intn(void)
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
 
-/*
- * The display hangs off SPI6. Initialise it
- */
-void _snowy_display_init_SPI6(void)
-{
-    stm32_spi_init_device(&_spi6);
-}
-
 static void _snowy_display_request_clocks()
 {
 //     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_DMA2);
@@ -241,34 +249,11 @@ static void _snowy_display_release_clocks()
 }
 
 /*
- * Start a new Dma transfer
- *
- * Expects clocks to already be running!
- */
-void snowy_display_reinit_dma(uint32_t *data, uint32_t length)
-{
-//     _snowy_display_request_clocks();
-    stm32_spi_send_dma(&_spi6, data, length);
-}
-
-
-
-/*
  * DMA2 handler for SPI6
  */
 static void _spi_tx_done(void)
 {
     static uint8_t col_index = 0;
-
-    // check the tx finished
-    while (SPI_I2S_GetFlagStatus(SPI6, SPI_I2S_FLAG_TXE) == RESET)
-    {
-    };
-    
-    // make sure we are not busy
-    while (SPI_I2S_GetFlagStatus(SPI6, SPI_I2S_FLAG_BSY) == SET)
-    {
-    };
 
     // if we are finished sending  each column, then reset and stop
     if (col_index < ROW_LENGTH - 1)
@@ -279,15 +264,13 @@ static void _spi_tx_done(void)
         return;
     }
     // done. We are still in control of the SPI select, so lets let go
-    col_index = 0;
-    
+    col_index = 0;    
     
     _snowy_display_cs(0);
     _display_ready = 1;
     
     /* request_clocks in _snowy_display_start_frame */
     _snowy_display_release_clocks();
-    
     display_done_ISR(0);
 }
 
@@ -313,6 +296,7 @@ static void _spi_tx_done(void)
  */
 void _snowy_display_cs(uint8_t enabled)
 {
+    
     stm32_power_request(STM32_POWER_AHB1, display.clock_display);
 
     // CS bit is inverted
@@ -325,50 +309,13 @@ void _snowy_display_cs(uint8_t enabled)
 }
 
 /*
- * Request the version from the FPGA in bootloader mode
- */
-uint8_t _snowy_display_SPI6_getver(uint8_t data)
-{
-    while( !(SPI6->SR & SPI_I2S_FLAG_TXE) ); // wait until send complete
-    SPI6->DR = data; // write data to be transmitted to the SPI data register
-    while( !(SPI6->SR & SPI_I2S_FLAG_RXNE) ); // wait until send complete
-
-    return SPI6->DR; // return received data from SPI data register
-}
-
-/*
- * Send one byte over the SPI
- */
-uint8_t _snowy_display_SPI6_send(uint8_t data)
-{
-    SPI6->DR = data; // write data to be transmitted to the SPI data register
-    while( !(SPI6->SR & SPI_I2S_FLAG_TXE) ); // wait until transmit complete
-    while( !(SPI6->SR & SPI_I2S_FLAG_RXNE) ); // wait until receive complete
-    while( SPI6->SR & SPI_I2S_FLAG_BSY ); // wait until SPI is not busy anymore
-    return SPI6->DR; // return received data from SPI data register
-}
-
-/*
  * Given a column index, start the conversion of the display data and dma it
  */
 void _snowy_display_next_column(uint8_t col_index)
 {   
     // set the content
-    scanline_convert(_column_buffer, display.frame_buffer, col_index);
-    _snowy_display_dma_send(_column_buffer, COLUMN_LENGTH);
-}
-
-/*
- * Send n bytes over SPI using the DMA engine.
- * This will async run and call the ISR when complete
- */
-void _snowy_display_dma_send(uint8_t *data, uint32_t length)
-{
-    // re-initialise the DMA controller. prep for send
-    snowy_display_reinit_dma((uint32_t *)data, length);
-    DMA_Cmd(DMA2_Stream5, ENABLE);
-    
-    return;
+    scanline_convert(_column_buffer, _frame_buffer, col_index);
+    stm32_spi_send_dma(&_spi6, _column_buffer, COLUMN_LENGTH);
 }
 
 /*
@@ -416,10 +363,8 @@ uint8_t _snowy_display_FPGA_reset(uint8_t mode)
         
         if (k >=1001)
         {
-            char *err = "Timed out waiting for reset";
-            DRV_LOG("FPGA", APP_LOG_LEVEL_ERROR, err);
+            DRV_LOG("FPGA", APP_LOG_LEVEL_ERROR, "Timed out waiting for reset");
             _snowy_display_release_clocks();
-            assert(!err);
             return 0;
         }
     }
@@ -467,10 +412,11 @@ void _snowy_display_SPI_end(void)
 void _snowy_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
     _snowy_display_request_clocks();
-
+//     stm32_power_request(_spi6.config->spi_periph_bus, _spi6.config->spi_clock);
+    
     _snowy_display_cs(1);
     delay_us(10);
-    _snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
+    stm32_spi_write(&_spi6, DISPLAY_CTYPE_FRAME); // Frame Begin
     _snowy_display_cs(0);
     delay_us(250);
 
@@ -505,7 +451,7 @@ void _snowy_display_send_frame_slow()
     
     _snowy_display_cs(1);
     delay_us(50);
-    _snowy_display_SPI6_send(DISPLAY_CTYPE_FRAME); // Frame Begin
+    stm32_spi_write(&_spi6, DISPLAY_CTYPE_FRAME); // Frame Begin
     _snowy_display_cs(0);
     delay_us(10);
     
@@ -514,9 +460,9 @@ void _snowy_display_send_frame_slow()
     // send via standard SPI
     for(uint8_t x = 0; x < DISPLAY_COLS; x++)
     {
-        scanline_convert(_column_buffer, display.frame_buffer, x);
+        scanline_convert(_column_buffer, _frame_buffer, x);
         for (uint8_t j = 0; j < DISPLAY_ROWS; j++)
-            _snowy_display_SPI6_send(_column_buffer[j]);
+            stm32_spi_write(&_spi6, _column_buffer[j]);
     }   
     
     _snowy_display_cs(0);
@@ -599,16 +545,18 @@ void _snowy_display_full_init(void)
 void _snowy_display_program_FPGA(void)
 {
     unsigned char *fpga_blob = DISPLAY_FPGA_ADDR;
-           
+
+    _snowy_display_request_clocks();
     _snowy_display_cs(1);
     
     // Do this with good ol manual SPI for reliability
     for (uint32_t i = 0; i < (uint32_t)DISPLAY_FPGA_SIZE; i++)
     {
-        _snowy_display_SPI6_send(*(fpga_blob + i));
+        stm32_spi_write(&_spi6, *(fpga_blob + i));
     }
     
     _snowy_display_cs(0);
+    _snowy_display_release_clocks();
     
     DRV_LOG("Display", APP_LOG_LEVEL_DEBUG, "FPGA bin uploaded");
 }
@@ -625,7 +573,7 @@ void hw_display_on()
     _snowy_display_request_clocks();
 
     _snowy_display_SPI_start();
-    _snowy_display_SPI6_send(DISPLAY_CTYPE_DISPLAY_ON); // Power on
+    stm32_spi_write(&_spi6, DISPLAY_CTYPE_DISPLAY_ON); // Power on
     _snowy_display_SPI_end();
     
     _snowy_display_release_clocks();
@@ -641,7 +589,7 @@ void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset)
 
 uint8_t *hw_display_get_buffer(void)
 {
-    return display.frame_buffer;
+    return _frame_buffer;
 }
 
 uint8_t hw_display_is_ready()

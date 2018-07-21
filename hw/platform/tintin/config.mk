@@ -23,6 +23,9 @@ SRCS_tintin += $(SRCS_bt)
 SRCS_tintin += $(SRCS_driver_stm32_bluetooth_cc256x)
 
 SRCS_tintin += hw/platform/tintin/tintin.c
+SRCS_tintin += hw/platform/tintin/tintin_display.c
+SRCS_tintin += hw/platform/tintin/tintin_bluetooth.c
+SRCS_tintin += hw/platform/tintin/tintin_flash.c
 SRCS_tintin += hw/platform/tintin/tintin_asm.s
 
 LDFLAGS_tintin = $(LDFLAGS_stm32f2xx)
