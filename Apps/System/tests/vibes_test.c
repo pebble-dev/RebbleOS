@@ -32,7 +32,7 @@ static void _vibes_test_tick(struct tm *tick_time, TimeUnits tick_units);
 
 bool vibes_test_init(Window *window)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_ERROR, "Init: Vibes Test");
+    APP_LOG("test", APP_LOG_LEVEL_ERROR, "Init: Vibes Test");
     _main_window = window;
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_bounds(window_layer);
@@ -48,7 +48,7 @@ bool vibes_test_init(Window *window)
 
 bool vibes_test_exec(void)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_ERROR, "Exec: Vibes Test");
+    APP_LOG("test", APP_LOG_LEVEL_ERROR, "Exec: Vibes Test");
 
     //Reset test variables
     _current_test = 0;
@@ -59,7 +59,7 @@ bool vibes_test_exec(void)
 
 bool vibes_test_deinit(void)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_ERROR, "De-Init: Vibes Test");
+    APP_LOG("test", APP_LOG_LEVEL_ERROR, "De-Init: Vibes Test");
     tick_timer_service_unsubscribe();
     text_layer_destroy(_output_text_layer);
 
@@ -77,7 +77,7 @@ bool vibes_test_deinit(void)
 static void _vibes_test_short_vibe(){
     switch (_current_tick){
         case 1:
-            SYS_LOG("test", APP_LOG_LEVEL_ERROR, "SHORT VIBE");
+            APP_LOG("test", APP_LOG_LEVEL_ERROR, "SHORT VIBE");
             text_layer_set_text(_output_text_layer, "Short Vibe");
             window_dirty(_main_window);
             break;
@@ -92,7 +92,7 @@ static void _vibes_test_short_vibe(){
 static void _vibes_test_long_vibe(){
     switch (_current_tick){
         case 1:
-            SYS_LOG("test", APP_LOG_LEVEL_ERROR, "LONG VIBE");
+            APP_LOG("test", APP_LOG_LEVEL_ERROR, "LONG VIBE");
             text_layer_set_text(_output_text_layer, "Long Vibe");
             window_dirty(_main_window);
             break;
@@ -107,7 +107,7 @@ static void _vibes_test_long_vibe(){
 static void _vibes_test_double_vibe(){
     switch (_current_tick) {
         case 1:
-            SYS_LOG("test", APP_LOG_LEVEL_ERROR, "DOUBLE VIBE");
+            APP_LOG("test", APP_LOG_LEVEL_ERROR, "DOUBLE VIBE");
             text_layer_set_text(_output_text_layer, "Double Vibe");
             window_dirty(_main_window);
             break;
@@ -122,7 +122,7 @@ static void _vibes_test_double_vibe(){
 static void _vibes_test_custom_vibe(){
     switch (_current_tick) {
         case 1:
-            SYS_LOG("test", APP_LOG_LEVEL_ERROR, "CUSTOM VIBE");
+            APP_LOG("test", APP_LOG_LEVEL_ERROR, "CUSTOM VIBE");
             text_layer_set_text(_output_text_layer, "Custom Vibe");
             window_dirty(_main_window);
             break;

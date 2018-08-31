@@ -179,7 +179,7 @@ void _test_progress(bool is_from_overlay)
     }
     if(_test_stage == 3)
     {
-        SYS_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 3");
+        APP_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 3");
         /* two windows */
         if (!_test_overlay_creation2())
             return;
@@ -187,21 +187,21 @@ void _test_progress(bool is_from_overlay)
     }
     if(_test_stage == 4&& _total_elapsed > 5)
     {
-        SYS_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 4");
+        APP_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 4");
         if (!_test_overlay_destroy())
             return;
         _test_stage++;
     }
     if(_test_stage == 5 && _total_elapsed > 7)
     {
-        SYS_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 5");
+        APP_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 5");
         if (!_test_overlay_destroy2())
             return;
         _test_stage++;
     }
     if(_test_stage == 6 && _total_elapsed > 9)
     {
-        SYS_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 6");
+        APP_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 6");
         if (!_test_overlay_notif())
         {
             return;
@@ -210,7 +210,7 @@ void _test_progress(bool is_from_overlay)
     }
     if(_test_stage == 7 && _total_elapsed > 12)
     {
-        SYS_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 7");
+        APP_LOG("ovltst", APP_LOG_LEVEL_ERROR, "===== TEST 7");
         if (!_test_overlay_notif_destroy())
             return;
         _test_complete = true;
@@ -225,7 +225,7 @@ void _test_progress(bool is_from_overlay)
 
 bool overlay_test_init(Window *window)
 {
-    SYS_LOG("ovltst", APP_LOG_LEVEL_ERROR, "Init: Overlay Test");
+    APP_LOG("ovltst", APP_LOG_LEVEL_ERROR, "Init: Overlay Test");
     _main_window = window;
     _test_complete = false;
     /* tests will have a partial overlay */
@@ -247,7 +247,7 @@ bool overlay_test_init(Window *window)
 
 bool overlay_test_exec(void)
 {
-    SYS_LOG("ovltst", APP_LOG_LEVEL_ERROR, "Exec: Overlay Test");
+    APP_LOG("ovltst", APP_LOG_LEVEL_ERROR, "Exec: Overlay Test");
         
     _test_progress(false);
     return true;
@@ -255,7 +255,7 @@ bool overlay_test_exec(void)
 
 bool overlay_test_deinit(void)
 {
-    SYS_LOG("ovltst", APP_LOG_LEVEL_ERROR, "De-Init: Overlay Test");
+    APP_LOG("ovltst", APP_LOG_LEVEL_ERROR, "De-Init: Overlay Test");
     layer_remove_from_parent(_test_layer);
     layer_remove_from_parent(_overlay_layer);
     
@@ -311,7 +311,7 @@ static void _overlayer_update(Layer *layer, GContext *ctx)
 
 static void _creation_callback(OverlayWindow *overlay_window, Window *window)
 {
-    SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Overlay Create CB");
+    APP_LOG("overlay", APP_LOG_LEVEL_INFO, "Overlay Create CB");
     _overlay_window = overlay_window;
     
     window->background_color = GColorClear;

@@ -6,13 +6,13 @@
 
 bool test_test_init(Window *window)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_ERROR, "Init: Test Test");
+    APP_LOG("test", APP_LOG_LEVEL_ERROR, "Init: Test Test");
     return true;
 }
 
 bool test_test_exec(void)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_ERROR, "Exec: Test Test");
+    APP_LOG("test", APP_LOG_LEVEL_ERROR, "Exec: Test Test");
     /* lets do some asserting */
     test_assert(1 == 1);
 
@@ -23,6 +23,6 @@ bool test_test_exec(void)
 
 bool test_test_deinit(void)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_ERROR, "De-Init: Test Test");
+    APP_LOG("test", APP_LOG_LEVEL_ERROR, "De-Init: Test Test");
     return true;
 }

@@ -33,7 +33,7 @@ static Time s_last_time;
 
 static void nivz_window_load(Window *window)
 {
-    printf("WF load\n");
+    APP_LOG("nivz", APP_LOG_LEVEL_DEBUG, "WF load");
     Layer *window_layer = window_get_root_layer(s_main_window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
@@ -60,7 +60,7 @@ static void nivz_window_unload(Window *window)
 // tick
 void nivz_tick(struct tm *tick_time, TimeUnits tick_units)
 {   
-    printf("appmain\n");
+    APP_LOG("nivz", APP_LOG_LEVEL_DEBUG, "appmain");
     // Store time
     s_last_time.hours = tick_time->tm_hour;
     s_last_time.minutes = tick_time->tm_min;
@@ -75,7 +75,7 @@ void nivz_tick(struct tm *tick_time, TimeUnits tick_units)
 
 void nivz_init(void)
 {
-    printf("init\n");
+    APP_LOG("nivz", APP_LOG_LEVEL_DEBUG, "init");
     s_main_window = window_create();
     
     window_set_window_handlers(s_main_window, (WindowHandlers) {

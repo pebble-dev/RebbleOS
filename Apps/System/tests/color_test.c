@@ -83,7 +83,7 @@ static const uint8_t colors[] = {
 
 bool color_test_init(Window *window)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "Init: Color Test");
+    APP_LOG("test", APP_LOG_LEVEL_DEBUG, "Init: Color Test");
     _main_window = window;
     Layer *window_layer = window_get_root_layer(window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
@@ -97,13 +97,13 @@ bool color_test_init(Window *window)
 
 bool color_test_exec(void)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "Exec: Color Test");
+    APP_LOG("test", APP_LOG_LEVEL_DEBUG, "Exec: Color Test");
     return true;
 }
 
 bool color_test_deinit(void)
 {
-    SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "De-Init: Color Test");
+    APP_LOG("test", APP_LOG_LEVEL_DEBUG, "De-Init: Color Test");
     layer_remove_from_parent(_test_layer);
     if (_test_layer != NULL)
         layer_destroy(_test_layer);
@@ -113,7 +113,7 @@ bool color_test_deinit(void)
 
 static void _color_test_layer_update_proc(Layer *layer, GContext *ctx) 
 {
-    SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "DRAW");
+    APP_LOG("test", APP_LOG_LEVEL_DEBUG, "DRAW");
     // 9 x 42
     // 16 * 4
     int i = 0;

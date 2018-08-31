@@ -29,12 +29,12 @@ static Time s_last_time;
 
 static void play_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    printf("UP\n");
+    APP_LOG("test",APP_LOG_LEVEL_DEBUG,"UP");
 }
 
 static void pause_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    printf("DOWN\n");
+    APP_LOG("test",APP_LOG_LEVEL_DEBUG,"DOWN");
 }
 
 static void click_config_provider(void *context)
@@ -49,7 +49,7 @@ static void click_config_provider(void *context)
 
 static void test_window_load(Window *window)
 {
-    printf("WF load\n");
+    APP_LOG("test",APP_LOG_LEVEL_DEBUG,"WF load");
     
     Layer *window_layer = window_get_root_layer(s_main_window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
@@ -90,7 +90,7 @@ static void test_window_unload(Window *window)
 
 void test_init(void)
 {
-    printf("init\n");
+    APP_LOG("test",APP_LOG_LEVEL_DEBUG,"init");
     s_main_window = window_create();
 
     window_set_window_handlers(s_main_window, (WindowHandlers) {
@@ -117,7 +117,7 @@ void test_tick(void)
 {
     struct tm *tick_time = rbl_get_tm();
     
-    printf("system\n");
+    APP_LOG("test",APP_LOG_LEVEL_DEBUG,"system");
     // Store time
     s_last_time.hours = tick_time->tm_hour;
     s_last_time.hours -= (s_last_time.hours > 12) ? 12 : 0;

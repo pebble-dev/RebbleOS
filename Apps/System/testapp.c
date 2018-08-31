@@ -113,7 +113,7 @@ static bool _window_initialised = false;
  */
 void test_complete(bool success)
 {
-    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] TC Test Complete: %s",
+    APP_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] TC Test Complete: %s",
             success ? "PASS" : "FAIL", _running_test->test_name);
     _running_test->success = success;
 
@@ -138,7 +138,7 @@ void test_set_success(bool success)
 {
     if (!_running_test->success)
         return;
-    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] Test Complete: %s",
+    APP_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] Test Complete: %s",
             success ? "PASS" : "FAIL", _running_test->test_name);
     _running_test->success = success;
 }
@@ -146,7 +146,7 @@ void test_set_success(bool success)
 /* Just flag the test as completed in whatever state it is in */
 bool _test_pass(bool pass, char *msg)
 {
-    SYS_LOG("tstapp", pass ? APP_LOG_LEVEL_INFO : APP_LOG_LEVEL_ERROR, msg);
+    APP_LOG("tstapp", pass ? APP_LOG_LEVEL_INFO : APP_LOG_LEVEL_ERROR, msg);
     test_set_success(pass);
     return pass;
 }
@@ -215,12 +215,12 @@ void test_select_single_click_handler(ClickRecognizerRef recognizer, void *conte
 
 void test_up_single_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    SYS_LOG("tstapp", APP_LOG_LEVEL_WARNING, "Up handler not implemented");
+    APP_LOG("tstapp", APP_LOG_LEVEL_WARNING, "Up handler not implemented");
 }
 
 void test_down_single_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    SYS_LOG("tstapp", APP_LOG_LEVEL_WARNING, "Down handler not implemented");
+    APP_LOG("tstapp", APP_LOG_LEVEL_WARNING, "Down handler not implemented");
 }
 
 
@@ -243,10 +243,10 @@ static void testapp_exec_window_load(Window *window)
 
 static void testapp_exec_window_unload(Window *window)
 {
-    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "Test Cleanup");
+    APP_LOG("tstapp", APP_LOG_LEVEL_ERROR, "Test Cleanup");
     _running_test->test_deinit(_test_window);
 
-    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] Test Complete: %s",
+    APP_LOG("tstapp", APP_LOG_LEVEL_ERROR, "[%s] Test Complete: %s",
             _running_test->success ? "PASS" : "FAIL", _running_test->test_name);
     _running_test = NULL;
 
@@ -270,7 +270,7 @@ static MenuItems* test_test_item_selected(const MenuItem *item)
         .unload = testapp_exec_window_unload,
     });
 
-    SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "Running Test: %s", test->test_name);
+    APP_LOG("tstapp", APP_LOG_LEVEL_ERROR, "Running Test: %s", test->test_name);
     _running_test = test;
     test->test_init(_test_window);
     test->run_count++;
@@ -284,7 +284,7 @@ static void exit_to_watchface(struct Menu *menu, void *context)
 {
     if (_running_test)
     {
-        SYS_LOG("tstapp", APP_LOG_LEVEL_ERROR, "Test still running?");
+        APP_LOG("tstapp", APP_LOG_LEVEL_ERROR, "Test still running?");
         test_complete(_running_test->success);
     }
 
@@ -353,7 +353,7 @@ static void testapp_window_load(Window *window)
 
 void _testapp_start_test_callback(void *data)
 {
-    SYS_LOG("tstapp", APP_LOG_LEVEL_INFO, "Executing test");
+    APP_LOG("tstapp", APP_LOG_LEVEL_INFO, "Executing test");
     app_timer_cancel(_test_exec_timer);
     _running_test->success = true;
     _running_test->test_execute();
