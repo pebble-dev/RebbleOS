@@ -11,6 +11,7 @@
 #include "status_bar_layer.h"
 #include "platform_config.h"
 #include "platform_res.h"
+#include "node_list.h"
 
 extern void flash_dump(void);
 
@@ -61,19 +62,17 @@ static MenuItems* notification_item_selected(const MenuItem *item)
 static MenuItems* watch_list_item_selected(const MenuItem *item) {
     MenuItems *items = menu_items_create(16);
     // loop through all apps
-    App *node = app_manager_get_apps_head();
-    while(node)
+    list_head * app_head = app_manager_get_apps_head();
+    App * app;
+    list_foreach(app, app_head, App, node)
     {
-        if ((!strcmp(node->name, "System")) ||
+        if ((!strcmp(app->name, "System")) ||
             //             (!strcmp(node->name, "91 Dub 4.0")) ||
-            (!strcmp(node->name, "watchface")))
+            (!strcmp(app->name, "watchface")))
         {
-            node = node->next;
             continue;
         }
-        menu_items_add(items, MenuItem(node->name, NULL, RESOURCE_ID_CLOCK, app_item_selected));
-
-        node = node->next;
+        menu_items_add(items, MenuItem(app->name, NULL, RESOURCE_ID_CLOCK, app_item_selected));
     }
     return items;
 }

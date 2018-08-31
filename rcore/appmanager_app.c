@@ -13,6 +13,7 @@
 #include "test.h"
 #include "notification.h"
 #include "test_defs.h"
+#include "node_list.h"
 
 static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
@@ -52,8 +53,7 @@ struct appdb
     uint8_t unk_arr[32]; // always blank
 } __attribute__((__packed__));
 
-static App *_app_manifest_head;
-
+static list_head _app_manifest_head = LIST_HEAD(_app_manifest_head);
 /*
  * Load any pre-existing apps into the manifest, search for any new ones and then start up
  */
@@ -95,7 +95,6 @@ static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, 
     app->main = (void*)entry_point;
     app->type = type;
     app->header = NULL;
-    app->next = NULL;
     app->app_file = *app_file;
     app->resource_file = *resource_file;
     app->is_internal = is_internal;
@@ -197,28 +196,22 @@ static void _appmanager_flash_load_app_manifest(void)
  */
 static void _appmanager_add_to_manifest(App *app)
 {  
-    if (_app_manifest_head == NULL)
+    list_init_node(&app->node);
+    if (list_get_head(&_app_manifest_head) == NULL)
     {
-        _app_manifest_head = app;
+        list_insert_head(&_app_manifest_head, &app->node);
         return;
     }
     
-    App *child = _app_manifest_head;
-    
-    // now find the last node
-    while(child->next)
-        child = child->next;
-    
-    // link the node to the last child
-    child->next = app;
+    list_insert_tail(&_app_manifest_head,&app->node);
 }
 
 /*
  * Get the top level node for the app manifest
  */
-App *app_manager_get_apps_head()
+list_head *app_manager_get_apps_head()
 {
-    return _app_manifest_head;
+    return &_app_manifest_head;
 }
 
 /*
@@ -226,21 +219,17 @@ App *app_manager_get_apps_head()
  */
 App *appmanager_get_app(char *app_name)
 {
-    // find the app
-    App *node = _app_manifest_head;
-    
-    // now find the matching
-    while(node)
-    {
-        if (!strncmp(node->name, (char *)app_name, strlen(node->name)))
+   // find the app
+   App * app;
+   // now find the matching
+   list_foreach(app, &_app_manifest_head, App, node)
+   {
+        if (!strncmp(app->name, (char *)app_name, strlen(app->name)))
         {
             // match!
-            return node;
+            return app;
         }
-
-        node = node->next;
-    }
-    
-    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "NO App Found %s", app_name);
-    return NULL;
+   }
+   KERN_LOG("app", APP_LOG_LEVEL_ERROR, "NO App Found %s", app_name);
+   return NULL;
 }

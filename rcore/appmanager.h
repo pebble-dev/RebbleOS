@@ -13,6 +13,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "qalloc.h"
+#include "node_list.h"
 #include <stdbool.h>
 
 // TODO     Make this dynamic. hacky 
@@ -97,7 +98,7 @@ typedef struct App {
     char *name;
     ApplicationHeader *header;
     AppMainHandler main; // A shortcut to main
-    struct App *next;
+    list_node node; 
 } App;
 
 typedef struct AppTypeHeader {
@@ -187,7 +188,7 @@ AppThreadType appmanager_get_thread_type(void);
 /* in appmanager_app_runloop.c */
 void appmanager_app_runloop_init(void);
 void appmanager_app_main_entry(void);
-App *app_manager_get_apps_head();
+list_head *app_manager_get_apps_head();
 void appmanager_post_button_message(ButtonMessage *bmessage);
 void appmanager_post_draw_message(uint32_t timeout_ms);
 void appmanager_post_draw_display_message(uint8_t *draw_to_display);
