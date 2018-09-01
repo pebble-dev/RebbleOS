@@ -442,6 +442,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                         rfcomm_channel_id = rfcomm_event_channel_opened_get_rfcomm_cid(packet);
                         mtu = rfcomm_event_channel_opened_get_max_frame_size(packet);
                         SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel open succeeded. New RFCOMM Channel ID %d, max frame size %d", rfcomm_channel_id, mtu);
+                        bluetooth_device_connected();
                     }
                     break;
 
@@ -453,6 +454,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                 case RFCOMM_EVENT_CHANNEL_CLOSED:
                     SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM channel closed");
                     rfcomm_channel_id = 0;
+                    bluetooth_device_disconnected();
                     break;
                 
                 default:

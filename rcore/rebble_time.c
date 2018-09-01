@@ -11,6 +11,8 @@
 static TickType_t _boot_ticks;
 static time_t _boot_time_t;
 
+static struct tm _global_tm;
+
 void rcore_time_init(void)
 {
     struct tm *tm;
@@ -46,15 +48,11 @@ TickType_t rcore_time_to_ticks(time_t t, uint16_t ms) {
     return (t - _boot_time_t) * configTICK_RATE_HZ + pdMS_TO_TICKS(ms);
 }
 
-size_t rcore_strftime(char* buffer, size_t maxSize, const char* format, const struct tm* tm) {
-    return strftime(buffer, maxSize, format, tm);
-}
-
 /*
  * Get the time as a tm struct
  */
 /* XXX need one struct tm per app */
-static struct tm _global_tm;
+
 struct tm *rebble_time_get_tm(void)
 {
     time_t tm;
@@ -74,6 +72,21 @@ uint16_t pbl_time_deprecated(time_t *tloc)
         *tloc = _tm;
     
     return _ms;
+}
+
+time_t pbl_time_t_deprecated(time_t *tloc)
+{
+    /* XXX time zones: utc vs local time */
+    uint16_t _ms;
+    time_t _tm;
+    
+    rcore_time_ms(&_tm, NULL);
+    rcore_localtime(&_global_tm, _tm);
+
+    if (tloc)
+        *tloc = _tm;
+    
+    return _tm;
 }
 
 uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms)

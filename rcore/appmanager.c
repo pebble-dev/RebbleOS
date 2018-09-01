@@ -581,8 +581,3 @@ static void _appmanager_thread_init(void *thread_handle)
     ((VoidFunc)thread->thread_entry)();
 }
 
-/* Some stubs below for testing etc */
-void api_unimpl(void)
-{
-    while(1);
-}

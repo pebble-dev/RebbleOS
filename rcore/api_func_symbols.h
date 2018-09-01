@@ -268,7 +268,6 @@ UNIMPL(_gbitmap_sequence_restart);
 UNIMPL(_gbitmap_sequence_set_play_count);
 UNIMPL(_gbitmap_sequence_update_bitmap_by_elapsed);
 UNIMPL(_graphics_draw_rotated_bitmap);
-UNIMPL(_time);
 UNIMPL(_difftime);
 UNIMPL(_time_ms);
 UNIMPL(_gcolor_legible_over);
@@ -626,7 +625,7 @@ const VoidFunc sym[] = {
     [516] = (VoidFunc)property_animation_create_bounds_origin,                                 // property_animation_create_bounds_origin@00000810
     [517] = (VoidFunc)property_animation_update_uint32,                                        // property_animation_update_uint32@00000814
     [518] = (VoidFunc)gpath_draw_app,                                                          // gpath_draw_outline_open@00000818
-
+    [519] = (VoidFunc)pbl_time_t_deprecated,                                                     // time@0000081c
     [520] = (VoidFunc)menu_layer_set_highlight_colors,                                         // menu_layer_set_highlight_colors@00000820
     [521] = (VoidFunc)menu_layer_set_normal_colors,                                            // menu_layer_set_normal_colors@00000824
     [522] = (VoidFunc)menu_layer_set_callbacks,                                                // menu_layer_set_callbacks@00000828
@@ -674,6 +673,7 @@ const VoidFunc sym[] = {
     [598] = (VoidFunc)menu_layer_is_index_selected,                                            // menu_layer_is_index_selected@00000958
     
     [622] = (VoidFunc)layer_get_unobstructed_bounds,
+    [627] = (VoidFunc)rocky_event_loop_with_resource,
     
     /* These functions are not yet implemented */
     
@@ -934,7 +934,6 @@ const VoidFunc sym[] = {
     [443] = (UnimplFunc)_gbitmap_sequence_set_play_count,                                      // gbitmap_sequence_set_play_count@000006ec
     [457] = (UnimplFunc)_gbitmap_sequence_update_bitmap_by_elapsed,                            // gbitmap_sequence_update_bitmap_by_elapsed@00000724
     [460] = (UnimplFunc)_graphics_draw_rotated_bitmap,                                         // graphics_draw_rotated_bitmap@00000730
-    [519] = (UnimplFunc)_time,                                                                 // time@0000081c
     [531] = (UnimplFunc)_difftime,                                                             // difftime@0000084c
     [532] = (UnimplFunc)_time_ms,                                                              // time_ms@00000850
     [533] = (UnimplFunc)_gcolor_legible_over,                                                  // gcolor_legible_over@00000854
