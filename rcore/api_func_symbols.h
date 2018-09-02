@@ -322,6 +322,23 @@ UNIMPL(_health_service_metric_averaged_accessible);
 UNIMPL(_health_service_sum_averaged);
 UNIMPL(_health_service_get_measurement_system_for_display);
 UNIMPL(_gdraw_command_frame_get_command_list);
+UNIMPL(_unimpl613);
+UNIMPL(_unimpl614);
+UNIMPL(_unimpl615);
+UNIMPL(_unimpl616);
+UNIMPL(_unimpl617);
+UNIMPL(_unimpl618);
+UNIMPL(_unimpl619);
+UNIMPL(_unimpl620);
+UNIMPL(_unimpl621);
+UNIMPL(_unimpl623);
+UNIMPL(_unimpl624);
+UNIMPL(_unimpl625);
+UNIMPL(_unimpl626);
+UNIMPL(_unimpl628);
+UNIMPL(_unimpl629);
+UNIMPL(_unimpl630);
+UNIMPL(_unimpl631);
 
 const VoidFunc sym[] = {
 
@@ -986,5 +1003,22 @@ const VoidFunc sym[] = {
     [609] = (UnimplFunc)_health_service_metric_averaged_accessible,                            // health_service_metric_averaged_accessible@00000984
     [610] = (UnimplFunc)_health_service_sum_averaged,                                          // health_service_sum_averaged@00000988
     [611] = (UnimplFunc)_health_service_get_measurement_system_for_display,                    // health_service_get_measurement_system_for_display@0000098c
-    [612] = (UnimplFunc)_gdraw_command_frame_get_command_list,                                 // gdraw_command_frame_get_command_list@00000990
+    [612] = (UnimplFunc)_gdraw_command_frame_get_command_list,                                 // gdraw_command_frame_get_command_list@00000990 
+    [613] = (UnimplFunc)_unimpl613,
+    [614] = (UnimplFunc)_unimpl614,
+    [615] = (UnimplFunc)_unimpl615,
+    [616] = (UnimplFunc)_unimpl616,
+    [617] = (UnimplFunc)_unimpl617,
+    [618] = (UnimplFunc)_unimpl618,
+    [619] = (UnimplFunc)_unimpl619,
+    [620] = (UnimplFunc)_unimpl620,
+    [621] = (UnimplFunc)_unimpl621,
+    [623] = (UnimplFunc)_unimpl623,
+    [624] = (UnimplFunc)_unimpl624,
+    [625] = (UnimplFunc)_unimpl625,
+    [626] = (UnimplFunc)_unimpl626,
+    [628] = (UnimplFunc)_unimpl628,
+    [629] = (UnimplFunc)_unimpl629,
+    [630] = (UnimplFunc)_unimpl630,
+    [631] = (UnimplFunc)_unimpl631,
 };
