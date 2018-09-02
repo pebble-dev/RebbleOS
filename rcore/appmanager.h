@@ -113,8 +113,6 @@ typedef struct AppTypeHeader {
 #define APP_QUIT         1
 #define APP_TICK         2
 #define APP_DRAW         3
-#define APP_DRAW_DONE    4
-#define APP_DISPLAY_DONE 5
 
 #define APP_TYPE_SYSTEM  0
 #define APP_TYPE_FACE    1

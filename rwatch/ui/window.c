@@ -15,7 +15,6 @@
 
 static list_head _window_list_head = LIST_HEAD(_window_list_head);
 
-static void _window_unload_proc(Window *window);
 static void _window_load_proc(Window *window);
 
 static bool _anim_direction_left = true;
@@ -292,11 +291,7 @@ void window_destroy(Window *window)
     /* and now the window */
     app_free(window);
     
-
-    if (appmanager_get_thread_type() == AppThreadOverlay)
-        _count = overlay_window_count();
-    else
-        _count = window_count();  
+    _count = window_count();  
     
     if (_count == 0)
     {
@@ -391,12 +386,8 @@ void window_draw(void)
     if (wind && wind->is_render_scheduled)
     {
         rbl_window_draw(wind);
+        wind->is_render_scheduled = false;
     }
-
-    /* This will be deferred to the overlay renderer */
-    overlay_window_draw(wind && wind->is_render_scheduled);
-        
-    wind->is_render_scheduled = false;
 }
 
 

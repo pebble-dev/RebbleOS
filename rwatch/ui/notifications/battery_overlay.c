@@ -8,13 +8,24 @@ static void _batt_window_unload(Window *window);
 static void _draw_battery(Layer *layer, GContext *ctx);
 
 void battery_overlay_display(OverlayWindow *overlay, Window *window)
-{      
-    window->background_color = GColorClear;
-    
+{
+    if (_visible)
+    {
+        /* if we are already visible, just request a redraw */
+        window_dirty(true);
+        return;
+    }
+    _visible = true;
+
     window_set_window_handlers(window, (WindowHandlers) {
         .load = _batt_window_load,
         .unload = _batt_window_unload,
     });
+}
+
+bool battery_overlay_visible(void)
+{
+    return _visible;
 }
 
 void battery_overlay_destroy(OverlayWindow *overlay, Window *window)

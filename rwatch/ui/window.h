@@ -93,3 +93,5 @@ void rbl_window_draw(Window *window);
 uint16_t window_count(void);
 void window_configure(Window *window);
 void window_load_click_config(Window *window);
+
+void _window_unload_proc(Window *window);

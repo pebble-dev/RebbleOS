@@ -197,6 +197,7 @@ void app_event_loop(void)
                 /* app was quit, break out of this loop into the main handler */
                 break;
             }
+
             /* A draw is requested. Get a lock and then draw. if we can't lock we..
              * try, try, try again
              */
@@ -209,34 +210,18 @@ void app_event_loop(void)
                 if (display_buffer_lock_take(0))
                 {
                     window_draw();
+                    if (overlay_window_count() > 0)
+                        overlay_window_draw(true);
+                    
+                    display_draw();
+                    display_buffer_lock_give();
                 }
                 else
                 {
                     /* We didn't get the mutex. Set a flag for when the draw completes */
-                    draw_requested = true;
-                }
-                continue;
-            }
-            /* Buffer is full from all drawing threads. If there are changes, 
-             * we request a display draw, otherwise we wait
-             */
-            else if (data.message_type_id == APP_DRAW_DONE)
-            {
-                uint8_t should_draw = (uint8_t)*((uint8_t *)data.payload);
-                if (should_draw == 1)
-                    display_draw();
-                else
-                    display_buffer_lock_give();
-            }
-            else if (data.message_type_id == APP_DISPLAY_DONE)
-            {
-                if (draw_requested)
-                {
-                    draw_requested = false;
+                    KERN_LOG("app", APP_LOG_LEVEL_INFO, "draw deferred");
                     appmanager_post_draw_message(0);
                 }
-
-                display_buffer_lock_give();
                 continue;
             }
         } else {
