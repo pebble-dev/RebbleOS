@@ -28,3 +28,16 @@ void delay_ms(uint32_t ms)
     vTaskDelay(pdMS_TO_TICKS(ms));
     return;   
 }
+
+uint32_t map_range(uint32_t input, uint32_t input_start, uint32_t input_end, uint32_t output_start, uint32_t output_end)
+{
+    int32_t input_range = input_end - input_start;
+    int32_t output_range = output_end - output_start;
+
+    int32_t output = (((input - input_start) * output_range) / (input_range + output_start));
+    if (output < 0)
+        output = output_start;
+    if (output > output_end)
+        output = output_end;
+    return output;
+}

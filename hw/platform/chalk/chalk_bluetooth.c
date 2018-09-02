@@ -5,8 +5,8 @@
  * Stubs for features not yet enabled on this platform
  */
 
-void hw_bluetooth_init() {
-    rebbleos_module_set_status(MODULE_BLUETOOTH, MODULE_DISABLED, MODULE_ERROR);
+uint8_t hw_bluetooth_init() {
+    
 }
 
 void bt_device_request_tx() {

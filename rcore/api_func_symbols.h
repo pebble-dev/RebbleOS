@@ -2,6 +2,8 @@
 #include "rebbleos.h"
 #include "librebble.h"
 #include "graphics_wrapper.h"
+#include "battery_state_service.h"
+
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
 ResHandle *resource_get_handle_proxy(uint16_t resource_id);
 bool persist_exists(void);
@@ -11,7 +13,7 @@ typedef void (*VoidFunc)(void);
 typedef void (*UnimplFunc)(void);
 
 
-#define UNIMPL(FN) void FN(){ printf("== Unimplemented: %s ==\n", __func__); }
+#define UNIMPL(FN) void FN(){ SYS_LOG("API", APP_LOG_LEVEL_WARNING, "== Unimplemented: %s ==\n", __func__); }
 UNIMPL(_accel_data_service_subscribe__deprecated);
 UNIMPL(_accel_data_service_unsubscribe);
 UNIMPL(_accel_service_peek);
@@ -51,9 +53,6 @@ UNIMPL(_app_sync_init);
 UNIMPL(_app_sync_set);
 UNIMPL(_atan2_lookup);
 UNIMPL(_atol);
-UNIMPL(_battery_state_service_peek);
-UNIMPL(_battery_state_service_subscribe);
-UNIMPL(_battery_state_service_unsubscribe);
 UNIMPL(_bitmap_layer_set_background_color_2bit);
 UNIMPL(_bluetooth_connection_service_peek);
 UNIMPL(_bluetooth_connection_service_subscribe);
@@ -334,7 +333,9 @@ const VoidFunc sym[] = {
     [49]  = (VoidFunc)app_timer_reschedule,                                                     // app_timer_reschedule@000000c4
                                                                                                 
     [51]  = (VoidFunc)atoi,                                                                     // atoi@000000cc
-                                                                                                
+    [53]  = (VoidFunc)battery_state_service_peek,                                               // battery_state_service_peek@000000d4
+    [54]  = (VoidFunc)battery_state_service_subscribe,                                          // battery_state_service_subscribe@000000d8
+    [55]  = (VoidFunc)battery_state_service_unsubscribe,                                        // battery_state_service_unsubscribe@000000dc                                                                                               
     [56]  = (VoidFunc)bitmap_layer_create,                                                      // bitmap_layer_create@000000e0
     [57]  = (VoidFunc)bitmap_layer_destroy,                                                     // bitmap_layer_destroy@000000e4
     [58]  = (VoidFunc)bitmap_layer_get_layer,                                                   // bitmap_layer_get_layer@000000e8
@@ -717,9 +718,6 @@ const VoidFunc sym[] = {
     [46]  = (UnimplFunc)_app_sync_set,                                                         // app_sync_set@000000b8
     [50]  = (UnimplFunc)_atan2_lookup,                                                         // atan2_lookup@000000c8
     [52]  = (UnimplFunc)_atol,                                                                 // atol@000000d0
-    [53]  = (UnimplFunc)_battery_state_service_peek,                                           // battery_state_service_peek@000000d4
-    [54]  = (UnimplFunc)_battery_state_service_subscribe,                                      // battery_state_service_subscribe@000000d8
-    [55]  = (UnimplFunc)_battery_state_service_unsubscribe,                                    // battery_state_service_unsubscribe@000000dc
     [60]  = (UnimplFunc)_bitmap_layer_set_background_color_2bit,                               // bitmap_layer_set_background_color_2bit@000000f0
     [63]  = (UnimplFunc)_bluetooth_connection_service_peek,                                    // bluetooth_connection_service_peek@000000fc
     [64]  = (UnimplFunc)_bluetooth_connection_service_subscribe,                               // bluetooth_connection_service_subscribe@00000100

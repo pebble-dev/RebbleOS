@@ -37,8 +37,6 @@ void hardware_init(void)
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Debug Init");
     rcore_watchdog_init_early();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Watchdog Init");
-    power_init();
-    KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
 }
 
 /*

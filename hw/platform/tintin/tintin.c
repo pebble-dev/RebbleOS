@@ -196,7 +196,18 @@ void log_clock_disable() {
 }
 
 
+void hw_power_init()
+{
+}
 
+uint16_t hw_power_get_bat_mv(void)
+{
+    
+}
+
+uint8_t hw_power_get_chg_status(void)
+{
+}
 
 void HardFault_Handler(uint32_t *sp)
 {

@@ -128,6 +128,7 @@ SRCS_all += rwatch/graphics/graphics.c
 SRCS_all += rwatch/graphics/font_loader.c
 SRCS_all += rwatch/event/tick_timer_service.c
 SRCS_all += rwatch/event/app_timer.c
+SRCS_all += rwatch/event/battery_state_service.c
 SRCS_all += rwatch/ui/layer/status_bar_layer.c
 SRCS_all += rwatch/ui/animation/animation.c
 SRCS_all += rwatch/ui/animation/property_animation.c
@@ -150,6 +151,7 @@ include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk
 include hw/drivers/stm32_dma/config.mk
 include hw/drivers/stm32_spi/config.mk
+include hw/drivers/stm32_i2c/config.mk
 include hw/drivers/stm32_usart/config.mk
 include hw/drivers/stm32_buttons/config.mk
 include hw/drivers/stm32_power/config.mk

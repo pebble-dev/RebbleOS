@@ -218,7 +218,8 @@ static void _overlay_window_create(OverlayCreateCallback create_callback, void *
     assert(overlay_window && "No memory for Overlay window");
 
     window_ctor(&overlay_window->window);
-    overlay_window->window.is_overlay = true;    
+    overlay_window->window.is_overlay = true;
+    overlay_window->window.is_render_scheduled = true;
     overlay_window->context = (context ? context : overlay_window);
     overlay_window->window.background_color = GColorClear;
 

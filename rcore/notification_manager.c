@@ -154,10 +154,8 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
     window->context = overlay_window->context;
     
     /* call the function that we should execute */
-    if (!nm->data.create_callback)
-        return;
-    
-    nm->data.create_callback(overlay_window, &overlay_window->window);
+    if (nm->data.create_callback)
+        nm->data.create_callback(overlay_window, &overlay_window->window);
 
     if (nm->data.timer)
         app_timer_cancel(nm->data.timer);
