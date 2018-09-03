@@ -40,8 +40,10 @@ void i2c_deinit(const stm32_i2c_conf_t *i2c_conf);
  * @param addr address of the device (<<1 shift)
  * @param reg register address to write the data to
  * @param data the value to write to the register
+ *
+ * @return number of read bytes
  */
-void i2c_write_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, uint8_t data);
+uint8_t i2c_write_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, uint8_t data);
 
 /**
  * @brief Write a byte stream to the device
@@ -54,16 +56,16 @@ void i2c_write_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, 
  */
 uint32_t i2c_write_bytes(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t *buf, uint16_t cnt);
 
-
 /**
  * @brief Read a given register on the bus with n count
  * @param i2c_conf @ref stm_i2c_conf_t struct
  * @param addr address of the device (<<1 shift)
  * @param buf The buffer pointer to write to the device
  * @param cnt the number of bytes to write
+ * 
+ * @return number of read bytes
  */
-void i2c_read_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t cnt);
-
+uint8_t i2c_read_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t cnt);
 
 /**
  * @brief Write an addressing register, then restart to read n bytes

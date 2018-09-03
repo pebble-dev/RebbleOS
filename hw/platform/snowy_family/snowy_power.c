@@ -62,6 +62,7 @@ static const max14690_t max14690 = {
 static void _adc_init(void);
 static void _int_init(void);
 static uint16_t _read_adc(uint8_t channel);
+static uint8_t _max14690_enabled = 0;
 
 void hw_power_init(void)
 {   
@@ -207,6 +208,9 @@ uint16_t hw_power_get_bat_mv(void)
     /* Read vref */
     uint16_t vref, mv, vbat, pct;
     
+    if (!_max14690_enabled)
+        return 3750;
+    
     vref = _read_adc(ADC_Channel_Vrefint);
     mv = (1200 * (double)(4096.0 / (double)vref)); // 1.2v core
 
@@ -232,9 +236,16 @@ uint16_t hw_power_get_bat_mv(void)
 
 uint8_t hw_power_get_chg_status(void)
 {
+    if (!_max14690_enabled)
+        return 0;
+    
     uint8_t buf[2];
     /* Read the charge status */
-    i2c_read_reg(&i2c_conf, max14690.address, REG_STATUS_A, buf, 2);
+    if (!i2c_read_reg(&i2c_conf, max14690.address, REG_STATUS_A, buf, 2))
+    {
+        _max14690_enabled = 0;
+        return 0;
+    }
     // StatusB UsbOK triggers
     uint8_t ch = buf[1] & (1 << 3);
     uint8_t chm = buf[0] & 7;
@@ -253,7 +264,9 @@ void max14690_set_monitor_status(uint8_t control, uint8_t mode, uint8_t ratio)
     uint8_t val = ratio << 4;
     val |= mode << 3;
     val |= control;
-    i2c_write_reg(&i2c_conf, max14690.address, REG_MON_CFG, val);
+    if (!i2c_write_reg(&i2c_conf, max14690.address, REG_MON_CFG, val))
+        _max14690_enabled = 0;
+    
     /* it takes 48us to latch */
     delay_us(100);
 }
@@ -261,6 +274,12 @@ void max14690_set_monitor_status(uint8_t control, uint8_t mode, uint8_t ratio)
 void max14690_stay_on(uint8_t pullup)
 {
     if (pullup)
-        i2c_write_reg(&i2c_conf, max14690.address, REG_PWR_CFG, 0x81); /* on | pullup */
-    i2c_write_reg(&i2c_conf, max14690.address, REG_PWR_CFG, 0x01);
+    {
+        if (!i2c_write_reg(&i2c_conf, max14690.address, REG_PWR_CFG, 0x81)) /* on | pullup */
+        {
+            _max14690_enabled = 0;
+            return 0;
+        }
+    }
+    _max14690_enabled = i2c_write_reg(&i2c_conf, max14690.address, REG_PWR_CFG, 0x01) > 0;    
 }

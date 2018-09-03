@@ -104,7 +104,7 @@ void i2c_deinit(const stm32_i2c_conf_t *i2c_conf)
     stm32_power_release(STM32_POWER_AHB1, i2c_conf->gpio_clock);
 }
 
-void i2c_write_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, uint8_t data)
+uint8_t i2c_write_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, uint8_t data)
 {
     uint8_t buf[2];
     buf[0] = reg;
@@ -117,17 +117,22 @@ void i2c_write_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, 
     
     stm32_power_release(STM32_POWER_APB1, i2c_conf->i2c_clock);
     stm32_power_release(STM32_POWER_AHB1, i2c_conf->gpio_clock);
-    return;
+    
+    return 1;
 }
 
-void i2c_read_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t cnt)
+uint8_t i2c_read_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, uint8_t *buf, uint16_t cnt)
 {
     stm32_power_request(STM32_POWER_APB1, i2c_conf->i2c_clock);
     stm32_power_request(STM32_POWER_AHB1, i2c_conf->gpio_clock);
 
-    _i2c_start(i2c_conf);
+    if (_i2c_start(i2c_conf))
+        return 0;
 
-    _i2c_addr(i2c_conf, addr, I2C_Direction_Transmitter);
+    if (_i2c_addr(i2c_conf, addr, I2C_Direction_Transmitter))
+        return 0;
+    
+    /* force the clock to stop stretching */
     (void)i2c_conf->i2c_x->SR2;
 
     i2c_conf->i2c_x->DR = reg;
@@ -140,13 +145,16 @@ void i2c_read_reg(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t reg, u
     stm32_power_release(STM32_POWER_APB1, i2c_conf->i2c_clock);
     stm32_power_release(STM32_POWER_AHB1, i2c_conf->gpio_clock);
 
-    return;
+    return cnt;
 }
 
 uint32_t i2c_write_bytes(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t *buf, uint16_t cnt)
 {
-    _i2c_start(i2c_conf);
-    _i2c_addr(i2c_conf, addr, I2C_Direction_Transmitter);
+    if (_i2c_start(i2c_conf))
+        return 0;
+    
+    if (_i2c_addr(i2c_conf, addr, I2C_Direction_Transmitter))
+        return 0;
     
     /* force the clock to stop stretching */
     (void)i2c_conf->i2c_x->SR2; 
@@ -165,15 +173,17 @@ uint32_t i2c_write_bytes(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t
     
     _i2c_wait_idle(i2c_conf);    
     
-    return 0;
+    return cnt;
 }
 
 uint32_t i2c_read_bytes(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t *buf, uint16_t cnt)
 {
-    _i2c_start(i2c_conf);
+    if (_i2c_start(i2c_conf))
+        return 0;
   
     /* Send I2C device address */
-    _i2c_addr(i2c_conf, addr, I2C_Direction_Receiver);
+    if (_i2c_addr(i2c_conf, addr, I2C_Direction_Receiver))
+        return 0;
   
     if (cnt == 1)
     {
@@ -261,7 +271,7 @@ uint32_t i2c_read_bytes(const stm32_i2c_conf_t *i2c_conf, uint8_t addr, uint8_t 
         i2c_conf->i2c_x->CR1 |= ((uint16_t)I2C_CR1_ACK);
     }
 
-    return 0;
+    return cnt;
 }
 
 static uint32_t _i2c_read_byte(const stm32_i2c_conf_t *i2c_conf, uint8_t *buf)
@@ -309,6 +319,12 @@ static uint32_t _i2c_start(const stm32_i2c_conf_t *i2c_conf)
 static uint8_t _i2c_wait_for_flags(const stm32_i2c_conf_t *i2c_conf, uint32_t flags)
 {
     uint16_t timeout = 5000;
+    
+    if (i2c_conf->i2c_x->SR1 & (I2C_SR1_OVR | I2C_SR1_ARLO | I2C_SR1_BERR))
+    {
+        DRV_LOG("I2C", APP_LOG_LEVEL_ERROR, "Bus Error");
+        return 1;
+    }
   
     while(((i2c_conf->i2c_x->SR1) & flags) != flags)
     {
