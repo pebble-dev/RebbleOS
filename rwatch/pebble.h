@@ -20,11 +20,14 @@
 #include "platform_config.h"
 
 // tell neographics we are using it as our core
+#define NGFX_PREFERRED_free app_free
+#define NGFX_PREFERRED_calloc app_calloc
+#define NGFX_PREFERRED_malloc app_malloc
+#define NGFX_PREFERRED_resource_load resource_load
 
 #define TRIG_MAX_RATIO 0xffff
 #define TRIG_MAX_ANGLE 0x10000
 
-struct GBitmap;
 struct n_GRect;
 struct ResHandle;
 

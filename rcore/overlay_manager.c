@@ -7,6 +7,7 @@
 #include "rebbleos.h"
 #include "ngfxwrap.h"
 #include "overlay_manager.h"
+#include "ngfxwrap.h"
 
 /* A message to talk to the overlay thread */
 typedef struct OverlayMessage {
@@ -285,7 +286,7 @@ static void _overlay_thread(void *pvParameters)
     SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Starting overlay thread...");
 
     rwatch_neographics_init();
-    
+  
     _this_thread->status = AppThreadLoaded;
     os_module_init_complete(0);
     

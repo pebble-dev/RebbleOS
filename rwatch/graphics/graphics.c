@@ -10,8 +10,6 @@
 #include "png.h"
 #include "graphics_wrapper.h"
 
-extern void r_graphics_draw_bitmap_in_rect(GContext *ctx, GBitmap *bitmap, GRect rect);
-
 GRect _jimmy_layer_offset(n_GContext *ctx, n_GRect rect)
 {
     // jimmy the offsets for the layer before we ask ngfx to draw it
@@ -66,9 +64,10 @@ void graphics_draw_text(
                             text_attributes);
 }
 
-void graphics_draw_bitmap_in_rect(GContext *ctx, GBitmap *bitmap, GRect rect)
+void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect rect)
 {
-    r_graphics_draw_bitmap_in_rect(ctx, bitmap, _jimmy_layer_offset(ctx, rect));
+    GRect offsetted = _jimmy_layer_offset(ctx, rect);
+    n_graphics_draw_bitmap_in_rect(ctx, bitmap, offsetted);
 }
 
 

@@ -24,15 +24,49 @@
 #error Add the new platform to PBL_PLATFORM_SWITCH in pebble_defines.h
 #endif
 
+#define GCompOp n_GCompOp
+#define GCompOpAssign n_GCompOpAssign
+#define GCompOpAssignInverted n_GCompOpAssignInverted
+#define GCompOpOr n_GCompOpOr
+#define GCompOpAnd n_GCompOpAnd
+#define GCompOpClear n_GCompOpClear
+#define GCompOpSet n_GCompOpSet
+
+#define GContext n_GContext
 #define graphics_context_set_fill_color n_graphics_context_set_fill_color
+#define graphics_context_set_text_color n_graphics_context_set_text_color
 #define graphics_context_set_stroke_color n_graphics_context_set_stroke_color
 #define graphics_context_set_stroke_width n_graphics_context_set_stroke_width
 #define graphics_context_set_antialiased n_graphics_context_set_antialiased
+#define graphics_context_set_compositing_mode n_graphics_context_set_compositing_mode
 
 #define GColorFromRGBA n_GColorFromRGBA
 #define GColorFromRGB n_GColorFromRGB
 #define GColor8 n_GColor8
 
+// gbitmap
+#define GBitmapFormat enum n_GBitmapFormat
+#define GBitmapFormat1Bit n_GBitmapFormat1Bit
+#define GBitmapFormat8Bit n_GBitmapFormat8Bit
+#define GBitmapFormat1BitPalette n_GBitmapFormat1BitPalette
+#define GBitmapFormat2BitPalette n_GBitmapFormat2BitPalette
+#define GBitmapFormat4BitPalette n_GBitmapFormat4BitPalette
+#define GBitmapFormat8BitCircular n_GBitmapFormat8BitCircular
+
+#define GBitmap struct n_GBitmap
+#define gbitmap_destroy n_gbitmap_destroy
+#define gbitmap_get_bytes_per_row n_gbitmap_get_bytes_per_row
+#define gbitmap_get_format n_gbitmap_get_format
+#define gbitmap_get_data n_gbitmap_get_data
+#define gbitmap_set_data n_gbitmap_set_data
+#define gbitmap_get_bounds n_gbitmap_get_bounds
+#define gbitmap_set_bounds n_gbitmap_set_bounds
+#define gbitmap_get_palette n_gbitmap_get_palette
+#define gbitmap_set_palette n_gbitmap_set_palette
+#define gbitmap_create_as_sub_bitmap n_gbitmap_create_as_sub_bitmap
+#define gbitmap_create_blank n_gbitmap_create_blank
+#define gbitmap_create_blank_with_palette n_gbitmap_create_blank_with_palette
+#define gbitmap_create_palettized_from_1bit n_gbitmap_create_palettized_from_1bit
 
 // text redefines
 #define GTextOverflowMode n_GTextOverflowMode
@@ -49,13 +83,21 @@
 #define TRIG_MAX_RATIO 0xffff
 #define TRIG_MAX_ANGLE 0x10000
 
-#define GContext n_GContext
-
 
 #define GSize n_GSize
 #define GColor n_GColor
 #define GRect n_GRect
 #define GPoint n_GPoint
+#define gsize_equal n_gsize_equal
+#define gcolor_equal n_gcolor_equal
+#define gcolor_legible_over n_gcolor_legible_over
+#define gpoint_equal n_gpoint_equal
+#define grect_center_point n_grect_center_point
+#define grect_equal n_grect_equal
+#define grect_is_empty n_grect_is_empty
+#define grect_clip n_grect_clip
+#define grect_contains_point n_grect_contains_point
+#define grect_crop n_grect_crop
 
 #define GColorOxfordBlue n_GColorOxfordBlue
 #define GColorDarkBlue n_GColorDarkBlue
@@ -126,5 +168,4 @@
 
 #define GCornerNone n_GCornerNone
 
-#define graphics_context_set_text_color n_graphics_context_set_text_color
 #include "gbitmap.h"

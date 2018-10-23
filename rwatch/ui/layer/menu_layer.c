@@ -7,7 +7,7 @@
 #include "utils.h"
 #include "graphics_wrapper.h"
 
-extern void graphics_draw_bitmap_in_rect(GContext *, GBitmap *, GRect);
+extern void graphics_draw_bitmap_in_rect(GContext *, const GBitmap *, GRect);
 
 static void menu_layer_update_proc(Layer *layer, GContext *nGContext);
 
@@ -514,7 +514,9 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
     if (icon)
     {
         GSize icon_size = icon->raw_bitmap_size;
+        n_graphics_context_set_compositing_mode(ctx, n_GCompOpSet);
         graphics_draw_bitmap_in_rect(ctx, icon, GRect(x, (frame.size.h - icon_size.h) / 2, icon_size.w, icon_size.h));
+        n_graphics_context_set_compositing_mode(ctx, n_GCompOpAssign);
         x += icon_size.w + MENU_CELL_PADDING;
     }
     

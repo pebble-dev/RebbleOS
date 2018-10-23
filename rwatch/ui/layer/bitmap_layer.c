@@ -132,11 +132,10 @@ static void _bitmap_update_proc(Layer *layer, GContext *nGContext)
             y = 0;
             break;
     }
-    bitmap_layer->bitmap->bounds = GRect(x, y, bw, bh);
+    GRect target = GRect(x, y, bw, bh);
 
     // fill the background
     graphics_context_set_fill_color(nGContext, bitmap_layer->background);
     graphics_fill_rect(nGContext, layer->bounds, 0, GCornerNone);
-    
-    gbitmap_draw(bitmap_layer->bitmap, layer->bounds);
+    n_graphics_draw_bitmap_in_rect(nGContext, bitmap_layer->bitmap, target);
 }

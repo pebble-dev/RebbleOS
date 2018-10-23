@@ -15,6 +15,8 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
     bitmap->raw_bitmap_size.h = 0;
     bitmap->addr = NULL;
     bitmap->format = GBitmapFormat8Bit;
+    bitmap->free_data_on_destroy = true;
+    bitmap->free_palette_on_destroy = true;
 
     upng_t *upng = upng_new_from_bytes(raw_buffer, png_size, &(bitmap->addr));
     
@@ -39,6 +41,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
             app_free((void *)upng_get_buffer(upng));
         goto freepng;
     }
+
 
     /* XXX: this leaks the buffer if we don't take this codepath */
     if (upng_get_format(upng) >= UPNG_INDEXED1 || upng_get_format(upng) <= UPNG_INDEXED8)
@@ -96,6 +99,25 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         bitmap->row_size_bytes = ((width + ((8/bpp) - 1)) / (8/bpp));
         bitmap->addr = upng_buffer;
 
+        // if we have alphas but no palette, construct a new palette
+        // this is just a shortcut for gbitmap to render it like it was
+        // properly palettised. Not sure why the format is the way it is,
+        // will ask Pebble folks
+        if (bitmap->palette_size == 0 && alen > 0)
+        {
+            // convert palette
+            n_GColor *conv_palettes = app_calloc(1, 4 * sizeof(n_GColor));
+
+            // black with alpha (black)
+            conv_palettes[0].argb = n_GColorFromRGBA(0, 0, 0, 255).argb;
+            // black no alpha (totally see through)
+            conv_palettes[1].argb = n_GColorFromRGBA(0, 0, 0, 0).argb;
+            // white with alpha (white)
+            conv_palettes[3].argb = n_GColorFromRGBA(255, 255, 255, 255).argb;
+            bitmap->palette = conv_palettes;
+            bitmap->palette_size = 4;
+        }
+
         // set the resultant format
         if (bpp == 1 && (bitmap->palette_size > 0 || alen > 0))
         {
@@ -103,30 +125,18 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         }
         else if (bpp == 1)
         {
-            bitmap->format = GBitmapFormat1Bit;
+            // easier to generate the black/white palette than to reverse every byte
+            bitmap->format = GBitmapFormat1BitPalette;
+
+            n_GColor* bw_palette = app_calloc(2, sizeof(n_GColor));
+            bw_palette[0] = n_GColorBlack;
+            bw_palette[1] = n_GColorWhite;
+            bitmap->palette = bw_palette;
+            bitmap->palette_size = 2;
         }
         else if (bpp == 2)
         {
             bitmap->format = GBitmapFormat2BitPalette;
-            
-            // if we have alphas but no palette, construct a new palette
-            // this is just a shortcut for gbitmap to render it like it was
-            // properly palettised. Not sure why the format is the way it is,
-            // will ask Pebble folks
-            if (bitmap->palette_size ==0 && alen > 0)
-            {
-                // convert palette
-                n_GColor *conv_palettes = app_calloc(1, 4 * sizeof(n_GColor));
-
-                // black with alpha (black)
-                conv_palettes[0].argb = n_GColorFromRGBA(0, 0, 0, 255).argb;
-                // black no alpha (totally see through)
-                conv_palettes[1].argb = n_GColorFromRGBA(0, 0, 0, 0).argb;
-                // white with alpha (white)
-                conv_palettes[3].argb = n_GColorFromRGBA(255, 255, 255, 255).argb;
-                bitmap->palette = conv_palettes;
-                bitmap->palette_size = 4;
-            }
         }
         else if (bpp == 4)
         {
@@ -135,6 +145,20 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         else if (bpp == 8)
         {
             bitmap->format = GBitmapFormat8Bit;
+
+            // Convert 8bit palette to just 8bit
+            if (plen)
+            {
+                uint32_t pixel_count = bitmap->row_size_bytes * height;
+                uint8_t* pixel = bitmap->addr;
+                while (pixel_count--) {
+                    *pixel = bitmap->palette[*pixel].argb;
+                    pixel++;
+                }
+                app_free(bitmap->palette);
+                bitmap->palette = 0;
+                bitmap->palette_size = 0;
+            }
         }
     }
 
