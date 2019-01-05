@@ -10,6 +10,12 @@
 #include "appmanager.h"
 #include "overlay_manager.h"
 #include "notification_manager.h"
+#include "timers.h"
+
+/* Configure Logging */
+#define MODULE_NAME "apploop"
+#define MODULE_TYPE "APLOOP"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
@@ -22,6 +28,7 @@ static xQueueHandle _app_message_queue;
 void appmanager_app_runloop_init(void)
 {
     _app_message_queue = xQueueCreate(5, sizeof(struct AppMessage));
+    timer_init();
 }
 
 /* 
@@ -29,7 +36,10 @@ void appmanager_app_runloop_init(void)
  */
 void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout)
 {
-    xQueueSendToBack(_app_message_queue, am, timeout);
+    app_running_thread *_thread = appmanager_get_thread(AppThreadMainApp);
+    if (_thread->status == AppThreadRunloop)
+        if (!xQueueSendToBack(_app_message_queue, am, timeout))
+            LOG_ERROR("Not posting. App not running");
 }
 
 /*
@@ -54,17 +64,17 @@ void appmanager_app_main_entry(void)
     
     AppMessage am = {
         .thread_id = _this_thread->thread_type,
-        .message_type_id = THREAD_MANAGER_APP_QUIT_CLEAN,
+        .command = THREAD_MANAGER_APP_QUIT_CLEAN,
     };
     
     appmanager_post_generic_thread_message(&am, 100);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App Finished.");
+    LOG_DEBUG("App Finished.");
     
     /* We are done with our app. Block until we are killed */
     vTaskDelay(portMAX_DELAY);
 }
 
-static bool _app_shutting_down(void)
+bool appmanager_is_app_shutting_down(void)
 {
     app_running_thread *_this_thread = appmanager_get_current_thread();
     return _this_thread->status == AppThreadUnloading;
@@ -73,6 +83,30 @@ static bool _app_shutting_down(void)
 void rocky_event_loop_with_resource(uint16_t resource_id)
 {
     app_event_loop();
+}
+
+static void _draw(uint8_t force_draw)
+{
+    /* Request a draw. This is mostly from an app invalidating something */
+    if (display_buffer_lock_take(0))
+    {
+        if (force_draw)
+            window_dirty(true);
+        
+        bool force = window_draw();
+        
+        if (overlay_window_count() > 0)
+        {
+            overlay_window_draw(true);
+            force = true;
+        }
+        
+        if (force)
+        {
+            display_draw();
+        }
+        display_buffer_lock_give();
+    }
 }
 
 /*
@@ -89,11 +123,11 @@ void app_event_loop(void)
     
     if (_this_thread->thread_type != AppThreadMainApp)
     {
-        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Runloop: You are not an app");
+        LOG_ERROR("Runloop: You are not an app");
         return;
     }
     
-    KERN_LOG("app", APP_LOG_LEVEL_INFO, "App entered mainloop");
+    LOG_INFO("App entered mainloop");
     
     /* Do this before window load, that way they have a chance to override */
     if (_running_app->type != APP_TYPE_FACE &&
@@ -123,40 +157,45 @@ void app_event_loop(void)
     {
         GRect frame = GRect(0, DISPLAY_ROWS - 20, DISPLAY_COLS, 20);
         notification_show_small_message("Welcome to RebbleOS", frame);
+
         booted = true;
     }
-    
+
     TickType_t next_timer;
-    
+    _this_thread->status = AppThreadRunloop;
+
+    next_timer = portMAX_DELAY;
     /* App is now fully initialised and inside the runloop. */
     for ( ;; )
     {
-        next_timer = pdMS_TO_TICKS(1);
-               
-        if (!_app_shutting_down())
+        next_timer = appmanager_timer_get_next_expiry(_this_thread);
+
+        if(next_timer == 0) 
         {
+            appmanager_timer_expired(_this_thread);
+            appmanager_post_draw_message(0);
             next_timer = appmanager_timer_get_next_expiry(_this_thread);
-            
-            if (next_timer < 0)
-                next_timer = portMAX_DELAY;
         }
+        if (next_timer < 0)
+            next_timer = portMAX_DELAY;
 
         /* we are inside the apps main loop event handler now */
         if (xQueueReceive(_app_message_queue, &data, next_timer))
         {
+
             /* We woke up for some kind of event that someone posted.  But what? */
-            if (data.message_type_id == APP_BUTTON)
+            if (data.command == APP_BUTTON)
             {
-                if (_app_shutting_down())
+                if (appmanager_is_app_shutting_down())
                     continue;
-                
+
                 if (overlay_window_accepts_keypress())
                 {
-                    overlay_window_post_button_message(data.payload);
+                    overlay_window_post_button_message(data.data);
                     continue;
                 }
                 /* execute the button's callback */
-                ButtonMessage *message = (ButtonMessage *)data.payload;
+                ButtonMessage *message = (ButtonMessage *)data.data;
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
             }
             /* Someone has requested the application close.
@@ -164,10 +203,10 @@ void app_event_loop(void)
              * Any app timers will fire and be nulled, or get erased.
              * XXX could do with a timer mutex to wait on
              */
-            else if (data.message_type_id == APP_QUIT)
+            else if (data.command == APP_QUIT)
             {
                 /* Set the shutdown time for this app. We will kill it then */
-                if (!_app_shutting_down())
+                if (!appmanager_is_app_shutting_down())
                 {
                     _this_thread->shutdown_at_tick = xTaskGetTickCount() + pdMS_TO_TICKS(5000);
                     _this_thread->status = AppThreadUnloading;
@@ -179,20 +218,10 @@ void app_event_loop(void)
                 /* remove the ticktimer service handler and stop it */
                 tick_timer_service_unsubscribe();
 
-                /* Check we are not doing anything important
-                 * If we are, then defer the render */
-                if (!display_buffer_lock_take(0))
-                {
-                    _this_thread->status = AppThreadUnloading;
-                    appmanager_app_quit();
-                    continue;
-                }
-                else
-                {
-                    display_buffer_lock_give();
-                }
-                
-                KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Quit");
+                _this_thread->status = AppThreadUnloading;
+                appmanager_app_quit();
+
+                LOG_INFO("App Quit");
 
                 /* app was quit, break out of this loop into the main handler */
                 break;
@@ -201,86 +230,24 @@ void app_event_loop(void)
             /* A draw is requested. Get a lock and then draw. if we can't lock we..
              * try, try, try again
              */
-            else if (data.message_type_id == APP_DRAW)
+            else if (data.command == APP_DRAW)
             {
-                if (_app_shutting_down())
+                if (appmanager_is_app_shutting_down())
                     continue;
-                
-                /* Request a draw. This is mostly from an app invalidating something */
-                if (display_buffer_lock_take(0))
-                {
-                    window_draw();
-                    if (overlay_window_count() > 0)
-                        overlay_window_draw(true);
-                    
-                    display_draw();
-                    display_buffer_lock_give();
-                }
-                else
-                {
-                    /* We didn't get the mutex. Set a flag for when the draw completes */
-                    KERN_LOG("app", APP_LOG_LEVEL_INFO, "draw deferred");
-                    appmanager_post_draw_message(0);
-                }
-                continue;
+
+                _draw(data.data);
             }
         } else {
-            if (_app_shutting_down())
+            if (appmanager_is_app_shutting_down())
                 continue;
-
-            appmanager_timer_expired(_this_thread);
-            /* Something changed, lets see if we can draw */
-            appmanager_post_draw_message(0);
         }
+        vTaskDelay(0);
     }
-    KERN_LOG("app", APP_LOG_LEVEL_INFO, "App Signalled shutdown...");
+    LOG_INFO("App Signalled shutdown...");
     /* We fall out of the apps main_ now and into deinit and thread completion
      * We will hand back control to appmanager_app_main_entry above */
 }
 
-/* Timer util */
-TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread)
-{
-    TickType_t next_timer;
-
-    if (thread->timer_head) {
-        TickType_t curtime = xTaskGetTickCount();
-        if (curtime > thread->timer_head->when) {
-            next_timer = 0;
-        }
-        else
-            next_timer = thread->timer_head->when - curtime;
-    } else {
-        next_timer = portMAX_DELAY; /* Just block forever. */
-    }
-
-    return next_timer;
-}
-
-void appmanager_timer_expired(app_running_thread *thread)
-{
-    /* We woke up because we hit a timer expiry.  Dequeue first,
-     * then invoke -- otherwise someone else could insert themselves
-     * at the head, and we would wrongfully dequeue them!  */
-    assert(thread);
-    CoreTimer *timer = thread->timer_head;
-    assert(timer);
-    
-    if (!timer->callback) {
-        /* assert(!"BAD"); // actually this is pretty bad. I've seen this 
-         * happen only once before when the app draw was happening while the
-         * ovelay thread was coming up. The ov thread memory was memset to 0. */
-        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Bad Callback!");
-        thread->timer_head = timer->next;
-        return;
-    }
-
-    thread->timer_head = timer->next;
-    
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    if (!_app_shutting_down())
-        timer->callback(timer);
-}
 
 /* Apps click handlers */
 
@@ -290,7 +257,7 @@ void back_long_click_handler(ClickRecognizerRef recognizer, void *context)
     switch(_this_thread->app->type)
     {
         case APP_TYPE_FACE:
-            KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "TODO: Quiet time");
+            LOG_DEBUG("TODO: Quiet time");
             break;
         case APP_TYPE_SYSTEM:
             // quit the app
@@ -319,7 +286,7 @@ void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
 {
     // Pop windows off
     Window *popped = window_stack_pop(true);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Window Count: %d", window_count());
+    LOG_DEBUG("Window Count: %d", window_count());
     
     if (window_count() == 0)
     {

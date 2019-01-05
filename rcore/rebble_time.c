@@ -8,19 +8,26 @@
 #include "rebbleos.h"
 #include "strftime.h"
 
+/* Configure Logging */
+#define MODULE_NAME "rtime"
+#define MODULE_TYPE "KERN"
+#define LOG_LEVEL RBL_LOG_LEVEL_ERROR //RBL_LOG_LEVEL_ERROR
+
+
 static TickType_t _boot_ticks;
 static time_t _boot_time_t;
 
 static struct tm _global_tm;
+struct tm *boot_time_tm;
 
 void rcore_time_init(void)
 {
     struct tm *tm;
-    
+
     /* Read the time out of the RTC, then convert to a time_t (ugh!), then
      * begin offsetting ticks in ms from there.  */
     _boot_ticks = xTaskGetTickCount();
-    tm = hw_get_time();
+    boot_time_tm = tm = hw_get_time();
     _boot_time_t = rcore_mktime(tm);
 }
 
@@ -34,12 +41,20 @@ void rcore_localtime(struct tm *tm, time_t time)
     localtime_r(&time, tm);
 }
 
-void rcore_time_ms(time_t *tutc, uint16_t *ms)
+uint16_t rcore_time_ms(time_t *tutc, uint16_t *ms)
 {
     TickType_t ticks_since_boot = xTaskGetTickCount() - _boot_ticks;
-    
-    *tutc = _boot_time_t + ticks_since_boot / configTICK_RATE_HZ;
-    *ms = (ticks_since_boot % configTICK_RATE_HZ) * 1000 / configTICK_RATE_HZ;
+
+    if (tutc)
+        *tutc = _boot_time_t + (ticks_since_boot / configTICK_RATE_HZ);
+
+    uint16_t new_ms = (ticks_since_boot % configTICK_RATE_HZ) * 1000 / configTICK_RATE_HZ;
+
+    if (ms)
+        *ms = new_ms;
+
+    LOG_DEBUG("TUTC %d %d %d %d\n", _boot_ticks, new_ms, *tutc, _boot_time_t + ticks_since_boot / configTICK_RATE_HZ);
+    return new_ms;
 }
 
 TickType_t rcore_time_to_ticks(time_t t, uint16_t ms) {
@@ -89,24 +104,12 @@ time_t pbl_time_t_deprecated(time_t *tloc)
     return _tm;
 }
 
-uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms)
-{
-    /* XXX time zones: utc vs local time */
-    uint16_t _ms;
-    time_t _tm;
-    
-    rcore_time_ms(&_tm, &_ms);
-    if (tloc)
-        *tloc = _tm;
-    if (ms)
-        *ms = _ms;
-    
-    return _ms;
-}
-
 int pbl_clock_is_24h_style()
 {
     // XXX: Obviously, everybody wants 24h time.  Why would they use a
     // developer operating system if not?
     return 1;
 }
+
+
+

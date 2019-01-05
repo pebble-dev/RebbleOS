@@ -38,7 +38,6 @@ uint8_t resource_init()
 ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
 {
     ResHandleFileHeader new_header;
-    App *app = appmanager_get_current_app();
     struct fd fd;
     uint8_t is_system = res_handle > REGION_RES_START + RES_TABLE_START &&
                         res_handle < REGION_RES_START + RES_TABLE_START + ((254) * sizeof(ResHandleFileHeader));
@@ -49,6 +48,8 @@ ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
     }
     else
     {
+        App *app = appmanager_get_current_app();
+        assert(app && "No App?");
         fs_open(&fd, &app->resource_file);
         fs_seek(&fd, res_handle, FS_SEEK_SET);
         /* get the resource from the flash.

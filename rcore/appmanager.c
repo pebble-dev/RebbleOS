@@ -18,6 +18,11 @@
 #include "qalloc.h"
 #include "ngfxwrap.h"
 
+/* Configure Logging */
+#define MODULE_NAME "appman"
+#define MODULE_TYPE "KERN"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
+
 /*
  * Module TODO
  * 
@@ -102,50 +107,9 @@ uint8_t appmanager_init(void)
                                                         _app_thread_manager_stack, 
                                                         &_app_thread_manager_task);
     
-    KERN_LOG("app", APP_LOG_LEVEL_INFO, "App thread created");
+    LOG_INFO("App thread created");
     
     return 0;
-}
-
-
-
-/* 
- * Always adds to the running app's queue.  Note that this is only
- * reasonable to do from the app thread: otherwise, you can race with the
- * check for the timer head.
- */
-void appmanager_timer_add(CoreTimer *timer)
-{
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    CoreTimer **tnext = &_this_thread->timer_head;
-    
-    /* until either the next pointer is null (i.e., we have hit the end of
-     * the list), or the thing that the next pointer points to is further in
-     * the future than we are (i.e., we want to insert before the thing that
-     * the next pointer points to)
-     */
-    while (*tnext && (timer->when > (*tnext)->when)) {
-        tnext = &((*tnext)->next);
-    }
-    
-    timer->next = *tnext;
-    *tnext = timer;
-}
-
-void appmanager_timer_remove(CoreTimer *timer)
-{
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    CoreTimer **tnext = &_this_thread->timer_head;
-    
-    while (*tnext) {
-        if (*tnext == timer) {
-            *tnext = timer->next;
-            return;
-        }
-        tnext = &(*tnext)->next;
-    }
-    
-    assert(!"appmanager_timer_remove did not find timer in list");
 }
 
 app_running_thread *_get_current_thread(void)
@@ -168,8 +132,9 @@ app_running_thread *_get_current_thread(void)
 app_running_thread *appmanager_get_current_thread(void)
 {
     app_running_thread *th = _get_current_thread();
+
 //     assert(th && "I have no idea what thread I am running from! (System?)");
-//     KERN_LOG("app", APP_LOG_LEVEL_INFO, "I have no idea what thread I am running from! (System?)");
+//     LOG_INFO("I have no idea what thread I am running from! (System?)");
     
     return th;
 }
@@ -259,15 +224,16 @@ static void _app_management_thread(void *parms)
         /* Sleep waiting for work to do */
         if (xQueueReceive(_app_thread_queue, &am, pdMS_TO_TICKS(1000)))
         {        
-            switch(am.message_type_id)
+            switch(am.command)
             {
                 /* Load an app for someone. face or worker */
                 case THREAD_MANAGER_APP_LOAD:
-                    app_name = (char *)am.payload;
+                    app_name = (char *)am.data;
                     _this_thread = &_app_threads[am.thread_id];
-                    
+
                     if (_this_thread->status == AppThreadLoading || 
-                        _this_thread->status == AppThreadLoaded)
+                        _this_thread->status == AppThreadLoaded || 
+                        _this_thread->status == AppThreadRunloop)
                     {
                         /* post an app quit to the running process
                          * then immediately post our received message back onto 
@@ -277,6 +243,7 @@ static void _app_management_thread(void *parms)
                          * we should track that or use a better mechanism.
                          * in reality this isn't a big issue. A concern maybe
                          */
+                        LOG_INFO("Quitting...");
                         appmanager_app_quit();
                         xQueueSendToBack(_app_thread_queue, &am, (TickType_t)100);
                         continue;
@@ -289,13 +256,13 @@ static void _app_management_thread(void *parms)
                          * Make this a proper state machine, wait on completion 
                          * and launch the app
                          */
-                        KERN_LOG("app", APP_LOG_LEVEL_INFO, "Waiting for app to close...");
+                        LOG_INFO("Waiting for app to close...");
                         vTaskDelay(pdMS_TO_TICKS(10));
                         xQueueSendToBack(_app_thread_queue, &am, (TickType_t)100);
                         continue;
                     }
                     
-                    KERN_LOG("app", APP_LOG_LEVEL_INFO, "Starting app %s", app_name);
+                    LOG_INFO("Starting app %s", app_name);
                     _this_thread->status = AppThreadLoading;
                         
                     /*  TODO reset clicks */
@@ -303,7 +270,7 @@ static void _app_management_thread(void *parms)
                     
                     if (app_manager_get_apps_head() == NULL)
                     {
-                        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "No Apps found!");
+                        LOG_ERROR("No Apps found!");
                         assert(!"No Apps");
                         return;
                     }
@@ -312,7 +279,7 @@ static void _app_management_thread(void *parms)
                     
                     if (app == NULL)
                     {
-                        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "App %s NOT found!", app_name);
+                        LOG_ERROR("App %s NOT found!", app_name);
                         assert(!"App not found!");
                         continue;
                     }
@@ -327,7 +294,7 @@ static void _app_management_thread(void *parms)
                     if (_this_thread->task_handle != NULL) {
                         vTaskDelete(_this_thread->task_handle);
                         _this_thread->task_handle = NULL;
-                        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "The previous task was still running. FIXME");
+                        LOG_ERROR("The previous task was still running. FIXME");
                     }
                     
                     /* If the app is running off RAM (i.e it's a PIC loaded app...) 
@@ -349,10 +316,10 @@ static void _app_management_thread(void *parms)
                     _this_thread = &_app_threads[am.thread_id];
                     
                     if (_this_thread->status != AppThreadUnloading)
-                        KERN_LOG("app", APP_LOG_LEVEL_WARNING, "Unloading app while not in correct state!");
+                        LOG_WARN("Unloading app while not in correct state!");
                     
                     /* We were signalled that the app has finished cleanly */
-                    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App finished cleanly");
+                    LOG_DEBUG("App finished cleanly");
                     
                     /* The task will die hard, but it did finish the runloop */
                     vTaskDelete(_this_thread->task_handle);
@@ -373,7 +340,7 @@ static void _app_management_thread(void *parms)
                 if (_this_thread->shutdown_at_tick > 0 &&
                         xTaskGetTickCount() >= _this_thread->shutdown_at_tick)
                 {
-                    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "!! Hard terminating app");
+                    LOG_ERROR("!! Hard terminating app");
                     
                     vTaskDelete(_this_thread->task_handle);
                     _this_thread->shutdown_at_tick = 0;
@@ -522,25 +489,25 @@ void appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
     /* Patch the app's entry point... make sure its THUMB bit set! */
     thread->app->main = (AppMainHandler)((uint32_t)&thread->heap[header->offset] | 1);
     
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "== App signature ==");
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Header  : %s",    header->header);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "SDK ver : %d.%d", header->sdk_version.major, 
+    LOG_DEBUG("== App signature ==");
+    LOG_DEBUG("Header  : %s",    header->header);
+    LOG_DEBUG("SDK ver : %d.%d", header->sdk_version.major, 
                                                             header->sdk_version.minor);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App ver : %d.%d", header->app_version.major, 
+    LOG_DEBUG("App ver : %d.%d", header->app_version.major, 
                                                             header->app_version.minor);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App Size: 0x%x",  header->app_size);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "App Main: 0x%x",  header->offset);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "CRC     : %d",    header->crc);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Name    : %s",    header->name);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Company : %s",    header->company);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Icon    : %d",    header->icon_resource_id);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Pbl Sym : 0x%x",  header->sym_table_addr);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Flags   : %d",    header->flags);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Reloc   : %d",    header->reloc_entries_count);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "== Memory signature ==");
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "VSize   : 0x%x",  header->virtual_size);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Bss Size: %d",    bss_size);
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Heap    : 0x%x",  thread->heap + header->virtual_size);
+    LOG_DEBUG("App Size: 0x%x",  header->app_size);
+    LOG_DEBUG("App Main: 0x%x",  header->offset);
+    LOG_DEBUG("CRC     : %d",    header->crc);
+    LOG_DEBUG("Name    : %s",    header->name);
+    LOG_DEBUG("Company : %s",    header->company);
+    LOG_DEBUG("Icon    : %d",    header->icon_resource_id);
+    LOG_DEBUG("Pbl Sym : 0x%x",  header->sym_table_addr);
+    LOG_DEBUG("Flags   : %d",    header->flags);
+    LOG_DEBUG("Reloc   : %d",    header->reloc_entries_count);
+    LOG_DEBUG("== Memory signature ==");
+    LOG_DEBUG("VSize   : 0x%x",  header->virtual_size);
+    LOG_DEBUG("Bss Size: %d",    bss_size);
+    LOG_DEBUG("Heap    : 0x%x",  thread->heap + header->virtual_size);
 }
 
 /* 
@@ -553,7 +520,7 @@ void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size)
     /* Where is our heap going to start. It's directly after the app + bss */
     uint8_t *heap_entry = &thread->heap[total_app_size];
 
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "Exec: Base 0x%x, heap 0x%x, sz %d (b), stack 0x%x, sz %d (w)", 
+    LOG_DEBUG("Exec: Base 0x%x, heap 0x%x, sz %d (b), stack 0x%x, sz %d (w)", 
             thread->heap,
             heap_entry,
             heap_size,

@@ -11,10 +11,8 @@
 #include "display.h"
 #include "backlight.h"
 #include "stm32_backlight.h"
-#include "stm32_power.h"
 #include "log.h"
 #include "platform_config.h"
-#include "stm32_backlight_platform.h"
 
 #if defined(STM32F4XX)
 #    include "snowy_display.h"
@@ -30,6 +28,8 @@
 #else
 #    error "I have no idea what kind of stm32 this is; sorry"
 #endif
+#include "stm32_power.h"
+#include "stm32_backlight_platform.h"
 #define _TIM_Func(CH, Func) TIM_OC ## CH ## Func
 #define TIM_Func(CH, Func) _TIM_Func(CH, Func)
 /*** backlight init ***/

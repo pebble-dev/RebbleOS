@@ -161,7 +161,7 @@ uint8_t stm32_cc256x_power_cycle(void)
     delay_ms(90);
     
     /* but lets sit and wait for the device to come up */
-    for(int i = 0; i < 10000; i++)
+    for(int i = 0; i < 10; i++)
     {
         if(GPIO_ReadInputDataBit(_cc256x->usart->config->gpio_ptr, (1 << _cc256x->usart->config->gpio_pin_cts_num)) == 0)
         {

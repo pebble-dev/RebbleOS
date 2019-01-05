@@ -87,6 +87,7 @@ SRCS_all += rcore/appmanager.c
 SRCS_all += rcore/appmanager_app.c
 SRCS_all += rcore/appmanager_app_api.c
 SRCS_all += rcore/appmanager_app_runloop.c
+SRCS_all += rcore/appmanager_app_timer.c
 SRCS_all += rcore/backlight.c
 SRCS_all += rcore/bluetooth.c
 SRCS_all += rcore/buttons.c

@@ -135,7 +135,6 @@ UNIMPL(_property_animation_legacy2_update_gpoint);
 UNIMPL(_property_animation_legacy2_update_grect);
 UNIMPL(_property_animation_legacy2_update_int16);
 UNIMPL(_psleep);
-//UNIMPL(_resource_load_byte_range);
 UNIMPL(_rot_bitmap_layer_create);
 UNIMPL(_rot_bitmap_layer_destroy);
 UNIMPL(_rot_bitmap_layer_increment_angle);
@@ -194,7 +193,6 @@ UNIMPL(_app_worker_message_unsubscribe);
 UNIMPL(_app_worker_send_message);
 UNIMPL(_worker_event_loop);
 UNIMPL(_worker_launch_app);
-//UNIMPL(_heap_bytes_free);
 UNIMPL(_heap_bytes_used);
 UNIMPL(_compass_service_peek);
 UNIMPL(_compass_service_set_heading_filter);
@@ -476,8 +474,8 @@ const VoidFunc sym[] = {
                                                                                                
     [262] = (VoidFunc)tick_timer_service_subscribe,                                            // tick_timer_service_subscribe@00000418
     [263] = (VoidFunc)tick_timer_service_unsubscribe,                                          // tick_timer_service_unsubscribe@0000041c
-    [264] = (VoidFunc)pbl_time_deprecated,                                                        // time__deprecated@00000420
-    [265] = (VoidFunc)pbl_time_ms_deprecated,                                                      // time_ms_deprecated@00000424
+    [264] = (VoidFunc)pbl_time_deprecated,                                                     // time__deprecated@00000420
+    [265] = (VoidFunc)rcore_time_ms,                                                           // time_ms_deprecated@00000424
     [266] = (VoidFunc)vibes_cancel,                                                            // vibes_cancel@00000428
     [267] = (VoidFunc)vibes_double_pulse,                                                      // vibes_double_pulse@0000042c
     [268] = (VoidFunc)vibes_enqueue_custom_pattern,                                            // vibes_enqueue_custom_pattern@00000430

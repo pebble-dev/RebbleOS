@@ -29,7 +29,6 @@
 #define TRIG_MAX_ANGLE 0x10000
 
 struct n_GRect;
-struct ResHandle;
 
 #include "graphics_reshandle.h"
 #include "graphics_resource.h"

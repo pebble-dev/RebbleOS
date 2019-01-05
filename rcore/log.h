@@ -22,11 +22,13 @@
 #define _LOG_NONE  0
 #define _LOG_DEBUG 1
 #define _LOG_INFO  2
-#define _LOG_ERROR 4
+#define _LOG_WARN  4
+#define _LOG_ERROR 8
 
 #define RBL_LOG_LEVEL_ALL (_LOG_DEBUG | _LOG_INFO | _LOG_ERROR)
 #define RBL_LOG_LEVEL_DEBUG (_LOG_DEBUG | _LOG_INFO | _LOG_ERROR)
 #define RBL_LOG_LEVEL_INFO (_LOG_INFO | _LOG_ERROR)
+#define RBL_LOG_LEVEL_WARN (_LOG_WARN | _LOG_ERROR)
 #define RBL_LOG_LEVEL_ERROR _LOG_ERROR
 #define RBL_LOG_LEVEL_NONE _LOG_NONE
 
@@ -39,6 +41,9 @@
 #define LOG_DEBUG(fmt_, ...) \
         if (LOG_LEVEL & _LOG_DEBUG) \
             __LOG_AR(MODULE_NAME, MODULE_TYPE, APP_LOG_LEVEL_DEBUG, fmt_, ##__VA_ARGS__)
+#define LOG_WARN(fmt_, ...) \
+        if (LOG_LEVEL & _LOG_WARN) \
+            __LOG_AR(MODULE_NAME, MODULE_TYPE, APP_LOG_LEVEL_WARNING, fmt_, ##__VA_ARGS__)
 #define LOG_ERROR(fmt_, ...) \
         if (LOG_LEVEL & _LOG_ERROR) \
             __LOG_AR(MODULE_NAME, MODULE_TYPE, APP_LOG_LEVEL_ERROR, fmt_, ##__VA_ARGS__)

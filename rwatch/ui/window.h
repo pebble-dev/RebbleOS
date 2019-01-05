@@ -52,7 +52,7 @@ typedef struct Window
     const char *debug_name;
     void *context;
     GRect frame;
-    list_node node; 
+    list_node node;
 } Window;
 
 // Window management
@@ -87,7 +87,7 @@ Window * window_stack_get_top_window(void);
 
 void window_configure(Window *window);
 void window_dirty(bool is_dirty);
-void window_draw();
+bool window_draw(void);
 void rbl_window_draw(Window *window);
 
 uint16_t window_count(void);

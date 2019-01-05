@@ -27,6 +27,7 @@ void hw_display_start();
 void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset);
 uint8_t hw_display_get_state();
 uint8_t *hw_display_get_buffer(void);
+uint8_t hw_display_process_isr(void);
 
 #define WATCHDOG_RESET_MS 500
 void hw_watchdog_init();

@@ -70,7 +70,7 @@ void log_printf(const char *layer, const char *module, uint8_t level, const char
  
     snprintf(buf, (INT_LEN / 2) + 1, "[%d]", interrupt_set);
     app_running_thread *thread = appmanager_get_current_thread();
-    snprintf(buf + INT_LEN / 2, (INT_LEN / 2) + 1, "[%d]", thread ? thread->thread_type : 9);
+    snprintf(buf + INT_LEN / 2, (INT_LEN / 2) + 1, "[%d]", thread ? thread->thread_type : -1);
     
     // This is pretty cheesy. We print the sections in chunks back to back
     // This is becuase there is no %8d equiv in fmt.c so we hacky it up ourself

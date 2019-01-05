@@ -8,7 +8,7 @@
  */ 
 #define MEMORY_SIZE_APP           90000
 #define MEMORY_SIZE_WORKER        10500
-#define MEMORY_SIZE_OVERLAY       16000
+#define MEMORY_SIZE_OVERLAY       18000
 
 /* Size of the stack in WORDS */
 #define MEMORY_SIZE_APP_STACK     3000

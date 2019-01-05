@@ -157,7 +157,7 @@ static void _animation_setup(bool direction_left)
 {
     // Animate the window change
     Animation *animation = animation_create();
-    animation_set_duration(animation, 300);
+    animation_set_duration(animation, 1200);
     
     const AnimationImplementation implementation = {
         .setup = _push_animation_setup,
@@ -351,7 +351,6 @@ void rbl_window_draw(Window *window)
     context->offset = frame;
     context->fill_color = window->background_color;
     graphics_fill_rect(context, GRect(0, 0, frame.size.w, frame.size.h), 0, GCornerNone);
-    
     layer_draw(window->root_layer, context);
 }
 
@@ -368,26 +367,25 @@ void rbl_window_draw(Window *window)
  * Display drawing is async, so if a display draw is already in progress, we 
  * also wait for that to complete.
  */
-void window_draw(void)
+bool window_draw(void)
 {
     if (appmanager_is_thread_overlay())
     {
-        return;
+        return false;
     }
     else if (appmanager_get_thread_type() != AppThreadMainApp)
     {
         SYS_LOG("window", APP_LOG_LEVEL_ERROR, "XXX Not app thread! I don't trust you to allocate memory correctly.");
         SYS_LOG("window", APP_LOG_LEVEL_ERROR, "XXX Please find the correct mechanism! (did you mean overlay_x?).");
-        return;
+        return false;
     }
 
     Window *wind = window_stack_get_top_window();
 
-    if (wind && wind->is_render_scheduled)
-    {
-        rbl_window_draw(wind);
-        wind->is_render_scheduled = false;
-    }
+    rbl_window_draw(wind);
+    wind->is_render_scheduled = false;
+    
+    return true;
 }
 
 

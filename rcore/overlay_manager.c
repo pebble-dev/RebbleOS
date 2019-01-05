@@ -294,9 +294,18 @@ static void _overlay_thread(void *pvParameters)
     {
         TickType_t next_timer = appmanager_timer_get_next_expiry(_this_thread);
 
+        if(next_timer == 0) 
+        {
+            appmanager_timer_expired(_this_thread);
+            /* When we need to update draw, we post it to the main app. This way
+             * we guarantee the background is drawn first.
+             * App thread will then defer back to this thread to draw any overlays */
+            appmanager_post_draw_message(1);
+            next_timer = appmanager_timer_get_next_expiry(_this_thread);
+        }
         if (next_timer < 0)
             next_timer = portMAX_DELAY;
-        
+
         if (xQueueReceive(_overlay_queue, &data, next_timer))
         {
             switch(data.command)
@@ -325,12 +334,7 @@ static void _overlay_thread(void *pvParameters)
                     assert(!"I don't know this command!");
             }
         } else {
-            appmanager_timer_expired(_this_thread);
-            
-            /* When we need to update draw, we post it to the main app. This way
-             * we guarantee the background is drawn first.
-             * App thread will then defer back to this thread to draw any overlays */
-            appmanager_post_draw_message(0);
+
         }
     }
 }

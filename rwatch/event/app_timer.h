@@ -10,9 +10,10 @@
 #include <stdbool.h>
 
 typedef struct AppTimer AppTimer;
+typedef uint16_t AppTimerHandle;
 
 typedef void (*AppTimerCallback)(void *priv);
 
-AppTimer *app_timer_register(uint32_t ms, AppTimerCallback cb, void *priv);
-bool app_timer_reschedule(AppTimer *timer, uint32_t ms);
-void app_timer_cancel(AppTimer *timer);
+AppTimerHandle app_timer_register(uint32_t ms, AppTimerCallback cb, void *priv);
+bool app_timer_reschedule(AppTimerHandle timer, uint32_t ms);
+void app_timer_cancel(AppTimerHandle timer);

@@ -30,8 +30,8 @@ typedef struct CoreTimer
 typedef struct AppMessage
 {
     uint8_t thread_id;
-    uint8_t message_type_id;
-    void *payload;
+    uint8_t command;
+    void *data;
 } AppMessage;
 
 typedef struct ButtonMessage
@@ -126,6 +126,7 @@ typedef enum AppThreadState {
     AppThreadUnloaded,
     AppThreadLoading,
     AppThreadLoaded,
+    AppThreadRunloop,
     AppThreadUnloading,
 } AppThreadState;
 
@@ -188,7 +189,7 @@ void appmanager_app_runloop_init(void);
 void appmanager_app_main_entry(void);
 list_head *app_manager_get_apps_head();
 void appmanager_post_button_message(ButtonMessage *bmessage);
-void appmanager_post_draw_message(uint32_t timeout_ms);
+void appmanager_post_draw_message(uint8_t force);
 void appmanager_post_draw_display_message(uint8_t *draw_to_display);
 
 void appmanager_app_start(char *name);
