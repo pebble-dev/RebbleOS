@@ -5,7 +5,6 @@
 #include "battery_state_service.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
-ResHandle *resource_get_handle_proxy(uint16_t resource_id);
 bool persist_exists(void);
 bool persist_exists(void) { return false; }
 
@@ -136,7 +135,7 @@ UNIMPL(_property_animation_legacy2_update_gpoint);
 UNIMPL(_property_animation_legacy2_update_grect);
 UNIMPL(_property_animation_legacy2_update_int16);
 UNIMPL(_psleep);
-UNIMPL(_resource_load_byte_range);
+//UNIMPL(_resource_load_byte_range);
 UNIMPL(_rot_bitmap_layer_create);
 UNIMPL(_rot_bitmap_layer_destroy);
 UNIMPL(_rot_bitmap_layer_increment_angle);
@@ -195,7 +194,7 @@ UNIMPL(_app_worker_message_unsubscribe);
 UNIMPL(_app_worker_send_message);
 UNIMPL(_worker_event_loop);
 UNIMPL(_worker_launch_app);
-UNIMPL(_heap_bytes_free);
+//UNIMPL(_heap_bytes_free);
 UNIMPL(_heap_bytes_used);
 UNIMPL(_compass_service_peek);
 UNIMPL(_compass_service_set_heading_filter);
@@ -268,7 +267,7 @@ UNIMPL(_gbitmap_sequence_set_play_count);
 UNIMPL(_gbitmap_sequence_update_bitmap_by_elapsed);
 UNIMPL(_graphics_draw_rotated_bitmap);
 UNIMPL(_difftime);
-UNIMPL(_time_ms);
+//UNIMPL(_time_ms);
 UNIMPL(_gcolor_legible_over);
 UNIMPL(_app_focus_service_subscribe_handlers);
 UNIMPL(_action_menu_set_result_window);
@@ -365,7 +364,7 @@ const VoidFunc sym[] = {
     [70]  = (VoidFunc)cos_lookup,                                                               // cos_lookup@00000118
           
     [96]  = (VoidFunc)fonts_get_system_font,                                                    // fonts_get_system_font@00000180
-    [97]  = (VoidFunc)fonts_load_custom_font_proxy,                                             // fonts_load_custom_font@00000184
+    [97]  = (VoidFunc)fonts_load_custom_font,                                             // fonts_load_custom_font@00000184
     [98]  = (VoidFunc)fonts_unload_custom_font,                                                 // fonts_unload_custom_font@00000188
     [99]  = (VoidFunc)app_free,                                                                 // free@0000018c
     [100] = (VoidFunc)gbitmap_create_as_sub_bitmap,                                            // gbitmap_create_as_sub_bitmap@00000190
@@ -436,9 +435,10 @@ const VoidFunc sym[] = {
     [188] = (VoidFunc)persist_exists,                                                          // persist_exists@000002f0
 
     [205] = (VoidFunc)rand,                                                                    // rand@00000334
-    [206] = (VoidFunc)resource_get_handle_proxy,                                               // resource_get_handle@00000338
-    [207] = (VoidFunc)resource_load_app,                                                       // resource_load@0000033c
-
+    [206] = (VoidFunc)resource_get_handle,                                                     // resource_get_handle@00000338
+    [207] = (VoidFunc)resource_load,                                                           // resource_load@0000033c
+    [208] = (VoidFunc)resource_load_byte_range,                                                // resource_load_byte_range@00000340
+    
     [209] = (VoidFunc)resource_size,                                                           // resource_size@00000344
 
     [217] = (VoidFunc)scroll_layer_add_child,                                                  // scroll_layer_add_child@00000364
@@ -523,6 +523,8 @@ const VoidFunc sym[] = {
     [343] = (VoidFunc)gpath_fill_app,                                                          // gpath_draw_filled@0000055c
 
     [350] = (VoidFunc)graphics_release_frame_buffer,                                           // graphics_release_frame_buffer@00000578
+    
+    [335] = (VoidFunc)app_heap_bytes_free,                                                      // heap_bytes_free@0000053c
                                                                                                
     [363] = (VoidFunc)mktime,                                                                  // mktime@000005ac
                                                                                                
@@ -693,6 +695,7 @@ const VoidFunc sym[] = {
     [622] = (VoidFunc)layer_get_unobstructed_bounds,
     [627] = (VoidFunc)rocky_event_loop_with_resource,
     
+    
     /* These functions are not yet implemented */
     
 
@@ -818,7 +821,6 @@ const VoidFunc sym[] = {
     [202] = (UnimplFunc)_property_animation_legacy2_update_grect,                              // property_animation_legacy2_update_grect@00000328
     [203] = (UnimplFunc)_property_animation_legacy2_update_int16,                              // property_animation_legacy2_update_int16@0000032c
     [204] = (UnimplFunc)_psleep,                                                               // psleep@00000330
-    [208] = (UnimplFunc)_resource_load_byte_range,                                             // resource_load_byte_range@00000340
     [210] = (UnimplFunc)_rot_bitmap_layer_create,                                              // rot_bitmap_layer_create@00000348
     [211] = (UnimplFunc)_rot_bitmap_layer_destroy,                                             // rot_bitmap_layer_destroy@0000034c
     [212] = (UnimplFunc)_rot_bitmap_layer_increment_angle,                                     // rot_bitmap_layer_increment_angle@00000350
@@ -877,7 +879,6 @@ const VoidFunc sym[] = {
     [332] = (UnimplFunc)_app_worker_send_message,                                              // app_worker_send_message@00000530
     [333] = (UnimplFunc)_worker_event_loop,                                                    // worker_event_loop@00000534
     [334] = (UnimplFunc)_worker_launch_app,                                                    // worker_launch_app@00000538
-    [335] = (UnimplFunc)_heap_bytes_free,                                                      // heap_bytes_free@0000053c
     [336] = (UnimplFunc)_heap_bytes_used,                                                      // heap_bytes_used@00000540
     [337] = (UnimplFunc)_compass_service_peek,                                                 // compass_service_peek@00000544
     [338] = (UnimplFunc)_compass_service_set_heading_filter,                                   // compass_service_set_heading_filter@00000548
@@ -950,7 +951,7 @@ const VoidFunc sym[] = {
     [457] = (UnimplFunc)_gbitmap_sequence_update_bitmap_by_elapsed,                            // gbitmap_sequence_update_bitmap_by_elapsed@00000724
     [460] = (UnimplFunc)_graphics_draw_rotated_bitmap,                                         // graphics_draw_rotated_bitmap@00000730
     [531] = (UnimplFunc)_difftime,                                                             // difftime@0000084c
-    [532] = (UnimplFunc)_time_ms,                                                              // time_ms@00000850
+    [532] = (VoidFunc)rcore_time_ms,                                                              // time_ms@00000850
     [533] = (UnimplFunc)_gcolor_legible_over,                                                  // gcolor_legible_over@00000854
     [535] = (UnimplFunc)_app_focus_service_subscribe_handlers,                                 // app_focus_service_subscribe_handlers@0000085c
     [548] = (UnimplFunc)_action_menu_set_result_window,                                        // action_menu_set_result_window@00000890

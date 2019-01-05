@@ -31,7 +31,7 @@ typedef struct qblock {
 
 #define ALIGN(s)	((s + 3) & ~3)
 
-#define BLK(blk)        ((qblock_t *)(blk))
+#define BLK(blk)		((qblock_t *)(blk))
 #define BLK_FROMPAYLOAD(p)	(void*)((char*)(p) - sizeof(qblock_t))
 #define BLK_SZ(blk)	((blk)->szflag & SZFLAG_SZ)
 #define BLK_NEXT(blk)	((qblock_t *)((char*)(blk) + BLK_SZ(blk)))
@@ -79,8 +79,8 @@ void *qalloc(qarena_t *arena, unsigned size) {
 		 * need enough room for this and one more block to be
 		 * constructed at the end.  */
 		if (!BLK_ISFREE(blk) ||
-		    ((BLK_SZ(blk) != size) &&
-		     (BLK_SZ(blk) < size + sizeof(qblock_t)))) {
+			((BLK_SZ(blk) != size) &&
+			 (BLK_SZ(blk) < size + sizeof(qblock_t)))) {
 			blk = BLK_NEXT(blk);
 			continue;
 		}
@@ -105,6 +105,21 @@ void *qalloc(qarena_t *arena, unsigned size) {
 		return BLK_PAYLOAD(blk);
 	}
 	return NULL;
+}
+
+uint32_t qfreebytes(qarena_t *arena) {
+	qblock_t *blk = BLK(arena+1);
+	qblock_t *end = BLK((char *)arena + arena->size);
+	uint32_t cnt = 0;
+	
+	while (blk && blk < end) {
+		if (!BLK_ISFREE(blk)) {
+			cnt += BLK_SZ(blk);
+		}
+		blk = BLK_NEXT(blk);
+	}
+	
+	return arena->size - cnt;
 }
 
 void qfree(qarena_t *arena, void *ptr) {
