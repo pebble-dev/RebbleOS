@@ -362,7 +362,7 @@ const VoidFunc sym[] = {
     [70]  = (VoidFunc)cos_lookup,                                                               // cos_lookup@00000118
           
     [96]  = (VoidFunc)fonts_get_system_font,                                                    // fonts_get_system_font@00000180
-    [97]  = (VoidFunc)fonts_load_custom_font,                                             // fonts_load_custom_font@00000184
+    [97]  = (VoidFunc)fonts_load_custom_font_proxy,                                             // fonts_load_custom_font@00000184
     [98]  = (VoidFunc)fonts_unload_custom_font,                                                 // fonts_unload_custom_font@00000188
     [99]  = (VoidFunc)app_free,                                                                 // free@0000018c
     [100] = (VoidFunc)gbitmap_create_as_sub_bitmap,                                            // gbitmap_create_as_sub_bitmap@00000190
