@@ -85,7 +85,7 @@ STM32_SPI_MK_TX_IRQ_HANDLER(&_spi2, 1, 4, _spi_tx_done)
 /* display */
 
 static uint8_t _display_fb[168][20];
-void hw_display_start_frame_dma(uint8_t x, uint8_t y);
+static void _hw_display_start_frame_dma(uint8_t x, uint8_t y);
 
 void hw_display_init() {
     DRV_LOG("Display", APP_LOG_LEVEL_INFO, "tintin: hw_display_init");
@@ -129,7 +129,7 @@ void hw_display_start() {
 
 void hw_display_start_frame(uint8_t x, uint8_t y) {
 #ifdef DMA_ENABLED
-    hw_display_start_frame_dma(x, y);
+    _hw_display_start_frame_dma(x, y);
     return;
 #else
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
@@ -152,11 +152,11 @@ void hw_display_start_frame(uint8_t x, uint8_t y) {
     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
 
-    display_done_ISR(0);
+    display_done_isr(0);
 #endif
 }
 
-void hw_display_start_frame_dma(uint8_t x, uint8_t y) {
+static void _hw_display_start_frame_dma(uint8_t x, uint8_t y) {
     stm32_power_request(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
     stm32_power_request(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
 
@@ -197,13 +197,18 @@ uint8_t hw_display_get_state() {
 
 static void _spi_tx_done(void)
 {
+    display_done_isr(0);
+}
+
+uint8_t hw_display_process_isr(void)
+{
     static uint8_t row_index = 0;
     
     if (row_index < 168 - _DMA_ROW_COUNT)
     {
         row_index += _DMA_ROW_COUNT;
         _send_next(row_index);
-        return;
+        return 0;
     }
     row_index = 0;
 
@@ -214,6 +219,6 @@ static void _spi_tx_done(void)
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOB);
     stm32_power_release(STM32_POWER_APB1, RCC_APB1Periph_SPI2);
     
-    display_done_ISR(0);
+    return 1;
 }
 

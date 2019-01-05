@@ -1,8 +1,19 @@
 /* display.c
- * routines for drawing to a display
+ * routines for drawing to a display.
  * RebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
+ */
+
+/* Notes
+ * 
+ * Calling display_draw starts the draw process.
+ * display_draw => until hw is done => semaphore wait on isr
+ * NOTES 
+ *   The draw is run in the caller's thread context.
+ *   This is a blocking process until a complete frame is drawn.
+ *   This must be run in the scheduler, not before.
+ *  
  */
  
 #include "rebbleos.h"
@@ -21,12 +32,12 @@ static StaticSemaphore_t _draw_mutex_buf;
 static SemaphoreHandle_t _draw_mutex;
 
 /*
- * Start the display driver and tasks. Show splash
+ * Start the display driver and tasks
  */
 uint8_t display_init(void)
 {
     _display_start_sem = xSemaphoreCreateBinaryStatic(&_display_start_sem_buf);
-    _draw_mutex    = xSemaphoreCreateMutexStatic(&_draw_mutex_buf);
+    _draw_mutex        = xSemaphoreCreateMutexStatic(&_draw_mutex_buf);
     
     hw_display_init();
     os_module_init_complete(0);
@@ -35,22 +46,16 @@ uint8_t display_init(void)
 }
 
 /*
- * When the display driver has responded to something
- * 1) frame frame accepted
- * 2) frame completed
- * We get notified here. We can now let the prcessing complete or continue
+ * Called after the render of each row/col
+ * We then set a semaphore for the display thread to wake on
  */
-void display_done_ISR(uint8_t cmd)
+void display_done_isr(uint8_t cmd)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-
+    
     /* Notify the task that the transmission is complete. */
     xSemaphoreGiveFromISR(_display_start_sem, &xHigherPriorityTaskWoken);
     
-    /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context switch
-    should be performed to ensure the interrupt returns directly to the highest
-    priority task.  The macro used for this purpose is dependent on the port in
-    use and may be called portEND_SWITCHING_ISR(). */
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
@@ -70,7 +75,6 @@ void display_reset(uint8_t enabled)
 static void _display_start_frame(uint8_t xoffset, uint8_t yoffset)
 {
     hw_display_start_frame(xoffset, yoffset);
-    
 }
 
 /*
@@ -83,14 +87,23 @@ uint8_t *display_get_buffer(void)
 
 /*
  * Queue a draw when available
+ * This function starts the draw, and then sits and waits in 
+ * a poll waiting for all frames to finish.
+ * To be called from an rtos thread only
  */
 void display_draw(void)
 {
+    uint8_t done = 0;
     _display_start_frame(0, 0);
 
-    /* block wait for the draw to finish
-     * this is invoked via the ISR */
-    xSemaphoreTake(_display_start_sem, portMAX_DELAY);
+    /* A frame is requested. Sit and await frame draw completion */
+    while(!done)
+    {
+        /* block wait for the draw one a single row/col to finish
+         * this is invoked via the ISR */
+        xSemaphoreTake(_display_start_sem, portMAX_DELAY);
+        done = hw_display_process_isr();
+    }
 }
 
 inline bool display_buffer_lock_take(uint32_t timeout)
