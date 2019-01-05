@@ -1,5 +1,5 @@
 /* resource.c
- * routines for [...]
+ * routines for loading and manipulating resouce files/data
  * RebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
@@ -9,333 +9,227 @@
 #include "platform.h"
 #include "flash.h"
 
-extern size_t xPortGetFreeAppHeapSize(void);
 
-uint32_t _resource_get_app_res_slot_address(const struct file *file);
+/* Configure Logging */
+#define MODULE_NAME "res"
+#define MODULE_TYPE "KERN"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
+
+
+
+/* The header  is on the flash. it contains the logical location of the
+ * resource itself
+ */
+typedef struct ResHandleFileHeader
+{
+    uint32_t index;
+    uint32_t offset;
+    uint32_t size;
+    uint32_t crc;
+} ResHandleFileHeader;
+
 
 uint8_t resource_init()
-{   
+{
     return 0;
 }
 
-/*
- * Load up a resource for the resource ID into the given buffer
- */
-void resource_load_id_system(uint16_t resource_id, uint8_t *buffer)
+/* We pass around a pointer to the block of flash or memory where the resource lives */
+ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
 {
-    ResHandle handle;
-    if (resource_id > 65000) // arbitary
+    ResHandleFileHeader new_header;
+    App *app = appmanager_get_current_app();
+    struct fd fd;
+    uint8_t is_system = res_handle > REGION_RES_START + RES_TABLE_START &&
+                        res_handle < REGION_RES_START + RES_TABLE_START + ((254) * sizeof(ResHandleFileHeader));
+
+    if (is_system)
     {
-        buffer = NULL;
+        flash_read_bytes(res_handle, (uint8_t *)&new_header, sizeof(ResHandleFileHeader));
+    }
+    else
+    {
+        fs_open(&fd, &app->resource_file);
+        fs_seek(&fd, res_handle, FS_SEEK_SET);
+        /* get the resource from the flash.
+         * each resource is in a big array in the flash, so we get the offsets for the resouce
+         * by multiplying out by the size of each resource */
+        fs_read(&fd, &new_header, sizeof(ResHandleFileHeader));
+    }
+
+    LOG_DEBUG("Resource sys:%d idx:%d adr:0x%x sz:%d", is_system, new_header.index, new_header.offset, new_header.size);
+
+    // sanity check the resource
+    if (new_header.size > 200000) // arbitary 200k
+    {
+        LOG_ERROR("Res: WARN. Suspect res size %d", new_header.size);
+    }
+
+    return new_header;
+}
+
+
+bool _resource_is_sane(ResHandleFileHeader *res_handle)
+{
+    size_t sz = res_handle->size;
+
+    if (sz <= 0)
+    {
+        LOG_ERROR("Res: res<=0");
+        return false;
+    }
+
+    if (sz > 100000)
+    {
+        LOG_ERROR("Res: malloc will fail. > 100Kb requested");
+        return false;
+    }
+
+    return true;
+}
+
+void _resource_load_file(ResHandleFileHeader resource_header, uint8_t *buffer, size_t max_length, const struct file *file)
+{
+    LOG_DEBUG("Loading Start adr:0x%x", resource_header.offset);
+
+    if(!buffer)
+    {
+        LOG_ERROR("Invalid Buffer");
         return;
     }
-    handle = resource_get_handle_system(resource_id);
 
-    flash_read_bytes(REGION_RES_START + RES_START + handle.offset, buffer, handle.size);
+    if (!file)
+    {
+        flash_read_bytes(REGION_RES_START + RES_START + resource_header.offset, buffer, resource_header.size);
+        return;
+    }
+
+    struct fd fd;
+    fs_open(&fd, file);
+    fs_seek(&fd, APP_RES_START + resource_header.offset + 0xC, FS_SEEK_SET);
+    fs_read(&fd, buffer, max_length ? max_length : resource_header.size);
+    return;
 }
+
+/*
+ * Load a resource fully into a returned buffer
+ * By resource handle
+ * 
+ */
+uint8_t *resource_fully_load_resource(ResHandle res_handle, const struct file *file, size_t *loaded_size)
+{
+    ResHandleFileHeader _handle;
+    _handle = _resource_get_res_handle_header(res_handle);
+
+    if (!_resource_is_sane(&_handle))
+        return NULL;
+
+    size_t sz = _handle.size;
+
+    uint8_t *buffer = app_calloc(1, sz);
+    if (loaded_size)
+        *loaded_size = sz;
+
+    if (buffer == NULL)
+    {
+        LOG_ERROR("Resource alloc of %d bytes for res %d failed", sz, _handle.index);
+        return NULL;
+    }
+
+    _resource_load_file(_handle, buffer, 0, file);
+
+    return buffer;
+}
+
+uint8_t *resource_fully_load_id_system(uint32_t resource_id)
+{
+    ResHandle res_handle = resource_get_handle_system(resource_id);
+    ResHandleFileHeader _handle = _resource_get_res_handle_header(res_handle);
+    uint8_t *buffer = resource_fully_load_resource(res_handle, NULL, NULL);
+
+    return buffer;
+}
+
+uint8_t *resource_fully_load_id_app(uint32_t resource_id)
+{
+    ResHandle res_handle = resource_get_handle(resource_id);
+    App *app = appmanager_get_current_app();
+    uint8_t *buffer = resource_fully_load_resource(res_handle, &app->resource_file, NULL);
+
+    return buffer;
+}
+
+uint8_t *resource_fully_load_id_app_file(uint32_t resource_id, const struct file *file, size_t *loaded_size)
+{
+    ResHandle res_handle = resource_get_handle(resource_id);
+    uint8_t *buffer = resource_fully_load_resource(res_handle, file, loaded_size);
+
+    return buffer;
+}
+
+
+/*
+ * Exposed public interface
+ * 
+ */
 
 /*
  * Load up a handle for the resource by ID
  */
 ResHandle resource_get_handle_system(uint16_t resource_id)
 {
-    ResHandle resHandle;
-
-    // get the resource from the flash.
-    // each resource is in a big array in the flash, so we get the offsets for the resouce
-    // by multiplying out by the size of each resource
-    flash_read_bytes(REGION_RES_START + RES_TABLE_START + ((resource_id - 1) * sizeof(ResHandle)), (uint8_t *)&resHandle, sizeof(ResHandle));
-
-    // sanity check the resource
-    if (resHandle.size > 200000) // arbitary 200k
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: WARN. Suspect res id %d size %d", resource_id, resHandle.size);
-        while(1);
-    }
-
-    return resHandle;
+    return REGION_RES_START + RES_TABLE_START + ((resource_id - 1) * sizeof(ResHandleFileHeader));
 }
 
 /*
  * Load up a handle for the resource by ID
  */
-ResHandle resource_get_handle_app(uint32_t resource_id, const struct file *file)
+ResHandle resource_get_handle(uint32_t resource_id)
 {
-    ResHandle resHandle;
-
-    if (resource_id == 0)
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "App asked for resource 0. I don't know what that means");
-        return resHandle;
-    }
-
-    uint32_t res_base = ((resource_id - 1) * sizeof(ResHandle)) + 0xC;
-
-    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource base %x %d", res_base, resource_id);
-
-    struct fd fd;
-    fs_open(&fd, file);
-    fs_seek(&fd, res_base, FS_SEEK_SET);
-
-    // get the resource from the flash.
-    // each resource is in a big array in the flash, so we get the offsets for the resouce
-    // by multiplying out by the size of each resource
-    fs_read(&fd, &resHandle, sizeof(ResHandle));
-    
-    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource %d %x %x", resHandle.index, resHandle.offset, resHandle.size);
-
-    // sanity check the resource
-    if (resHandle.size > 200000) // arbitary 200k
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: WARN. Suspect res size %d", resHandle.size);
-        while(1);
-    }
-
-    return resHandle;
+    return ((resource_id - 1) * sizeof(ResHandleFileHeader)) + 0xC;
 }
 
-void resource_load_app(ResHandle resource_handle, uint8_t *buffer, const struct file *file)
+void resource_load(ResHandle resource_handle, uint8_t *buffer, size_t max_length)
 {
-//     if (resource_handle.size > xPortGetFreeAppHeapSize())
-//     {
-//         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", resource_handle.size);
-//         return;
-//     }
-    
-    KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Res: Start %p", APP_RES_START + resource_handle.offset);
-    
-    uint16_t ofs = 0xC;
-    
-//     if (resource_handle.index > 1)
-//         ofs += 0x1C;
-//
+    App *app = appmanager_get_current_app();
+    ResHandleFileHeader _handle = _resource_get_res_handle_header(resource_handle);
 
-    struct fd fd;
-    fs_open(&fd, file);
-    fs_seek(&fd, APP_RES_START + resource_handle.offset + ofs, FS_SEEK_SET);
-    fs_read(&fd, buffer, resource_handle.size);
-    return;
+    _resource_load_file(_handle, buffer, max_length, &app->resource_file);
 }
 
-/*
-uint32_t _resource_get_app_res_slot_address(uint16_t slot_id)
+size_t resource_load_byte_range(ResHandle res_handle, uint32_t start_offset, uint8_t *buffer, size_t num_bytes)
 {
-    uint32_t res_addr = 0;
-    
-    if (slot_id < 8)
-        res_addr = APP_SLOT_0_START + (slot_id * APP_SLOT_SIZE);
-    else if (slot_id < 16)
-        res_addr =  APP_SLOT_8_START + ((slot_id - 8) * APP_SLOT_SIZE);
-    else if (slot_id < 24)
-        res_addr = APP_SLOT_16_START + ((slot_id - 16) * APP_SLOT_SIZE);
-    else if (slot_id < 32)
-        res_addr = APP_SLOT_24_START + ((slot_id - 24) * APP_SLOT_SIZE);
-    
-    res_addr += APP_HEADER_BIN_OFFSET + RES_TABLE_START - APP_RES_TABLE_OFFSET;
-    
-    return res_addr;
-}*/
+    ResHandleFileHeader _handle = _resource_get_res_handle_header(res_handle);
 
+    if (buffer == NULL)
+    {
+        LOG_ERROR("Invalid buffer");
+        return 0;
+    }
+
+    if (!_resource_is_sane(&_handle))
+        return 0;
+
+    size_t sz = _handle.size;
+
+    App *app = appmanager_get_current_app();
+
+    struct fd fd;
+    fs_open(&fd, &app->resource_file);
+    fs_seek(&fd, APP_RES_START + _handle.offset + 0xC + start_offset, FS_SEEK_SET);
+    fs_read(&fd, buffer, num_bytes);
+
+    return num_bytes;
+}
 
 /*
  * return the size of a resource
  */
 size_t resource_size(ResHandle handle)
 {
-    return handle.size;
+    ResHandleFileHeader _handle = _resource_get_res_handle_header(handle);
+    return _handle.size;
 }
-
-/*
- * Load a resource into the given buffer
- * By resource handle
- * 
- */
-void resource_load_system(ResHandle resource_handle, uint8_t *buffer)
-{
-    
-//     if (resource_handle.size > xPortGetFreeAppHeapSize())
-//     {
-//         KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Ress: malloc fail. Not enough heap for %d", resource_handle.size);
-//         return;
-//     }
-    
-    flash_read_bytes(REGION_RES_START + RES_START + resource_handle.offset, buffer, resource_handle.size);
-}
-
-/*
- * Load a resource fully into a returned buffer
- * By resource ID
- * 
- */
-uint8_t *resource_fully_load_id_system(uint16_t resource_id)
-{
-    ResHandle res = resource_get_handle_system(resource_id);
-    return resource_fully_load_res_system(res);
-}
-
-uint8_t *resource_fully_load_id_app(uint16_t resource_id, const struct file *file)
-{
-    ResHandle res = resource_get_handle_app(resource_id, file);
-    return resource_fully_load_res_app(res, file);
-}
-
-
-bool _resource_is_sane(ResHandle res_handle)
-{
-    size_t sz = resource_size(res_handle);
-    
-    if (sz <= 0)
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: res<=0");
-        return false;
-    }
-    
-    
-    /* XXX TODO qalloc to implement this
-    if (sz > xPortGetFreeAppHeapSize())
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc fail. Not enough heap for %d", sz);
-        return false;
-    }*/
-    
-    if (sz > 100000)
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Res: malloc will fail. > 100Kb requested");
-        return false;
-    }
-    
-    return true;
-}
-
-
-/*
- * Load a resource fully into a returned buffer
- * By resource handle
- * 
- */
-uint8_t *resource_fully_load_res_system(ResHandle res_handle)
-{
-    if (!_resource_is_sane(res_handle))
-        return NULL;
-    
-    size_t sz = resource_size(res_handle);
-    
-    uint8_t *buffer = app_calloc(1, sz);
-    
-    if (buffer == NULL)
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_ERROR, "Resource alloc of %d bytes for res %d failed", sz, res_handle.index);
-        return NULL;
-    }
-
-    resource_load_system(res_handle, buffer);
-
-    return buffer;
-}
-
-uint8_t *resource_fully_load_res_app(ResHandle res_handle, const struct file *file)
-{
-    if (!_resource_is_sane(res_handle))
-        return NULL;
-    
-    size_t sz = resource_size(res_handle);
- 
-    uint8_t *buffer = app_calloc(1, sz);
-    
-    if (buffer == NULL)
-    {
-        KERN_LOG("resou", APP_LOG_LEVEL_DEBUG, "Resource alloc failed");
-        return NULL;
-    }
-    resource_load_app(res_handle, buffer, file);
-    return buffer;
-}
-    
-
-
-/*
- * 
- * 
- * APP RESOURCES
- * 
- */
-
-/*
- * List all resources for an app
- */
-/*void app_resource_list(char *buffer, uint16_t slot_id)
-{
-    ResourceHeader res_header;
-    ResHandle handle;
-    
-    
-    flash_read_bytes(REGION_APP_RES_START + APP_HEADER_START, &res_header, sizeof(ResourceHeader));
-    printf("SIZE: %s %d\n", res_header.resource_name, res_header.resource_list_count);
-    
-    for (int i = 0; i < res_header.resource_list_count; i++)
-    {
-        flash_read_bytes(REGION_APP_RES_START + APP_RES_TABLE_START + ((i) * sizeof(ResHandle)), &handle, sizeof(ResHandle));
-        
-        printf("H i:%d sz:%d of:0x08%x\n", i, handle.size, handle.offset);
-    }
-}*/
-
-
-
-
-uintptr_t vApplicationStartSyscall(uint16_t syscall_index)
-{
-//     printf("APP SYSCALL %d\n");
-    return 0;
-}
-
-
-
-/*
- * Cheesy proxy to get the apps slot_id
- * When we need any resource from an app, we need a way of knowing
- * which app it was that wanted that resource. We know which app is running, that's the apps slot
- * 
- */
-GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id)
-{
-    App *app = appmanager_get_current_app();
-    return gbitmap_create_with_resource_app(resource_id, &app->resource_file);
-}
-
-ResHandle resource_get_handle(uint16_t resource_id)
-{
-    App *app = appmanager_get_current_app();
-    return resource_get_handle_app(resource_id, &app->resource_file);
-}
-
-void resource_load(ResHandle resource_handle, uint8_t *buffer, uint32_t size)
-{
-    App *app = appmanager_get_current_app();
-    /* TODO: respect passed size, should we include file in ResHandle? */
-    return resource_load_app(resource_handle, buffer, &app->resource_file);
-}
-
-/* app proxies by pointer */
-ResHandle *resource_get_handle_proxy(uint16_t resource_id)
-{
-    App *app = appmanager_get_current_app();
-    KERN_LOG("app", APP_LOG_LEVEL_DEBUG, "ResH %d %s", resource_id, app->header->name);
-
-    // push to the heap.
-    ResHandle *x = app_malloc(sizeof(ResHandle));
-    ResHandle y = resource_get_handle_app(resource_id, &app->resource_file);
-    memcpy(x, &y, sizeof(ResHandle));
-     
-    return x;
-}
-
-GFont *fonts_load_custom_font_proxy(ResHandle *handle)
-{
-    App *app = appmanager_get_current_app();
-    return (GFont *)fonts_load_custom_font(handle, &app->resource_file);
-}
-
 
 /* XXX MOVE Some missing functionality */
 
@@ -343,3 +237,15 @@ void p_n_grect_standardize(n_GRect r)
 {
     n_grect_standardize(r);
 }
+
+uintptr_t vApplicationStartSyscall(uint16_t syscall_index)
+{
+    return 0;
+}
+
+GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id)
+{
+    App *app = appmanager_get_current_app();
+    return gbitmap_create_with_resource_app(resource_id, &app->resource_file);
+}
+

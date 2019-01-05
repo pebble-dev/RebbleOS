@@ -11,8 +11,6 @@
 #include "png.h"
 #include "ngfxwrap.h"
 
-extern uint8_t *resource_fully_load_id_app(uint16_t, const struct file *file);
-
 /*
  * Load a resource into the GBitmap by resource id
  */
@@ -21,23 +19,22 @@ GBitmap *gbitmap_create_with_resource(uint32_t resource_id)
     uint8_t *png_data = resource_fully_load_id_system(resource_id);
     ResHandle res_handle = resource_get_handle_system(resource_id);
     size_t png_data_size = resource_size(res_handle);
-    
+
     if (!png_data)
         return NULL;
-        
+
     return gbitmap_create_from_png_data(png_data, png_data_size);
 }
 
 GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, const struct file *file)
 {
-    uint8_t *png_data = (uint8_t*)resource_fully_load_id_app(resource_id, file);
-    ResHandle res_handle = resource_get_handle_app(resource_id, file);
-    size_t png_data_size = resource_size(res_handle);
-    
+    size_t png_size;
+    uint8_t *png_data = (uint8_t*)resource_fully_load_id_app_file(resource_id, file, &png_size);
+
     if (!png_data)
         return NULL;
-        
-    return gbitmap_create_from_png_data(png_data, png_data_size);
+
+    return gbitmap_create_from_png_data(png_data, png_size);
 }
 
 /*
@@ -57,7 +54,7 @@ GBitmap *gbitmap_create_from_png_data(uint8_t *png_data, size_t png_data_size)
     GBitmap *bitmap = (GBitmap*)app_malloc(sizeof(GBitmap));
 
     png_to_gbitmap(bitmap, png_data, png_data_size);
-    
+
     return bitmap;
 }
 

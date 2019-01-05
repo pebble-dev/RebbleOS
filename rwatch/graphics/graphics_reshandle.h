@@ -1,17 +1,15 @@
 #pragma once
 /* graphics_reshandle.h
- * routines for [...]
  * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-typedef struct ResHandle
-{
-    uint32_t index;
-    uint32_t offset;
-    uint32_t size;
-    uint32_t crc;
-} ResHandle;
+/**
+ * @brief A handle to a resource. This isn't anything you can use in an app
+ * it is an opaque handle to a resouce.
+ */
+typedef size_t ResHandle;
 
-ResHandle resource_get_handle(uint16_t resource_id);
+//ResHandle resource_get_handle(uint16_t resource_id);
+

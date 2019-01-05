@@ -8,6 +8,7 @@
 
 void fonts_resetcache();
 GFont fonts_get_system_font(const char *key);
-GFont *fonts_load_custom_font(ResHandle *handle, const struct file* file);
+GFont fonts_load_custom_font(ResHandle handle, const struct file* file);
 void fonts_unload_custom_font(GFont font);
-GFont *fonts_load_custom_font_proxy(ResHandle *handle);
+GFont fonts_load_custom_font_proxy(ResHandle handle);
+

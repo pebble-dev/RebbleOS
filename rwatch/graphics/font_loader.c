@@ -106,11 +106,17 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 /*
  * Load a custom font
  */
-GFont *fonts_load_custom_font(ResHandle *handle, const struct file* file)
-{   
-    uint8_t *buffer = resource_fully_load_res_app(*handle, file);
+GFont fonts_load_custom_font(ResHandle handle, const struct file* file)
+{
+    uint8_t *buffer = resource_fully_load_resource(handle, file, NULL);
+    
+    return (GFont)buffer;
+}
 
-    return (GFont *)buffer;
+GFont fonts_load_custom_font_proxy(ResHandle handle)
+{
+    App *app = appmanager_get_current_app();
+    return (GFont)fonts_load_custom_font(handle, &app->resource_file);
 }
 
 /*
