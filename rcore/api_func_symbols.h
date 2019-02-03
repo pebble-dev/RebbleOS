@@ -181,7 +181,6 @@ UNIMPL(_n_graphics_text_layout_get_content_size);
 UNIMPL(_accel_data_service_subscribe);
 UNIMPL(_menu_layer_legacy2_set_callbacks);
 UNIMPL(_number_window_get_window);
-UNIMPL(_realloc);
 UNIMPL(_gbitmap_create_blank_2bit);
 UNIMPL(_click_recognizer_is_repeating);
 UNIMPL(_accel_raw_data_service_subscribe);
@@ -193,7 +192,6 @@ UNIMPL(_app_worker_message_unsubscribe);
 UNIMPL(_app_worker_send_message);
 UNIMPL(_worker_event_loop);
 UNIMPL(_worker_launch_app);
-UNIMPL(_heap_bytes_used);
 UNIMPL(_compass_service_peek);
 UNIMPL(_compass_service_set_heading_filter);
 UNIMPL(_compass_service_subscribe);
@@ -517,12 +515,13 @@ const VoidFunc sym[] = {
     [319] = (VoidFunc)bitmap_layer_get_bitmap,                                                 // bitmap_layer_get_bitmap@000004fc
                                                                                                
     [321] = (VoidFunc)window_get_click_config_context,                                         // window_get_click_config_context@00000504
-
+    [323] = (VoidFunc)app_realloc,                                                             // realloc@0000050c
+    [335] = (VoidFunc)app_heap_bytes_free,                                                     // heap_bytes_free@0000053c
+    [336] = (VoidFunc)app_heap_bytes_used,                                                     // heap_bytes_used@00000540
     [343] = (VoidFunc)gpath_fill_app,                                                          // gpath_draw_filled@0000055c
 
     [350] = (VoidFunc)graphics_release_frame_buffer,                                           // graphics_release_frame_buffer@00000578
     
-    [335] = (VoidFunc)app_heap_bytes_free,                                                      // heap_bytes_free@0000053c
                                                                                                
     [363] = (VoidFunc)mktime,                                                                  // mktime@000005ac
                                                                                                
@@ -865,7 +864,7 @@ const VoidFunc sym[] = {
     [317] = (UnimplFunc)_accel_data_service_subscribe,                                         // accel_data_service_subscribe@000004f4
     [320] = (UnimplFunc)_menu_layer_legacy2_set_callbacks,                                     // menu_layer_legacy2_set_callbacks@00000500
     [322] = (UnimplFunc)_number_window_get_window,                                             // number_window_get_window@00000508
-    [323] = (UnimplFunc)_realloc,                                                              // realloc@0000050c
+        
     [324] = (UnimplFunc)_gbitmap_create_blank_2bit,                                            // gbitmap_create_blank_2bit@00000510
     [325] = (UnimplFunc)_click_recognizer_is_repeating,                                        // click_recognizer_is_repeating@00000514
     [326] = (UnimplFunc)_accel_raw_data_service_subscribe,                                     // accel_raw_data_service_subscribe@00000518
@@ -877,7 +876,6 @@ const VoidFunc sym[] = {
     [332] = (UnimplFunc)_app_worker_send_message,                                              // app_worker_send_message@00000530
     [333] = (UnimplFunc)_worker_event_loop,                                                    // worker_event_loop@00000534
     [334] = (UnimplFunc)_worker_launch_app,                                                    // worker_launch_app@00000538
-    [336] = (UnimplFunc)_heap_bytes_used,                                                      // heap_bytes_used@00000540
     [337] = (UnimplFunc)_compass_service_peek,                                                 // compass_service_peek@00000544
     [338] = (UnimplFunc)_compass_service_set_heading_filter,                                   // compass_service_set_heading_filter@00000548
     [339] = (UnimplFunc)_compass_service_subscribe,                                            // compass_service_subscribe@0000054c

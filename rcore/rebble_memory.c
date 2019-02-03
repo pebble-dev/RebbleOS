@@ -62,12 +62,28 @@ void app_free(void *mem)
     qfree(thread->arena, mem);
 }
 
+void *app_realloc(void *mem, size_t new_size)
+{
+    app_running_thread *thread = appmanager_get_current_thread();
+    assert(thread && "invalid thread");
+
+    qrealloc(thread->arena, mem, new_size);
+}
+
 uint32_t app_heap_bytes_free(void)
 {
     app_running_thread *thread = appmanager_get_current_thread();
     assert(thread && "invalid thread");
 
-    uint32_t freeBytes = qfreebytes(thread->arena);
+    uint32_t free_bytes = qfreebytes(thread->arena);
 
-    return freeBytes;
+    return free_bytes;
+}
+
+uint32_t app_heap_bytes_used(void)
+{
+    app_running_thread *thread = appmanager_get_current_thread();
+    assert(thread && "invalid thread");
+
+    return qusedbytes(thread->arena);
 }

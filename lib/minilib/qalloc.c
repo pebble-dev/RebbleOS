@@ -40,9 +40,24 @@ typedef struct qblock {
 #define BLK_ALLOC(blk)	((blk)->szflag &= ~SZFLAG_FFREE)
 #define BLK_PAYLOAD(p)	(void*)((char*)(p) + sizeof(qblock_t))
 #define BLK_COOKIE(arena, blk) ((unsigned)(arena) >> 4 ^ (unsigned)(blk))
+#define BLK_ALSIZE(size) ALIGN(size) + sizeof(qblock_t);
+
+static void _cookie_set(qarena_t *arena, qblock_t *blk) {
+#ifdef HEAP_INTEGRITY
+	blk->cookie0 = ~BLK_COOKIE(arena, blk);
+	blk->cookie1 = BLK_COOKIE(arena, blk);
+#endif
+}
+static void _cookie_unset(qarena_t *arena, qblock_t *blk) {
+#ifdef HEAP_INTEGRITY
+	blk->cookie0 = BLK_COOKIE(arena, blk);
+	blk->cookie1 = ~BLK_COOKIE(arena, blk);
+#endif
+}
 
 static void qjoin(qarena_t *arena);
 static void qcheck(qarena_t *arena, qblock_t *blk);
+static void _qsplit(qarena_t *arena, qblock_t *blk, unsigned size);
 
 qarena_t *qinit(void *start, unsigned size) {
 	qarena_t *arena = start;
@@ -50,10 +65,7 @@ qarena_t *qinit(void *start, unsigned size) {
 	
 	qblock_t *blk = BLK(arena + 1); // start = &arena[1], so arena[0] is left alone.
 	blk->szflag = size - sizeof(*arena);
-#ifdef HEAP_INTEGRITY
-	blk->cookie0 = BLK_COOKIE(arena, blk);
-	blk->cookie1 = ~BLK_COOKIE(arena, blk);
-#endif
+		_cookie_unset(arena, blk);
 #ifdef HEAP_PARANOID
 	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk) - sizeof(qblock_t));
 #endif
@@ -70,7 +82,7 @@ void *qalloc(qarena_t *arena, unsigned size) {
 	if (size == 0)
 		return NULL;
 
-	size = ALIGN(size) + sizeof(qblock_t);
+	size = BLK_ALSIZE(size);
 	
 	while (blk && blk < end) {
 		qcheck(arena, blk);
@@ -86,20 +98,10 @@ void *qalloc(qarena_t *arena, unsigned size) {
 		}
 
 		if (BLK_SZ(blk) > size) {
-			qblock_t *nblk = BLK((char*)blk + size);
-			nblk->szflag = BLK_SZ(blk) - size;
-			blk->szflag = size;
-#ifdef HEAP_INTEGRITY
-			nblk->cookie0 = BLK_COOKIE(arena, nblk);
-			nblk->cookie1 = ~BLK_COOKIE(arena, nblk);
-#endif
-			BLK_FREE(nblk);
+			_qsplit(arena, blk, size);
 		}
 
-#ifdef HEAP_INTEGRITY
-		blk->cookie0 = ~BLK_COOKIE(arena, blk);
-		blk->cookie1 = BLK_COOKIE(arena, blk);
-#endif
+		_cookie_set(arena, blk);
 		BLK_ALLOC(blk);
 		
 		return BLK_PAYLOAD(blk);
@@ -107,7 +109,57 @@ void *qalloc(qarena_t *arena, unsigned size) {
 	return NULL;
 }
 
-uint32_t qfreebytes(qarena_t *arena) {
+/* init a new block, carving the remaining space into a new free */
+static void _qsplit(qarena_t *arena, qblock_t *blk, unsigned size) {
+	qblock_t *newblk = (qblock_t *)((char*)blk + size);
+	newblk->szflag = BLK_SZ(blk) - size;
+	blk->szflag = size;
+	_cookie_unset(arena, newblk);
+	BLK_FREE(newblk);
+}
+
+void *qrealloc(qarena_t *arena, void *ptr, unsigned size) {
+	if (size == 0)
+		return NULL;
+	
+	size = BLK_ALSIZE(size);
+	
+	if (!ptr)
+		return qalloc(arena, size);
+	
+	qblock_t *blk = BLK_FROMPAYLOAD(ptr);
+	
+	/* is the new size smaller? */
+	if (size < BLK_SZ(blk)) {
+		_qsplit(arena, blk, size);
+		_cookie_unset(arena, blk);
+		qjoin(arena);
+		return BLK_PAYLOAD(blk);
+	}
+	
+	/* is there room after */
+	qblock_t *nblk = BLK_NEXT(blk);
+	uint32_t reqsize = size - BLK_SZ(blk);
+	if (BLK_SZ(nblk) >= reqsize) {
+		/* there is a free block after. Lets take what we need */
+		_qsplit(arena, nblk, reqsize);
+		blk->szflag = size;
+		return BLK_PAYLOAD(blk);
+	}
+
+	/* There is no room after. Try malloc */
+	void *newm = qalloc(arena, size);
+	if (!newm)
+		return NULL;
+	
+	memcpy(newm, BLK_PAYLOAD(blk), BLK_SZ(blk));
+	qfree(arena, BLK_PAYLOAD(blk));
+	qjoin(arena);
+	
+	return newm;
+}
+
+uint32_t qusedbytes(qarena_t *arena) {
 	qblock_t *blk = BLK(arena+1);
 	qblock_t *end = BLK((char *)arena + arena->size);
 	uint32_t cnt = 0;
@@ -118,8 +170,11 @@ uint32_t qfreebytes(qarena_t *arena) {
 		}
 		blk = BLK_NEXT(blk);
 	}
-	
-	return arena->size - cnt;
+	return cnt;
+}
+
+uint32_t qfreebytes(qarena_t *arena) {
+	return arena->size - qusedbytes(arena);
 }
 
 void qfree(qarena_t *arena, void *ptr) {
@@ -138,8 +193,7 @@ void qfree(qarena_t *arena, void *ptr) {
 #endif
 
 	BLK_FREE(blk);
-	blk->cookie0 = BLK_COOKIE(arena, blk);
-	blk->cookie1 = ~BLK_COOKIE(arena, blk);
+	_cookie_unset(arena, blk);
 	qjoin(arena);
 }
 

@@ -22,5 +22,7 @@ void *system_malloc(size_t size);
 
 void *app_malloc(size_t size);
 void *app_calloc(size_t count, size_t size);
+void *app_realloc(void *mem, size_t new_size);
 void app_free(void *mem);
 uint32_t app_heap_bytes_free(void);
+uint32_t app_heap_bytes_used(void);
