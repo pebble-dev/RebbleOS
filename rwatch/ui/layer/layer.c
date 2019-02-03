@@ -39,6 +39,7 @@ Layer *layer_create_with_data(GRect frame, size_t data_size)
 void layer_ctor(Layer* layer, GRect frame)
 {
     layer->bounds = frame;
+    layer->clip = false;
     layer->frame = frame;
     layer->child = NULL;
     layer->sibling = NULL;
@@ -216,6 +217,22 @@ void layer_apply_frame_offset(const Layer *layer, GContext *context)
     context->offset.size.h = MAX(0, context->offset.size.h - layer->frame.origin.y);
 }
 
+void layer_set_clips(Layer *layer, bool clips)
+{
+    if (!layer)
+        return;
+
+    layer->clip = clips;
+}
+
+bool layer_get_clips(const Layer *layer)
+{
+    if (!layer)
+        return false;
+
+    return layer->clip;
+}
+
 /* Private functions */
 
 static void _layer_insert_node(Layer *layer_to_insert, Layer *sibling_layer, bool below)
@@ -319,30 +336,36 @@ static Layer *_layer_find_parent(Layer *orig_layer, Layer *layer)
 int inj = 0;
 static void _layer_delete_tree(Layer *layer)
 {
-    if(layer)
+    if(!layer)
+        return;
+
+    char sinj[20] = "";
+    for(int i = 0; i < inj; i++)
+        strncat(sinj, "   ", 3);
+    
+    SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "DTREE %s |_ CHILD %d", sinj, layer);
+    if (layer->child)
     {
-        char sinj[20] = "";
-        for(int i = 0; i < inj; i++)
-            strncat(sinj, "   ", 3);
-       
-        SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "DTREE %s |_ CHILD %d", sinj, layer);
-        if (layer->child)
-        {
-            inj++;
-            _layer_delete_tree(layer->child);
-            inj--;
-        }
-        if (layer->sibling)
-        {
-            inj++;
-            SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "DTREE %s   = SIB %d", sinj, layer);
-            _layer_delete_tree(layer->sibling);
-            inj--;
-        }
-        SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "DTREE %s    DONE %d", sinj, layer);
-        app_free(layer);
+        inj++;
+        _layer_delete_tree(layer->child);
+        inj--;
     }
+    if (layer->sibling)
+    {
+        inj++;
+        SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "DTREE %s   = SIB %d", sinj, layer);
+        _layer_delete_tree(layer->sibling);
+        inj--;
+    }
+    SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "DTREE %s    DONE %d", sinj, layer);
+    app_free(layer);
 }
 
+void *layer_get_data(const Layer *layer)
+{
+    if (!layer)
+        return NULL;
 
+    return layer->callback_data;
+}
 

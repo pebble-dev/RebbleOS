@@ -24,9 +24,10 @@ typedef struct Layer
     struct Layer *sibling;
     struct Layer *parent;
     void *container; // pointer to parent type, if any. i.e. a textlayer
-    struct Window  *window; // not connected yet
+    struct Window  *window;
     GRect bounds;
     GRect frame;
+    bool clip;
     LayerUpdateProc update_proc;
     void *callback_data;
     bool hidden;

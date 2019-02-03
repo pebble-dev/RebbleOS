@@ -58,6 +58,18 @@ GBitmap *gbitmap_create_from_png_data(uint8_t *png_data, size_t png_data_size)
     return bitmap;
 }
 
+GBitmapDataRowInfo gbitmap_get_data_row_info(const GBitmap * bitmap, uint16_t y)
+{
+    uint8_t *data = gbitmap_get_data(bitmap);
+    uint16_t bpr = gbitmap_get_bytes_per_row(bitmap);
+    GRect bounds = gbitmap_get_bounds(bitmap);
+    GBitmapDataRowInfo row_info;
+    row_info.data = data + bpr * y;
+    row_info.min_x = bounds.origin.x;
+    row_info.max_x = bounds.origin.x + bounds.size.w - 1;
+    return row_info;
+}
+
 // scary sequence stuff
 // read this more to figure out impl
 /*
@@ -70,5 +82,4 @@ int32_t gbitmap_sequence_get_current_frame_idx(GBitmapSequence * bitmap_sequence
 uint32_t gbitmap_sequence_get_total_num_frames(GBitmapSequence * bitmap_sequence);
 uint32_t gbitmap_sequence_get_play_count(GBitmapSequence * bitmap_sequence);
 void gbitmap_sequence_set_play_count(GBitmapSequence * bitmap_sequence, uint32_t play_count); GSize gbitmap_sequence_get_bitmap_size(GBitmapSequence * bitmap_sequence);
-GBitmapDataRowInfo gbitmap_get_data_row_info(const GBitmap * bitmap, uint16_t y);
 */

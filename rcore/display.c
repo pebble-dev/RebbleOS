@@ -23,7 +23,6 @@
 static SemaphoreHandle_t _display_start_sem;
 static StaticSemaphore_t _display_start_sem_buf;
 
-static void _display_thread(void *pvParameters);
 static void _display_start_frame(uint8_t offset_x, uint8_t offset_y);
 static void _display_cmd(uint8_t cmd, char *data);
 
@@ -114,4 +113,14 @@ inline bool display_buffer_lock_take(uint32_t timeout)
 inline bool display_buffer_lock_give(void)
 {
     return xSemaphoreGive(_draw_mutex);
+}
+
+bool display_is_buffer_locked(void)
+{
+    if(xSemaphoreTake(_draw_mutex, 0))
+    {
+        xSemaphoreGive(_draw_mutex);
+        return false;
+    }
+    return true;
 }

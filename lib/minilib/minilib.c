@@ -171,6 +171,21 @@ void *strcat(char *dest, const char *src)
 	
 	return origdest;
 }
+
+void *strncat(char *dest, const char *src, int num)
+{
+	char *origdest = dest;
+	
+	while (*dest)
+		dest++;
+	while (*src && num--) {
+		*(dest++) = *(src++);
+	}
+	*(dest++) = *(src++);
+	
+	return origdest;
+}
+
 static const char hexarr[] = "0123456789ABCDEF";
 void tohex(char *s, unsigned long l)
 {

@@ -29,3 +29,7 @@ void gpath_move_to_app(n_GPath * path, n_GPoint offset);
 GBitmap *graphics_capture_frame_buffer(n_GContext *context);
 GBitmap *graphics_capture_frame_buffer_format(n_GContext *context, GBitmap format);
 void graphics_release_frame_buffer(n_GContext *context, GBitmap *bitmap);
+bool graphics_frame_buffer_is_captured(GContext * ctx);
+
+void grect_align(GRect *rect, const GRect *inside_rect, const GAlign alignment, const bool clip);
+void grect_standardize(GRect *rect);

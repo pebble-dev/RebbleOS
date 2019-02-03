@@ -33,6 +33,14 @@ GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, const struct fil
 GBitmap *gbitmap_create_with_data(uint8_t *data);
 GBitmap *gbitmap_create_from_png_data(uint8_t *png_data, size_t png_data_size);
 
+typedef struct GBitmapDataRowInfo {
+    uint8_t* data;
+    int16_t min_x;
+    int16_t max_x;
+} GBitmapDataRowInfo;
+
+GBitmapDataRowInfo gbitmap_get_data_row_info(const GBitmap * bitmap, uint16_t y);
+
 /*
 
 GBitmapSequence *gbitmap_sequence_create_with_resource(uint32_t resource_id);

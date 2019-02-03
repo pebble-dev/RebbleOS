@@ -9,6 +9,20 @@
 #include "FreeRTOS.h"
 #include <time.h>
 
+
+//! Weekday values
+typedef enum {
+  TODAY = 0,  //!< Today
+  SUNDAY,     //!< Sunday
+  MONDAY,     //!< Monday
+  TUESDAY,    //!< Tuesday
+  WEDNESDAY,  //!< Wednesday
+  THURSDAY,   //!< Thursday
+  FRIDAY,     //!< Friday
+  SATURDAY,   //!< Saturday
+} WeekDay;
+
+
 // a bit mask of the time units
 typedef enum {
     SECOND_UNIT = 1 << 0, 
@@ -34,3 +48,5 @@ int pbl_clock_is_24h_style();
 uint16_t pbl_time_deprecated(time_t *tloc);
 time_t pbl_time_t_deprecated(time_t *tloc);
 uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms);
+
+time_t clock_to_timestamp(WeekDay day, int hour, int minute);

@@ -114,4 +114,25 @@ int pbl_clock_is_24h_style()
 }
 
 
+time_t clock_to_timestamp(WeekDay day, int hour, int minute)
+{
+    struct tm *time_now = rebble_time_get_tm();
+    uint8_t wday = time_now->tm_wday;
+    uint8_t dd = day - 1 - wday;
 
+    if (dd < 0)
+        dd = 7 - dd;
+
+    if ((int)day == 0 && hour < time_now->tm_hour || // set to TODAY
+         !dd && hour < time_now->tm_hour) // logically today
+        dd += 7;
+
+    uint32_t secs = (minute * 60) + (hour * 360) + (dd * 86400);
+
+    return time_now + secs;
+}
+
+double difftime(time_t end, time_t beginning)
+{
+    return (double)end - (double)beginning;
+}

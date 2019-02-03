@@ -176,7 +176,7 @@ static void _animation_setup(bool direction_left)
 /*
  * Remove the top_window from the list
  */
-Window * window_stack_pop(bool animated)
+Window * window_stack_pop(const bool animated)
 {
     assert(appmanager_get_thread_type() != AppThreadOverlay 
             && "Please use overlay_window_stack_pop");
@@ -185,6 +185,20 @@ Window * window_stack_pop(bool animated)
     window_stack_remove(wind, animated);
 
     return wind;
+}
+
+void window_stack_pop_all(const bool animated)
+{
+    assert(appmanager_get_thread_type() != AppThreadOverlay 
+            && "Please use overlay_window_stack_pop_all");
+
+    Window *wind = window_stack_get_top_window();
+
+    while(wind)
+    {
+        window_stack_remove(wind, animated);
+        wind = window_stack_get_top_window();
+    }
 }
 
 /*
@@ -609,4 +623,14 @@ static void _animation_util_push_fb(GRect rect, int16_t distance)
     }
     display_buffer_lock_give();
 #endif
+}
+
+bool window_get_fullscreen(Window *window)
+{
+    return true;
+}
+
+void window_set_fullscreen(Window *window)
+{
+    return;
 }

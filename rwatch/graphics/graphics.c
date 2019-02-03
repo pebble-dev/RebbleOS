@@ -164,3 +164,115 @@ void gpath_move_to_app(n_GPath * path, n_GPoint offset)
     n_gpath_move_to(path, offset);
 //     path->offset = off;
 }
+
+void grect_align(GRect *rect, const GRect *inside_rect, const GAlign alignment, const bool clip)
+{
+    int16_t x = 0, y = 0;
+    /* Align x */
+    switch (alignment)
+    {
+        case GAlignBottomLeft:
+        case GAlignLeft:
+        case GAlignTopLeft:
+            x = 0;
+            break;
+        case GAlignBottomRight:
+        case GAlignRight:
+        case GAlignTopRight:
+            x = inside_rect->size.w - rect->size.w;
+            break;
+        case GAlignBottom:
+        case GAlignCenter:
+        case GAlignTop:
+            x = (inside_rect->size.w - rect->size.w) / 2;
+            break;
+    }
+
+    /* Align y */
+    switch (alignment)
+    {
+        case GAlignBottom:
+        case GAlignBottomLeft:
+        case GAlignBottomRight:
+            y = inside_rect->size.h - rect->size.h;
+            break;
+        case GAlignLeft:
+        case GAlignRight:
+        case GAlignCenter:
+            y = (inside_rect->size.h - rect->size.h) / 2;
+            break;
+        case GAlignTopLeft:
+        case GAlignTopRight:
+        case GAlignTop:
+            y = 0;
+            break;
+    }
+
+    if (clip)
+    {
+        if (x < 0)
+        {
+            rect->size.w -= x;
+            x = 0;
+        }
+        if (x + rect->size.w > inside_rect->size.w) {
+            rect->size.w -= (x + rect->size.w) - inside_rect->size.w;
+        }
+        if (y < 0)
+        {
+            rect->size.h -= y;
+            y = 0;
+        }
+        if (y + rect->size.h > inside_rect->size.h)
+        {
+            rect->size.h -= (y + rect->size.h) - inside_rect->size.h;
+        }
+    }
+
+    rect->origin.x = inside_rect->origin.x + x;
+    rect->origin.y = inside_rect->origin.y + y;
+}
+
+
+void grect_standardize(GRect *rect)
+{
+    if (rect->size.w < 0)
+    {
+        rect->origin.x += rect->size.w;
+        rect->size.w = -rect->size.w;
+    }
+
+    if (rect->size.h < 0)
+    {
+        rect->origin.y += rect->size.h;
+        rect->size.h = -rect->size.h;
+    }
+}
+
+//! Returns a rectangle that is shrinked or expanded by the given edge insets.
+//! @note The rectangle is standardized and then the inset parameters are applied.
+//! If the resulting rectangle would have a negative height or width, a GRectZero is returned.
+//! @param rect The rectangle that will be inset
+//! @param insets The insets that will be applied
+//! @return The resulting rectangle
+//! @note Use this function in together with the \ref GEdgeInsets macro
+//! \code{.c}
+//! GRect r_inset_all_sides = grect_inset(r, GEdgeInsets(10));
+//! GRect r_inset_vertical_horizontal = grect_inset(r, GEdgeInsets(10, 20));
+//! GRect r_expand_top_right_shrink_bottom_left = grect_inset(r, GEdgeInsets(-10, -10, 10, 10));
+//! \endcode
+GRect grect_inset(GRect rect, GEdgeInsets insets)
+{
+    GRect r;
+    // top, right, bottom, left
+    r.origin.x = insets.left;
+    r.origin.x = insets.top;
+    r.size.w = rect.size.w - insets.right - insets.left;
+    r.size.h = rect.size.h - insets.top - insets.bottom;
+    return r;
+}
+
+bool graphics_frame_buffer_is_captured(GContext * ctx)
+{
+    return display_is_buffer_locked();
+}

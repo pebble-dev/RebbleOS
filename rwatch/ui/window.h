@@ -95,3 +95,5 @@ void window_configure(Window *window);
 void window_load_click_config(Window *window);
 
 void _window_unload_proc(Window *window);
+bool window_get_fullscreen(Window *window);
+void window_set_fullscreen(Window *window);

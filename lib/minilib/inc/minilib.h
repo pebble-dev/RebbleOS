@@ -27,6 +27,7 @@ extern int strcmp(const char *a2, const char *a1);
 extern int strncmp(const char *a2, const char *a1, int n);
 extern int strlen(const char *c);
 extern void *strcat(char *dest, const char *src);
+extern void *strncat(char *dest, const char *src, int num);
 extern void *strcpy(char *a2, const char *a1);
 extern void tohex(char *s, unsigned long l);
 extern void btohex(char *s, unsigned char c);
