@@ -145,7 +145,6 @@ UNIMPL(_text_layer_legacy2_set_size);
 UNIMPL(_text_layer_legacy2_set_text);
 UNIMPL(_text_layer_legacy2_set_text_alignment);
 UNIMPL(_text_layer_legacy2_set_text_color_2bit);
-UNIMPL(_window_set_background_color_2bit);
 UNIMPL(_window_set_status_bar_icon);
 UNIMPL(_app_focus_service_subscribe);
 UNIMPL(_app_focus_service_unsubscribe);
@@ -164,7 +163,7 @@ UNIMPL(_persist_read_data);
 UNIMPL(_persist_read_string);
 UNIMPL(_persist_write_data);
 UNIMPL(_dict_size);
-UNIMPL(_n_graphics_text_layout_get_content_size);
+UNIMPL(_graphics_text_layout_get_content_size);
 UNIMPL(_accel_data_service_subscribe);
 UNIMPL(_menu_layer_legacy2_set_callbacks);
 UNIMPL(_number_window_get_window);
@@ -480,7 +479,7 @@ const VoidFunc sym[] = {
     [274] = (VoidFunc)window_get_fullscreen,                                                   // window_get_fullscreen@00000448
     [275] = (VoidFunc)window_get_root_layer,                                                   // window_get_root_layer@0000044c
     [276] = (VoidFunc)window_is_loaded,                                                        // window_is_loaded@00000450
-                                                                                               
+
     [278] = (VoidFunc)window_set_click_config_provider,                                        // window_set_click_config_provider@00000458
     [279] = (VoidFunc)window_set_click_config_provider_with_context,                           // window_set_click_config_provider_with_context@0000045c
     [280] = (VoidFunc)window_set_fullscreen,                                                   // window_set_fullscreen@00000460
@@ -503,11 +502,10 @@ const VoidFunc sym[] = {
     [307] = (VoidFunc)window_single_click_subscribe,                                           // window_single_click_subscribe@000004cc
     [308] = (VoidFunc)window_single_repeating_click_subscribe,                                 // window_single_repeating_click_subscribe@000004d0
     [309] = (VoidFunc)graphics_draw_text,                                                      // graphics_draw_text@000004d4
-                                                                                               
+
     [316] = (VoidFunc)simple_menu_layer_get_menu_layer,                                        // simple_menu_layer_get_menu_layer@000004f0
 
     [318] = (VoidFunc)app_calloc,                                                              // calloc@000004f8
-
     [319] = (VoidFunc)bitmap_layer_get_bitmap,                                                 // bitmap_layer_get_bitmap@000004fc
                                                                                                
     [321] = (VoidFunc)window_get_click_config_context,                                         // window_get_click_config_context@00000504
@@ -673,6 +671,7 @@ const VoidFunc sym[] = {
     [528] = (VoidFunc)status_bar_layer_get_layer,                                              // status_bar_layer_get_layer@00000840
     [529] = (VoidFunc)status_bar_layer_set_colors,                                             // status_bar_layer_set_colors@00000844
     [530] = (VoidFunc)status_bar_layer_set_separator_mode,                                     // status_bar_layer_set_separator_mode@00000848
+    [532] = (VoidFunc)rcore_time_ms,                                                           // time_ms@00000850
                                                                                                
     [534] = (VoidFunc)property_animation_update_gcolor8,                                       // property_animation_update_gcolor8@00000858
                                                                                                
@@ -707,7 +706,7 @@ const VoidFunc sym[] = {
     [594] = (VoidFunc)scroll_layer_get_paging,                                                 // scroll_layer_get_paging@00000948
     [595] = (VoidFunc)scroll_layer_set_paging,                                                 // scroll_layer_set_paging@0000094c
     
-    [597] = (UnimplFunc)text_layer_restore_default_text_flow_and_paging,                       // text_layer_restore_default_text_flow_and_paging@00000954
+    [597] = (VoidFunc)text_layer_restore_default_text_flow_and_paging,                       // text_layer_restore_default_text_flow_and_paging@00000954
     [598] = (VoidFunc)menu_layer_is_index_selected,                                            // menu_layer_is_index_selected@00000958
     
     [622] = (VoidFunc)layer_get_unobstructed_bounds,
@@ -799,8 +798,6 @@ const VoidFunc sym[] = {
     [135] = (UnimplFunc)_inverter_layer_create,                                                // inverter_layer_create@0000021c
     [136] = (UnimplFunc)_inverter_layer_destroy,                                               // inverter_layer_destroy@00000220
     [137] = (UnimplFunc)_inverter_layer_get_layer,                                             // inverter_layer_get_layer@00000224
-    [143] = (UnimplFunc)_layer_get_clips,                                                      // layer_get_clips@0000023c
-    [144] = (UnimplFunc)_layer_get_data,                                                       // layer_get_data@00000240
     [154] = (UnimplFunc)_layer_set_clips,                                                      // layer_set_clips@00000268
     [158] = (UnimplFunc)_light_enable,                                                         // light_enable@00000278
     [159] = (UnimplFunc)_light_enable_interaction,                                             // light_enable_interaction@0000027c
@@ -929,8 +926,6 @@ const VoidFunc sym[] = {
     [443] = (UnimplFunc)_gbitmap_sequence_set_play_count,                                      // gbitmap_sequence_set_play_count@000006ec
     [457] = (UnimplFunc)_gbitmap_sequence_update_bitmap_by_elapsed,                            // gbitmap_sequence_update_bitmap_by_elapsed@00000724
     [460] = (UnimplFunc)_graphics_draw_rotated_bitmap,                                         // graphics_draw_rotated_bitmap@00000730
-    [531] = (UnimplFunc)_difftime,                                                             // difftime@0000084c
-    [532] = (VoidFunc)rcore_time_ms,                                                              // time_ms@00000850
     [533] = (UnimplFunc)_gcolor_legible_over,                                                  // gcolor_legible_over@00000854
     [535] = (UnimplFunc)_app_focus_service_subscribe_handlers,                                 // app_focus_service_subscribe_handlers@0000085c
     [548] = (UnimplFunc)_action_menu_set_result_window,                                        // action_menu_set_result_window@00000890
