@@ -54,25 +54,44 @@ typedef struct AnimationImplementation
 typedef void (*AnimationStartedHandler)(struct Animation *animation, void *context);
 typedef void (*AnimationStoppedHandler)(struct Animation *animation, bool finished, void *context);
 
+
+typedef struct AnimationHandlers
+{
+    AnimationStartedHandler started;
+    AnimationStoppedHandler stopped;
+} AnimationHandlers;
+/*
+typedef enum {
+    AnimationTypeNormal,
+    AnimationTypeSequence,
+    AnimationTypeSpawn,
+    AnimationTypeChild,
+} AnimationType;*/
+
 // animation
 typedef struct Animation
 {
     CoreTimer timer;
     
-    int scheduled;
-    int onqueue;
+    uint8_t scheduled;
+    uint8_t onqueue;
+    uint8_t reverse;
+    uint8_t spawn;
+//     AnimationType type;
+    AnimationCurve curve;
+    uint32_t playcount;
+    uint32_t playcount_count;
+    TickType_t delay;
     TickType_t duration;
     TickType_t startticks;
     AnimationImplementation impl;
-    struct AnimationHandler *anim_handlers;
+    AnimationHandlers anim_handlers;
+    AnimationCurveFunction curve_function;
+    list_node sequence_node;
+    list_node sequence_head;
     void *context; /* for generic use */
 } Animation;
 
-typedef struct AnimationHandler
-{
-    void *started;
-    void *stopped;
-} AnimationHandler;
 
 // animation
 Animation *animation_create();
@@ -99,9 +118,11 @@ AnimationCurve animation_get_curve(Animation *animation);
 AnimationCurveFunction animation_get_custom_curve(Animation *animation);
 bool animation_set_implementation(Animation *animation, const AnimationImplementation *implementation);
 const AnimationImplementation *animation_get_implementation(Animation *animation);
-void animation_set_handlers(Animation *anim, AnimationHandler anim_handler);
+void animation_set_handlers(Animation *anim, AnimationHandlers anim_handler, void *context);
 void *animation_get_context(Animation *animation);
 bool animation_schedule(Animation *anim);
 bool animation_unschedule(Animation *animation);
 void animation_unschedule_all(void);
 bool animation_is_scheduled(Animation *animation);
+bool animation_set_custom_curve(Animation * anim, AnimationCurveFunction curve_function);
+Animation *animation_clone(Animation *from);

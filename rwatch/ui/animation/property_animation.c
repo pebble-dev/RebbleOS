@@ -149,8 +149,33 @@ void property_animation_destroy(PropertyAnimation *property_animation)
     app_free(property_animation);
 }
 
-/*
- bool property_animation_subject(PropertyAnimation * property_animation, void * subject, bool set);
- bool property_animation_from(PropertyAnimation * property_animation, void * from, size_t size, bool set);
- bool property_animation_to(PropertyAnimation * property_animation, void * to, size_t size, bool set);
- */
+bool property_animation_subject(PropertyAnimation *property_animation, void * subject, bool set)
+{
+    if (set)
+        property_animation->subject = subject;
+    else
+        subject = property_animation->subject;
+
+    return true;
+}
+
+bool property_animation_from(PropertyAnimation *property_animation, void *from, size_t size, bool set)
+{
+    if (set)
+        memcpy(&property_animation->values.from, from, size);
+    else
+        memcpy(from, &property_animation->values.from, size);
+
+    return true;
+}
+
+bool property_animation_to(PropertyAnimation *property_animation, void *to, size_t size, bool set)
+{
+    if (set)
+        memcpy(&property_animation->values.to, to, size);
+    else
+        memcpy(to, &property_animation->values.to, size);
+
+    return true;
+}
+

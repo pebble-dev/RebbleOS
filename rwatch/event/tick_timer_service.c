@@ -47,13 +47,23 @@ static void _tick_timer_update_next(TickTimerState *state)
         /* Everyone else gets woken up hourly, and we'll just cancel it
          * later if it wasn't requested.  */
         dtime = dtime + 60 * 60;
-        
+
         rcore_localtime(&nexttm, dtime);
         nexttm.tm_min = nexttm.tm_sec = 0;
         dtime = rcore_mktime(&nexttm);
     }
-    
-    state->timer.when = rcore_time_to_ticks(dtime, 0);
+    uint32_t when = rcore_time_to_ticks(dtime, 0);
+TickType_t now = xTaskGetTickCount();
+    SYS_LOG("tick", APP_LOG_LEVEL_INFO, "dtime %ld, when %d, now %d", dtime, when, now);
+    /* if it seems like we need to add no time, its likely becuase
+     * this timer is slight ms offset with wall rtc time.
+     * To stop it spamming the timer by repeatedly adding itself to the front
+     * until it catches it, increment by 2ms 
+     * TODO if we drift a lot, 1) why 2) resync rtc
+     */
+    if (when == 0)
+        when = 2;
+    state->timer.when = when;
     state->timer.callback = _tick_timer_callback;
     appmanager_timer_add(&state->timer);
     state->onqueue = 1;

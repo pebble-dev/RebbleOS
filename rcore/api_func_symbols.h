@@ -535,22 +535,27 @@ const VoidFunc sym[] = {
     [379] = (VoidFunc)localtime,                                                               // localtime@000005ec
     [380] = (VoidFunc)animation_create,                                                        // animation_create@000005f0
     [381] = (VoidFunc)animation_destroy,                                                       // animation_destroy@000005f4
-                                                                                               
+    [382] = (VoidFunc)animation_get_context,                                                // animation_get_context@000005f8
+    [383] = (VoidFunc)animation_is_scheduled,                                               // animation_is_scheduled@000005fc
     [384] = (VoidFunc)animation_schedule,                                                      // animation_schedule@00000600
-                                                                                               
+    [385] = (VoidFunc)animation_set_curve,                                                  // animation_set_curve@00000604
+    [386] = (VoidFunc)animation_set_custom_curve,                                           // animation_set_custom_curve@00000608
+    [387] = (VoidFunc)animation_set_delay,                                                  // animation_set_delay@0000060c
     [388] = (VoidFunc)animation_set_duration,                                                  // animation_set_duration@00000610
-                                                                                               
+    [389] = (VoidFunc)animation_set_handlers,                                               // animation_set_handlers@00000614
     [390] = (VoidFunc)animation_set_implementation,                                            // animation_set_implementation@00000618
-                                                                                               
+    [391] = (VoidFunc)animation_unschedule,                                                 // animation_unschedule@0000061c
+    [392] = (VoidFunc)animation_unschedule_all,                                             // animation_unschedule_all@00000620
     [393] = (VoidFunc)gbitmap_create_blank,                                                    // gbitmap_create_blank@00000624
     [394] = (VoidFunc)graphics_capture_frame_buffer,                                           // graphics_capture_frame_buffer@00000628
     [395] = (VoidFunc)graphics_capture_frame_buffer_format,                                    // graphics_capture_frame_buffer_format@0000062c
     [396] = (VoidFunc)property_animation_create,                                               // property_animation_create@00000630
     [397] = (VoidFunc)property_animation_create_layer_frame,                                   // property_animation_create_layer_frame@00000634
     [398] = (VoidFunc)property_animation_destroy,                                              // property_animation_destroy@00000638
-                                                                                               
+    [399] = (VoidFunc)property_animation_from,                                              // property_animation_from@0000063c
     [400] = (VoidFunc)property_animation_get_animation,                                        // property_animation_get_animation@00000640
-                                                                                               
+    [401] = (VoidFunc)property_animation_subject,                                           // property_animation_subject@00000644
+    [402] = (VoidFunc)property_animation_to,                                                // property_animation_to@00000648
     [403] = (VoidFunc)property_animation_update_gpoint,                                        // property_animation_update_gpoint@0000064c
     [404] = (VoidFunc)property_animation_update_grect,                                         // property_animation_update_grect@00000650
     [405] = (VoidFunc)property_animation_update_int16,                                         // property_animation_update_int16@00000654
@@ -565,7 +570,23 @@ const VoidFunc sym[] = {
     [414] = (VoidFunc)gbitmap_set_palette,                                                     // gbitmap_set_palette@00000678
                                                                                                
     [421] = (VoidFunc)gbitmap_create_from_png_data,                                            // gbitmap_create_from_png_data@00000694
-                                                                                               
+    [422] = (VoidFunc)animation_clone,                                                      // animation_clone@00000698
+    [423] = (VoidFunc)animation_get_delay,                                                  // animation_get_delay@0000069c
+    [424] = (VoidFunc)animation_get_duration,                                               // animation_get_duration@000006a0
+    [425] = (VoidFunc)animation_get_play_count,                                             // animation_get_play_count@000006a4
+    [426] = (VoidFunc)animation_get_elapsed,                                                // animation_get_elapsed@000006a8
+    [427] = (VoidFunc)animation_get_reverse,                                                // animation_get_reverse@000006ac
+    [428] = (VoidFunc)animation_sequence_create,                                            // animation_sequence_create@000006b0
+    [429] = (VoidFunc)animation_sequence_create_from_array,                                 // animation_sequence_create_from_array@000006b4
+    [430] = (VoidFunc)animation_set_play_count,                                             // animation_set_play_count@000006b8
+    [431] = (VoidFunc)animation_set_elapsed,                                                // animation_set_elapsed@000006bc
+    [432] = (VoidFunc)animation_set_reverse,                                                // animation_set_reverse@000006c0
+    [433] = (VoidFunc)animation_spawn_create,                                               // animation_spawn_create@000006c4
+    [434] = (VoidFunc)animation_spawn_create_from_array,                                    // animation_spawn_create_from_array@000006c8
+    [435] = (VoidFunc)animation_get_curve,                                                  // animation_get_curve@000006cc
+    [436] = (VoidFunc)animation_get_custom_curve,                                           // animation_get_custom_curve@000006d0
+    [437] = (VoidFunc)animation_get_implementation,                                         // animation_get_implementation@000006d4
+
     [439] = (VoidFunc)menu_layer_create,                                                       // menu_layer_create@000006dc
     [444] = (VoidFunc)graphics_context_set_antialiased,                                        // graphics_context_set_antialiased@000006f0
     [445] = (VoidFunc)graphics_context_set_stroke_width,                                       // graphics_context_set_stroke_width@000006f4
@@ -907,39 +928,15 @@ const VoidFunc sym[] = {
     [368] = (UnimplFunc)___profiler_stop,                                                      // __profiler_stop@000005c0
     [374] = (UnimplFunc)_rot_bitmap_layer_set_corner_clip_color,                               // rot_bitmap_layer_set_corner_clip_color@000005d8
     [378] = (UnimplFunc)_clock_get_timezone,                                                   // clock_get_timezone@000005e8
-    [382] = (UnimplFunc)_animation_get_context,                                                // animation_get_context@000005f8
-    [383] = (UnimplFunc)_animation_is_scheduled,                                               // animation_is_scheduled@000005fc
-    [385] = (UnimplFunc)_animation_set_curve,                                                  // animation_set_curve@00000604
-    [386] = (UnimplFunc)_animation_set_custom_curve,                                           // animation_set_custom_curve@00000608
-    [387] = (UnimplFunc)_animation_set_delay,                                                  // animation_set_delay@0000060c
-    [389] = (UnimplFunc)_animation_set_handlers,                                               // animation_set_handlers@00000614
-    [391] = (UnimplFunc)_animation_unschedule,                                                 // animation_unschedule@0000061c
-    [392] = (UnimplFunc)_animation_unschedule_all,                                             // animation_unschedule_all@00000620
-    [399] = (UnimplFunc)_property_animation_from,                                              // property_animation_from@0000063c
-    [401] = (UnimplFunc)_property_animation_subject,                                           // property_animation_subject@00000644
-    [402] = (UnimplFunc)_property_animation_to,                                                // property_animation_to@00000648
+ 
+    
     [415] = (UnimplFunc)_gbitmap_sequence_create_with_resource,                                // gbitmap_sequence_create_with_resource@0000067c
     [416] = (UnimplFunc)_gbitmap_sequence_destroy,                                             // gbitmap_sequence_destroy@00000680
     [417] = (UnimplFunc)_gbitmap_sequence_get_bitmap_size,                                     // gbitmap_sequence_get_bitmap_size@00000684
     [418] = (UnimplFunc)_gbitmap_sequence_get_current_frame_idx,                               // gbitmap_sequence_get_current_frame_idx@00000688
     [419] = (UnimplFunc)_gbitmap_sequence_get_total_num_frames,                                // gbitmap_sequence_get_total_num_frames@0000068c
     [420] = (UnimplFunc)_gbitmap_sequence_update_bitmap_next_frame,                            // gbitmap_sequence_update_bitmap_next_frame@00000690
-    [422] = (UnimplFunc)_animation_clone,                                                      // animation_clone@00000698
-    [423] = (UnimplFunc)_animation_get_delay,                                                  // animation_get_delay@0000069c
-    [424] = (UnimplFunc)_animation_get_duration,                                               // animation_get_duration@000006a0
-    [425] = (UnimplFunc)_animation_get_play_count,                                             // animation_get_play_count@000006a4
-    [426] = (UnimplFunc)_animation_get_elapsed,                                                // animation_get_elapsed@000006a8
-    [427] = (UnimplFunc)_animation_get_reverse,                                                // animation_get_reverse@000006ac
-    [428] = (UnimplFunc)_animation_sequence_create,                                            // animation_sequence_create@000006b0
-    [429] = (UnimplFunc)_animation_sequence_create_from_array,                                 // animation_sequence_create_from_array@000006b4
-    [430] = (UnimplFunc)_animation_set_play_count,                                             // animation_set_play_count@000006b8
-    [431] = (UnimplFunc)_animation_set_elapsed,                                                // animation_set_elapsed@000006bc
-    [432] = (UnimplFunc)_animation_set_reverse,                                                // animation_set_reverse@000006c0
-    [433] = (UnimplFunc)_animation_spawn_create,                                               // animation_spawn_create@000006c4
-    [434] = (UnimplFunc)_animation_spawn_create_from_array,                                    // animation_spawn_create_from_array@000006c8
-    [435] = (UnimplFunc)_animation_get_curve,                                                  // animation_get_curve@000006cc
-    [436] = (UnimplFunc)_animation_get_custom_curve,                                           // animation_get_custom_curve@000006d0
-    [437] = (UnimplFunc)_animation_get_implementation,                                         // animation_get_implementation@000006d4
+    
     [438] = (UnimplFunc)_launch_get_args,                                                      // launch_get_args@000006d8
     [441] = (UnimplFunc)_gbitmap_sequence_get_play_count,                                      // gbitmap_sequence_get_play_count@000006e4
     [442] = (UnimplFunc)_gbitmap_sequence_restart,                                             // gbitmap_sequence_restart@000006e8
