@@ -35,3 +35,5 @@ void battery_state_service_subscribe(BatteryStateHandler handler);
  * @brief Unsubscribe from the battery state event service. Once unsubscribed, the previously registered handler will no longer be called.
  */
 void battery_state_service_unsubscribe(void);
+
+void battery_state_service_state_change(void);

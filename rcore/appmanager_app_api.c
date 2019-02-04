@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include "rebbleos.h"
 #include "appmanager.h"
-
+#include "overlay_manager.h"
 /*
  * Start an application by name
   * The message contains the app name
@@ -49,15 +49,15 @@ void appmanager_post_draw_message(uint8_t force)
 
     AppMessage am = (AppMessage) {
         .command = APP_DRAW,
-        .data = force
+        .data = (void*)(uint32_t)force
     };
 
     Window *wind = window_stack_get_top_window();
     Window *owind = overlay_window_stack_get_top_window();
 
     if (force || 
-            (wind && wind->is_render_scheduled ||
-            owind && owind->is_render_scheduled))
+            ((wind && wind->is_render_scheduled) ||
+             (owind && owind->is_render_scheduled)))
     {
         appmanager_post_generic_app_message(&am, 0);
     }

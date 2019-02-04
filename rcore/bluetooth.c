@@ -36,6 +36,7 @@
 #include "rbl_bluetooth.h"
 #include "pebble_protocol.h"
 #include "stdarg.h"
+#include "connection_service.h"
 
 /* macro to swap bytes from big > little endian */
 #define SWAP_UINT16(x) (((x) >> 8) | ((x) << 8))

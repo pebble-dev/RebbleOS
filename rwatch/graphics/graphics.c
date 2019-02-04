@@ -9,6 +9,7 @@
 #include "upng.h"
 #include "png.h"
 #include "graphics_wrapper.h"
+#include "display.h"
 
 /* Configure Logging */
 #define MODULE_NAME "grphcs"

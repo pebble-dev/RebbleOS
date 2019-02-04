@@ -14,3 +14,4 @@ void connection_service_unsubscribe(void);
 bool bluetooth_connection_service_peek(void);
 void bluetooth_connection_service_subscribe(ConnectionHandler handler);
 void bluetooth_connection_service_unsubscribe(void);
+void connection_service_update(bool connected);

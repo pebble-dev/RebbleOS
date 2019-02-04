@@ -16,6 +16,7 @@ static void _notif_timeout_cb(void *data);
 static void _notif_init(OverlayWindow *overlay_window);
 static void _notification_window_creating(OverlayWindow *overlay_window, Window *window);
 static void _notification_quit_click(ClickRecognizerRef _, void *context);
+extern bool battery_overlay_visible(void);
 
 uint8_t notification_init(void)
 {
@@ -38,7 +39,7 @@ void notification_show_message(full_msg_t *msg, uint32_t timeout_ms)
     nmsg->data.create_callback = &notification_message_display;
     nmsg->message = msg;
     nmsg->data.timeout_ms = timeout_ms;
-    nmsg->data.timer = NULL;
+    nmsg->data.timer = 0;
     
     /* get an overlay */
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
@@ -159,7 +160,7 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
 
     if (nm->data.timer)
         app_timer_cancel(nm->data.timer);
-    nm->data.timer = NULL;
+    nm->data.timer = 0;
     if (nm->data.timeout_ms)
         nm->data.timer = app_timer_register(nm->data.timeout_ms, 
                                             (AppTimerCallback)_notif_timeout_cb, nm);
@@ -173,7 +174,7 @@ static void _notif_timeout_cb(void *data)
     notification_message *nm = (notification_message *)data;
     
     app_timer_cancel(nm->data.timer);
-    nm->data.timer = NULL;
+    nm->data.timer = 0;
     
     _notification_quit_click(NULL, data);
 }

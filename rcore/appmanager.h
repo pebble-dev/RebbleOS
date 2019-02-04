@@ -196,13 +196,15 @@ void appmanager_post_draw_display_message(uint8_t *draw_to_display);
 void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
 void appmanager_app_display_done(void);
+bool appmanager_is_app_shutting_down(void);
 
 void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
 void appmanager_timer_expired(app_running_thread *thread);
 TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);
-
 /* in appmanager_app.c */
 App *appmanager_get_app(char *app_name);
 void appmanager_app_loader_init(void);
 
 void rocky_event_loop_with_resource(uint16_t resource_id);
+
+void timer_init(void);

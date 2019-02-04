@@ -123,13 +123,14 @@ time_t clock_to_timestamp(WeekDay day, int hour, int minute)
     if (dd < 0)
         dd = 7 - dd;
 
-    if ((int)day == 0 && hour < time_now->tm_hour || // set to TODAY
-         !dd && hour < time_now->tm_hour) // logically today
+    if (((int)day == 0 && hour < time_now->tm_hour) || // set to TODAY
+         (!dd && hour < time_now->tm_hour)) // logically today
         dd += 7;
 
     uint32_t secs = (minute * 60) + (hour * 360) + (dd * 86400);
 
-    return time_now + secs;
+    time_now->tm_sec += secs;
+    return mktime(time_now);
 }
 
 double difftime(time_t end, time_t beginning)

@@ -7,6 +7,7 @@
 
 #include "context.h"
 #include "appmanager.h"
+#include "display.h"
 
 void rwatch_neographics_init(app_running_thread *thread)
 {

@@ -11,6 +11,7 @@
 #include "overlay_manager.h"
 #include "notification_manager.h"
 #include "timers.h"
+#include "ngfxwrap.h"
 
 /* Configure Logging */
 #define MODULE_NAME "apploop"
@@ -241,7 +242,7 @@ void app_event_loop(void)
                 if (appmanager_is_app_shutting_down())
                     continue;
 
-                _draw(data.data);
+                _draw((uint32_t)data.data);
             }
         } else {
             if (appmanager_is_app_shutting_down())
