@@ -373,11 +373,18 @@ inline uint8_t bluetooth_send(uint8_t *data, size_t len)
 void bluetooth_device_connected(void)
 {
     _connected = true;
+    connection_service_update(true);
 }
 
 void bluetooth_device_disconnected(void)
 {
     _connected = false;
+    connection_service_update(false);
+}
+
+bool bluetooth_is_device_connected(void)
+{
+    return _connected;
 }
 
 static uint8_t _bluetooth_tx(uint8_t *data, uint16_t len)

@@ -133,6 +133,7 @@ SRCS_all += rwatch/graphics/font_loader.c
 SRCS_all += rwatch/event/tick_timer_service.c
 SRCS_all += rwatch/event/app_timer.c
 SRCS_all += rwatch/event/battery_state_service.c
+SRCS_all += rwatch/event/connection_service.c
 SRCS_all += rwatch/ui/layer/status_bar_layer.c
 SRCS_all += rwatch/ui/animation/animation.c
 SRCS_all += rwatch/ui/animation/property_animation.c

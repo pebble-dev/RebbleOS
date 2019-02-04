@@ -1,5 +1,6 @@
 #pragma once
 #include "stm32_usart.h"
+#include "stdbool.h"
 
 #define TX_BUFFER_SIZE 250
 #define TX_TIMEOUT_MS 5
@@ -34,3 +35,4 @@ uint8_t hw_bluetooth_init(void);
 
 void bluetooth_device_connected(void);
 void bluetooth_device_disconnected(void);
+bool bluetooth_is_device_connected(void);

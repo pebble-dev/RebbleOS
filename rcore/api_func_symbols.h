@@ -53,9 +53,6 @@ UNIMPL(_app_sync_set);
 UNIMPL(_atan2_lookup);
 UNIMPL(_atol);
 UNIMPL(_bitmap_layer_set_background_color_2bit);
-UNIMPL(_bluetooth_connection_service_peek);
-UNIMPL(_bluetooth_connection_service_subscribe);
-UNIMPL(_bluetooth_connection_service_unsubscribe);
 UNIMPL(_click_number_of_clicks_counted);
 UNIMPL(_click_recognizer_get_button_id);
 UNIMPL(_clock_copy_time_string);
@@ -132,7 +129,6 @@ UNIMPL(_rot_bitmap_layer_set_angle);
 UNIMPL(_rot_bitmap_layer_set_corner_clip_color_2bit);
 UNIMPL(_rot_bitmap_set_compositing_mode);
 UNIMPL(_rot_bitmap_set_src_ic);
-UNIMPL(_strncat);
 UNIMPL(_text_layer_legacy2_create);
 UNIMPL(_text_layer_legacy2_destroy);
 UNIMPL(_text_layer_legacy2_get_content_size);
@@ -189,7 +185,6 @@ UNIMPL(_watch_info_get_color);
 UNIMPL(_watch_info_get_firmware_version);
 UNIMPL(_watch_info_get_model);
 UNIMPL(_graphics_capture_frame_buffer_2bit);
-UNIMPL(_clock_to_timestamp);
 UNIMPL(_launch_reason);
 UNIMPL(_wakeup_cancel);
 UNIMPL(_wakeup_cancel_all);
@@ -201,54 +196,24 @@ UNIMPL(_clock_is_timezone_set);
 UNIMPL(_i18n_get_system_locale);
 UNIMPL(__localeconv_r);
 UNIMPL(_setlocale);
-UNIMPL(_gcolor_equal);
 UNIMPL(___profiler_init);
 UNIMPL(___profiler_print_stats);
 UNIMPL(___profiler_start);
 UNIMPL(___profiler_stop);
 UNIMPL(_rot_bitmap_layer_set_corner_clip_color);
 UNIMPL(_clock_get_timezone);
-UNIMPL(_animation_get_context);
-UNIMPL(_animation_is_scheduled);
-UNIMPL(_animation_set_curve);
-UNIMPL(_animation_set_custom_curve);
-UNIMPL(_animation_set_delay);
-UNIMPL(_animation_set_handlers);
-UNIMPL(_animation_unschedule);
-UNIMPL(_animation_unschedule_all);
-UNIMPL(_property_animation_from);
-UNIMPL(_property_animation_subject);
-UNIMPL(_property_animation_to);
 UNIMPL(_gbitmap_sequence_create_with_resource);
 UNIMPL(_gbitmap_sequence_destroy);
 UNIMPL(_gbitmap_sequence_get_bitmap_size);
 UNIMPL(_gbitmap_sequence_get_current_frame_idx);
 UNIMPL(_gbitmap_sequence_get_total_num_frames);
 UNIMPL(_gbitmap_sequence_update_bitmap_next_frame);
-UNIMPL(_animation_clone);
-UNIMPL(_animation_get_delay);
-UNIMPL(_animation_get_duration);
-UNIMPL(_animation_get_play_count);
-UNIMPL(_animation_get_elapsed);
-UNIMPL(_animation_get_reverse);
-UNIMPL(_animation_sequence_create);
-UNIMPL(_animation_sequence_create_from_array);
-UNIMPL(_animation_set_play_count);
-UNIMPL(_animation_set_elapsed);
-UNIMPL(_animation_set_reverse);
-UNIMPL(_animation_spawn_create);
-UNIMPL(_animation_spawn_create_from_array);
-UNIMPL(_animation_get_curve);
-UNIMPL(_animation_get_custom_curve);
-UNIMPL(_animation_get_implementation);
 UNIMPL(_launch_get_args);
 UNIMPL(_gbitmap_sequence_get_play_count);
 UNIMPL(_gbitmap_sequence_restart);
 UNIMPL(_gbitmap_sequence_set_play_count);
 UNIMPL(_gbitmap_sequence_update_bitmap_by_elapsed);
 UNIMPL(_graphics_draw_rotated_bitmap);
-UNIMPL(_difftime);
-//UNIMPL(_time_ms);
 UNIMPL(_gcolor_legible_over);
 UNIMPL(_app_focus_service_subscribe_handlers);
 UNIMPL(_action_menu_set_result_window);
@@ -268,13 +233,7 @@ UNIMPL(_smartstrap_service_is_available);
 UNIMPL(_smartstrap_set_timeout);
 UNIMPL(_smartstrap_subscribe);
 UNIMPL(_smartstrap_unsubscribe);
-UNIMPL(_connection_service_peek_pebble_app_connection);
-UNIMPL(_connection_service_peek_pebblekit_connection);
-UNIMPL(_connection_service_subscribe);
-UNIMPL(_connection_service_unsubscribe);
 UNIMPL(_dictation_session_enable_error_dialogs);
-//UNIMPL(_gbitmap_get_data_row_info);
-UNIMPL(_grect_inset);
 UNIMPL(_gpoint_from_polar);
 UNIMPL(_graphics_draw_arc);
 UNIMPL(_graphics_fill_radial);
@@ -340,7 +299,9 @@ const VoidFunc sym[] = {
                                                                                                 
     [61]  = (VoidFunc)bitmap_layer_set_bitmap,                                                  // bitmap_layer_set_bitmap@000000f4
     [62]  = (VoidFunc)bitmap_layer_set_compositing_mode,                                        // bitmap_layer_set_compositing_mode@000000f8
-          
+    [63]  = (VoidFunc)bluetooth_connection_service_peek,                                        // bluetooth_connection_service_peek@000000fc
+    [64]  = (VoidFunc)bluetooth_connection_service_subscribe,                                   // bluetooth_connection_service_subscribe@00000100
+    [65]  = (VoidFunc)bluetooth_connection_service_unsubscribe,                                 // bluetooth_connection_service_unsubscribe@00000104
     [69]  = (VoidFunc)pbl_clock_is_24h_style,                                                   // clock_is_24h_style@00000114
     [70]  = (VoidFunc)cos_lookup,                                                               // cos_lookup@00000118
           
@@ -514,12 +475,12 @@ const VoidFunc sym[] = {
     [336] = (VoidFunc)app_heap_bytes_used,                                                     // heap_bytes_used@00000540
     [343] = (VoidFunc)gpath_fill_app,                                                          // gpath_draw_filled@0000055c
 
-    [349] = (VoidFunc)graphics_frame_buffer_is_captured,                                    // graphics_frame_buffer_is_captured@00000574
+    [349] = (VoidFunc)graphics_frame_buffer_is_captured,                                       // graphics_frame_buffer_is_captured@00000574
     [350] = (VoidFunc)graphics_release_frame_buffer,                                           // graphics_release_frame_buffer@00000578
-    
+    [351] = (VoidFunc)clock_to_timestamp,                                                      // clock_to_timestamp@0000057c    
                                                                                                
     [363] = (VoidFunc)mktime,                                                                  // mktime@000005ac
-    [364] = (VoidFunc)gcolor_equal,                                                         // gcolor_equal@000005b0
+    [364] = (VoidFunc)gcolor_equal,                                                            // gcolor_equal@000005b0
                                                                                                
     [370] = (VoidFunc)bitmap_layer_set_background_color,                                       // bitmap_layer_set_background_color@000005c8
     [371] = (VoidFunc)graphics_context_set_fill_color,                                         // graphics_context_set_fill_color@000005cc
@@ -689,7 +650,12 @@ const VoidFunc sym[] = {
     [547] = (VoidFunc)action_menu_open,                                                        // action_menu_open@0000088c
 
     [549] = (VoidFunc)action_menu_unfreeze,                                                    // action_menu_unfreeze@00000894
-                                                                                               
+
+    [566] = (VoidFunc)connection_service_peek_pebble_app_connection,                           // connection_service_peek_pebble_app_connection@000008d8
+    [567] = (VoidFunc)connection_service_peek_pebblekit_connection,                            // connection_service_peek_pebblekit_connection@000008dc
+    [568] = (VoidFunc)connection_service_subscribe,                                            // connection_service_subscribe@000008e0
+    [569] = (VoidFunc)connection_service_unsubscribe,                                          // connection_service_unsubscribe@000008e4
+
     [571] = (VoidFunc)gbitmap_get_data_row_info,                                            // gbitmap_get_data_row_info@000008ec
     [572] = (VoidFunc)content_indicator_configure_direction,                                   // content_indicator_configure_direction@000008f0
     [573] = (VoidFunc)content_indicator_create,                                                // content_indicator_create@000008f4
@@ -756,9 +722,7 @@ const VoidFunc sym[] = {
     [50]  = (UnimplFunc)_atan2_lookup,                                                         // atan2_lookup@000000c8
     [52]  = (UnimplFunc)_atol,                                                                 // atol@000000d0
     [60]  = (UnimplFunc)_bitmap_layer_set_background_color_2bit,                               // bitmap_layer_set_background_color_2bit@000000f0
-    [63]  = (UnimplFunc)_bluetooth_connection_service_peek,                                    // bluetooth_connection_service_peek@000000fc
-    [64]  = (UnimplFunc)_bluetooth_connection_service_subscribe,                               // bluetooth_connection_service_subscribe@00000100
-    [65]  = (UnimplFunc)_bluetooth_connection_service_unsubscribe,                             // bluetooth_connection_service_unsubscribe@00000104
+
     [66]  = (UnimplFunc)_click_number_of_clicks_counted,                                       // click_number_of_clicks_counted@00000108
     [67]  = (UnimplFunc)_click_recognizer_get_button_id,                                       // click_recognizer_get_button_id@0000010c
     [68]  = (UnimplFunc)_clock_copy_time_string,                                               // clock_copy_time_string@00000110
@@ -893,7 +857,6 @@ const VoidFunc sym[] = {
     [346] = (UnimplFunc)_watch_info_get_firmware_version,                                      // watch_info_get_firmware_version@00000568
     [347] = (UnimplFunc)_watch_info_get_model,                                                 // watch_info_get_model@0000056c
     [348] = (UnimplFunc)_graphics_capture_frame_buffer_2bit,                                   // graphics_capture_frame_buffer_2bit@00000570
-    [351] = (UnimplFunc)_clock_to_timestamp,                                                   // clock_to_timestamp@0000057c
     [352] = (UnimplFunc)_launch_reason,                                                        // launch_reason@00000580
     [353] = (UnimplFunc)_wakeup_cancel,                                                        // wakeup_cancel@00000584
     [354] = (UnimplFunc)_wakeup_cancel_all,                                                    // wakeup_cancel_all@00000588
@@ -945,10 +908,6 @@ const VoidFunc sym[] = {
     [563] = (UnimplFunc)_smartstrap_set_timeout,                                               // smartstrap_set_timeout@000008cc
     [564] = (UnimplFunc)_smartstrap_subscribe,                                                 // smartstrap_subscribe@000008d0
     [565] = (UnimplFunc)_smartstrap_unsubscribe,                                               // smartstrap_unsubscribe@000008d4
-    [566] = (UnimplFunc)_connection_service_peek_pebble_app_connection,                        // connection_service_peek_pebble_app_connection@000008d8
-    [567] = (UnimplFunc)_connection_service_peek_pebblekit_connection,                         // connection_service_peek_pebblekit_connection@000008dc
-    [568] = (UnimplFunc)_connection_service_subscribe,                                         // connection_service_subscribe@000008e0
-    [569] = (UnimplFunc)_connection_service_unsubscribe,                                       // connection_service_unsubscribe@000008e4
     [570] = (UnimplFunc)_dictation_session_enable_error_dialogs,                               // dictation_session_enable_error_dialogs@000008e8
 //     [571] = (UnimplFunc)_gbitmap_get_data_row_info,                                            // gbitmap_get_data_row_info@000008ec
     [581] = (UnimplFunc)_gpoint_from_polar,                                                    // gpoint_from_polar@00000914
