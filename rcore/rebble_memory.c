@@ -67,7 +67,7 @@ void *app_realloc(void *mem, size_t new_size)
     app_running_thread *thread = appmanager_get_current_thread();
     assert(thread && "invalid thread");
 
-    qrealloc(thread->arena, mem, new_size);
+    return qrealloc(thread->arena, mem, new_size);
 }
 
 uint32_t app_heap_bytes_free(void)

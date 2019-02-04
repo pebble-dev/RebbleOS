@@ -8,6 +8,5 @@
 
 #include "context.h"
 
-void rwatch_neographics_init(void);
+void rwatch_neographics_init(app_running_thread *thread);
 n_GContext *rwatch_neographics_get_global_context(void);
-    

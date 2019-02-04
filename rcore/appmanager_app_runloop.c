@@ -57,6 +57,11 @@ void appmanager_app_main_entry(void)
      * font cache does some free business on old pointers, corrupting the
      * heap before we even had a fighting chance!  */
     fonts_resetcache();
+    connection_service_unsubscribe();
+
+    n_GContext *context = rwatch_neographics_get_global_context();
+    /* not a memory leak. Context was erased on app load */
+    rwatch_neographics_init(_this_thread);
     
     /* Call into the apps main runtime */
     _this_thread->app->main();
@@ -170,7 +175,7 @@ void app_event_loop(void)
     {
         next_timer = appmanager_timer_get_next_expiry(_this_thread);
 
-        if(next_timer == 0) 
+        if (next_timer == 0)
         {
             appmanager_timer_expired(_this_thread);
             appmanager_post_draw_message(0);
@@ -217,6 +222,7 @@ void app_event_loop(void)
 
                 /* remove the ticktimer service handler and stop it */
                 tick_timer_service_unsubscribe();
+                connection_service_unsubscribe();
 
                 _this_thread->status = AppThreadUnloading;
                 appmanager_app_quit();

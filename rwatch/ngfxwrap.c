@@ -6,16 +6,15 @@
  */
 
 #include "context.h"
-#include "display.h"
+#include "appmanager.h"
 
-static n_GContext *nGContext;
-
-void rwatch_neographics_init(void)
+void rwatch_neographics_init(app_running_thread *thread)
 {
-    nGContext = n_root_graphics_context_from_buffer(display_get_buffer());
+    thread->graphics_context = n_root_graphics_context_from_buffer(display_get_buffer());
 }
 
 n_GContext *rwatch_neographics_get_global_context(void)
 {
-    return nGContext;
+    app_running_thread *_this_thread = appmanager_get_current_thread();
+    return _this_thread->graphics_context;
 }

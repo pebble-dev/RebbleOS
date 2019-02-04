@@ -642,7 +642,7 @@ bool animation_set_custom_curve(Animation * anim, AnimationCurveFunction curve_f
     if (_is_immutable(anim))
         return false;
 
-    anim->curve_function = (void *)(((uint32_t)curve_function) | 1);
+    MK_THUMB_CB(anim->curve_function);
 
     return true;
 }
@@ -666,11 +666,11 @@ bool animation_set_implementation(Animation *anim, const AnimationImplementation
 
     anim->impl = *impl;
     if (anim->impl.setup)
-        anim->impl.setup = (void *)(((uint32_t)anim->impl.setup) | 1);
+        MK_THUMB_CB(anim->impl.setup);
     if (anim->impl.update)
-        anim->impl.update = (void *)(((uint32_t)anim->impl.update) | 1);
+        MK_THUMB_CB(anim->impl.update);
     if (anim->impl.teardown)
-        anim->impl.teardown = (void *)(((uint32_t)anim->impl.teardown) | 1);
+        MK_THUMB_CB(anim->impl.teardown);
 
     return true;
 }

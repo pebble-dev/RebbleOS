@@ -165,6 +165,7 @@ typedef struct app_running_thread_t {
     uint8_t *heap;
     struct CoreTimer *timer_head;
     qarena_t *arena;
+    struct n_GContext *graphics_context;
 } app_running_thread;
 
 /* in appmanager.c */

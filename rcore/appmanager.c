@@ -16,7 +16,6 @@
 #include "notification.h"
 #include "api_func_symbols.h"
 #include "qalloc.h"
-#include "ngfxwrap.h"
 
 /* Configure Logging */
 #define MODULE_NAME "appman"
@@ -217,13 +216,13 @@ static void _app_management_thread(void *parms)
     char *app_name;
     AppMessage am;
     uint32_t total_app_size = 0;
-    app_running_thread *_this_thread = NULL;   
+    app_running_thread *_this_thread = NULL;
     
     for( ;; )
     {
         /* Sleep waiting for work to do */
         if (xQueueReceive(_app_thread_queue, &am, pdMS_TO_TICKS(1000)))
-        {        
+        {
             switch(am.command)
             {
                 /* Load an app for someone. face or worker */

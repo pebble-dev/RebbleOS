@@ -285,7 +285,7 @@ static void _overlay_thread(void *pvParameters)
     
     SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Starting overlay thread...");
 
-    rwatch_neographics_init();
+    rwatch_neographics_init(_this_thread);
   
     _this_thread->status = AppThreadLoaded;
     os_module_init_complete(0);
