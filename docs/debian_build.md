@@ -11,7 +11,7 @@ The following builds RebbleOS on Debian Stretch:
 ```
 
 The Pebble SDK is a prerequisite for portions of RebbleOS. The
-SDK is available at <https://developer.pebble.com/sdk/download/>.
+SDK is available [here](https://developer.rebble.io/developer.pebble.com/sdk/download/index.html).
 As an example, on Debian, one may create an installation
 directory for the SDK using the following.
 
@@ -31,5 +31,10 @@ directory for the SDK using the following.
     source .env/bin/activate
     pip install -r requirements.txt
     deactivate
+    mkdir ~/.pebble-sdk/
+    touch ~/.pebble-sdk/NO_TRACKING
+    pebble sdk install https://github.com/aveao/PebbleArchive/raw/master/SDKCores/sdk-core-4.3.tar.bz2
     pebble ping --emulator aplite
 ```
+
+As the SDK is no longer available from an official source, this example uses an archived version from [this](https://github.com/aveao/PebbleArchive/) GitHub repository
