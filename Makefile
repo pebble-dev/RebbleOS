@@ -1,5 +1,5 @@
-include config.mk
 -include localconfig.mk
+include config.mk
 
 ###########################################################################
 #
@@ -84,6 +84,11 @@ $(BUILD)/$(1)/%.o: %.c
 	$(QUIET)$(CC) $(CFLAGS_$(1)) -MMD -MP -MT $$@ -MF $$(addsuffix .d,$$(basename $$@)) -c -o $$@ $$< 
 
 $(BUILD)/$(1)/%.o: %.s
+	$(call SAY,[$(1)] AS $$<)
+	@mkdir -p $$(dir $$@)
+	$(QUIET)$(CC) $(CFLAGS_$(1)) -c -o $$@ $$< 
+
+$(BUILD)/$(1)/%.o: %.S
 	$(call SAY,[$(1)] AS $$<)
 	@mkdir -p $$(dir $$@)
 	$(QUIET)$(CC) $(CFLAGS_$(1)) -c -o $$@ $$< 
