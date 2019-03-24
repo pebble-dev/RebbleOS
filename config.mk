@@ -49,7 +49,6 @@ SRCS_all += FreeRTOS/portable/GCC/ARM_CM4F/port.c
 SRCS_all += FreeRTOS/portable/MemMang/heap_4.c
 
 SRCS_all += lib/minilib/minilib.c
-SRCS_all += lib/minilib/sbrk.c
 SRCS_all += lib/minilib/dprint.c
 SRCS_all += lib/minilib/fmt.c
 SRCS_all += lib/minilib/unfmt.c
