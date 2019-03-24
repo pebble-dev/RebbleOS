@@ -168,3 +168,9 @@ include hw/platform/tintin/config.mk
 include hw/platform/chalk/config.mk
 include Apps/System/tests/config.mk
 include lib/btstack/config.mk
+
+ifeq ($(NRF52_SDK_PATH),)
+else
+include hw/chip/nrf52840/config.mk
+include hw/platform/asterix/config.mk
+endif
