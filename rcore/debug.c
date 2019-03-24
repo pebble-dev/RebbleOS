@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include "debug.h"
 #include "platform.h"
+#include "FreeRTOS.h"
 
 #define PANIC_STACK_SIZE (224 / 2)
 

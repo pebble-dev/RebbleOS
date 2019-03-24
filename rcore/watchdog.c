@@ -6,6 +6,7 @@
  */
 
 #include "platform.h" /* WATCHDOG_RESET_MS */
+#include "FreeRTOS.h"
 #include "task.h" /* xTaskCreate, vTaskDelay */
 
 static StackType_t _watchdog_stack[configMINIMAL_STACK_SIZE];
