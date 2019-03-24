@@ -60,4 +60,9 @@
 
 #define CCRAM
 
+static inline uint8_t is_interrupt_set(void)
+{
+    return ((volatile int)(SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk)) != 0 ;
+}
+
 #endif

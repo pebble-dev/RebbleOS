@@ -6,7 +6,6 @@
  */
 
 #include "rebbleos.h"
-#include "stm32_power.h"
 
 extern int vsfmt(char *buf, unsigned int len, const char *ifmt, va_list ap);
 

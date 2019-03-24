@@ -62,3 +62,8 @@
 
 //Snowy uses OC1 for backlight
 #define BL_TIM_CH 1
+
+static inline uint8_t is_interrupt_set(void)
+{
+    return ((volatile int)(SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk)) != 0 ;
+}
