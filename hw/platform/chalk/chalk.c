@@ -27,6 +27,8 @@
  */
 void platform_init()
 {
+    SystemInit();
+
     stm32_power_init();
     
     // for stuff that needs special init for the platform

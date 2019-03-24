@@ -13,8 +13,6 @@ extern const char git_version[];
 
 int main(void)
 {
-    SystemInit();
-
     hardware_init();
 
     rebbleos_init();

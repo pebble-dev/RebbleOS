@@ -83,6 +83,8 @@ static inline void _init_USART3(void)
 /*** platform ***/
 
 void platform_init() {
+    SystemInit();
+
     stm32_power_init();
     SCB->VTOR = 0x08004000;
     NVIC_SetVectorTable(0x08004000, 0);
