@@ -42,6 +42,8 @@ void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
     /* sit the caller being this wait lock semaphore */
     if (!xSemaphoreTake(_flash_wait_semaphore, pdMS_TO_TICKS(200)))
         panic("Got stuck behind a wait lock in flash.c");
+
+    xSemaphoreGive(_flash_mutex);
 }
 
 void flash_dump(void)
@@ -64,7 +66,6 @@ inline void flash_operation_complete(uint8_t cmd)
 {
     /* Notify the task that the transmission is complete. */
     xSemaphoreGive(_flash_wait_semaphore);
-    xSemaphoreGive(_flash_mutex);
 }
 
 void flash_operation_complete_isr(uint8_t cmd)
