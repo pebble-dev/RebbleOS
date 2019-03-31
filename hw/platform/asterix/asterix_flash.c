@@ -42,5 +42,9 @@ void hw_flash_init() {
 }
 
 void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
-    flash_operation_complete(0);
+    nrfx_err_t err;
+
+    /* XXX: could operate from an interrupt, I suppose */
+    err = nrfx_qspi_read(buf, len, addr);
+    flash_operation_complete(err != NRFX_SUCCESS);
 }

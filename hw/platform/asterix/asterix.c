@@ -63,6 +63,7 @@ void platform_init() {
 }
 
 void platform_init_late() {
+    nrf_gpio_pin_clear(13);
 }
 
 /*** watchdog timer ***/
