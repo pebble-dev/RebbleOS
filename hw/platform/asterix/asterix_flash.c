@@ -21,9 +21,17 @@
 
 #define QSPI_INSTR_JEDEC_ID 0x9F
 
+/* We can have out-of-band flash transactions -- like if we break in with
+ * GDB and start writing stuff.  */
+volatile static int _flash_sync = 0;
+
 static void _flash_handler(nrfx_qspi_evt_t event, void *ctx) {
     assert(event == NRFX_QSPI_EVENT_DONE);
     
+    if (_flash_sync) {
+        _flash_sync = 0;
+        return;
+    }
     flash_operation_complete_isr(0);
 }
 
@@ -60,4 +68,94 @@ void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
 
     err = nrfx_qspi_read(buf, len, addr);
     assert(err == NRFX_SUCCESS);
+}
+
+void hw_flash_erase_page_sync(uint32_t addr) {
+    nrfx_err_t err;
+    
+    _flash_sync = 1;
+    err = nrfx_qspi_erase(NRF_QSPI_ERASE_LEN_4KB, addr);
+    assert(err == NRFX_SUCCESS);
+
+    while (_flash_sync)
+        ;
+    
+    while (nrfx_qspi_mem_busy_check() != NRFX_SUCCESS)
+        ;
+}
+
+void hw_flash_write_sync(uint32_t addr, uint8_t *buf, size_t len) {
+    nrfx_err_t err;
+    
+    _flash_sync = 1;
+    err = nrfx_qspi_write(buf, len, addr);
+    assert(err == NRFX_SUCCESS);
+
+    while (_flash_sync)
+        ;
+    
+    while (nrfx_qspi_mem_busy_check() != NRFX_SUCCESS)
+        ;
+}
+
+__asm__(
+"semihosting_syscall:\n"
+"       bkpt #0xAB\n"
+"       bx lr\n"
+);
+
+extern int semihosting_syscall(int c, const void *p);
+
+#define MODE_RB 1
+#define MODE_WB 5
+static int _open(const char *s, int mode) {
+    uint32_t args[3] = {(uint32_t) s, mode, strlen(s)};
+    return semihosting_syscall(0x01, args);
+}
+
+static int _read(int fd, void *s, int n) {
+    uint32_t args[3] = {fd, (uint32_t) s, n};
+    return semihosting_syscall(0x06, args);
+}
+
+static int _close(int fd) {
+    return semihosting_syscall(0x02, (void *)fd);
+}
+
+#define BUFLEN 4096
+
+static uint8_t _readbuf[BUFLEN];
+
+void hw_flash_write_respack() {
+    const char *fname = "build/asterix/res/asterix_res.pbpack";
+    
+    printf("*** Taking over the system in semihosting mode to write resource pack -- hold on tight!\n");
+    
+    printf("Step 0: opening resource pack...\n");
+    int fd = _open(fname, MODE_RB);
+    if (fd < 0) {
+        printf("... resource pack open failed\n");
+        return;
+    }
+    printf("... fd %d\n", fd);
+    
+    uint32_t addr;
+    printf("Step 1: erasing system resources region...\n");
+    for (addr = REGION_RES_START; addr < REGION_RES_START + REGION_RES_SIZE; addr += 4096)
+        hw_flash_erase_page_sync(addr);
+    
+    printf("Step 2: writing to flash...\n");
+    
+    int len;
+    addr = REGION_RES_START;
+    while ((len = _read(fd, _readbuf, BUFLEN)) != BUFLEN) {
+        len = BUFLEN - len; /* The standard returns the number of bytes *not* filled.  Excuse me? */
+        if ((addr & 16384) == 0) printf("...%ld...\n", addr);
+        hw_flash_write_sync(addr, _readbuf, len);
+        addr += len;
+    }
+    
+    printf("...done; wrote %ld bytes (last len %d)\n", addr - REGION_RES_START, len);
+    
+    _close(fd);
 }
