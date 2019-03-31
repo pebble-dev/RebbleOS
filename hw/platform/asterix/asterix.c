@@ -8,21 +8,58 @@
 #include <debug.h>
 #include "rebbleos.h"
 #include "nrf_delay.h"
+#include "nrfx_uart.h"
+#include "nrf_gpio.h"
 
 // extern void *strcpy(char *a2, const char *a1);
 
 /*** debug routines ***/
 
+/* We use UART, instead of UARTE, because we could be writing from flash,
+ * which would cause the EasyDMA engine to lock up, and that would be bad. 
+ * So we just take the performance hit and run a UART engine in PIO mode. 
+ * So it goes.  */
+
+static nrfx_uart_t debug_uart = NRFX_UART_INSTANCE(0);
+static int _zero = 0;
+static int _one = 1;
+static int _two = 2;
+
 void debug_init() {
+    nrfx_err_t err;
+    
+    nrfx_uart_config_t config = NRFX_UART_DEFAULT_CONFIG;
+    config.pseltxd = 8;
+    
+    err = nrfx_uart_init(&debug_uart, &config, NULL /* nonblocking event handler */);
+    assert(err == NRFX_SUCCESS);
 }
 
 /* note that locking needs to be handled by external entity here */
 void debug_write(const unsigned char *p, size_t len) {
+    nrfx_err_t err;
+    
+    while (len) {
+        /* Sigh... */
+        if (*p == '\n') {
+            unsigned char c = '\r';
+            err = nrfx_uart_tx(&debug_uart, &c, 1);
+            assert(err == NRFX_SUCCESS);
+        }
+        
+        err = nrfx_uart_tx(&debug_uart, p, 1);
+        assert(err == NRFX_SUCCESS);
+        
+        len--;
+        p++;
+    }
 }
 
 /*** platform ***/
 
 void platform_init() {
+    nrf_gpio_cfg_output(13);
+    nrf_gpio_pin_set(13);
 }
 
 void platform_init_late() {
@@ -126,7 +163,10 @@ __attribute__((naked)) void UsageFault_Handler()
     );
 }
 
-void hw_backlight_init() { }
+void hw_backlight_init()
+{
+    bluetooth_init_complete(-1);
+}
 
 void hw_backlight_set() { }
 
@@ -144,9 +184,6 @@ uint8_t *hw_display_get_buffer() {
 uint8_t hw_display_process_isr() {
     return 1;
 }
-
-void hw_flash_init() { }
-void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) { }
 
 void rtc_init() { }
 
@@ -169,3 +206,4 @@ void hw_button_set_isr(hw_button_isr_t isr) {
 int hw_button_pressed(hw_button_t button_id) {
     return 0;
 }
+

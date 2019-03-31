@@ -5,6 +5,7 @@ CFLAGS_asterix += -DREBBLE_PLATFORM=asterix -DREBBLE_PLATFORM_TINTIN -DPBL_BW
 SRCS_asterix = $(SRCS_nrf52840)
 
 SRCS_asterix += hw/platform/asterix/asterix.c
+SRCS_asterix += hw/platform/asterix/asterix_flash.c
 
 LDFLAGS_asterix = $(LDFLAGS_nrf52840)
 LIBS_asterix = $(LIBS_nrf52840)

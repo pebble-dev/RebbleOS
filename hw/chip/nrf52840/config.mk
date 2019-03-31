@@ -147,12 +147,15 @@ CFLAGS_nrf52840 += \
 	-DS140 \
 	-DSOFTDEVICE_PRESENT \
 	-DSWI_DISABLE0 \
+	-D__STARTUP_CLEAR_BSS \
 	-D__START=main \
 	-mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 SRCS_nrf52840 = $(SRCS_all)
 SRCS_nrf52840 += modules/nrfx/mdk/gcc_startup_nrf52840.S
 SRCS_nrf52840 += modules/nrfx/mdk/system_nrf52840.c
+SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_uart.c
+SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_qspi.c
 
 LDFLAGS_nrf52840 = $(LDFLAGS_all)
 LDFLAGS_nrf52840 += -Wl,-Thw/chip/nrf52840/nrf52840.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk
