@@ -79,11 +79,11 @@ void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
     assert(err == NRFX_SUCCESS);
 }
 
-void hw_flash_erase_page_sync(uint32_t addr) {
+void hw_flash_erase_64k_sync(uint32_t addr) {
     nrfx_err_t err;
     
     _flash_sync = 1;
-    err = nrfx_qspi_erase(NRF_QSPI_ERASE_LEN_4KB, addr);
+    err = nrfx_qspi_erase(NRF_QSPI_ERASE_LEN_64KB, addr);
     assert(err == NRFX_SUCCESS);
 
     while (_flash_sync)
@@ -135,12 +135,10 @@ static int _close(int fd) {
 
 static uint8_t _readbuf[BUFLEN];
 
-void hw_flash_write_respack() {
-    const char *fname = "build/asterix/res/asterix_res.pbpack";
+void hw_flash_backdoor_load(const char *fname, uint32_t start, uint32_t size) {
+    printf("*** Taking over the system in semihosting mode to write data -- hold on tight!\n");
     
-    printf("*** Taking over the system in semihosting mode to write resource pack -- hold on tight!\n");
-    
-    printf("Step 0: opening resource pack...\n");
+    printf("Step 0: opening %s...\n", fname);
     int fd = _open(fname, MODE_RB);
     if (fd < 0) {
         printf("... resource pack open failed\n");
@@ -149,22 +147,32 @@ void hw_flash_write_respack() {
     printf("... fd %d\n", fd);
     
     uint32_t addr;
-    printf("Step 1: erasing system resources region...\n");
-    for (addr = REGION_RES_START; addr < REGION_RES_START + REGION_RES_SIZE; addr += 4096)
-        hw_flash_erase_page_sync(addr);
+    printf("Step 1: erasing region...\n");
+    for (addr = start; addr < start + size; addr += 65536) {
+        hw_flash_erase_64k_sync(addr);
+        printf(".");
+    }
     
     printf("Step 2: writing to flash...\n");
     
     int len;
-    addr = REGION_RES_START;
+    addr = start;
     while ((len = _read(fd, _readbuf, BUFLEN)) != BUFLEN) {
         len = BUFLEN - len; /* The standard returns the number of bytes *not* filled.  Excuse me? */
-        if ((addr & 16384) == 0) printf("...%ld...\n", addr);
+        if ((addr & 16383) == 0) printf("...%ld...\n", addr - start);
         hw_flash_write_sync(addr, _readbuf, len);
         addr += len;
     }
     
-    printf("...done; wrote %ld bytes (last len %d)\n", addr - REGION_RES_START, len);
+    printf("...done; wrote %ld bytes\n", addr - start);
     
     _close(fd);
+}
+
+void hw_flash_backdoor_load_respack() {
+    hw_flash_backdoor_load("build/asterix/res/asterix_res.pbpack", REGION_RES_START, REGION_RES_SIZE);
+}
+
+void hw_flash_backdoor_load_fs() {
+    hw_flash_backdoor_load("fs.pbfs", REGION_FS_START, REGION_FS_N_PAGES * REGION_FS_PAGE_SIZE);
 }
