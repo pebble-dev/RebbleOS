@@ -156,6 +156,7 @@ SRCS_nrf52840 += modules/nrfx/mdk/gcc_startup_nrf52840.S
 SRCS_nrf52840 += modules/nrfx/mdk/system_nrf52840.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_uart.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_qspi.c
+SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_spim.c
 
 LDFLAGS_nrf52840 = $(LDFLAGS_all)
 LDFLAGS_nrf52840 += -Wl,-Thw/chip/nrf52840/nrf52840.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk

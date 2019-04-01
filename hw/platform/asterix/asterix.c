@@ -175,16 +175,6 @@ void delay_us(int us) {
     nrf_delay_us(us);
 }
 
-void hw_display_init() { }
-void hw_display_reset() { }
-void hw_display_start_frame(uint8_t xoffset, uint8_t yoffset) { }
-static uint8_t _display_fb[168][20];
-uint8_t *hw_display_get_buffer() {
-    return (uint8_t *)_display_fb;
-}
-uint8_t hw_display_process_isr() {
-    return 1;
-}
 
 void rtc_init() { }
 
