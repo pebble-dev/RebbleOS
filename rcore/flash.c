@@ -30,6 +30,12 @@ uint8_t flash_init()
     return 0;
 }
 
+/* Some platforms have brain damage, like nRF52840, and can't read from
+ * flash in multiples less than 4 bytes. */
+#ifndef PLATFORM_FLASH_ALIGNMENT
+#define PLATFORM_FLASH_ALIGNMENT 1
+#endif
+
 /*
  * Read a given number of bytes SAFELY from the flash chip
  * DO NOT use from an ISR
@@ -37,13 +43,22 @@ uint8_t flash_init()
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
 {
     xSemaphoreTake(_flash_mutex, portMAX_DELAY);
-    hw_flash_read_bytes(address, buffer, num_bytes);
+    hw_flash_read_bytes(address, buffer, num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1));
     
     /* sit the caller being this wait lock semaphore */
     if (!xSemaphoreTake(_flash_wait_semaphore, pdMS_TO_TICKS(200)))
         panic("Got stuck behind a wait lock in flash.c");
 
     xSemaphoreGive(_flash_mutex);
+    
+    if (num_bytes & (PLATFORM_FLASH_ALIGNMENT - 1)) {
+        /* Clean up brain damage.  Sigh. */
+        uint8_t extra[PLATFORM_FLASH_ALIGNMENT];
+        uint32_t offset = num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1);
+        
+        flash_read_bytes(address + offset, extra, PLATFORM_FLASH_ALIGNMENT);
+        memcpy(buffer + offset, extra, num_bytes - offset);
+    }
 }
 
 void flash_dump(void)

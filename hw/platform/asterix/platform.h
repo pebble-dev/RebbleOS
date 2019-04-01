@@ -6,6 +6,8 @@
 #define DISPLAY_ROWS 168
 #define DISPLAY_COLS 144
 
+#define PLATFORM_FLASH_ALIGNMENT 4
+
 /* Asterix has 16MB of flash. */
 
 /* Bootloader private area: 1MB */
