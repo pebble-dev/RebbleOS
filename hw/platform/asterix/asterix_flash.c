@@ -50,17 +50,26 @@ void hw_flash_init() {
     err = nrfx_qspi_init(&config, _flash_handler, NULL);
     assert(err == NRFX_SUCCESS && "QSPI initialization failed");
 
-    /* Read the JEDEC ID out of the flash */    
-    nrf_qspi_cinstr_conf_t instr = NRFX_QSPI_DEFAULT_CINSTR(QSPI_INSTR_JEDEC_ID, 4);
-    uint8_t buf[16];
-    err = nrfx_qspi_cinstr_xfer(&instr, NULL, buf);
-    assert(err == NRFX_SUCCESS && "QSPI JEDEC ID read failed");
+    /* Read the JEDEC ID out of the flash, and give it up to 100ms to come
+     * up after the rails stabilize.  */
+    int tries = 10;
+    do {
+        delay_ms(10);
+        
+        nrf_qspi_cinstr_conf_t instr = NRFX_QSPI_DEFAULT_CINSTR(QSPI_INSTR_JEDEC_ID, 4);
+        uint8_t buf[16];
+        err = nrfx_qspi_cinstr_xfer(&instr, NULL, buf);
+        assert(err == NRFX_SUCCESS && "QSPI JEDEC ID read failed");
 
-    DRV_LOG("flash", APP_LOG_LEVEL_DEBUG, "QSPI: JEDEC ID %02x %02x %02x", buf[0], buf[1], buf[2]);
+        DRV_LOG("flash", APP_LOG_LEVEL_DEBUG, "QSPI: JEDEC ID %02x %02x %02x", buf[0], buf[1], buf[2]);
     
-    assert((buf[0] == ((QSPI_JEDEC_ID_W25Q128JV >> 16) & 0xFF)) &&
-           (buf[1] == ((QSPI_JEDEC_ID_W25Q128JV >>  8) & 0xFF)) &&
-           (buf[2] == ((QSPI_JEDEC_ID_W25Q128JV      ) & 0xFF)));
+        if ((buf[0] == ((QSPI_JEDEC_ID_W25Q128JV >> 16) & 0xFF)) &&
+            (buf[1] == ((QSPI_JEDEC_ID_W25Q128JV >>  8) & 0xFF)) &&
+            (buf[2] == ((QSPI_JEDEC_ID_W25Q128JV      ) & 0xFF)))
+            break;
+    } while (--tries);
+    
+    assert(tries >= 0 && "QSPI JEDEC ID never came back correct");
 }
 
 void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
