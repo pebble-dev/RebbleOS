@@ -7,6 +7,7 @@ SRCS_asterix = $(SRCS_nrf52840)
 SRCS_asterix += hw/platform/asterix/asterix.c
 SRCS_asterix += hw/platform/asterix/asterix_flash.c
 SRCS_asterix += hw/platform/asterix/asterix_display.c
+SRCS_asterix += hw/platform/asterix/asterix_buttons.c
 
 LDFLAGS_asterix = $(LDFLAGS_nrf52840)
 LIBS_asterix = $(LIBS_nrf52840)

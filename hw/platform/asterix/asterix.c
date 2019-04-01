@@ -21,9 +21,6 @@
  * So it goes.  */
 
 static nrfx_uart_t debug_uart = NRFX_UART_INSTANCE(0);
-static int _zero = 0;
-static int _one = 1;
-static int _two = 2;
 
 void debug_init() {
     nrfx_err_t err;
@@ -187,14 +184,3 @@ uint8_t hw_bluetooth_init() {
 
 void bt_device_request_tx() {
 }
-
-void hw_button_init(void) {
-}
-
-void hw_button_set_isr(hw_button_isr_t isr) {
-}
-
-int hw_button_pressed(hw_button_t button_id) {
-    return 0;
-}
-
