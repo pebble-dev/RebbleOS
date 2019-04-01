@@ -9,6 +9,7 @@
 #include "rebbleos.h"
 #include "nrf_delay.h"
 #include "nrfx_uart.h"
+#include "nrfx_twi.h"
 #include "nrf_gpio.h"
 
 // extern void *strcpy(char *a2, const char *a1);
@@ -52,9 +53,51 @@ void debug_write(const unsigned char *p, size_t len) {
     }
 }
 
+/*** PMIC ***/
+
+/* PMIC code lives here for the time being. */
+
+static nrfx_twi_t pmic_twi = NRFX_TWI_INSTANCE(0);
+
+static void i2c_write(const nrfx_twi_t *bus, uint8_t dev, uint8_t addr, uint8_t datum) {
+    nrfx_err_t err;
+    uint8_t data[2];
+    
+    data[0] = addr;
+    data[1] = datum;
+    
+    err = nrfx_twi_tx(bus, dev, data, 2, false);
+    assert(err == NRFX_SUCCESS);
+}
+
+static void pmic_init() {
+    nrfx_err_t err;
+
+    const nrfx_twi_config_t config = {
+        .scl = 4,
+        .sda = 5,
+        .frequency = NRF_TWI_FREQ_400K,
+        .interrupt_priority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1,
+        .hold_bus_uninit = true
+    };
+    
+    err = nrfx_twi_init(&pmic_twi, &config, NULL, NULL);
+    assert(err == NRFX_SUCCESS);
+
+    nrfx_twi_enable(&pmic_twi);
+    
+    /* XXX: these should live in a real PMIC driver */
+    i2c_write(&pmic_twi, 0x28, 0x1E, 0x81); /* Don't panic, little Maxim. */
+    i2c_write(&pmic_twi, 0x28, 0x13, 0x19); /* LDO1 3.3v */
+    i2c_write(&pmic_twi, 0x28, 0x12, 0x02); /* LDO1 enable */
+    i2c_write(&pmic_twi, 0x28, 0x0F, 0xE8); /* Buck2 enable, burst mode, 2.2uH */
+    i2c_write(&pmic_twi, 0x28, 0x10, 0x28); /* buck2, 2.8v */
+}
+
 /*** platform ***/
 
 void platform_init() {
+    pmic_init();
     nrf_gpio_cfg_output(13);
     nrf_gpio_pin_set(13);
 }
