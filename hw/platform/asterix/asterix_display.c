@@ -13,8 +13,16 @@
 #define BOARD_DISPLAY_PIN_SCK  14
 #define BOARD_DISPLAY_PIN_SCS  16
 
+#define DISPLAY_LINES_PER_CHUNK 21 /* 8 chunks per frame */
+
+static void _spi_handler(const nrfx_spim_evt_t *p_event, void *p_context) {
+    display_done_isr(0);
+}
+
+/* XXX: We have enough padding here to do this all in-place... */
 static uint8_t _display_fb[168][20];
-static nrfx_spim_t display_spi = NRFX_SPIM_INSTANCE(3);
+static nrfx_spim_t _display_spi = NRFX_SPIM_INSTANCE(3);
+static int _display_curline = 0;
 
 void hw_display_init() {
     nrfx_err_t err;
@@ -28,7 +36,7 @@ void hw_display_init() {
     config.frequency = NRF_SPIM_FREQ_1M;
     config.irq_priority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1;
     
-    err = nrfx_spim_init(&display_spi, &config, NULL, NULL);
+    err = nrfx_spim_init(&_display_spi, &config, _spi_handler, NULL);
     assert(err == NRFX_SUCCESS);
     
     DRV_LOG("asterix", APP_LOG_LEVEL_INFO, "asterix: hw_display_init");
@@ -38,6 +46,7 @@ void hw_display_reset() {
 }
 
 void hw_display_start_frame(uint8_t x, uint8_t y) {
+    _display_curline = 0;
     display_done_isr(0);
 }
 
@@ -45,22 +54,29 @@ uint8_t *hw_display_get_buffer(void) {
     return (uint8_t *)_display_fb;
 }
 
+static uint8_t _dispbuf[DISPLAY_LINES_PER_CHUNK * 20 + 2];
+static nrfx_spim_xfer_desc_t _spi_desc = NRFX_SPIM_XFER_TX(_dispbuf, 0);
+
 uint8_t hw_display_process_isr() {
-    /* We do the entire thing in one go, polling, for right now. */
     nrfx_err_t err;
     
-    for (int i = 0; i < 168; i++) {
-        uint8_t buf[22];
-        nrfx_spim_xfer_desc_t desc = NRFX_SPIM_XFER_TX(buf, 22);
-        
-        buf[0] = 0x80;
-        buf[1] = __RBIT(__REV(168 - i));
+    if (_display_curline == 168)
+        return 1; 
+    
+    int p = 0;
+    _dispbuf[p++] = 0x80;
+    for (int i = 0; i < DISPLAY_LINES_PER_CHUNK; i++) {
+        _dispbuf[p++] = __RBIT(__REV(168 - _display_curline));
         for (int j = 0; j < 18; j++)
-            buf[2+j] = _display_fb[i][17-j];
-        buf[21] = 0;
-        
-        err = nrfx_spim_xfer(&display_spi, &desc, 0);
-        assert(err == NRFX_SUCCESS);
+            _dispbuf[p++] = _display_fb[_display_curline][17-j];
+        _dispbuf[p++] = 0;
+        _display_curline++;
     }
-    return 1;
+    _dispbuf[p++] = 0;
+
+    _spi_desc.tx_length = p;
+    err = nrfx_spim_xfer(&_display_spi, &_spi_desc, 0);
+    assert(err == NRFX_SUCCESS);
+    
+    return 0;
 }
