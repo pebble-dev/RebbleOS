@@ -24,7 +24,7 @@
 
 /* The rest of the filesystem: 12MB */
 #define REGION_FS_START         0x400000
-#define REGION_FS_PAGE_SIZE     0x1000
+#define REGION_FS_PAGE_SIZE     0x2000
 #define REGION_FS_N_PAGES       ((0xFE0000 - REGION_FS_START) / REGION_FS_PAGE_SIZE)
 
 /* The size of the page that holds an apps header table. This is the amount before actual app content e.g
