@@ -204,6 +204,17 @@ __attribute__((naked)) void UsageFault_Handler()
     );
 }
 
+void app_error_fault_handler(uint32_t id, uint32_t pc, uint32_t info)
+{
+    printf("*** error %ld (pc %lx, info %lx)\n", id, pc, info);
+    panic("app_error_fault_handler from nRF SDK");
+}
+
+void app_error_handler_bare(ret_code_t error_code) 
+{
+    app_error_fault_handler(error_code, 0, 0);
+}
+
 void hw_backlight_init()
 {
     bluetooth_init_complete(-1);
@@ -220,10 +231,3 @@ void rtc_init() { }
 
 static struct tm tm;
 struct tm *hw_get_time(void) { return &tm; }
-
-uint8_t hw_bluetooth_init() {
-    return 0;
-}
-
-void bt_device_request_tx() {
-}

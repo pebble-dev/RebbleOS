@@ -159,6 +159,12 @@ SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_qspi.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_spim.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_gpiote.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_twi.c
+SRCS_nrf52840 += components/softdevice/common/nrf_sdh.c
+SRCS_nrf52840 += components/softdevice/common/nrf_sdh_ble.c
+SRCS_nrf52840 += components/libraries/util/app_util_platform.c # needed by softdevice
+SRCS_nrf52840 += components/libraries/experimental_section_vars/nrf_section_iter.c # needed by softdevice
+
+
 
 LDFLAGS_nrf52840 = $(LDFLAGS_all)
 LDFLAGS_nrf52840 += -Wl,-Thw/chip/nrf52840/nrf52840.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk
