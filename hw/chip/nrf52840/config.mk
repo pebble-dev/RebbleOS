@@ -163,7 +163,8 @@ SRCS_nrf52840 += components/softdevice/common/nrf_sdh.c
 SRCS_nrf52840 += components/softdevice/common/nrf_sdh_ble.c
 SRCS_nrf52840 += components/libraries/util/app_util_platform.c # needed by softdevice
 SRCS_nrf52840 += components/libraries/experimental_section_vars/nrf_section_iter.c # needed by softdevice
-
+SRCS_nrf52840 += components/ble/nrf_ble_gatt/nrf_ble_gatt.c
+SRCS_nrf52840 += components/ble/common/ble_advdata.c
 
 
 LDFLAGS_nrf52840 = $(LDFLAGS_all)
