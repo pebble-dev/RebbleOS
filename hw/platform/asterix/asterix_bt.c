@@ -77,7 +77,7 @@ uint8_t hw_bluetooth_init() {
 
     ble_gap_addr_t addr;
     (void) sd_ble_gap_addr_get(&addr);
-    sfmt((char *)_name_buf + strlen((char *)_name_buf) - 4, 5, "%02x%02x", addr.addr[4], addr.addr[5]);
+    sfmt((char *)_name_buf + strlen((char *)_name_buf) - 4, 5, "%02x%02x", addr.addr[1], addr.addr[0]);
     
     rv = sd_ble_gap_device_name_set(&sec_mode, _name_buf, strlen((char *)_name_buf));
     assert(rv == NRF_SUCCESS && "sd_ble_gap_device_name_set");
@@ -110,9 +110,9 @@ uint8_t hw_bluetooth_init() {
     rv = ble_advdata_encode(&advdata, _advdata.adv_data.p_data, &_advdata.adv_data.len);
     assert(rv == NRF_SUCCESS && "ble_advdata_encode(advdata)");
 
-    ble_uuid_t adv_uuids[] = {};
+    ble_uuid_t adv_uuids[] = {{0xFED9, BLE_UUID_TYPE_BLE}};
     memset(&srdata, 0, sizeof(srdata));
-    srdata.uuids_complete.uuid_cnt = 0;
+    srdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
     srdata.uuids_complete.p_uuids = adv_uuids;
     rv = ble_advdata_encode(&srdata, _advdata.scan_rsp_data.p_data, &_advdata.scan_rsp_data.len);
     assert(rv == NRF_SUCCESS && "ble_advdata_encode(srdata)");
