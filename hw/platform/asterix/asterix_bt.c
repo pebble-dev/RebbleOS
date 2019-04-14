@@ -102,6 +102,7 @@ uint8_t hw_bluetooth_init() {
     /* Set up advertising data. */
     ble_advdata_t advdata;
     ble_advdata_t srdata;
+    ble_advdata_manuf_data_t manufdata;
     
     memset(&advdata, 0, sizeof(advdata));
     advdata.name_type = BLE_ADVDATA_FULL_NAME;
@@ -114,6 +115,9 @@ uint8_t hw_bluetooth_init() {
     memset(&srdata, 0, sizeof(srdata));
     srdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
     srdata.uuids_complete.p_uuids = adv_uuids;
+    manufdata.company_identifier = 0x0154 /* Pebble Technology */;
+    manufdata.data.size = 0;
+    srdata.p_manuf_specific_data = &manufdata;
     rv = ble_advdata_encode(&srdata, _advdata.scan_rsp_data.p_data, &_advdata.scan_rsp_data.len);
     assert(rv == NRF_SUCCESS && "ble_advdata_encode(srdata)");
     
