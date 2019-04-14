@@ -11,6 +11,7 @@
 #include "nrf_sdh_ble.h"
 #include "nrf_ble_gatt.h"
 #include "ble_advdata.h"
+#include "ble_gap.h"
 
 /* external callbacks:
  *   bluetooth_tx_complete_from_isr
@@ -37,18 +38,23 @@ static ble_gap_adv_data_t _advdata = {
     .scan_rsp_data = { .p_data = _srdata_buf, .len = sizeof(_srdata_buf) },
 };
 
+int sfmt(char *buf, unsigned int len, const char *ifmt, ...);
+static uint8_t _name_buf[] = "Pebble Asterix LE xxxx";
+
 static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
+    printf("*** BLUETOOTH HANDLER ***\r\n");
 }
 
 uint8_t hw_bluetooth_init() {
     ret_code_t rv;
     
     /* XXX: need to ensure that we have 1536 bytes of stack available on the main stack */ 
-    return 0;
     
     /* Turn on the softdevice. */
     rv = nrf_sdh_enable_request();
     assert(rv == NRF_SUCCESS && "nrf_sdh_enable_request");
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "softdevice is enabled");
+
     
     extern uint8_t __data_start__;
     uint32_t rebbleos_ram_start = (uint32_t)&__data_start__;
@@ -58,7 +64,6 @@ uint8_t hw_bluetooth_init() {
     if (ram_start > rebbleos_ram_start) {
         panic("BLE subsystem requires too much RAM");
     }
-    DRV_LOG("bt", APP_LOG_LEVEL_DEBUG, "Bluetooth stack has %d bytes of margin", rebbleos_ram_start - ram_start);
     
     rv = nrf_sdh_ble_enable(&rebbleos_ram_start);
     assert(rv == NRF_SUCCESS && "nrf_sdh_ble_enable");
@@ -68,11 +73,13 @@ uint8_t hw_bluetooth_init() {
     /* Set up device name. 
      * XXX: Open link can change device mode characteristic.  Should this be (0,0)? */
     ble_gap_conn_sec_mode_t sec_mode;
-    sec_mode.sm = 1;
-    sec_mode.lv = 1;
+    BLE_GAP_CONN_SEC_MODE_SET_OPEN(&sec_mode);
 
-#define NAME "Pebble Asterix LE"
-    rv = sd_ble_gap_device_name_set(&sec_mode, (const uint8_t *)NAME, strlen(NAME));
+    ble_gap_addr_t addr;
+    (void) sd_ble_gap_addr_get(&addr);
+    sfmt((char *)_name_buf + strlen((char *)_name_buf) - 4, 5, "%02x%02x", addr.addr[4], addr.addr[5]);
+    
+    rv = sd_ble_gap_device_name_set(&sec_mode, _name_buf, strlen((char *)_name_buf));
     assert(rv == NRF_SUCCESS && "sd_ble_gap_device_name_set");
     
     /* Set up preferred peripheral connection parameters. */
@@ -89,7 +96,6 @@ uint8_t hw_bluetooth_init() {
     assert(rv == NRF_SUCCESS && "nrf_ble_gatt_init");
     
     /* services_init */
-    /* no services so far */
     
     /* Set up advertising data. */
     ble_advdata_t advdata;
@@ -98,13 +104,13 @@ uint8_t hw_bluetooth_init() {
     memset(&advdata, 0, sizeof(advdata));
     advdata.name_type = BLE_ADVDATA_FULL_NAME;
     advdata.include_appearance = 1;
-    advdata.flags = BLE_GAP_ADV_FLAG_LE_GENERAL_DISC_MODE;
+    advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     rv = ble_advdata_encode(&advdata, _advdata.adv_data.p_data, &_advdata.adv_data.len);
     assert(rv == NRF_SUCCESS && "ble_advdata_encode(advdata)");
 
-    ble_uuid_t adv_uuids[] = {{0x0003, BLE_UUID_TYPE_VENDOR_BEGIN}};
+    ble_uuid_t adv_uuids[] = {};
     memset(&srdata, 0, sizeof(srdata));
-    srdata.uuids_complete.uuid_cnt = 1;
+    srdata.uuids_complete.uuid_cnt = 0;
     srdata.uuids_complete.p_uuids = adv_uuids;
     rv = ble_advdata_encode(&srdata, _advdata.scan_rsp_data.p_data, &_advdata.scan_rsp_data.len);
     assert(rv == NRF_SUCCESS && "ble_advdata_encode(srdata)");
@@ -116,6 +122,7 @@ uint8_t hw_bluetooth_init() {
     advparams.primary_phy = BLE_GAP_PHY_1MBPS;
     advparams.duration = BLE_GAP_ADV_TIMEOUT_GENERAL_UNLIMITED;
     advparams.properties.type = BLE_GAP_ADV_TYPE_CONNECTABLE_SCANNABLE_UNDIRECTED;
+    advparams.p_peer_addr = NULL;
     advparams.filter_policy = BLE_GAP_ADV_FP_ANY;
     advparams.interval = 64; /* 40ms */
     rv = sd_ble_gap_adv_set_configure(&_adv_handle, &_advdata, &advparams);
@@ -126,6 +133,8 @@ uint8_t hw_bluetooth_init() {
     /* And turn on advertising! */
     rv = sd_ble_gap_adv_start(_adv_handle, CONN_TAG);
     assert(rv == NRF_SUCCESS && "sd_ble_gap_adv_start");
+    
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "advertising as \"%s\"", (char *)_name_buf);
     
     return 0;
 }

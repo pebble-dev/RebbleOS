@@ -165,7 +165,7 @@ SRCS_nrf52840 += components/libraries/util/app_util_platform.c # needed by softd
 SRCS_nrf52840 += components/libraries/experimental_section_vars/nrf_section_iter.c # needed by softdevice
 SRCS_nrf52840 += components/ble/nrf_ble_gatt/nrf_ble_gatt.c
 SRCS_nrf52840 += components/ble/common/ble_advdata.c
-
+SRCS_nrf52840 += components/ble/common/ble_srv_common.c
 
 LDFLAGS_nrf52840 = $(LDFLAGS_all)
 LDFLAGS_nrf52840 += -Wl,-Thw/chip/nrf52840/nrf52840.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk
