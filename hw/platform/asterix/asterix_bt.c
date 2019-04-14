@@ -82,6 +82,8 @@ uint8_t hw_bluetooth_init() {
     rv = sd_ble_gap_device_name_set(&sec_mode, _name_buf, strlen((char *)_name_buf));
     assert(rv == NRF_SUCCESS && "sd_ble_gap_device_name_set");
     
+    (void) sd_ble_gap_appearance_set(BLE_APPEARANCE_GENERIC_WATCH);
+    
     /* Set up preferred peripheral connection parameters. */
     ble_gap_conn_params_t gap_conn_params;
     gap_conn_params.min_conn_interval = MSEC_TO_UNITS(100, UNIT_1_25_MS);
