@@ -68,6 +68,8 @@ these steps:
 
 [Building on Debian Stretch](docs/debian_build.md)
 
+[Building on Arch Linux/Parabola](docs/arch_build.md)
+
 [Building on macOS](docs/mac_build.md)
 
 [Building on Windows](docs/windows_build.md)
