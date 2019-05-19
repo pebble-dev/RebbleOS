@@ -10,8 +10,10 @@
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_ble_gatt.h"
+#include "nrf_ble_qwr.h"
 #include "ble_advdata.h"
 #include "ble_gap.h"
+#include "ble_srv_common.h"
 
 /* external callbacks:
  *   bluetooth_tx_complete_from_isr
@@ -29,6 +31,7 @@
 #define CONN_TAG 1
 
 NRF_BLE_GATT_DEF(_gatt);
+NRF_BLE_QWR_DEF(_qwr); /* XXX: do we actually need QWR?  what does this do? */
 
 static uint8_t _adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
 static uint8_t _advdata_buf[BLE_GAP_ADV_SET_DATA_SIZE_MAX];
@@ -41,9 +44,7 @@ static ble_gap_adv_data_t _advdata = {
 int sfmt(char *buf, unsigned int len, const char *ifmt, ...);
 static uint8_t _name_buf[] = "Pebble Asterix LE xxxx";
 
-static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
-    printf("*** BLUETOOTH HANDLER ***\r\n");
-}
+void _ppogatt_init();
 
 uint8_t hw_bluetooth_init() {
     ret_code_t rv;
@@ -67,8 +68,6 @@ uint8_t hw_bluetooth_init() {
     
     rv = nrf_sdh_ble_enable(&rebbleos_ram_start);
     assert(rv == NRF_SUCCESS && "nrf_sdh_ble_enable");
-    
-    NRF_SDH_BLE_OBSERVER(m_ble_observer, 3 /* priority */, _hw_bluetooth_handler, NULL);
     
     /* Set up device name. 
      * XXX: Open link can change device mode characteristic.  Should this be (0,0)? */
@@ -97,7 +96,13 @@ uint8_t hw_bluetooth_init() {
     rv = nrf_ble_gatt_init(&_gatt, NULL);
     assert(rv == NRF_SUCCESS && "nrf_ble_gatt_init");
     
-    /* services_init */
+    /* Set up the queued write module. */
+    nrf_ble_qwr_init_t qwr_init = {0}; /* XXX: handlers? */
+    rv = nrf_ble_qwr_init(&_qwr, &qwr_init);
+    assert(rv == NRF_SUCCESS && "nrf_ble_qwr_init");
+    
+    /* Set up PPoGATT. */
+    _ppogatt_init();
     
     /* Set up advertising data. */
     ble_advdata_t advdata;
@@ -143,6 +148,217 @@ uint8_t hw_bluetooth_init() {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "advertising as \"%s\"", (char *)_name_buf);
     
     return 0;
+}
+
+/***** Pairing and PPoGATT handling *****/
+
+
+/* PPoGATT protocol notes:
+ *
+ * A Pebble can either be a GATT server or a GATT client.  By default, the
+ * Pebble acts as a GATT *client*, connecting to a GATT server on the phone
+ * -- this is the default for GadgetBridge, and presumably for all Android
+ * devices.  However, the Pebble also exposes a GATT server with the same
+ * UUID.
+ *
+ * If the phone acts as the server, the server's UUID is:
+ *   10000000-328E-0FBB-C642-1AA6699BDADA
+ * Write characteristic (client -> server, or pebble -> phone) UUID:
+ *   10000001-328E-0FBB-C642-1AA6699BDADA
+ * Notify characteristic (server -> client, or phone -> pebble) UUID:
+ *   10000002-328E-0FBB-C642-1AA6699BDADA
+ *
+ * If the watch acts as the server, the server's UUID is:
+ *   30000003-328e-0fbb-c642-1aa6699bdada
+ * Notify (+write?) characteristic (pebble -> phone):
+ *   30000004-328e-0fbb-c642-1aa6699bdada
+ * Unknown read characteristic:
+ *   30000005-328e-0fbb-c642-1aa6699bdada
+ * Write characteristic (phone -> pebble):
+ *   30000006-328e-0fbb-c642-1aa6699bdada
+ *
+ * The Pebble also has a metadata service:
+ *   0000fed9-0000-1000-8000-00805f9b34fb
+ * which has a pairing trigger characteristic (behavior unknown, read/write):
+ *   00000002-328e-0fbb-c642-1aa6699bdada
+ * an MTU characteristic (notify, read, write):
+ *   00000003-328e-0fbb-c642-1aa6699bdada
+ * a connectivity characteristic (notify, read):
+ *   00000001-328e-0fbb-c642-1aa6699bdada
+ * and a parameters characteristic (notify, read, write):
+ *   00000005-328e-0fbb-c642-1aa6699bdada
+ *
+ * The PPoGATT protocol is a relatively simple shim around the Pebble
+ * Protocol.  The first byte of a PPoGATT packet is a bitfield:
+ *   data[7:0] = {seq[4:0], cmd[2:0]}
+ *
+ * cmd can have four values that we know of:
+ *
+ *   3'd0: Data packet with sequence `seq`.  Should be responded to with an
+ *         ACK packet with the same sequence.  If a packet in sequence is
+ *         missing, do not respond with any ACKs until the missing sequenced
+ *         packet is retransmitted.
+ *   3'd1: ACK for data packet with sequence `seq`.
+ *   3'd2: Reset request. [has data unknown]
+ *   3'd3: Reset ACK. [has data unknown]
+ *
+ * Sequences are increasing and repeating.  
+ */
+
+/* UUIDs are from the watch's perspective; i.e., 'srv' is for the server on
+ * the watch, or what the phone would be a client for */
+static ble_uuid_t ppogatt_srv_svc_uuid;
+
+static uint16_t ppogatt_srv_svc_hnd;
+static ble_gatts_char_handles_t ppogatt_srv_write_hnd;
+static ble_gatts_char_handles_t ppogatt_srv_read_hnd;
+static ble_gatts_char_handles_t ppogatt_srv_notify_hnd;
+
+#define PPOGATT_MTU 256
+static uint8_t ppogatt_srv_wr_buf[PPOGATT_MTU];
+static uint8_t ppogatt_srv_rd_buf[PPOGATT_MTU];
+
+static uint16_t _bt_conn = BLE_CONN_HANDLE_INVALID;
+
+static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
+    ret_code_t rv;
+    
+    switch (evt->header.evt_id) {
+    case BLE_GAP_EVT_CONNECTED:
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote endpoint connected");
+        _bt_conn = evt->evt.gap_evt.conn_handle;
+        rv = nrf_ble_qwr_conn_handle_assign(&_qwr, _bt_conn);
+        assert(rv == NRF_SUCCESS && "nrf_ble_qwr_conn_handle_assign");
+        break;
+    case BLE_GAP_EVT_DISCONNECTED:
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote disconnected");
+        _bt_conn = BLE_CONN_HANDLE_INVALID;
+        rv = sd_ble_gap_adv_start(_adv_handle, CONN_TAG);
+        assert(rv == NRF_SUCCESS && "sd_ble_gap_adv_start");
+        break;
+    case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
+        /* For now, pairing is not supported.  We'll have to do better
+         * sooner or later, once we can write to flash. */
+        rv = sd_ble_gap_sec_params_reply(_bt_conn, BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP, NULL, NULL);
+        assert(rv == NRF_SUCCESS && "sd_ble_gap_sec_params_reply");
+        break;
+    case BLE_GAP_EVT_PHY_UPDATE_REQUEST: {
+        const ble_gap_phys_t phys = {
+            .rx_phys = BLE_GAP_PHY_AUTO,
+            .tx_phys = BLE_GAP_PHY_AUTO
+        };
+        
+        rv = sd_ble_gap_phy_update(evt->evt.gap_evt.conn_handle, &phys);
+        assert(rv == NRF_SUCCESS && "sd_ble_gap_phy_update");
+        break;
+    }
+    case BLE_GATTS_EVT_WRITE: {
+        const ble_gatts_evt_write_t *evtwr = &evt->evt.gatts_evt.params.write;
+        const char *hname = "unknown";
+        if (evtwr->handle == ppogatt_srv_write_hnd.value_handle)
+            hname = "write value";
+        else if (evtwr->handle == ppogatt_srv_notify_hnd.value_handle)
+            hname = "notify value";
+        else if (evtwr->handle == ppogatt_srv_notify_hnd.cccd_handle)
+            hname = "notify CCCD";
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "GATTS write evt: handle %04x %s, op %02x, auth req %u, offset %02x, len %d", evtwr->handle, hname, evtwr->op, evtwr->auth_required, evtwr->offset, evtwr->len);
+        
+        /* right back atcha */
+        ble_gatts_hvx_params_t hvx;
+        uint16_t len = evtwr->len;
+        
+        memset(&hvx, 0, sizeof(hvx));
+        hvx.type = BLE_GATT_HVX_NOTIFICATION;
+        hvx.handle = ppogatt_srv_notify_hnd.value_handle;
+        hvx.p_data = evtwr->data;
+        hvx.p_len = &len;
+        
+        rv = sd_ble_gatts_hvx(_bt_conn, &hvx);
+        if (rv == NRF_SUCCESS)
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "-> sent NOTIFY back");
+        else if (rv == NRF_ERROR_INVALID_STATE)
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "NOTIFY not enabled in CCCD to respond");
+        else if (rv == NRF_ERROR_RESOURCES)
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "SD out of resources for NOTIFY");
+        else
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "... unknown NOTIFY error %d", rv);
+        break;
+    }
+    default:
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "unknown event ID %d", evt->header.evt_id);
+    }
+}
+
+/* On-boot PPoGATT setup (adds GATT server on watch side). */
+void _ppogatt_init() {
+    ret_code_t rv;
+    /* UUID: 30000003-328e-0fbb-c642-1aa6699bdada */
+    /*   characteristics: 0004, 0005, 0006 */
+
+    /* Add event observer for connect / disconnect / params / pairing
+     * requests.  */
+    NRF_SDH_BLE_OBSERVER(m_ble_observer, 3 /* priority */, _hw_bluetooth_handler, NULL);
+    
+    /* Create UUIDs that we might use later. */
+#define MAKE_UUID(_uuid, ...) \
+    do { \
+        const ble_uuid128_t _uuid_base = { __VA_ARGS__ }; \
+        rv = sd_ble_uuid_vs_add(&_uuid_base, &_uuid.type); \
+        assert(rv == NRF_SUCCESS && "sd_ble_uuid_vs_add"); \
+        _uuid.uuid = _uuid_base.uuid128[13] << 8 | _uuid_base.uuid128[12]; \
+    } while(0)
+
+    MAKE_UUID(ppogatt_srv_svc_uuid, {
+        0xda, 0xda, 0x9b, 0x69, 0xa6, 0x1a, 0x42, 0xc6,
+        0xbb, 0x0f, 0x8e, 0x32, 0x03, 0x00, 0x00, 0x30 });
+    
+    /* Register the PPoGATT server service, and add its characteristics. */
+    ble_add_char_params_t params;
+
+    rv = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &ppogatt_srv_svc_uuid, &ppogatt_srv_svc_hnd);
+    assert(rv == NRF_SUCCESS && "sd_ble_gatts_service_add(ppogatt_srv_svc)");
+    
+    memset(&params, 0, sizeof(params));
+    params.uuid = 0x0004;
+    params.uuid_type = ppogatt_srv_svc_uuid.type;
+    params.init_len = 0;
+    params.max_len = PPOGATT_MTU;
+    params.is_var_len = 1;
+    params.p_init_value = ppogatt_srv_rd_buf;
+    params.char_props.notify = 1;
+    params.char_props.write_wo_resp = 1;
+    params.read_access = SEC_OPEN /* XXX */;
+    params.write_access = SEC_OPEN /* XXX */;
+    params.cccd_write_access = SEC_OPEN /* XXX */;
+    
+    rv = characteristic_add(ppogatt_srv_svc_hnd, &params, &ppogatt_srv_notify_hnd);
+    assert(rv == NRF_SUCCESS && "characteristic_add(ppogatt_srv_notify)");
+
+    memset(&params, 0, sizeof(params));
+    params.uuid = 0x0005;
+    params.uuid_type = ppogatt_srv_svc_uuid.type;
+    params.init_len = 0;
+    params.max_len = PPOGATT_MTU;
+    params.is_var_len = 1;
+    params.p_init_value = ppogatt_srv_rd_buf;
+    params.char_props.read = 1;
+    params.read_access = SEC_OPEN /* XXX */;
+    
+    rv = characteristic_add(ppogatt_srv_svc_hnd, &params, &ppogatt_srv_read_hnd);
+    assert(rv == NRF_SUCCESS && "characteristic_add(ppogatt_srv_write)");
+
+    memset(&params, 0, sizeof(params));
+    params.uuid = 0x0006;
+    params.uuid_type = ppogatt_srv_svc_uuid.type;
+    params.init_len = 0;
+    params.max_len = PPOGATT_MTU;
+    params.is_var_len = 1;
+    params.p_init_value = ppogatt_srv_wr_buf;
+    params.char_props.write_wo_resp = 1;
+    params.write_access = SEC_OPEN /* XXX */;
+    
+    rv = characteristic_add(ppogatt_srv_svc_hnd, &params, &ppogatt_srv_write_hnd);
+    assert(rv == NRF_SUCCESS && "characteristic_add(ppogatt_srv_write)");
 }
 
 void bt_device_request_tx(uint8_t *data, uint16_t len) {
