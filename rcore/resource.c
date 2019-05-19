@@ -58,7 +58,7 @@ ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
         fs_read(&fd, &new_header, sizeof(ResHandleFileHeader));
     }
 
-    LOG_DEBUG("Resource sys:%d idx:%d adr:0x%x sz:%d", is_system, new_header.index, new_header.offset, new_header.size);
+//    LOG_DEBUG("Resource sys:%d idx:%d adr:0x%x sz:%d", is_system, new_header.index, new_header.offset, new_header.size);
 
     // sanity check the resource
     if (new_header.size > 200000) // arbitary 200k
@@ -91,7 +91,7 @@ bool _resource_is_sane(ResHandleFileHeader *res_handle)
 
 void _resource_load_file(ResHandleFileHeader resource_header, uint8_t *buffer, size_t max_length, const struct file *file)
 {
-    LOG_DEBUG("Loading Start adr:0x%x", resource_header.offset);
+//    LOG_DEBUG("Loading Start adr:0x%x", resource_header.offset);
 
     if(!buffer)
     {
