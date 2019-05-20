@@ -10,7 +10,6 @@
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_ble_gatt.h"
-#include "nrf_ble_qwr.h"
 #include "ble_advdata.h"
 #include "ble_gap.h"
 #include "ble_srv_common.h"
@@ -32,7 +31,6 @@
 #define CONN_TAG 1
 
 NRF_BLE_GATT_DEF(_gatt);
-NRF_BLE_QWR_DEF(_qwr); /* XXX: do we actually need QWR?  what does this do? */
 BLE_DB_DISCOVERY_DEF(_disc);
 
 static uint8_t _adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
@@ -97,11 +95,6 @@ uint8_t hw_bluetooth_init() {
     /* Set up GATT parameter negotiation. */
     rv = nrf_ble_gatt_init(&_gatt, NULL);
     assert(rv == NRF_SUCCESS && "nrf_ble_gatt_init");
-    
-    /* Set up the queued write module. */
-    nrf_ble_qwr_init_t qwr_init = {0}; /* XXX: handlers? */
-    rv = nrf_ble_qwr_init(&_qwr, &qwr_init);
-    assert(rv == NRF_SUCCESS && "nrf_ble_qwr_init");
     
     /* Set up PPoGATT. */
     _ppogatt_init();
@@ -214,18 +207,22 @@ static uint16_t _bt_conn = BLE_CONN_HANDLE_INVALID;
 static ble_uuid_t ppogatt_srv_svc_uuid;
 static ble_uuid_t ppogatt_cli_svc_uuid;
 
-static uint16_t ppogatt_srv_svc_hnd;
+static uint16_t ppogatt_srv_svc_hnd = BLE_GATT_HANDLE_INVALID;
 static ble_gatts_char_handles_t ppogatt_srv_write_hnd;
 static ble_gatts_char_handles_t ppogatt_srv_read_hnd;
 static ble_gatts_char_handles_t ppogatt_srv_notify_hnd;
+static uint16_t ppogatt_srv_notify_cccd = 0;
 
-static uint16_t ppogatt_cli_data_value_hnd;
-static uint16_t ppogatt_cli_data_cccd_hnd;
+static uint16_t ppogatt_cli_data_value_hnd = BLE_GATT_HANDLE_INVALID;
+static uint16_t ppogatt_cli_data_cccd_hnd = BLE_GATT_HANDLE_INVALID;
 
 #define PPOGATT_MTU 256
 static uint8_t ppogatt_srv_wr_buf[PPOGATT_MTU];
 static uint8_t ppogatt_srv_rd_buf[PPOGATT_MTU];
 
+static void _ppogatt_callback_rx(const uint8_t *buf, size_t len);
+static int _ppogatt_tx(const uint8_t *buf, size_t len);
+static void _ppogatt_callback_tx_ready();
 
 static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     ret_code_t rv;
@@ -234,16 +231,19 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     case BLE_GAP_EVT_CONNECTED:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote endpoint connected");
         _bt_conn = evt->evt.gap_evt.conn_handle;
-        rv = nrf_ble_qwr_conn_handle_assign(&_qwr, _bt_conn);
-        assert(rv == NRF_SUCCESS && "nrf_ble_qwr_conn_handle_assign");
         
         rv = ble_db_discovery_start(&_disc, _bt_conn);
         assert(rv == NRF_SUCCESS && "ble_db_discovery_start");
+        
+        ppogatt_srv_notify_cccd = 0;
         
         break;
     case BLE_GAP_EVT_DISCONNECTED:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote disconnected");
         _bt_conn = BLE_CONN_HANDLE_INVALID;
+        ppogatt_srv_notify_cccd = 0;
+        ppogatt_cli_data_value_hnd = BLE_GATT_HANDLE_INVALID;
+        ppogatt_cli_data_cccd_hnd = BLE_GATT_HANDLE_INVALID;
         rv = sd_ble_gap_adv_start(_adv_handle, CONN_TAG);
         assert(rv == NRF_SUCCESS && "sd_ble_gap_adv_start");
         break;
@@ -275,25 +275,9 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "GATTS write evt: handle %04x %s, op %02x, auth req %u, offset %02x, len %d", evtwr->handle, hname, evtwr->op, evtwr->auth_required, evtwr->offset, evtwr->len);
         
         if (evtwr->handle == ppogatt_srv_write_hnd.value_handle) {
-            /* right back atcha */
-            ble_gatts_hvx_params_t hvx;
-            uint16_t len = evtwr->len;
-        
-            memset(&hvx, 0, sizeof(hvx));
-            hvx.type = BLE_GATT_HVX_NOTIFICATION;
-            hvx.handle = ppogatt_srv_notify_hnd.value_handle;
-            hvx.p_data = evtwr->data;
-            hvx.p_len = &len;
-        
-            rv = sd_ble_gatts_hvx(_bt_conn, &hvx);
-            if (rv == NRF_SUCCESS)
-                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "-> sent NOTIFY back");
-            else if (rv == NRF_ERROR_INVALID_STATE)
-                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "NOTIFY not enabled in CCCD to respond");
-            else if (rv == NRF_ERROR_RESOURCES)
-                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "SD out of resources for NOTIFY");
-            else
-                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "... unknown NOTIFY error %d", rv);
+            _ppogatt_callback_rx(evtwr->data, evtwr->len);
+        } else if (evtwr->handle == ppogatt_srv_notify_hnd.cccd_handle && evtwr->len <= 2) {
+            memcpy(&ppogatt_srv_notify_cccd, evtwr->data, evtwr->len);
         }
         break;
     }
@@ -317,9 +301,18 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     case BLE_GAP_EVT_DATA_LENGTH_UPDATE:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_DATA_LENGTH_UPDATE");
         break;
-    case BLE_GATTC_EVT_HVX:
+    case BLE_GATTC_EVT_HVX: {
+        const ble_gattc_evt_hvx_t *evthvx = &evt->evt.gattc_evt.params.hvx;
+
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTC_EVT_HVX"); /* XXX: handle PPoGATT rx */
+        if (evthvx->handle != ppogatt_cli_data_value_hnd) {
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTC_EVT_HVX: unexpected handle %04x (hoping for %04x)?", evthvx->handle, ppogatt_cli_data_value_hnd);
+            break;
+        }
+        
+        _ppogatt_callback_rx(evthvx->data, evthvx->len);
         break;
+    }
     case BLE_GATTC_EVT_TIMEOUT:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTC_EVT_TIMEOUT");
         break;
@@ -327,6 +320,10 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         /* XXX: may need to update this for bonded devices */
         rv = sd_ble_gatts_sys_attr_set(_bt_conn, NULL, 0, 0);
         assert(rv == NRF_SUCCESS && "sd_ble_gatts_sys_attr_set");
+        break;
+    case BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE:
+    case BLE_GATTS_EVT_HVN_TX_COMPLETE:
+        _ppogatt_callback_tx_ready();
         break;
     default:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "unknown event ID %d", evt->header.evt_id);
@@ -359,18 +356,22 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
                 ppogatt_cli_data_cccd_hnd = dbchar->cccd_handle;
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: found data characteristic w/ value handle %04x, cccd handle %04x", ppogatt_cli_data_value_hnd, ppogatt_cli_data_cccd_hnd);
                 
-                /* Turn on notifications.  XXX: this times out when speaking to */
+                /* Turn on notifications.  XXX: this times out when speaking to nRF app */
                 ble_gattc_write_params_t params;
                 static uint16_t cccd_val = BLE_GATT_HVX_NOTIFICATION;
                 
+                params.flags = 0;
                 params.handle = ppogatt_cli_data_cccd_hnd;
                 params.len = sizeof(cccd_val);
                 params.p_value = (void *)&cccd_val;
                 params.offset = 0;
                 params.write_op = BLE_GATT_OP_WRITE_REQ;
                 
-                ret_code_t rv = sd_ble_gattc_write(_bt_conn, &params);
-                assert(rv == NRF_SUCCESS);
+                // ret_code_t rv = sd_ble_gattc_write(_bt_conn, &params);
+                // XXX: the resulting timeout event causes the ATT stack to give up
+                // assert(rv == NRF_SUCCESS);
+            } else {
+                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: other characteristic uuid %04x value handle %04x, cccd handle %04x", dbchar->characteristic.uuid.uuid, dbchar->characteristic.handle_value, dbchar->cccd_handle);
             }
         }
         break;
@@ -458,6 +459,67 @@ void _ppogatt_init() {
 
     rv = ble_db_discovery_evt_register(&ppogatt_cli_svc_uuid);
     assert(rv == NRF_SUCCESS && "ble_db_discovery_evt_register");
+}
+
+static void _ppogatt_callback_rx(const uint8_t *buf, size_t len) {
+    _ppogatt_tx(buf, len);
+}
+
+static int _ppogatt_tx(const uint8_t *buf, size_t len) {
+    ret_code_t rv;
+    
+    /* NOTIFY CCCD in GATTS set up?  Prefer that. */
+    if (ppogatt_srv_notify_cccd & BLE_GATT_HVX_NOTIFICATION) {
+        ble_gatts_hvx_params_t hvx;
+        uint16_t len16 = len;
+        
+        memset(&hvx, 0, sizeof(hvx));
+        hvx.type = BLE_GATT_HVX_NOTIFICATION;
+        hvx.handle = ppogatt_srv_notify_hnd.value_handle;
+        hvx.p_data = buf;
+        hvx.p_len = &len16;
+        
+        rv = sd_ble_gatts_hvx(_bt_conn, &hvx);
+        if (rv == NRF_SUCCESS)
+            return 0;
+        else if (rv == NRF_ERROR_INVALID_STATE) {
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX: NOTIFY not enabled in CCCD to respond?");
+            return -1;
+        } else if (rv == NRF_ERROR_RESOURCES) {
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX: SD out of resources for NOTIFY; try again later"); /* wait for BLE_GATTS_EVT_HVN_TX_COMPLETE */
+            return -1;
+        } else {
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX: unknown sd_ble_gatts_hvx error %d", rv);
+            return -1;
+        }
+    } else if (ppogatt_cli_data_value_hnd != BLE_GATT_HANDLE_INVALID) { /* Connected to their server? */
+        ble_gattc_write_params_t write;
+        
+        write.flags = 0;
+        write.handle = ppogatt_cli_data_value_hnd;
+        write.len = len;
+        write.p_value = buf;
+        write.offset = 0;
+        write.write_op = BLE_GATT_OP_WRITE_CMD;
+        
+        rv = sd_ble_gattc_write(_bt_conn, &write);
+        if (rv == NRF_SUCCESS)
+            return 0;
+        else if (rv == NRF_ERROR_RESOURCES) {
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX: SD out of resources for WRITE; try again later"); /* wait for BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE */
+            return -1;
+        } else {
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX: unknown sd_ble_gattc_write error %d", rv);
+            return -1;
+        }
+    } else {
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX: no active way to tx back to phone");
+        return -1;
+    }
+}
+
+static void _ppogatt_callback_tx_ready() {
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX ready");
 }
 
 void bt_device_request_tx(uint8_t *data, uint16_t len) {
