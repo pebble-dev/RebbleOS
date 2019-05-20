@@ -34,11 +34,12 @@ void log_printf_to_ar(const char *layer, const char *module, uint8_t level, cons
 
 // NOTE Probably shouldn't use from an ISR or it'll likely lock
 
+#define PRBUFSIZ 160
 void log_printf(const char *layer, const char *module, uint8_t level, const char *filename, uint32_t line_no, const char *fmt, va_list ar)
 {
     uint8_t interrupt_set = 0;
     static BaseType_t xHigherPriorityTaskWoken;
-    char buf[128];
+    char buf[PRBUFSIZ];
     char tbuf[16];
     
     // XXX: this means that log_printf *must* be called first from a non-threaded context, for this check is not thread-safe!
@@ -107,10 +108,9 @@ void log_printf(const char *layer, const char *module, uint8_t level, const char
     _log_pad_string(tbuf, buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN - 1, LINENO_LEN + 1);
     snprintf(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN - 1, 3, "] ");
 
-    vsfmt(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN + 1, 128, fmt, ar);
+    vsfmt(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN + 1, PRBUFSIZ - (INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN + 1), fmt, ar);
 
-    printf(buf);
-    printf("\n");
+    printf("%s\n", buf);
     
     log_clock_disable();
     
