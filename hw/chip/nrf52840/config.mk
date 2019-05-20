@@ -134,7 +134,8 @@ nrf52_sdk_inc_folders = \
 	components/nfc/ndef/conn_hand_parser/ac_rec_parser \
 	components/libraries/stack_guard \
 	components/libraries/log/src \
-	components/libraries/cli/uart
+	components/libraries/cli/uart \
+	components/ble/ble_db_discovery
 
 CFLAGS_nrf52840 = $(CFLAGS_all)
 CFLAGS_nrf52840 += -Ihw/chip/nrf52840/inc
@@ -167,6 +168,7 @@ SRCS_nrf52840 += components/ble/nrf_ble_gatt/nrf_ble_gatt.c
 SRCS_nrf52840 += components/ble/common/ble_advdata.c
 SRCS_nrf52840 += components/ble/common/ble_srv_common.c
 SRCS_nrf52840 += components/ble/nrf_ble_qwr/nrf_ble_qwr.c
+SRCS_nrf52840 += components/ble/ble_db_discovery/ble_db_discovery.c
 
 LDFLAGS_nrf52840 = $(LDFLAGS_all)
 LDFLAGS_nrf52840 += -Wl,-Thw/chip/nrf52840/nrf52840.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk
