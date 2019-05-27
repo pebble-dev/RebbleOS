@@ -36,10 +36,13 @@ void hw_flash_init() {
     config.pins.sck_pin = BOARD_QSPI_SCK_PIN;
     config.pins.csn_pin = BOARD_QSPI_CSN_PIN;
     config.pins.io0_pin = BOARD_QSPI_IO0_PIN;
-#ifdef BOARD_QSPI_IS_QUAD
     config.pins.io1_pin = BOARD_QSPI_IO1_PIN;
+#ifdef BOARD_QSPI_IS_QUAD
     config.pins.io2_pin = BOARD_QSPI_IO2_PIN;
     config.pins.io3_pin = BOARD_QSPI_IO3_PIN;
+#else
+    config.prot_if.readoc = NRF_QSPI_READOC_FASTREAD;
+    config.prot_if.writeoc = NRF_QSPI_WRITEOC_PP;
 #endif
     config.irq_priority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1;
 
