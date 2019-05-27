@@ -7,6 +7,7 @@
  */
 
 #include <stdbool.h>
+#include <stdint.h>
 
 uint8_t display_init(void);
 void display_done_isr(uint8_t cmd);
