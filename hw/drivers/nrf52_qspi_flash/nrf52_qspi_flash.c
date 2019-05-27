@@ -1,4 +1,4 @@
-/* asterix_flash.c
+/* nrf52_qspi_flash.c
  * flash routines for QSPI flash on nRF52840
  * RebbleOS
  *
@@ -12,12 +12,7 @@
 /* Asterix has 128Mbit (16MB) of QSPI flash -- a W25Q128JV. */
 #define QSPI_JEDEC_ID_W25Q128JV 0xEF4018
 
-#define BOARD_QSPI_SCK_PIN 19
-#define BOARD_QSPI_CSN_PIN 17
-#define BOARD_QSPI_IO0_PIN 20
-#define BOARD_QSPI_IO1_PIN 21
-#define BOARD_QSPI_IO2_PIN 22
-#define BOARD_QSPI_IO3_PIN 23
+#include "board_config.h"
 
 #define QSPI_INSTR_JEDEC_ID 0x9F
 
@@ -41,9 +36,11 @@ void hw_flash_init() {
     config.pins.sck_pin = BOARD_QSPI_SCK_PIN;
     config.pins.csn_pin = BOARD_QSPI_CSN_PIN;
     config.pins.io0_pin = BOARD_QSPI_IO0_PIN;
+#ifdef BOARD_QSPI_IS_QUAD
     config.pins.io1_pin = BOARD_QSPI_IO1_PIN;
     config.pins.io2_pin = BOARD_QSPI_IO2_PIN;
     config.pins.io3_pin = BOARD_QSPI_IO3_PIN;
+#endif
     config.irq_priority = configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY + 1;
 
     nrfx_err_t err;
@@ -63,9 +60,9 @@ void hw_flash_init() {
 
         DRV_LOG("flash", APP_LOG_LEVEL_DEBUG, "QSPI: JEDEC ID %02x %02x %02x", buf[0], buf[1], buf[2]);
     
-        if ((buf[0] == ((QSPI_JEDEC_ID_W25Q128JV >> 16) & 0xFF)) &&
-            (buf[1] == ((QSPI_JEDEC_ID_W25Q128JV >>  8) & 0xFF)) &&
-            (buf[2] == ((QSPI_JEDEC_ID_W25Q128JV      ) & 0xFF)))
+        if ((buf[0] == ((BOARD_QSPI_JEDEC_ID >> 16) & 0xFF)) &&
+            (buf[1] == ((BOARD_QSPI_JEDEC_ID >>  8) & 0xFF)) &&
+            (buf[2] == ((BOARD_QSPI_JEDEC_ID      ) & 0xFF)))
             break;
     } while (--tries);
     
