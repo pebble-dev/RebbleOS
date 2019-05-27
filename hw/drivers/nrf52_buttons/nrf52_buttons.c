@@ -5,18 +5,29 @@
  *
  * Joshua Wise <joshua@joshuawise.com>
  *
- * The nrf52_buttons implementation comes in two major parts: the HAL
- * implementation (in this directory, which provides the hw_buttons_* APIs
- * to the OS implementation), and the platform-specific constants (i.e.,
- * which GPIOs are associated with which button, etcetera).  As such, there
- * are two header files involved: nrf52_buttons.h, which provides the OS HAL
- * (and is expected to be included by a platform's platform.h), and
- * nrf52_buttons_platform.h, which is intended to be included by a file in
- * hw/platform/.../, and which provides typedefs for button constants.
+ * The nrf52_buttons implementation is implemented in only one file, which
+ * provides the OS HAL interface (and whose header is expected to be
+ * included by a platform's platform.h).  Configuration for the button
+ * driver is done by board_config.h, which is expected to define
+ * BOARD_BUTTON_{BACK,UP,SELECT,DOWN}_PIN constants (which are
  */
 
 #include <debug.h>
-#include "nrf52_buttons_platform.h"
+#include "nrf52_buttons.h"
+#include "nrfx_gpiote.h"
+#include "board_config.h"
+
+#define BOARD_BUTTON_BACK_PIN   NRF_GPIO_PIN_MAP(1,01)
+#define BOARD_BUTTON_UP_PIN     NRF_GPIO_PIN_MAP(1,02)
+#define BOARD_BUTTON_SELECT_PIN NRF_GPIO_PIN_MAP(1,03)
+#define BOARD_BUTTON_DOWN_PIN   NRF_GPIO_PIN_MAP(1,04)
+
+static nrfx_gpiote_pin_t nrf52_buttons_pindefs[HW_BUTTON_MAX] = {
+    [HW_BUTTON_BACK] = BOARD_BUTTON_BACK_PIN,
+    [HW_BUTTON_UP] = BOARD_BUTTON_UP_PIN,
+    [HW_BUTTON_SELECT] = BOARD_BUTTON_SELECT_PIN,
+    [HW_BUTTON_DOWN] = BOARD_BUTTON_DOWN_PIN,
+};
 
 static hw_button_isr_t _isr;
 

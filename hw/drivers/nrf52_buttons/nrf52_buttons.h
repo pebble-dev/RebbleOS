@@ -11,8 +11,6 @@
 #ifndef __NRF52_BUTTONS_H
 #define __NRF52_BUTTONS_H
 
-#include "nrfx_gpiote.h"
-
 typedef enum hw_button {
     HW_BUTTON_BACK = 0,
     HW_BUTTON_UP,
@@ -20,8 +18,6 @@ typedef enum hw_button {
     HW_BUTTON_DOWN,
     HW_BUTTON_MAX
 } hw_button_t;
-
-extern nrfx_gpiote_pin_t nrf52_buttons_pindefs[HW_BUTTON_MAX];
 
 typedef void (*hw_button_isr_t)(hw_button_t id);
 
