@@ -138,7 +138,7 @@ nrf52_sdk_inc_folders = \
 	components/ble/ble_db_discovery
 
 CFLAGS_nrf52840 = $(CFLAGS_all)
-CFLAGS_nrf52840 += -Ihw/chip/nrf52840/inc
+CFLAGS_nrf52840 += -Ihw/chip/nrf52840
 CFLAGS_nrf52840 += $(addprefix -I$(NRF52_SDK_PATH)/,$(nrf52_sdk_inc_folders))
 CFLAGS_nrf52840 += \
 	-DCONFIG_GPIO_AS_PINRESET \
@@ -169,6 +169,9 @@ SRCS_nrf52840 += components/ble/common/ble_advdata.c
 SRCS_nrf52840 += components/ble/common/ble_srv_common.c
 SRCS_nrf52840 += components/ble/nrf_ble_qwr/nrf_ble_qwr.c
 SRCS_nrf52840 += components/ble/ble_db_discovery/ble_db_discovery.c
+
+SRCS_nrf52840 += hw/chip/nrf52840/fault_handlers.c
+SRCS_nrf52840 += hw/chip/nrf52840/debug.c
 
 LDFLAGS_nrf52840 = $(LDFLAGS_all)
 LDFLAGS_nrf52840 += -Wl,-Thw/chip/nrf52840/nrf52840.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk
