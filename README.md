@@ -11,18 +11,20 @@ The firmware is based on FreeRTOS, and aims to be binary-compatible with applica
 
 ## Supported Feature Matrix
 
-|Feature          |TinTin (Pebble 1)|Snowy (Time, Time Steel)|Chalk (Round)|Silk (Pebble 2)|
-|:---:            |:---:            |:---:                   |:---:        |:---:          |
-|Display:         |N                |Y                       |N            |N              |
-|Flash:           |Y                |Y                       |Y            |N              |
-|Buttons:         |Y                |Y                       |Y            |N              |
-|Gyro:            |N                |N                       |N            |N              |
-|Magnetometer:    |N                |N                       |N            |N              |
-|Vibrate:         |N                |Y                       |Y            |N              |
-|Backlight:       |Y                |Y                       |Y            |N              |
-|Power Management:|N                |N                       |N            |N              |
-|Bluetooth:       |N                |Y (Alpha)               |N            |N              |
-|Overall (%):     |5%               |20%                     |10%          |0%             |
+|Feature          |TinTin (Pebble 1)|Snowy (Time, Time Steel)|Chalk (Round)|Silk (Pebble 2)|Asterix|Vla-52840|
+|:---:            |:---:            |:---:                   |:---:        |:---:          |:---:  |:---:    |
+|Display:         |N                |Y                       |N            |N              |Y      |Y        |
+|Flash:           |Y                |Y                       |Y            |N              |Y      |Y        |
+|Buttons:         |Y                |Y                       |Y            |N              |Y      |Y        |
+|Accel:           |N                |N                       |N            |N              |N      |N        |
+|Gyro:            |N                |N                       |N            |N              |N      |n/a      |
+|Magnetometer:    |N                |N                       |N            |n/a            |N      |n/a      |
+|HRM:             |n/a              |n/a                     |n/a          |N              |n/a    |N        |
+|Vibrate:         |N                |Y                       |Y            |N              |N      |N        |
+|Backlight:       |Y                |Y                       |Y            |N              |N      |N        |
+|Power Management:|N                |N                       |N            |N              |N      |N        |
+|Bluetooth:       |N                |Y (Alpha)               |N            |N              |WIP    |WIP      |
+|Overall (%):     |5%               |20%                     |10%          |0%             |15%    |15%      |
 
 ## FAQ
 
