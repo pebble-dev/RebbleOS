@@ -172,5 +172,6 @@ include lib/btstack/config.mk
 ifeq ($(NRF52_SDK_PATH),)
 else
 include hw/chip/nrf52840/config.mk
+include hw/drivers/nrf52_buttons/config.mk
 include hw/platform/asterix/config.mk
 endif
