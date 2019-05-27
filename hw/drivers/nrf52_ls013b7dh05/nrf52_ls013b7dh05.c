@@ -1,4 +1,4 @@
-/* asterix_display.c
+/* nrf52_ls013b7dh05.c
  * Display driver for LS013B7DH05 attached via SPI to nRF52840
  * RebbleOS
  *
@@ -8,10 +8,7 @@
 #include "rebbleos.h"
 #include "nrfx_spim.h"
 #include "nrf_gpio.h"
-
-#define BOARD_DISPLAY_PIN_MOSI 15
-#define BOARD_DISPLAY_PIN_SCK  14
-#define BOARD_DISPLAY_PIN_SCS  16
+#include "board_config.h"
 
 #define DISPLAY_LINES_PER_CHUNK 21 /* 8 chunks per frame */
 
@@ -39,7 +36,7 @@ void hw_display_init() {
     err = nrfx_spim_init(&_display_spi, &config, _spi_handler, NULL);
     assert(err == NRFX_SUCCESS);
     
-    DRV_LOG("asterix", APP_LOG_LEVEL_INFO, "asterix: hw_display_init");
+    DRV_LOG("hw", APP_LOG_LEVEL_INFO, "nrf52_ls013b7dh05: hw_display_init");
 }
 
 void hw_display_reset() {
