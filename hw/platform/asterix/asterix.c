@@ -12,6 +12,8 @@
 #include "nrfx_twi.h"
 #include "nrf_gpio.h"
 
+#include "board_config.h"
+
 /*** PMIC ***/
 
 /* PMIC code lives here for the time being. */
@@ -30,6 +32,7 @@ static void i2c_write(const nrfx_twi_t *bus, uint8_t dev, uint8_t addr, uint8_t 
 }
 
 static void pmic_init() {
+#ifdef ASTERIX_BOARD_ASTERIX
     nrfx_err_t err;
 
     const nrfx_twi_config_t config = {
@@ -51,18 +54,26 @@ static void pmic_init() {
     i2c_write(&pmic_twi, 0x28, 0x12, 0x02); /* LDO1 enable */
     i2c_write(&pmic_twi, 0x28, 0x0F, 0xE8); /* Buck2 enable, burst mode, 2.2uH */
     i2c_write(&pmic_twi, 0x28, 0x10, 0x28); /* buck2, 2.8v */
+#endif
 }
 
 /*** platform ***/
 
 void platform_init() {
     pmic_init();
-    nrf_gpio_cfg_output(13);
-    nrf_gpio_pin_set(13);
+    nrf_gpio_cfg_output(BOARD_BACKLIGHT_PIN);
+    nrf_gpio_pin_set(BOARD_BACKLIGHT_PIN);
+#ifdef ASTERIX_BOARD_VLA_DVB1
+    /* shared SPI chip selects */
+    nrf_gpio_cfg_output(15);
+    nrf_gpio_cfg_output(16);
+    nrf_gpio_pin_set(15);
+    nrf_gpio_pin_set(16);
+#endif
 }
 
 void platform_init_late() {
-    nrf_gpio_pin_clear(13);
+    nrf_gpio_pin_clear(BOARD_BACKLIGHT_PIN);
 }
 
 /*** watchdog timer ***/

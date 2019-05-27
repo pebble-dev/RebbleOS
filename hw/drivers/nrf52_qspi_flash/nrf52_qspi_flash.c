@@ -12,6 +12,9 @@
 /* Asterix has 128Mbit (16MB) of QSPI flash -- a W25Q128JV. */
 #define QSPI_JEDEC_ID_W25Q128JV 0xEF4018
 
+/* Asterix-Vla has 64Mbit (8MB) of QSPI flash - a XT25F64B. */
+#define QSPI_JEDEC_ID_XT25F64B 0x0B4017
+
 #include "board_config.h"
 
 #define QSPI_INSTR_JEDEC_ID 0x9F
@@ -69,7 +72,7 @@ void hw_flash_init() {
             break;
     } while (--tries);
     
-    assert(tries >= 0 && "QSPI JEDEC ID never came back correct");
+    assert(tries > 0 && "QSPI JEDEC ID never came back correct");
 }
 
 void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {

@@ -8,6 +8,8 @@
 
 #define PLATFORM_FLASH_ALIGNMENT 4
 
+#ifdef ASTERIX_BOARD_ASTERIX
+
 /* Asterix has 16MB of flash. */
 
 /* Bootloader private area: 1MB */
@@ -26,6 +28,29 @@
 #define REGION_FS_START         0x400000
 #define REGION_FS_PAGE_SIZE     0x2000
 #define REGION_FS_N_PAGES       ((0xFE0000 - REGION_FS_START) / REGION_FS_PAGE_SIZE)
+
+#elif defined(ASTERIX_BOARD_VLA_DVB1)
+
+/* Asterix-VLA has 8MB of flash. */
+
+/* Bootloader private area: 1MB */
+#define REGION_BOOTLOADER_START 0x0
+#define REGION_BOOTLOADER_SIZE  0x100000
+
+/* System resources: 1MB */
+#define REGION_RES_START 0x100000
+#define REGION_RES_SIZE  0x100000
+
+/* The rest of the filesystem: 6MB */
+#define REGION_FS_START         0x200000
+#define REGION_FS_PAGE_SIZE     0x2000
+#define REGION_FS_N_PAGES       ((0x7E0000 - REGION_FS_START) / REGION_FS_PAGE_SIZE)
+
+#else
+
+#error incorrect board
+
+#endif
 
 /* The size of the page that holds an apps header table. This is the amount before actual app content e.g
  0x0000  Resource table header

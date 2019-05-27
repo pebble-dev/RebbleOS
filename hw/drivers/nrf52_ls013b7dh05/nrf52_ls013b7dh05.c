@@ -63,9 +63,15 @@ uint8_t hw_display_process_isr() {
     int p = 0;
     _dispbuf[p++] = 0x80;
     for (int i = 0; i < DISPLAY_LINES_PER_CHUNK; i++) {
+#ifdef BOARD_DISPLAY_ROT180
+        _dispbuf[p++] = __RBIT(__REV(_display_curline + 1));
+        for (int j = 0; j < 18; j++)
+            _dispbuf[p++] = __RBIT(__REV(_display_fb[_display_curline][j]));
+#else
         _dispbuf[p++] = __RBIT(__REV(168 - _display_curline));
         for (int j = 0; j < 18; j++)
             _dispbuf[p++] = _display_fb[_display_curline][17-j];
+#endif
         _dispbuf[p++] = 0;
         _display_curline++;
     }
