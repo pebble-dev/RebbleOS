@@ -1,5 +1,4 @@
 #pragma once
-#include "stm32_usart.h"
 #include "stdbool.h"
 
 #define TX_BUFFER_SIZE 250
@@ -29,7 +28,6 @@ void bluetooth_tx_complete_from_isr(void);
 uint8_t hw_bluetooth_power_cycle(void);
 void hw_bluetooth_enable_cts_irq(void);
 void hw_bluetooth_disable_cts_irq(void);
-stm32_usart_t *hw_bluetooth_get_usart(void);
 uint8_t hw_bluetooth_init(void);
 
 
