@@ -1,5 +1,5 @@
-/* asterix_bt.c
- * Bluetooth softdevice routines for aWatch2
+/* nrf52_bluetooth.c
+ * Bluetooth softdevice routines for nRF52
  * RebbleOS
  *
  * Author: Joshua Wise <joshua@joshuawise.com>
