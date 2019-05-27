@@ -158,17 +158,9 @@ SRCS_nrf52840 += modules/nrfx/mdk/system_nrf52840.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_uart.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_qspi.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_spim.c
-SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_gpiote.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_twi.c
-SRCS_nrf52840 += components/softdevice/common/nrf_sdh.c
-SRCS_nrf52840 += components/softdevice/common/nrf_sdh_ble.c
 SRCS_nrf52840 += components/libraries/util/app_util_platform.c # needed by softdevice
 SRCS_nrf52840 += components/libraries/experimental_section_vars/nrf_section_iter.c # needed by softdevice
-SRCS_nrf52840 += components/ble/nrf_ble_gatt/nrf_ble_gatt.c
-SRCS_nrf52840 += components/ble/common/ble_advdata.c
-SRCS_nrf52840 += components/ble/common/ble_srv_common.c
-SRCS_nrf52840 += components/ble/nrf_ble_qwr/nrf_ble_qwr.c
-SRCS_nrf52840 += components/ble/ble_db_discovery/ble_db_discovery.c
 
 SRCS_nrf52840 += hw/chip/nrf52840/fault_handlers.c
 SRCS_nrf52840 += hw/chip/nrf52840/debug.c
