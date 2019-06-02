@@ -14,6 +14,7 @@
 #include "overlay_manager.h"
 #include "notification_manager.h"
 #include "power.h"
+#include "qemu.h"
 
 typedef uint8_t (*mod_callback)(void);
 static TaskHandle_t _os_task;
@@ -159,6 +160,11 @@ static void _module_init(mod_callback mod, const char *mod_name)
             break;
         case INIT_RESP_ERROR:
             SYS_LOG("OS", APP_LOG_LEVEL_ERROR, "Init: Module %s broken.", mod_name);
+            if (strncmp(mod_name, "Bluetooth", 9) == 0)
+            {
+                SYS_LOG("OS", APP_LOG_LEVEL_DEBUG, "Bluetooth failed. Assuming QEMU host.");
+                _module_init(qemu_init, "QEMU");
+            }
     }
 
     return;
