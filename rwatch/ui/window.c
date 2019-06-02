@@ -149,6 +149,7 @@ void window_stack_push_configure(Window *window, bool animated)
         else 
             _animation_setup(false);
     }
+
     window_configure(window);
     window_dirty(true);
 }
@@ -322,6 +323,8 @@ void window_dtor(Window* window)
 {
     // free all of the layers
     layer_destroy(window->root_layer);
+    app_free(window->root_layer);
+    window->root_layer = NULL;
     SYS_LOG("window", APP_LOG_LEVEL_INFO, "DTOR");
 }
 
@@ -550,18 +553,6 @@ void window_load_click_config(Window *window)
             window_raw_click_subscribe(i, NULL, NULL, context);
         }
         window->click_config_provider(context);
-        
-        /* As well as applying the window click config, we are going to apply 
-         * the notifications config too 
-         * if a notification is displayed, it will then get chance to override any app clicks
-         * Why? Well If i'm popping up a batttery low warning for 3 seconds, you want to be able
-         * to dismiss it, and also carry on scrolling, working underneath
-         * Will need to review how annying this is in real life use.
-         * (i.e. should we just block calls (see code commented out above)
-         *
-         * XXX: note that this ends up running on the app thread!
-         */
-        notification_load_click_config(window);
     } 
 }
 
