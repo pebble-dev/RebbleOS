@@ -30,6 +30,7 @@ typedef struct ScrollLayer
     PropertyAnimation *animation;
     GRect prev_scroll_offset;
     GRect scroll_offset;
+    bool paging_enabled;
     ScrollLayerCallbacks callbacks;
     void *context;
 } ScrollLayer;
