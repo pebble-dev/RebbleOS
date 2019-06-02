@@ -11,7 +11,7 @@
 /* Configure Logging */
 #define MODULE_NAME "rtime"
 #define MODULE_TYPE "KERN"
-#define LOG_LEVEL RBL_LOG_LEVEL_ERROR //RBL_LOG_LEVEL_ERROR
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 
 static TickType_t _boot_ticks;
@@ -19,6 +19,8 @@ static time_t _boot_time_t;
 
 static struct tm _global_tm;
 struct tm *boot_time_tm;
+static char _tz_name[8];
+static uint8_t _utc_offset;
 
 void rcore_time_init(void)
 {
@@ -26,7 +28,6 @@ void rcore_time_init(void)
 
     /* Read the time out of the RTC, then convert to a time_t (ugh!), then
      * begin offsetting ticks in ms from there.  */
-    _boot_ticks = xTaskGetTickCount();
     boot_time_tm = tm = hw_get_time();
     _boot_time_t = rcore_mktime(tm);
     /* reset boot ticks ms to 0 same as wall time above (ugh!!)*/
@@ -36,6 +37,33 @@ void rcore_time_init(void)
 time_t rcore_mktime(struct tm *tm)
 {
     return mktime(tm);
+}
+
+void rcore_set_time(time_t time)
+{
+    struct tm *tma = rebble_time_get_tm();
+    time_t now = rcore_mktime(tma);
+
+    rcore_localtime(tma, time);
+    hw_set_time(tma);
+
+    _boot_time_t -= (now - time);
+}
+
+void rcore_set_utc_offset(uint8_t offset)
+{
+    _utc_offset = offset;
+}
+
+void rcore_set_tz_name(char *tz_name, uint8_t len)
+{
+    memcpy(_tz_name, tz_name, len < 8 ? len : 8);
+    _tz_name[len] = 0;
+}
+
+time_t rcore_get_time(void)
+{
+    return pbl_time_t_deprecated(NULL);
 }
 
 void rcore_localtime(struct tm *tm, time_t time)
@@ -136,4 +164,9 @@ time_t clock_to_timestamp(WeekDay day, int hour, int minute)
 double difftime(time_t end, time_t beginning)
 {
     return (double)end - (double)beginning;
+}
+
+TickType_t get_boot_tick(void)
+{
+    return _boot_ticks;
 }
