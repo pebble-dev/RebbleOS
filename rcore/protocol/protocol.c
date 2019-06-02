@@ -24,6 +24,11 @@ const PebbleEndpoint pebble_endpoints[] =
     { .endpoint = WatchProtocol_FirmwareVersion,    .handler  = protocol_watch_version  },
     { .endpoint = WatchProtocol_WatchModel,         .handler  = protocol_watch_model    },
     { .endpoint = WatchProtocol_PingPong,           .handler  = protocol_ping_pong      },
+    { .endpoint = WatchProtocol_AppVersion,         .handler  = protocol_app_version    },
+    { .endpoint = WatchProtocol_AppRunState,        .handler  = protocol_app_run_state  },
+    { .endpoint = WatchProtocol_AppFetch,           .handler  = protocol_app_fetch      },
+    { .endpoint = WatchProtocol_Reset,              .handler  = protocol_watch_reset    },
+    { .endpoint = WatchProtocol_BlobDbMessage,      .handler  = protocol_process_blobdb },
     { .handler = NULL }
 };
 

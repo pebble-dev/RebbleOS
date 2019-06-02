@@ -23,6 +23,8 @@ typedef struct list_head {
     struct list_node node;
 } list_head;
 
+#define FIELD_SIZEOF(type, field) (sizeof(((type*)0)->field))
+
 #define LIST_HEAD(name) { { .next = &name.node, .prev = &name.node } }
 #define LIST_NODE() { .next = NULL, .prev = NULL }
 

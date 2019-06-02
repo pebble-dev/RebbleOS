@@ -10,7 +10,7 @@
 struct file {
     uint16_t startpage;
     size_t startpofs;
-
+    uint8_t is_ramfs;
     uint32_t size;
 };
 
