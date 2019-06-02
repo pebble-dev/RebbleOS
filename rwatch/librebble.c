@@ -4,10 +4,9 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
+#include <stdbool.h>
 #include "librebble.h"
 #include "platform.h"
-// #include "ugui.h"
 
 struct tm *rbl_get_tm(void)
 {
