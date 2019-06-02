@@ -39,12 +39,14 @@ void fonts_resetcache()
     {
         /* reset it to available. */
         _app_font_cache.resource_id = 0;
+        app_free(_app_font_cache.font);
         _app_font_cache.font = NULL;
     }
     else if (thread_type == AppThreadOverlay)
     {
         /* reset it to available. */
         _ovl_font_cache.resource_id = 0;
+        app_free(_ovl_font_cache.font);
         _ovl_font_cache.font = NULL;
     }
     else
