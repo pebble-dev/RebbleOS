@@ -8,6 +8,7 @@
 #include "log.h"
 #include "fs.h"
 #include "flash.h"
+#include "blob_db_ramfs.h"
 
 
 /* XXX: should filesystem bits and bobs get split out somewhere else? 
@@ -235,6 +236,7 @@ int fs_find_file(struct file *file, const char *name)
                 file->startpage = pg;
                 file->size = hdr->file_size;
                 file->startpofs = sizeof(struct file_hdr) + hdr->filename_len;
+                file->is_ramfs = 0;
                 return 0;
             }
         }
@@ -255,6 +257,9 @@ void fs_open(struct fd *fd, const struct file *file)
 
 int fs_read(struct fd *fd, void *p, size_t bytes)
 {
+    if (fd->file.is_ramfs)
+        return ramfs_read(fd, p, bytes);
+
     size_t bytesrem;
     
     if (bytes > (fd->file.size - fd->offset))
@@ -290,6 +295,9 @@ int fs_read(struct fd *fd, void *p, size_t bytes)
 
 long fs_seek(struct fd *fd, long ofs, enum seek whence)
 {
+    if (fd->file.is_ramfs)
+        return ramfs_seek(fd, ofs, whence);
+
     size_t newoffset;
     switch (whence)
     {
