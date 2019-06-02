@@ -50,3 +50,8 @@ time_t pbl_time_t_deprecated(time_t *tloc);
 uint16_t pbl_time_ms_deprecated(time_t *tloc, uint16_t *ms);
 
 time_t clock_to_timestamp(WeekDay day, int hour, int minute);
+TickType_t get_boot_tick(void);
+time_t rcore_get_time(void);
+void rcore_set_tz_name(char *tz_name, uint8_t len);
+void rcore_set_time(time_t time);
+void rcore_set_utc_offset(uint8_t offset);
