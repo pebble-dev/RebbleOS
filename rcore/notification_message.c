@@ -18,7 +18,7 @@
  */
 #define MSG_HEAP_SIZE 10000
 
-static uint8_t _notification_messages_heap[MSG_HEAP_SIZE] CCRAM;
+static uint8_t _notification_messages_heap[MSG_HEAP_SIZE];
 static qarena_t *_notification_arena;
 static list_head _messages_head = LIST_HEAD(_messages_head);
 

@@ -1,6 +1,6 @@
-#include <stdlib.h>
 #include "rebbleos.h"
 #include "librebble.h"
+#include "uuid.h"
 
 int32_t read_32(uint8_t *addr)
 {
@@ -41,3 +41,50 @@ uint32_t map_range(uint32_t input, uint32_t input_start, uint32_t input_end, uin
         output = output_end;
     return output;
 }
+
+
+void uuid_to_string(const Uuid *uuid, char *buffer)
+{
+    uint8_t *id = (uint8_t *)uuid;
+    if (!buffer)
+        return;
+
+    if (uuid_null((Uuid *)id))
+    {
+        snprintf(buffer, 13, "{NULL UUID}");
+        return;
+    }
+
+    snprintf(buffer, UUID_STRING_BUFFER_LENGTH, 
+             "{%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x}",
+                 uuid->byte0, uuid->byte1, uuid->byte2, uuid->byte3,
+                 uuid->byte4, uuid->byte5, uuid->byte6, uuid->byte7,
+                 uuid->byte8, uuid->byte9, uuid->byte10, uuid->byte11,
+                 uuid->byte12, uuid->byte13, uuid->byte14, uuid->byte15);
+}
+
+bool uuid_is_int(const Uuid *uuid, const uint8_t c)
+{
+    uint8_t i;
+    for(i = 0; i < UUID_SIZE; i++)
+    {
+        if (((uint8_t *)uuid)[i] != c)
+            break;
+    }
+    return i == UUID_SIZE;
+}
+
+bool uuid_equal(const Uuid *uu1, const Uuid *uu2)
+{
+    for (uint8_t i = 0; i < UUID_SIZE; i++) {
+        if (((uint8_t *)uu1)[i] != ((uint8_t *)uu2)[i])
+            return false;
+    }
+    return true;
+}
+
+bool uuid_null(const Uuid *uuid)
+{
+    return uuid_is_int(uuid, 0);
+}
+
