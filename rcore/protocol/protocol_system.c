@@ -13,7 +13,7 @@ void process_version_packet(uint8_t *data)
             uint16_t tx_len = strlen(FW_VERSION);
             
             /* Reply back with our firmware version */
-            bluetooth_send_packet(ENDPOINT_FIRMWARE_VERSION, (uint8_t *)FW_VERSION, tx_len);
+            bluetooth_send_data(ENDPOINT_FIRMWARE_VERSION, (uint8_t *)FW_VERSION, tx_len);
             break;
     }
 }
