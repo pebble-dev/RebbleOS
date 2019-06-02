@@ -6,6 +6,7 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
+#include <stdbool.h>
 #include "FreeRTOS.h"
 #include "rebble_memory.h"
 #include "pebble_defines.h"
@@ -16,13 +17,10 @@
 #include <stdint.h>
 #include <stddef.h>
 #include <time.h>
-#include <stdbool.h>
 #include <inttypes.h>
 
 #include "system_font.h"
-
 #include "graphics.h"
-
 #include "click_config.h"
 #include "window.h"
 #include "layer.h"
@@ -54,3 +52,7 @@
 
 void rbl_draw(void);
 struct tm *rbl_get_tm(void);
+extern unsigned short htons(unsigned short in);
+extern unsigned int htonl(unsigned int in);
+extern unsigned short ntohs(unsigned short in);
+extern unsigned int ntohl(unsigned int in);
