@@ -29,7 +29,7 @@ ActionBarLayer *action_bar_layer_create()
 
 void action_bar_layer_destroy(ActionBarLayer *action_bar)
 {
-    layer_destroy(action_bar);
+    layer_destroy((Layer *)action_bar);
     
     app_free(action_bar);
 }
