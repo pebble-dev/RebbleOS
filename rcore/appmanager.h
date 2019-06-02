@@ -15,6 +15,7 @@
 #include "qalloc.h"
 #include "node_list.h"
 #include <stdbool.h>
+#include "uuid.h"
 
 // TODO     Make this dynamic. hacky 
 #define NUM_APPS 3
@@ -49,25 +50,6 @@ typedef struct Version {
   uint8_t minor;
 } __attribute__((__packed__)) Version;
 
-typedef struct Uuid {
-    uint8_t b0;
-    uint8_t b1;
-    uint8_t b2;
-    uint8_t b3;
-    uint8_t b4;
-    uint8_t b5;
-    uint8_t b6;
-    uint8_t b7;
-    uint8_t b8;
-    uint8_t b9;
-    uint8_t b10;
-    uint8_t b11;
-    uint8_t b12;
-    uint8_t b13;
-    uint8_t b14;
-    uint8_t b15;
-} __attribute__((__packed__)) Uuid;
-  
 typedef struct ApplicationHeader {
     char header[8];                   // PBLAPP
     Version header_version;           // version of this header
