@@ -20,7 +20,10 @@
 
 const PebbleEndpoint pebble_endpoints[] =
 {
-   
+    { .endpoint = WatchProtocol_Time,               .handler  = protocol_time           },
+    { .endpoint = WatchProtocol_FirmwareVersion,    .handler  = protocol_watch_version  },
+    { .endpoint = WatchProtocol_WatchModel,         .handler  = protocol_watch_model    },
+    { .endpoint = WatchProtocol_PingPong,           .handler  = protocol_ping_pong      },
     { .handler = NULL }
 };
 
