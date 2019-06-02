@@ -375,28 +375,28 @@ bool _notif_deinit(void)
 
 static void _notif_test_window_load(Window *window)
 {    
-    char *app = "RebbleOS";
-    char *title = "Test Alert";
-    char *body = "Testing a basic notification on RebbleOS. Create it using notification_window_create, with an app_name, title, body, and optional icon.";
-    window->background_color = GColorClear;
-        
-    Layer *layer = window_get_root_layer(window);    
-    GRect bounds = layer_get_unobstructed_bounds(layer);
-
-    _notif_layer = notification_layer_create(bounds);
-    Notification *notification = notification_create(app, title, body, gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE), GColorRed);
-
-    notification_layer_stack_push_notification(_notif_layer, notification);
-
-    Notification *notification_two = notification_create("Discord", "Join Us", "Join us on the Pebble Discord in the #firmware channel", gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL_RINGING), GColorFromRGB(85, 0, 170));
-    notification_layer_stack_push_notification(_notif_layer, notification_two);
-
-    layer_add_child(layer, notification_layer_get_layer(_notif_layer));
-    notification_layer_configure_click_config(_notif_layer, window, NULL);
-    overlay_window_stack_push(_overlay_window3, true);
-
-    layer_mark_dirty(layer);
-    window_dirty(true);
+//     char *app = "RebbleOS";
+//     char *title = "Test Alert";
+//     char *body = "Testing a basic notification on RebbleOS. Create it using notification_window_create, with an app_name, title, body, and optional icon.";
+//     window->background_color = GColorClear;
+//         
+//     Layer *layer = window_get_root_layer(window);    
+//     GRect bounds = layer_get_unobstructed_bounds(layer);
+// 
+//     _notif_layer = notification_layer_create(bounds);
+//     Notification *notification = notification_create(app, title, body, gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE), GColorRed);
+// 
+//     notification_layer_stack_push_notification(_notif_layer, notification);
+// 
+//     Notification *notification_two = notification_create("Discord", "Join Us", "Join us on the Pebble Discord in the #firmware channel", gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL_RINGING), GColorFromRGB(85, 0, 170));
+//     notification_layer_stack_push_notification(_notif_layer, notification_two);
+// 
+//     layer_add_child(layer, notification_layer_get_layer(_notif_layer));
+//     notification_layer_configure_click_config(_notif_layer, window, NULL);
+//     overlay_window_stack_push(_overlay_window3, true);
+// 
+//     layer_mark_dirty(layer);
+//     window_dirty(true);
 }
 
 static void _notif_test_window_unload(Window *window)

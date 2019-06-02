@@ -52,7 +52,7 @@ static void _batt_window_load(Window *window)
 static void _batt_window_unload(Window *window)
 {
     notification_battery *nm = (notification_battery *)window->context;
-    noty_free(window->context);
+    app_free(window->context);
     _visible = false;
 }
 

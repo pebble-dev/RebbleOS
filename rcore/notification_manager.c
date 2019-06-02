@@ -11,40 +11,78 @@
 #include "overlay_manager.h"
 #include "platform_res.h"
 #include "notification_message.h"
+#include "blob_db.h"
+
+/* Configure Logging */
+#define MODULE_NAME "notym"
+#define MODULE_TYPE "SYS"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 static void _notif_timeout_cb(void *data);
 static void _notif_init(OverlayWindow *overlay_window);
 static void _notification_window_creating(OverlayWindow *overlay_window, Window *window);
 static void _notification_quit_click(ClickRecognizerRef _, void *context);
 extern bool battery_overlay_visible(void);
+extern bool notification_window_overlay_visible(void);
+extern NotificationLayer *notification_window_get_layer(void);
+
+/*
+ * 
+ * 
+ * 
+ */
+
 
 uint8_t notification_init(void)
 {
-    messages_init();
-    
+
     return 0;
 }
 
-void notification_show_message(full_msg_t *msg, uint32_t timeout_ms)
+void _notification_show_message(void *context)
 {
-    message_add(msg);
-    
-    if (!message_count())
+    if (!context)
+        return;
+
+    if (notification_window_overlay_visible())
     {
-        SYS_LOG("NOTY", APP_LOG_LEVEL_ERROR, "No Messages?");
+        /* Free as much memory as we can for the message conversion */
+        notification_layer_message_arrived(notification_window_get_layer(), (Uuid *)context);
         return;
     }
 
-    notification_message *nmsg = noty_calloc(1, sizeof(notification_message));
+    rebble_notification *rn;
+
+    Uuid *uid = app_calloc(1, sizeof(Uuid));
+    if (!uid)
+        return;
+    memcpy(uid, context, sizeof(Uuid));
+
+    notification_message *nmsg = app_calloc(1, sizeof(notification_message));
     nmsg->data.create_callback = &notification_message_display;
-    nmsg->message = msg;
-    nmsg->data.timeout_ms = timeout_ms;
+    nmsg->uuid = uid;
+    nmsg->data.timeout_ms = 30000;
     nmsg->data.timer = 0;
-    
+
     /* get an overlay */
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
-    
-    SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "Done");
+}
+
+void notification_arrived(Uuid *uuid)
+{
+    overlay_window_post_create_notification(_notification_show_message, (void *)uuid);
+}
+
+void _notification_show_battery(void *context)
+{
+    /* construct a BatteryLayer */
+    notification_battery *nmsg = app_calloc(1, sizeof(notification_battery));
+    nmsg->data.create_callback = &battery_overlay_display;
+    nmsg->data.destroy_callback = &battery_overlay_destroy;
+    nmsg->data.timeout_ms = *(uint32_t *)context;
+
+    /* get an overlay */
+    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
 
 void notification_show_battery(uint32_t timeout_ms)
@@ -55,28 +93,27 @@ void notification_show_battery(uint32_t timeout_ms)
         window_dirty(true);
         return;
     }
-    
-    /* construct a BatteryLayer */
-    notification_battery *nmsg = noty_calloc(1, sizeof(notification_battery));
-    nmsg->data.create_callback = &battery_overlay_display;
-    nmsg->data.destroy_callback = &battery_overlay_destroy;
-    nmsg->data.timeout_ms = timeout_ms;
-    
+    overlay_window_post_create_notification(_notification_show_battery, (void *)timeout_ms);
+}
+
+void _notification_show_small_message(void *context)
+{
+    GRect frame = GRect(0, DISPLAY_ROWS - 20, DISPLAY_COLS, 20);
+    notification_mini_msg *nmsg = app_calloc(1, sizeof(notification_mini_msg));
+    nmsg->data.create_callback = &mini_message_overlay_display;
+    nmsg->data.destroy_callback = &mini_message_overlay_destroy;
+    nmsg->data.timeout_ms = 10000;
+    nmsg->message = (char *)context;
+    nmsg->icon = 0;
+    nmsg->frame = frame;
+
     /* get an overlay */
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
 
 void notification_show_small_message(const char *message, GRect frame)
 {
-    notification_mini_msg *nmsg = noty_calloc(1, sizeof(notification_mini_msg));
-    nmsg->data.create_callback = &mini_message_overlay_display;
-    nmsg->data.destroy_callback = &mini_message_overlay_destroy;
-    nmsg->data.timeout_ms = 5000;
-    nmsg->message = (char *)message;
-    nmsg->icon = 0;
-    nmsg->frame = frame;
-    /* get an overlay */
-    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
+    overlay_window_post_create_notification(_notification_show_small_message, (void *)message);
 }
 
 void notification_show_incoming_call(const char *caller)
@@ -94,20 +131,16 @@ void notification_window_dismiss()
 }
 
 /* window click config will call into here to apply the settings.
- *
- * XXX: note that this happens on the app thread, not the overlay thread! */
+ */
 void notification_load_click_config(Window *app_window)
 {
-    if (!overlay_window_count() || overlay_window_stack_contains_window(app_window))
-        return;
-    
     /* if there are any windows that have their own click config, then it
      * will always get preference over any notification without a click config */
     Window *ov_wind = overlay_window_get_next_window_with_click_config();
     if (!ov_wind)
     {
         window_single_click_subscribe(BUTTON_ID_BACK, _notification_quit_click);
-        Window *top_ov_window = overlay_window_stack_get_top_window();
+        OverlayWindow *top_ov_window = (OverlayWindow *)app_window;
         window_set_click_context(BUTTON_ID_BACK, top_ov_window->context);
         return;
     }
@@ -122,38 +155,45 @@ void notification_load_click_config(Window *app_window)
 static void _notification_quit_click(ClickRecognizerRef _, void *context)
 {
     notification_message *nm = (notification_message *)context;
-    
+    LOG_INFO("Quit %x", nm->data.overlay_window);
+
     if (!nm->data.overlay_window) {
-        printf("notification window was already dead?\n");
+        LOG_ERROR("notification window was already dead?");
         return;
     }
-    
+
+    LOG_DEBUG("CB: %x %x", nm->data, nm->data.destroy_callback);
     if (nm->data.destroy_callback)
         nm->data.destroy_callback(nm->data.overlay_window, &nm->data.overlay_window->window);
+//     app_timer_cancel(nm->data.timer);
     overlay_window_destroy(nm->data.overlay_window);
     nm->data.overlay_window = NULL;
+    app_free(nm->uuid);
     window_set_click_context(BUTTON_ID_BACK, NULL);
-    
-    /* We don't cancel the timer here (if there was one), because we're
-     * running from the app thread, and the app timer lives on the overlay
-     * thread.  So if it needs to, we just let it die off on its own, and
-     * waste the wakeup later.  Oh, well.
-     */
-    SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "DESTROY _notification_quit_click\n\n");
+    LOG_DEBUG("DESTROY _notification_quit_click");
     window_dirty(true);
+    LOG_DEBUG("FREE: %d", app_heap_bytes_free());
 }
+
+void notification_reschedule_timer(Window *window, uint32_t timeout_ms)
+{
+    LOG_INFO("Reschedule Timer");
+    notification_message *nm = (notification_message *)window->context;
+    app_timer_reschedule(nm->data.timer, timeout_ms);
+}
+
 
 /* overlay thread */
 static void _notification_window_creating(OverlayWindow *overlay_window, Window *window)
 {
-    SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "Creating");
+    LOG_INFO("Creating Window");
     notification_message *nm = (notification_message *)overlay_window->context;
     nm->data.overlay_window = overlay_window;
-        
+
     /* the overlay context has the message data 
      * lets take it with us */
     window->context = overlay_window->context;
-    
+
     /* call the function that we should execute */
     if (nm->data.create_callback)
         nm->data.create_callback(overlay_window, &overlay_window->window);
@@ -164,17 +204,18 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
     if (nm->data.timeout_ms)
         nm->data.timer = app_timer_register(nm->data.timeout_ms, 
                                             (AppTimerCallback)_notif_timeout_cb, nm);
-    
+
     overlay_window_stack_push(overlay_window, false);
 }
 
 
 static void _notif_timeout_cb(void *data)
 {
+    LOG_INFO("Timed out %x", data);
     notification_message *nm = (notification_message *)data;
-    
-    app_timer_cancel(nm->data.timer);
+
+//     app_timer_cancel(nm->data.timer);
     nm->data.timer = 0;
-    
+
     _notification_quit_click(NULL, data);
 }

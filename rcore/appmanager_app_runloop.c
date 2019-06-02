@@ -40,7 +40,7 @@ void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout)
     app_running_thread *_thread = appmanager_get_thread(AppThreadMainApp);
     if (_thread->status == AppThreadRunloop)
         if (!xQueueSendToBack(_app_message_queue, am, timeout))
-            LOG_ERROR("Not posting. App not running");
+            ;
 }
 
 /*
@@ -203,6 +203,7 @@ void app_event_loop(void)
                 /* execute the button's callback */
                 ButtonMessage *message = (ButtonMessage *)data.data;
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
+                appmanager_post_draw_message(0);
             }
             /* Someone has requested the application close.
              * We will attempt graceful shutdown by unsubscribing timers
