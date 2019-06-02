@@ -120,6 +120,7 @@ bool animation_set_implementation(Animation *animation, const AnimationImplement
 const AnimationImplementation *animation_get_implementation(Animation *animation);
 void animation_set_handlers(Animation *anim, AnimationHandlers anim_handler, void *context);
 void *animation_get_context(Animation *animation);
+void animation_set_context(Animation *anim, void *context);
 bool animation_schedule(Animation *anim);
 bool animation_unschedule(Animation *animation);
 void animation_unschedule_all(void);

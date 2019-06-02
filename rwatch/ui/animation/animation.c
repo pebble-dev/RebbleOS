@@ -38,12 +38,12 @@
 #include "librebble.h"
 #include "appmanager.h"
 #include "FreeRTOS.h"
-#include "property_animation.h"
+#include "animation.h"
 
 /* Configure Logging */
 #define MODULE_NAME "anim"
 #define MODULE_TYPE "SYS"
-#define LOG_LEVEL RBL_LOG_LEVEL_INFO //RBL_LOG_LEVEL_ERROR
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 
 #define ANIMATION_FPS 60
@@ -244,7 +244,7 @@ static void _animation_complete(Animation *anim)
 
     /* If NOT part of a sequence, just cleanup and go */
     if (!headanim) {
-        anim->playcount_count = 0;
+//         anim->playcount_count = 0;
         return;
     }
 
@@ -471,6 +471,7 @@ bool animation_unschedule(Animation *anim)
         return true;
 
     anim->scheduled = 0;
+    anim->onqueue = 0;
 
     if (anim->anim_handlers.stopped)
         anim->anim_handlers.stopped(anim, false, anim->context);
@@ -482,6 +483,7 @@ bool animation_unschedule(Animation *anim)
     if (anim->impl.teardown)
         anim->impl.teardown(anim);
 
+    LOG_INFO("[%x] Animation unscheduled END", anim);
     return true;
 }
 
@@ -715,6 +717,14 @@ void *animation_get_context(Animation *anim)
         return NULL;
 
     return anim->context;
+}
+
+void animation_set_context(Animation *anim, void *context)
+{
+    if (!anim)
+        return;
+
+    anim->context = context;
 }
 
 static void _append_link_child(Animation *appendto, Animation *anim)
