@@ -20,6 +20,8 @@ typedef struct OverlayMessage {
 #define OVERLAY_DRAW       1
 #define OVERLAY_DESTROY    2
 #define OVERLAY_APP_BUTTON 3
+#define OVERLAY_NOTIF      4
+#define OVERLAY_TIMER      5
 
 static xQueueHandle _overlay_queue;
 static void _overlay_thread(void *pvParameters);
@@ -52,6 +54,16 @@ uint8_t overlay_window_init(void)
     return INIT_RESP_ASYNC_WAIT;
 }
 
+void overlay_timer_recalc(void)
+{
+    OverlayMessage om = (OverlayMessage) {
+        .command = OVERLAY_TIMER,
+        .data = NULL,
+        .context = NULL
+    };
+    xQueueSendToBack(_overlay_queue, &om, 1000);
+}
+
 /*
  * Create a new top level window and all of the contents therein
  */
@@ -81,7 +93,7 @@ void overlay_window_draw(bool window_is_dirty)
         .command = OVERLAY_DRAW,
         .data = (void *)window_is_dirty,
     };    
-    xQueueSendToBack(_overlay_queue, &om, 1000);
+    xQueueSendToBack(_overlay_queue, &om, 0);
     
     xSemaphoreTake(_ovl_done_sem, portMAX_DELAY);
 }
@@ -101,6 +113,16 @@ void overlay_window_post_button_message(ButtonMessage *message)
     OverlayMessage om = (OverlayMessage) {
         .command = OVERLAY_APP_BUTTON,
         .data = (void *)message
+    };
+    xQueueSendToBack(_overlay_queue, &om, 0);
+}
+
+void overlay_window_post_create_notification(NotificationCreateCallback cb, void *context)
+{
+    OverlayMessage om = (OverlayMessage) {
+        .data = (void *)cb,
+        .command = OVERLAY_NOTIF,
+        .context = context,
     };
     xQueueSendToBack(_overlay_queue, &om, 0);
 }
@@ -127,7 +149,7 @@ list_head *overlay_window_get_list_head(void)
 }
 
 uint8_t overlay_window_count(void)
-{   
+{
     uint16_t count = 0;
 
     if (list_get_head(&_overlay_window_list_head) == NULL)
@@ -145,7 +167,7 @@ void overlay_window_stack_push(OverlayWindow *overlay_window, bool animated)
 {
     list_init_node(&overlay_window->node);
     list_insert_head(&_overlay_window_list_head, &overlay_window->node);
-    
+
     overlay_window->window.is_render_scheduled = true;
     window_dirty(true);
 }
@@ -160,17 +182,17 @@ Window *overlay_window_stack_pop_window(bool animated)
 {
     Window *window = overlay_window_stack_get_top_window();
     overlay_window_destroy_window(window);
-    
+
     return window;
 }
 
 bool overlay_window_stack_remove(OverlayWindow *overlay_window, bool animated)
 {
     _overlay_window_destroy(overlay_window, animated);
-    
+
     overlay_window->window.is_render_scheduled = true;
     window_dirty(true);
-    
+
     return true;
 }
 
@@ -178,7 +200,7 @@ void overlay_window_destroy_window(Window *window)
 {
     OverlayWindow *overlay_window = container_of(window, OverlayWindow, window);
     _overlay_window_destroy(overlay_window, false);
-    
+
     overlay_window->window.is_render_scheduled = true;
     window_dirty(true);
 }
@@ -209,7 +231,7 @@ Window *overlay_window_get_next_window_with_click_config(void)
             return &w->window;
         }
     }
-    
+
     return NULL;
 }
 
@@ -223,7 +245,8 @@ static void _overlay_window_create(OverlayCreateCallback create_callback, void *
     overlay_window->window.is_render_scheduled = true;
     overlay_window->context = (context ? context : overlay_window);
     overlay_window->window.background_color = GColorClear;
-
+    overlay_window->graphics_context = n_root_graphics_context_from_buffer(display_get_buffer());
+    SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "W OFFSET: %d", overlay_window->graphics_context->offset.origin.y);
     /* invoke creation callback so it can be drawn in the right heap */
     ((OverlayCreateCallback)create_callback)(overlay_window, &overlay_window->window);
     window_stack_push_configure(&overlay_window->window, false);
@@ -232,8 +255,8 @@ static void _overlay_window_create(OverlayCreateCallback create_callback, void *
 static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated)
 {
     _window_unload_proc(&overlay_window->window);
+    app_free(overlay_window->graphics_context);
     window_dtor(&overlay_window->window);
-        
     list_remove(&_overlay_window_list_head, &overlay_window->node);
     app_free(overlay_window);
     
@@ -251,6 +274,7 @@ static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated
     
     /* when a window dies, we ask nicely for a repaint */
     window_dirty(true);
+    SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "FREE: %d", app_heap_bytes_free());
 }
 
 static void _overlay_window_draw(bool window_is_dirty)
@@ -275,7 +299,7 @@ static void _overlay_window_draw(bool window_is_dirty)
         window->is_render_scheduled = false;
     }
     
-    xSemaphoreGive(_ovl_done_sem);     
+    xSemaphoreGive(_ovl_done_sem);
 }
 
 static void _overlay_thread(void *pvParameters)
@@ -285,8 +309,6 @@ static void _overlay_thread(void *pvParameters)
     
     SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Starting overlay thread...");
 
-    rwatch_neographics_init(_this_thread);
-  
     _this_thread->status = AppThreadLoaded;
     os_module_init_complete(0);
     
@@ -325,10 +347,29 @@ static void _overlay_thread(void *pvParameters)
                     appmanager_post_draw_message(1);
                     break;
                 case OVERLAY_APP_BUTTON:
+                    SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON");
                     assert(data.data && "You MUST provide a valid button message");
-                    /* execute the button's callback */
-                    ButtonMessage *message = (ButtonMessage *)data.data;
-                    ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
+                    if (overlay_window_accepts_keypress())
+                    {
+                        /* execute the button's callback */
+                        ButtonMessage *message = (ButtonMessage *)data.data;
+                        SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON ACC MCB %x", message->callback);
+                        ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
+                        break;
+                    }
+
+                    AppMessage am = (AppMessage) {
+                        .command = APP_BUTTON,
+                        .data = (void *)data.data
+                    };
+                    appmanager_post_generic_app_message(&am, 100);
+                    break;
+                case OVERLAY_NOTIF:
+                    assert(data.context);
+                    NotificationCreateCallback cb = (NotificationCreateCallback)data.data;
+                    cb(data.context);
+                    break;
+                case OVERLAY_TIMER:
                     break;
                 default:
                     assert(!"I don't know this command!");
