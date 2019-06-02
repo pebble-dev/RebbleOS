@@ -164,20 +164,24 @@ void hw_set_alarm(struct tm alarm)
 //     RTC_ClearFlag(RTC_FLAG_ALRAF);
 }
 
-void hw_set_date_time(struct tm date_time)
+void hw_set_time(struct tm *date_time)
 {
-//     RTC_DateStructure.RTC_Year = 0x13;
-//     RTC_DateStructure.RTC_Month = RTC_Month_January;
-//     RTC_DateStructure.RTC_Date = 0x11;
-//     RTC_DateStructure.RTC_WeekDay = RTC_Weekday_Saturday;
-//     RTC_SetDate(RTC_Format_BCD, &RTC_DateStructure);
-//
-//     RTC_TimeStructure.RTC_H12     = RTC_H12_AM;
-//     RTC_TimeStructure.RTC_Hours   = 0x05;
-//     RTC_TimeStructure.RTC_Minutes = 0x20;
-//     RTC_TimeStructure.RTC_Seconds = 0x00;
-//
-//     RTC_SetTime(RTC_Format_BCD, &RTC_TimeStructure);
+    RTC_TimeTypeDef RTC_TimeStructure;
+    RTC_DateTypeDef RTC_DateStructure;
+
+    /* Allow access to RTC */
+    PWR_BackupAccessCmd(ENABLE);
+    RTC_DateStructure.RTC_Year = date_time->tm_year + 1900 - 2000;
+    RTC_DateStructure.RTC_Month = date_time->tm_mon + 1;
+    RTC_DateStructure.RTC_Date = date_time->tm_mday;
+    RTC_DateStructure.RTC_WeekDay = date_time->tm_wday + 1;
+
+    RTC_TimeStructure.RTC_Hours   = date_time->tm_hour;
+    RTC_TimeStructure.RTC_Minutes = date_time->tm_min;
+    RTC_TimeStructure.RTC_Seconds = date_time->tm_sec;
+
+    RTC_SetDate(RTC_Format_BIN, &RTC_DateStructure);
+    RTC_SetTime(RTC_Format_BIN, &RTC_TimeStructure);
 }
 
 

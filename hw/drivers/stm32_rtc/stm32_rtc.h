@@ -23,7 +23,7 @@
 void rtc_init(void);
 void rtc_config(void);
 struct tm *hw_get_time(void);
-
+void hw_set_time(struct tm *time);
 #endif
 
 #define RTC_CLOCK_SOURCE_LSE
