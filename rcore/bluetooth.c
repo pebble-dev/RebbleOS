@@ -37,9 +37,7 @@
 #include "pebble_protocol.h"
 #include "stdarg.h"
 #include "connection_service.h"
-
-/* macro to swap bytes from big > little endian */
-#define SWAP_UINT16(x) (((x) >> 8) | ((x) << 8))
+#include "protocol.h"
 
 /* Stack sizes of the threads */
 #define STACK_SZ_CMD configMINIMAL_STACK_SIZE + 600
@@ -93,8 +91,6 @@ static bool _connected;
 
 static void _bt_thread(void *pvParameters);
 static void _bt_cmd_thread(void *pvParameters);
-static bool _parse_packet(pbl_transport_packet *pkt, uint8_t *data, size_t len);
-static void _process_packet(pbl_transport_packet *pkt);
 static uint8_t _bluetooth_tx(uint8_t *data, uint16_t len);
 
 // #define BT_LOG_ENABLED
@@ -167,14 +163,14 @@ uint32_t bluetooth_send_serial_raw(uint8_t *data, size_t len)
  */
 void bluetooth_data_rx(uint8_t *data, size_t len)
 {
-    static pbl_transport_packet pkt;
-    uint8_t *buf_p;  /* pointer to the message in the buffer */
-    return;
-    if (!_parse_packet(&pkt, data, len))
+    pbl_transport_packet pkt;
+    protocol_rx_buffer_append(data, len);
+
+    if (!protocol_parse_packet(&pkt, bluetooth_send_data))
         return; // we are done, no point looking as we have no data left
-    
+
     // seems legit
-    _process_packet(&pkt);
+    protocol_process_packet(&pkt);
 }
 
 /*
@@ -192,73 +188,6 @@ void bluetooth_tx_complete_from_isr(void)
     priority task.  The macro used for this purpose is dependent on the port in
     use and may be called portEND_SWITCHING_ISR(). */
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
-}
-
-/*
- * Packet processing
- */
-
-
-/*
- * Parse a packet in the buffer. Will fill the given pbl_transport with
- * the parsed data
- * 
- * Returns false when done or on completion errors
- */
-static bool _parse_packet(pbl_transport_packet *pkt, uint8_t *data, size_t len)
-{
-    uint16_t pkt_length = (data[0] << 8) | (data[1] & 0xff);
-    uint16_t pkt_endpoint = (data[2] << 8) | (data[3] & 0xff);
-
-    /* done! (usually) */
-    if (pkt_length == 0)
-        return false;
-
-    /* Seems sensible */
-    if (pkt_length > 2048)
-    {
-        BT_LOG("BT", APP_LOG_LEVEL_ERROR, "RX: payload length %d. Seems suspect!", pkt_length);
-        return false;
-    }   
-    
-    BT_LOG("BT", APP_LOG_LEVEL_INFO, "RX: GOOD packet. len %d end %d", pkt_length, pkt_endpoint);
-
-    /* it's a valid packet. fill out passed packet and finish up */
-    pkt->length = pkt_length;
-    pkt->endpoint = pkt_endpoint;
-    pkt->data = data + 4;
-    
-    BT_LOG("BT", APP_LOG_LEVEL_INFO, "RX: Done");
-        
-    return true;
-}
-
-/* 
- * Given a packet, process it and call the relevant function
- */
-static void _process_packet(pbl_transport_packet *pkt)
-{
-    /*
-     * We should be fast in this function!
-     * Work out which message needs to be processed, and escape from here fast
-     * This will likely be holding up RX otherwise.
-     */
-    BT_LOG("BT", APP_LOG_LEVEL_INFO, "BT Got Data L:%d", pkt->length);
-        
-    // Endpoint Firmware Version
-    switch(pkt->endpoint) {
-        case ENDPOINT_FIRMWARE_VERSION:
-            process_version_packet(pkt->data);
-            break;
-        case ENDPOINT_SET_TIME:
-            process_set_time_packet(pkt->data);
-            break;
-        case ENDPOINT_PHONE_MSG:
-            process_notification_packet(pkt->data);
-            break;
-        default:
-            BT_LOG("BT", APP_LOG_LEVEL_INFO, "XXX Unimplemented Endpoint %d", pkt->endpoint);
-    }
 }
 
 
@@ -281,6 +210,9 @@ static void _bt_thread(void *pvParameters)
     return;
 }
 
+/* TODO doesn't really need a thread here 
+ * a simple tx() { wait for mutex }
+ */
 static void _bt_cmd_thread(void *pvParameters)
 {
     rebble_bt_packet pkt;
@@ -329,20 +261,13 @@ static void _bt_cmd_thread(void *pvParameters)
  * Utility
  */
 
-
-/*
- * Send a Pebble packet right now
- */
-void bluetooth_send_packet(uint16_t endpoint, uint8_t *data, uint16_t len)
+void bluetooth_send_data(uint16_t endpoint, uint8_t *data, uint16_t len)
 {
-    uint8_t tx_buf[len + 4];
-    tx_buf[0] = ((uint8_t)(len >> 8));
-    tx_buf[1] = ((uint8_t)(len & 0xff));
-    tx_buf[2] = ((uint8_t)(endpoint >> 8));
-    tx_buf[3] = ((uint8_t)(endpoint & 0xff));
-
-    memcpy(&tx_buf[4], data, len);
-    bluetooth_send(tx_buf, len + 4);
+    uint16_t ep = htons(endpoint);
+    uint16_t l = htons(endpoint);
+    bluetooth_send((uint8_t *)&l, 2);
+    bluetooth_send((uint8_t *)&ep, 2);
+    bluetooth_send(data, len);
 }
 
 /* 
@@ -439,19 +364,7 @@ int sprintf(char *str, const char *format, ...)
 }
 
 
-char *strncpy(char *a2, const char *a1, size_t len)
-{
-    char *origa2 = a2;
-    int i = 0;
-    do {
-        *(a2++) = *a1;
-        if (i == len)
-            break;
-        i++;
-    } while (*(a1++));
-    
-    return origa2;
-}
+
 
 int sscanf ( const char * s, const char * format, ...)
 {
