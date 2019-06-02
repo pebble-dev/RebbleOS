@@ -12,6 +12,7 @@
 
 #include <stdarg.h>
 #include <stdint.h>
+#include <stddef.h>
 
 #ifndef NULL
 #  define NULL ((void *)0)
@@ -29,10 +30,13 @@ extern int strlen(const char *c);
 extern void *strcat(char *dest, const char *src);
 extern void *strncat(char *dest, const char *src, int num);
 extern void *strcpy(char *a2, const char *a1);
+extern char *strncpy(char *a2, const char *a1, size_t len);
 extern void tohex(char *s, unsigned long l);
 extern void btohex(char *s, unsigned char c);
 extern unsigned short htons(unsigned short in);
 extern unsigned int htonl(unsigned int in);
+extern unsigned short ntohs(unsigned short in);
+extern unsigned int ntohl(unsigned int in);
 
 /* crc32.c */
 extern void crc32_init();

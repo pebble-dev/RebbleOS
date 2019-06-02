@@ -159,6 +159,20 @@ void *strcpy(char *a2, const char *a1)
 	return origa2;
 }
 
+char *strncpy(char *a2, const char *a1, size_t len)
+{
+    char *origa2 = a2;
+    int i = 0;
+    do {
+        *(a2++) = *a1;
+        if (i == len)
+            break;
+        i++;
+    } while (*(a1++));
+    
+    return origa2;
+}
+
 void *strcat(char *dest, const char *src)
 {
 	char *origdest = dest;
@@ -214,6 +228,16 @@ unsigned int htonl(unsigned int in)
 	       ((in & 0xff00) << 8) |
 	       ((in & 0xff0000UL) >> 8) |
 	       ((in & 0xff000000UL) >> 24);
+}
+
+unsigned short ntohs(unsigned short in)
+{
+	return htons(in); // for pebble this is equivalent
+}
+
+unsigned int ntohl(unsigned int in)
+{
+	return htonl(in);
 }
 
 int atoi(const char *c)
