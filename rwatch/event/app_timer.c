@@ -4,12 +4,13 @@
  *
  * Author: Joshua Wise <joshua@joshuawise.com>
  */
-
+#include "rebbleos.h"
 #include "app_timer.h"
 #include "appmanager.h"
 #include "task.h"
 #include "rebble_memory.h"
 #include "node_list.h"
+#include "overlay_manager.h"
 
 
 /* XXX: See animation.c comment for the memory allocation story here. */
@@ -29,12 +30,10 @@ void _app_timer_callback(CoreTimer *_timer)
 {
     AppTimer *timer = (AppTimer *)_timer;
     
-    /* If we had a real "handle" system, then we could free it here, and the
-     * handle could simply be dead (at least, until reused).  */
     timer->scheduled = 0;
     
     timer->cb(timer->priv);
-    
+
     app_free(timer);
 }
 
@@ -63,11 +62,13 @@ bool app_timer_reschedule(AppTimerHandle timer_handle, uint32_t ms)
 
     if (!timer || !timer->scheduled)
         return false;
-    
+
     appmanager_timer_remove(&timer->timer);
     timer->timer.when = xTaskGetTickCount() + pdMS_TO_TICKS(ms);
     appmanager_timer_add(&timer->timer);
-    
+    /* We need to cause the thread loops to timeout
+     * casuing a re-calculation of the next timer */
+    overlay_timer_recalc();
     return true;
 }
 
@@ -94,6 +95,8 @@ AppTimer *_app_timer_get_by_id(AppTimerHandle id)
         if (((AppTimer *)(*tnext))->id == id) {
             return (AppTimer *)*tnext;
         }
+        if (&(*tnext)->next == tnext)
+            break;
         tnext = &(*tnext)->next;
     }
     
