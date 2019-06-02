@@ -54,6 +54,11 @@ void stm32_usart_rx_isr(stm32_usart_t *usart, dma_callback callback);
 
 static inline void _stm32_usart_tx_isr(void);
 static inline void _stm32_usart_rx_isr(void);
+void stm32_usart_rx_start_init_isr(void);
+void stm32_usart_rx_irq_enable(stm32_usart_t *usart, uint8_t enabled);
+void stm32_usart_rx_start_isr(stm32_usart_t *usart, dma_callback callback);
+void _stm32_usart_rx_start_init_isr(stm32_usart_t *usart, uint16_t irqn, uint16_t rx_pri);
+
 #define STM32_USART_MK_TX_IRQ_HANDLER(usart, dma_channel, stream, callback) \
     STM32_DMA_MK_TX_IRQ_HANDLER( (usart) ->dma, dma_channel, stream, _stm32_usart_tx_isr ) \
     \
@@ -68,3 +73,10 @@ static inline void _stm32_usart_rx_isr(void);
         stm32_usart_rx_isr(usart, callback); \
     }
 
+#define STM32_USART_MK_RX_START_IRQ_HANDLER(usart, usart_num, rx_pri, callback) \
+    void stm32_usart_rx_start_init_isr(void) { \
+        _stm32_usart_rx_start_init_isr(usart, USART ## usart_num ## _IRQn, rx_pri);\
+    } \
+    void USART ## usart_num ## _IRQHandler(void) { \
+        stm32_usart_rx_start_isr(usart, callback); \
+    }

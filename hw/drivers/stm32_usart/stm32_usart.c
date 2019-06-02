@@ -47,7 +47,7 @@ static void _usart_init(stm32_usart_t *usart)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
     USART_InitTypeDef USART_InitStruct;
-    NVIC_InitTypeDef nvic_init_struct;
+
     assert(usart && usart->config && "Please configure your usart");
     stm32_usart_config_t *u = usart->config;
 
@@ -96,7 +96,9 @@ static void _usart_init(stm32_usart_t *usart)
     {
         USART_InitStruct.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
     }
-    
+
+    stm32_usart_rx_start_init_isr();
+
     USART_Init(u->usart, &USART_InitStruct);
     
     /* USART is ready to go */
@@ -104,6 +106,56 @@ static void _usart_init(stm32_usart_t *usart)
     
     stm32_power_release(u->usart_periph_bus, usart->config->usart_clock);
     stm32_power_release(STM32_POWER_AHB1, usart->config->gpio_clock);
+}
+
+__attribute__((weak))
+void stm32_usart_rx_start_init_isr(void) 
+{
+
+}
+
+void _stm32_usart_rx_start_init_isr(stm32_usart_t *usart, uint16_t irqn, uint16_t rx_pri)
+{
+    NVIC_InitTypeDef nvic_init_struct;
+
+    stm32_power_request(usart->config->usart_periph_bus, usart->config->usart_clock);
+    stm32_power_request(STM32_POWER_AHB1, usart->config->gpio_clock);
+
+    /* Enable the USART RX Interrupt */
+    USART_ITConfig(usart->config->usart, USART_IT_RXNE, ENABLE);
+    nvic_init_struct.NVIC_IRQChannel = irqn;
+    nvic_init_struct.NVIC_IRQChannelPreemptionPriority = rx_pri;
+    nvic_init_struct.NVIC_IRQChannelSubPriority = 0;
+    nvic_init_struct.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_Init(&nvic_init_struct);
+
+    stm32_power_release(usart->config->usart_periph_bus, usart->config->usart_clock);
+    stm32_power_release(STM32_POWER_AHB1, usart->config->gpio_clock);
+}
+
+
+void stm32_usart_rx_irq_enable(stm32_usart_t *usart, uint8_t enabled)
+{
+    stm32_power_request(usart->config->usart_periph_bus, usart->config->usart_clock);
+    stm32_power_request(STM32_POWER_AHB1, usart->config->gpio_clock);
+
+    /* Enable the USART RX Interrupt */
+    USART_ITConfig(usart->config->usart, USART_IT_RXNE, enabled);
+
+    stm32_power_release(usart->config->usart_periph_bus, usart->config->usart_clock);
+    stm32_power_release(STM32_POWER_AHB1, usart->config->gpio_clock);
+}
+
+/*
+ * IRQ Handler for RX started
+ */
+void stm32_usart_rx_start_isr(stm32_usart_t *usart, dma_callback callback)
+{
+    if (USART_GetITStatus(usart->config->usart, USART_IT_RXNE) != RESET)
+    {
+        /* Trigger the recipient interrupt handler */
+        callback();
+    }
 }
 
 
@@ -196,6 +248,20 @@ void stm32_usart_tx_isr(stm32_usart_t *usart, dma_callback callback)
     callback();
 }
 
+uint8_t _timeout(volatile uint32_t reg, uint16_t timeout)
+{
+    uint16_t _timeout = 0;
+    while (!(reg))
+    {
+        _timeout++;
+        if (_timeout > timeout)
+        {
+            DRV_LOG("USART", APP_LOG_LEVEL_DEBUG, "Timed Out");
+            return 1;
+        }
+    }
+    return 0;
+}
 
 /* Util function to directly read and write the USART */
 size_t stm32_usart_write(stm32_usart_t *usart, const uint8_t *buf, size_t len)
@@ -221,7 +287,9 @@ size_t stm32_usart_write(stm32_usart_t *usart, const uint8_t *buf, size_t len)
             while (!(usart->config->usart->SR & USART_SR_TC));
             usart->config->usart->DR = '\r';
         }
-        while (!(usart->config->usart->SR & USART_SR_TC));
+        //while (!(usart->config->usart->SR & USART_SR_TC));
+        if (_timeout(usart->config->usart->SR & USART_SR_TC, 10))
+            break;
         USART_SendData(usart->config->usart, ((uint8_t *) buf)[i]);
     }
     stm32_power_release(usart->config->usart_periph_bus, usart->config->usart_clock);
@@ -239,10 +307,12 @@ size_t stm32_usart_read(stm32_usart_t *usart, uint8_t *buf, size_t len)
 
     for (i = 0; i < len; i++)
     {
-        while (!(usart->config->usart->SR & USART_FLAG_RXNE));
+//         while (!(usart->config->usart->SR & USART_FLAG_RXNE));
+        if (_timeout(usart->config->usart->SR & USART_FLAG_RXNE, 10))
+            break;
         ((uint8_t *) buf)[i] = USART_ReceiveData(usart->config->usart);
     }
-    
+
     stm32_power_release(usart->config->usart_periph_bus, usart->config->usart_clock);
     stm32_power_release(STM32_POWER_AHB1, usart->config->gpio_clock);
     
