@@ -34,11 +34,7 @@ void appmanager_app_quit(void)
 
 void appmanager_post_button_message(ButtonMessage *bmessage)
 {
-    AppMessage am = (AppMessage) {
-        .command = APP_BUTTON,
-        .data = (void *)bmessage
-    };
-    appmanager_post_generic_app_message(&am, 10);
+    overlay_window_post_button_message(bmessage);
 }
 
 void appmanager_post_draw_message(uint8_t force)

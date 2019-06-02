@@ -10,7 +10,7 @@ static void _minimsg_animation_setup(Animation *animation);
 static void _minimsg_animation_update(Animation *animation,
                                   const AnimationProgress progress);
 static void _minimsg_animation_teardown(Animation *animation);
-void _minimsg_animation_configure(bool down);
+void _minimsg_animation_configure(Window *window, bool down);
 
 void mini_message_overlay_display(OverlayWindow *overlay, Window *window)
 {
@@ -34,13 +34,13 @@ static void _minimsg_window_load(Window *window)
 {
     notification_mini_msg *message = (notification_mini_msg*)window->context;
     
-    _minimsg_animation_configure(false);
+    _minimsg_animation_configure(window, false);
         
     Layer *layer = window_get_root_layer(window);    
     GRect bounds = layer_get_unobstructed_bounds(layer);
 
     layer_set_update_proc(layer, _draw_mini_message);
-   
+    notification_load_click_config(window);
     layer_mark_dirty(layer);
     window_dirty(true);
 }
@@ -48,7 +48,7 @@ static void _minimsg_window_load(Window *window)
 static void _minimsg_window_unload(Window *window)
 {
     notification_mini_msg *nm = (notification_mini_msg *)window->context;
-    noty_free(window->context);
+    app_free(window->context);
 }
 
 static void _draw_mini_message(Layer *layer, GContext *ctx)
@@ -74,7 +74,7 @@ static void _draw_mini_message(Layer *layer, GContext *ctx)
 }
 
 
-void _minimsg_animation_configure(bool down)
+void _minimsg_animation_configure(Window *window, bool down)
 {
     // Animate the window change
     Animation *animation = animation_create();
@@ -86,6 +86,7 @@ void _minimsg_animation_configure(bool down)
         .teardown = _minimsg_animation_teardown
     };
     animation_set_implementation(animation, &implementation);
+    animation_set_context(animation, (void *)window);
     
     // Play the animation
     animation_schedule(animation);
@@ -99,7 +100,8 @@ static void _minimsg_animation_setup(Animation *animation)
 static void _minimsg_animation_update(Animation *animation,
                                   const AnimationProgress progress)
 {
-    Window *window = overlay_window_stack_get_top_window(); 
+    Window *window = animation_get_context(animation); 
+    assert(window);
     
     window->frame.origin.y = ANIM_LERP(DISPLAY_ROWS, DISPLAY_ROWS - 20, progress);
     

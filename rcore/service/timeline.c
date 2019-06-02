@@ -153,7 +153,7 @@ rebble_notification *timeline_item_process(void *data)
 
 void timeline_notification_arrived(Uuid *uuid)
 {
-//     notification_arrived(uuid);
+    notification_arrived(uuid);
 }
 
 void timeline_destroy(rebble_notification *notification)

@@ -14,8 +14,9 @@
 #include "action_bar_layer.h"
 #include "platform_res.h"
 #include "menu.h"
-#include "protocol_notification.h"
+#include "timeline.h"
 #include "notification_manager.h"
+#include "blob_db.h"
 
 static NotificationLayer* _notif_layer;
 static Window* _notif_window;
@@ -43,16 +44,16 @@ static MenuItems* _msg_list_item_selected(const MenuItem *item)
 {
     char *app = "RebbleOS";
     char *title = "Message";
-    full_msg_t *msg = (full_msg_t *)item->context;
+    rebble_notification *msg = (rebble_notification *)item->context;
 
-    cmd_phone_attribute_t *attr = list_elem(list_get_head(&msg->attributes_list_head), cmd_phone_attribute_t, node);
+    rebble_attribute *attr = list_elem(list_get_head(&msg->attributes), rebble_attribute, node);
 
     Layer *layer = window_get_root_layer(s_main_window);
     GRect bounds = layer_get_unobstructed_bounds(layer);
     _notif_layer = notification_layer_create(bounds);
-    Notification *notification = notification_create(app, title, (const char *)attr->data, gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE), GColorRed);
+//     Notification *notification = notification_create(app, title, (const char *)attr->data, gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE), GColorRed);
     
-    notification_layer_stack_push_notification(_notif_layer, notification);
+//     notification_layer_stack_push_notification(_notif_layer, notification);
     notification_layer_configure_click_config(_notif_layer, s_main_window, _notif_destroy_layer_cb);
     layer_add_child(layer, notification_layer_get_layer(_notif_layer));
         
@@ -87,28 +88,39 @@ static void _notif_window_load(Window *window)
     layer_add_child(window_layer, menu_get_layer(s_menu));
 
     menu_set_click_config_onto_window(s_menu, window);
-    if (!message_count())
+
+    list_head *lh = blobdb_select_items_all(BlobDatabaseID_Notification, 
+                            offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid),
+                            0,0);
+
+    uint8_t msg_count = 0;
+    blobdb_result_set *rs;
+
+    list_foreach(rs, lh, blobdb_result_set, node)
+        msg_count++;
+
+    if (!msg_count)
     {
         items = menu_items_create(1);
         menu_items_add(items, MenuItem("No Messages", NULL, RESOURCE_ID_SPEECH_BUBBLE, NULL));
         menu_set_items(s_menu, items);
         return;
     }
-    
-    items = menu_items_create(message_count());
-    full_msg_t *msg;
-    cmd_phone_attribute_t *a;
-    list_head *message_head = message_get_head();
-    
-    list_foreach(msg, message_head, full_msg_t, node)
-    {
-        list_foreach(a, &msg->attributes_list_head, cmd_phone_attribute_t, node)
-        {
-            MenuItem mi = MenuItem((char *)a->data, NULL, RESOURCE_ID_SPEECH_BUBBLE, _msg_list_item_selected);
-            mi.context = msg;
-            menu_items_add(items, mi);
-        }
-    }        
+
+    items = menu_items_create(msg_count);
+//     rebble_notification *msg;
+//     cmd_phone_attribute_t *a;
+//     
+//     
+//     list_foreach(msg, message_head, rebble_notification, node)
+//     {
+//         list_foreach(a, &msg->attributes_list_head, cmd_phone_attribute_t, node)
+//         {
+//             MenuItem mi = MenuItem((char *)a->data, NULL, RESOURCE_ID_SPEECH_BUBBLE, _msg_list_item_selected);
+//             mi.context = msg;
+//             menu_items_add(items, mi);
+//         }
+//     }        
     menu_set_items(s_menu, items);
 
     

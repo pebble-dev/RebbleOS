@@ -2,23 +2,25 @@
 #include "protocol_notification.h"
 #include "notification_manager.h"
 #include "platform_res.h"
+#include "blob_db.h"
+
+#define MODULE_NAME "notywin"
+#define MODULE_TYPE "SYS"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
+
 
 static void _notif_man_window_load(Window *window);
 static void _notif_man_window_unload(Window *window);
 static void _nl_back_click_handler(ClickRecognizerRef _, void *context);
+static bool _visible = false;
+static NotificationLayer *_notif_layer;
 
 void notification_message_display(OverlayWindow *overlay, Window *window)
-{    
-    if (message_count() == 0)
-    {
-        SYS_LOG("NOTY", APP_LOG_LEVEL_ERROR, "No Messages?");
-        return;
-    }
-    
+{
     /* the overlay context has the message data 
      * lets take it with us */
     window->context = overlay->context;
-    
+
     window_set_window_handlers(window, (WindowHandlers) {
         .load = _notif_man_window_load,
         .unload = _notif_man_window_unload,
@@ -28,48 +30,56 @@ void notification_message_display(OverlayWindow *overlay, Window *window)
 
 static void _notif_man_window_load(Window *window)
 {
-    notification_message *message = (notification_message *)window->context;
-    
-    char *app = "RebbleOS";
-    char *title = "Test Alert";
-    window->background_color = GColorWhite;
-    
-    Layer *layer = window_get_root_layer(window);    
+    window_set_background_color(window, GColorWhite);
+    Layer *layer = window_get_root_layer(window);
     GRect bounds = layer_get_unobstructed_bounds(layer);
-
     NotificationLayer *notif_layer = notification_layer_create(bounds);
-    
-    cmd_phone_attribute_t *a;
-    list_foreach(a, &message->message->attributes_list_head, cmd_phone_attribute_t, node)
-    {
-        Notification *notification = notification_create(app, title, (char*)a->data, gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE), GColorRed);        
-        notification_layer_stack_push_notification(notif_layer, notification);
-    }
-        
     layer_add_child(layer, notification_layer_get_layer(notif_layer));
 
-    notification_layer_configure_click_config(notif_layer, window, _nl_back_click_handler);
-
+    notification_message *nm = (notification_message *)window->context;
     /* set the context to the layer now */
+    nm->notification_layer = notif_layer;
+    _notif_layer = notif_layer;
 
-    message->notification_layer = notif_layer;
-    
+    notification_message *msg = (notification_message *)window->context;
+    notification_layer_message_arrived(notif_layer, (Uuid *)msg->uuid);
+
+    notification_layer_configure_click_config(notif_layer, window, _nl_back_click_handler);
+    notification_load_click_config(window);
     layer_mark_dirty(layer);
     window_dirty(true);
+    _visible = true;
 }
 
 static void _notif_man_window_unload(Window *window)
 {
     notification_message *nm = (notification_message *)window->context;
     notification_layer_destroy(nm->notification_layer);
-    
-    
+    app_free(nm);
+    _visible = false;
 }
 
 static void _nl_back_click_handler(ClickRecognizerRef _, void *context)
 {
+    assert(context);
     NotificationLayer *nl = (NotificationLayer *)context;
-    notification_message *nm = (notification_message *)nl->layer.window->context;
-    overlay_window_destroy(nm->data.overlay_window);
-    noty_free(context);
+    SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "BC %x", nl);
+    Window *w = layer_get_window(&nl->content_layer);
+    SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "EBC %x", nl);
+    notification_message *nm = (notification_message *)w->context;
+    app_timer_reschedule(nm->data.timer, 1);
+    SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "EBC %x", nl);
+//     app_timer_reschedule(nm->data.timer, 1);
+//     overlay_window_destroy(nm->data.overlay_window);
+//     app_free(context);
+}
+
+bool notification_window_overlay_visible(void)
+{
+    return _visible;
+}
+
+NotificationLayer *notification_window_get_layer(void)
+{
+    return _notif_layer;
 }

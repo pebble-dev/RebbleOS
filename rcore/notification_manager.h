@@ -12,17 +12,23 @@
 #include "notification_layer.h"
 #include "protocol_notification.h"
 #include "notification_message.h"
+#include "timeline.h"
+
+/**
+ * @brief When we are in a notification and a button is pressed, 
+ * how long to rearm the timer for. it has to go away eventually 
+ */
+#define REARM_TIMEOUT_MS 30000
 
 /* internal init */
 uint8_t notification_init(void);
 
 /**
- * @brief Show a fullscreen message
+ * @brief Show a fullscreen message. Or if already visible, show the new message
  * 
- * @param msg \ref full_msg_t a fully structured protocol message
- * @param timeout_ms Time in ms before we auto close the window. 0 is disabled
+ * @param msuuid \ref Uuid the uuid of the new message
  */
-void notification_show_message(full_msg_t *msg, uint32_t timeout_ms);
+void notification_arrived(Uuid *uuid);
 
 /**
  * @brief Show a battery overlay. Shows current battery status
@@ -56,7 +62,7 @@ void battery_overlay_display(OverlayWindow *overlay, Window *window);
 void battery_overlay_destroy(OverlayWindow *overlay, Window *window);
 void mini_message_overlay_display(OverlayWindow *overlay, Window *window);
 void mini_message_overlay_destroy(OverlayWindow *overlay, Window *window);
-
+void notification_reschedule_timer(Window *window, uint32_t timeout_ms);
 
 typedef struct notification_data_t {
     OverlayCreateCallback create_callback;
@@ -69,7 +75,7 @@ typedef struct notification_data_t {
 typedef struct notification_message_t {
     notification_data data;
     NotificationLayer *notification_layer;
-    full_msg_t *message;
+    Uuid *uuid;
 } notification_message;
 
 typedef struct notification_battery_t {

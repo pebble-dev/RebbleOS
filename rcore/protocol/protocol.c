@@ -28,6 +28,7 @@ const PebbleEndpoint pebble_endpoints[] =
     { .endpoint = WatchProtocol_AppRunState,        .handler  = protocol_app_run_state  },
     { .endpoint = WatchProtocol_AppFetch,           .handler  = protocol_app_fetch      },
     { .endpoint = WatchProtocol_Reset,              .handler  = protocol_watch_reset    },
+    { .endpoint = WatchProtocol_PhoneMessage,       .handler  = protocol_process_legacy2_notification },
     { .endpoint = WatchProtocol_BlobDbMessage,      .handler  = protocol_process_blobdb },
     { .handler = NULL }
 };
