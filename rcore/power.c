@@ -59,7 +59,7 @@ void power_update_battery(void)
 {
     _bat_voltage = hw_power_get_bat_mv();
     _bat_pct = map_range(_bat_voltage, 2600, 3500, 0, 100);
-    SYS_LOG("PWR", APP_LOG_LEVEL_INFO, "VBAT %ldmV %d%%", _bat_voltage, _bat_pct);
+//     SYS_LOG("PWR", APP_LOG_LEVEL_INFO, "VBAT %ldmV %d%%", _bat_voltage, _bat_pct);
     
     /* battery low */
     if (_bat_pct > 20)
