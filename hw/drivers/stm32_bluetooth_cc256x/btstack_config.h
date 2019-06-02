@@ -17,7 +17,7 @@
 // #define ENABLE_EHCILL
 
 // BTstack configuration. buffers, sizes, ...
-#define HCI_ACL_PAYLOAD_SIZE 1020
+#define HCI_ACL_PAYLOAD_SIZE 52 /* 1021 bytes for massive buffer */
 #define MAX_SPP_CONNECTIONS 1
 #define MAX_NR_HCI_CONNECTIONS MAX_SPP_CONNECTIONS
 #define MAX_NR_L2CAP_SERVICES 2
