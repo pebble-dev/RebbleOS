@@ -10,6 +10,12 @@
 #include "FreeRTOS.h"
 #include "property_animation.h"
 #include "animation.h"
+#include "log.h"
+
+/* Configure Logging */
+#define MODULE_NAME "panim"
+#define MODULE_TYPE "SYS"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 void property_animation_update_grect(PropertyAnimation * property_animation, const uint32_t distance_normalized)
 {
@@ -122,7 +128,7 @@ PropertyAnimation * property_animation_create_bounds_origin(struct Layer * layer
 
 PropertyAnimation * property_animation_create(const PropertyAnimationImplementation * implementation, void * subject, void * from_value, void * to_value)
 {
-    SYS_LOG("property_animation", APP_LOG_LEVEL_INFO, "property_animation_create");
+    LOG_ERROR("property_animation_create");
     
     PropertyAnimation *property_animation = app_calloc(1, sizeof(PropertyAnimation));
     animation_ctor(&property_animation->animation);
@@ -145,8 +151,14 @@ Animation * property_animation_get_animation(PropertyAnimation * property_animat
 
 void property_animation_destroy(PropertyAnimation *property_animation)
 {
+    if (property_animation->animation.onqueue)
+    {
+        LOG_INFO("[%x] UNSCHED", property_animation);
+        animation_unschedule(&property_animation->animation);
+    }
     animation_dtor(&property_animation->animation);
-    app_free(property_animation);
+    if (property_animation)
+        app_free(property_animation);
 }
 
 bool property_animation_subject(PropertyAnimation *property_animation, void * subject, bool set)
