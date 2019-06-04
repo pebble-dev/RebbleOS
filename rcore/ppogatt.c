@@ -25,6 +25,7 @@
 #include "queue.h" /* xQueueCreate */
 #include "log.h" /* KERN_LOG */
 #include "rbl_bluetooth.h"
+#include "minilib.h"
 
 #ifdef BLUETOOTH_IS_BLE
 
@@ -62,20 +63,52 @@ static StaticQueue_t         _queue_ppogatt_tx_qcb;
 static struct ppogatt_packet _queue_ppogatt_tx_buf[PPOGATT_TX_QUEUE_SIZE];
 
 static void _ppogatt_rx_main(void *param) {
-    
+    while (1) {
+        struct ppogatt_packet pkt;
+        
+        xQueueReceive(_queue_ppogatt_rx, &pkt, portMAX_DELAY); /* does not fail, since we wait forever */
+        
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "RX %d bytes", pkt.len);
+        xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY); /* just echo it */
+    }
 }
 
 static void _ppogatt_tx_main(void *param) {
-    
+    while (1) {
+        struct ppogatt_packet pkt;
+        int rv;
+        
+        xQueueReceive(_queue_ppogatt_tx, &pkt, portMAX_DELAY); /* does not fail, since we wait forever */
+        
+        while (ble_ppogatt_tx(pkt.buf, pkt.len) < 0) {
+            rv = ulTaskNotifyTake(pdTRUE /* clear on exit */, pdMS_TO_TICKS(250) /* try again, even if the stack wedges */);
+            if (rv == 0) {
+                DRV_LOG("bt", APP_LOG_LEVEL_ERROR, "warning: BLE stack did not notify TX ready?");
+            }
+        }
+    }
 }
 
 static void _ppogatt_callback_txready() {
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "TX ready");
+    BaseType_t woken = pdFALSE;
+    
+    vTaskNotifyGiveFromISR(_task_ppogatt_tx, &woken);
+    
+    portYIELD_FROM_ISR(woken);
 }
 
+static struct ppogatt_packet _ppogatt_rx_msg;
+
 static void _ppogatt_callback_rx(const uint8_t *buf, size_t len) {
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "RX %d bytes");
-    ble_ppogatt_tx(buf, len);
+    BaseType_t woken = pdFALSE;
+    
+    memcpy(_ppogatt_rx_msg.buf, buf, len);
+    _ppogatt_rx_msg.len = len;
+    
+    /* If it fails, we'll retransmit later -- ignore the return. */
+    (void) xQueueSendFromISR(_queue_ppogatt_rx, &_ppogatt_rx_msg, &woken);
+    
+    portYIELD_FROM_ISR(woken);
 }
 
 /* Main entry for PPoGATT code ... to be called at boot, and whenever a
