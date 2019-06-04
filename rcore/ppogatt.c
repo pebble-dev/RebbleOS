@@ -17,6 +17,22 @@
  * client and which end is server; those operations do not have
  * acknowledgements, so PPoGATT layers acknowledgements inside of its own
  * protocol.
+ *
+ * The PPoGATT protocol is a relatively simple shim around the Pebble
+ * Protocol.  The first byte of a PPoGATT packet is a bitfield:
+ *   data[7:0] = {seq[4:0], cmd[2:0]}
+ *
+ * cmd can have four values that we know of:
+ *
+ *   3'd0: Data packet with sequence `seq`.  Should be responded to with an
+ *         ACK packet with the same sequence.  If a packet in sequence is
+ *         missing, do not respond with any ACKs until the missing sequenced
+ *         packet is retransmitted.
+ *   3'd1: ACK for data packet with sequence `seq`.
+ *   3'd2: Reset request. [has data unknown]
+ *   3'd3: Reset ACK. [has data unknown]
+ *
+ * Sequences are increasing and repeating.
  */
 
 #include "platform.h"
@@ -28,6 +44,13 @@
 #include "minilib.h"
 
 #ifdef BLUETOOTH_IS_BLE
+
+enum ppogatt_cmd {
+    PPOGATT_CMD_DATA = 0,
+    PPOGATT_CMD_ACK = 1,
+    PPOGATT_CMD_RESET_REQ = 2,
+    PPOGATT_CMD_RESET_ACK = 3,
+};
 
 #define STACK_SIZE_PPOGATT_RX (configMINIMAL_STACK_SIZE + 600)
 #define STACK_SIZE_PPOGATT_TX (configMINIMAL_STACK_SIZE + 600)
@@ -72,6 +95,21 @@ static void _ppogatt_rx_main(void *param) {
         xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY); /* just echo it */
     }
 }
+
+/* XXX: PPoGATT TX thread probably doesn't have a ppogatt_packet queue, but
+ * instead has a produce/consume buffer, and also a ACK-needed / ACK-sent
+ * pair of chasing counters.  It prioritizes sending an ACK if one is
+ * needed.  (Note that ACK-needed is both a counter and a flag; if a datum
+ * is retransmitted, even if we think we've sent an ACK, they might not have
+ * heard it, so we'd bump the ACK-needed flag without incrementing the
+ * counter.)
+ *
+ * The produce side of the data produce/consume makes sense, but the consume
+ * has multiple pointers for various sequence numbers past.  Note that the
+ * *rx* thread bumps forward the consume pointers once ACKs come back in. 
+ * The TX thread also probably needs to remember when it needs to
+ * retransmit the outstanding packets...
+ */
 
 static void _ppogatt_tx_main(void *param) {
     while (1) {

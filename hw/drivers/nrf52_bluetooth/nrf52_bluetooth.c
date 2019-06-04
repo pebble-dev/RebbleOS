@@ -182,22 +182,6 @@ uint8_t hw_bluetooth_init() {
  *   00000001-328e-0fbb-c642-1aa6699bdada
  * and a parameters characteristic (notify, read, write):
  *   00000005-328e-0fbb-c642-1aa6699bdada
- *
- * The PPoGATT protocol is a relatively simple shim around the Pebble
- * Protocol.  The first byte of a PPoGATT packet is a bitfield:
- *   data[7:0] = {seq[4:0], cmd[2:0]}
- *
- * cmd can have four values that we know of:
- *
- *   3'd0: Data packet with sequence `seq`.  Should be responded to with an
- *         ACK packet with the same sequence.  If a packet in sequence is
- *         missing, do not respond with any ACKs until the missing sequenced
- *         packet is retransmitted.
- *   3'd1: ACK for data packet with sequence `seq`.
- *   3'd2: Reset request. [has data unknown]
- *   3'd3: Reset ACK. [has data unknown]
- *
- * Sequences are increasing and repeating.  
  */
 
 /* UUIDs are from the watch's perspective; i.e., 'srv' is for the server on
@@ -303,7 +287,7 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     case BLE_GATTC_EVT_HVX: {
         const ble_gattc_evt_hvx_t *evthvx = &evt->evt.gattc_evt.params.hvx;
 
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTC_EVT_HVX"); /* XXX: handle PPoGATT rx */
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTC_EVT_HVX");
         if (evthvx->handle != ppogatt_cli_data_value_hnd) {
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTC_EVT_HVX: unexpected handle %04x (hoping for %04x)?", evthvx->handle, ppogatt_cli_data_value_hnd);
             break;
