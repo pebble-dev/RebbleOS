@@ -1,5 +1,6 @@
 #pragma once
 #include "stdbool.h"
+#include "platform.h"
 
 #define TX_BUFFER_SIZE 250
 #define TX_TIMEOUT_MS 5
@@ -34,3 +35,17 @@ uint8_t hw_bluetooth_init(void);
 void bluetooth_device_connected(void);
 void bluetooth_device_disconnected(void);
 bool bluetooth_is_device_connected(void);
+
+#ifdef BLUETOOTH_IS_BLE
+void ppogatt_init(void);
+
+/* BLE stack <-> PPoGATT module communications */
+
+typedef void (*ble_ppogatt_callback_txready_t)();
+typedef void (*ble_ppogatt_callback_rx_t)(const uint8_t *buf, size_t len);
+
+extern int ble_ppogatt_tx(const uint8_t *buf, size_t len);
+extern void ble_ppogatt_set_callback_txready(ble_ppogatt_callback_txready_t cbk);
+extern void ble_ppogatt_set_callback_rx(ble_ppogatt_callback_rx_t cbk);
+
+#endif

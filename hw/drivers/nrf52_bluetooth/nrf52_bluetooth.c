@@ -220,9 +220,8 @@ static uint16_t ppogatt_cli_data_cccd_hnd = BLE_GATT_HANDLE_INVALID;
 static uint8_t ppogatt_srv_wr_buf[PPOGATT_MTU];
 static uint8_t ppogatt_srv_rd_buf[PPOGATT_MTU];
 
-static void _ppogatt_callback_rx(const uint8_t *buf, size_t len);
-static int _ppogatt_tx(const uint8_t *buf, size_t len);
-static void _ppogatt_callback_tx_ready();
+static ble_ppogatt_callback_txready_t _ppogatt_callback_txready;
+static ble_ppogatt_callback_rx_t _ppogatt_callback_rx;
 
 static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     ret_code_t rv;
@@ -323,7 +322,7 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         break;
     case BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE:
     case BLE_GATTS_EVT_HVN_TX_COMPLETE:
-        _ppogatt_callback_tx_ready();
+        _ppogatt_callback_txready();
         break;
     default:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "unknown event ID %d", evt->header.evt_id);
@@ -461,11 +460,8 @@ void _ppogatt_init() {
     assert(rv == NRF_SUCCESS && "ble_db_discovery_evt_register");
 }
 
-static void _ppogatt_callback_rx(const uint8_t *buf, size_t len) {
-    _ppogatt_tx(buf, len);
-}
 
-static int _ppogatt_tx(const uint8_t *buf, size_t len) {
+int ble_ppogatt_tx(const uint8_t *buf, size_t len) {
     ret_code_t rv;
     
     /* NOTIFY CCCD in GATTS set up?  Prefer that. */
@@ -518,9 +514,10 @@ static int _ppogatt_tx(const uint8_t *buf, size_t len) {
     }
 }
 
-static void _ppogatt_callback_tx_ready() {
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX ready");
+void ble_ppogatt_set_callback_txready(ble_ppogatt_callback_txready_t cbk) {
+    _ppogatt_callback_txready = cbk;
 }
 
-void bt_device_request_tx(uint8_t *data, uint16_t len) {
+void ble_ppogatt_set_callback_rx(ble_ppogatt_callback_rx_t cbk) {
+    _ppogatt_callback_rx = cbk;
 }

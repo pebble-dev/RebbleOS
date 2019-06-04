@@ -119,6 +119,9 @@ uint8_t bluetooth_init(void)
                                      tskIDLE_PRIORITY + 4UL, 
                                      _bt_cmd_task_stack, &_bt_cmd_task_buf);
 
+#ifdef BLUETOOTH_IS_BLE
+    ppogatt_init();
+#endif
     
     return INIT_RESP_ASYNC_WAIT;
 }

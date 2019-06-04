@@ -32,3 +32,5 @@
 #define BLUETOOTH_MODULE_NAME_LENGTH 0x09
 #define BLUETOOTH_MODULE_LE_NAME     'P', 'e', 'b', 'b', 'l', 'e', ' ', 'L', 'E'
 #define BLUETOOTH_MODULE_GAP_NAME    "Pebble RblOs"
+
+#define BLUETOOTH_IS_BLE 1
