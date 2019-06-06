@@ -4,7 +4,7 @@ The following builds RebbleOS on Debian Stretch:
 
 ```sh
     apt install -y gcc-arm-none-eabi
-    git clone https://github.com/ginge/FreeRTOS-Pebble.git
+    git clone https://github.com/pebble-dev/RebbleOS.git
     cd FreeRTOS-Pebble
     git submodule update --init --recursive
     make

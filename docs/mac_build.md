@@ -2,7 +2,7 @@
 
 The following builds RebbleOS on macOS:
 
-    git clone https://github.com/ginge/FreeRTOS-Pebble.git
+    git clone https://github.com/pebble-dev/RebbleOS.git
     cd FreeRTOS-Pebble
     git submodule update --init --recursive
     make

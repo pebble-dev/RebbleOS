@@ -18,7 +18,7 @@ For installing the pebble sdk, please see the instructions in the [debian build 
 
 ```sh
 cd ~/pebble-dev/
-git clone https://github.com/ginge/FreeRTOS-Pebble.git
+git clone https://github.com/pebble-dev/RebbleOS.git
 cd FreeRTOS-Pebble
 ./Utilities/mk_resources.sh ~/.pebble-sdk/SDKs/current/sdk-core/pebble/
 cd Resources

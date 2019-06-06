@@ -4,7 +4,7 @@ The following builds RebbleOS on Arch Linux and Parabola once the Pebble SDK is 
 
 Note: You will need to aquire the FPGA blobs from the [discord](discord.gg/aRUAYFN) before building.
 ```sh
-    git clone https://github.com/ginge/FreeRTOS-Pebble.git
+    git clone https://github.com/pebble-dev/RebbleOS.git
     cd FreeRTOS-Pebble
     git submodule update --init --recursive
     virtualenv --no-site-packages .env
