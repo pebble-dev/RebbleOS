@@ -190,6 +190,7 @@ static uint16_t _bt_conn = BLE_CONN_HANDLE_INVALID;
 
 static ble_uuid_t ppogatt_srv_svc_uuid;
 static ble_uuid_t ppogatt_cli_svc_uuid;
+static ble_uuid_t pebble_metadata_svc_uuid;
 
 static uint16_t ppogatt_srv_svc_hnd = BLE_GATT_HANDLE_INVALID;
 static ble_gatts_char_handles_t ppogatt_srv_write_hnd;
@@ -203,6 +204,16 @@ static uint16_t ppogatt_cli_data_cccd_hnd = BLE_GATT_HANDLE_INVALID;
 #define PPOGATT_MTU 256
 static uint8_t ppogatt_srv_wr_buf[PPOGATT_MTU];
 static uint8_t ppogatt_srv_rd_buf[PPOGATT_MTU];
+
+static uint16_t pebble_metadata_srv_svc_hnd = BLE_GATT_HANDLE_INVALID;
+static uint8_t pebble_metadata_connectivity_buf[4] = { 0x00, 0x00, 0x00, 0x00 };
+static ble_gatts_char_handles_t pebble_metadata_srv_connectivity_hnd;
+static uint8_t pebble_metadata_pairing_buf[1] = { 0x00 };
+static ble_gatts_char_handles_t pebble_metadata_srv_pairing_hnd;
+static uint8_t pebble_metadata_mtu_buf[2] = { 0x00, 0x00 };
+static ble_gatts_char_handles_t pebble_metadata_srv_mtu_hnd;
+static uint8_t pebble_metadata_parameters_buf[7] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static ble_gatts_char_handles_t pebble_metadata_srv_parameters_hnd;
 
 static ble_ppogatt_callback_txready_t _ppogatt_callback_txready;
 static ble_ppogatt_callback_rx_t _ppogatt_callback_rx;
@@ -476,6 +487,83 @@ void _ppogatt_init() {
     rv = characteristic_add(ppogatt_srv_svc_hnd, &params, &ppogatt_srv_write_hnd);
     assert(rv == NRF_SUCCESS && "characteristic_add(ppogatt_srv_write)");
     
+    /* Register the connectivity service. */
+    ble_uuid_t md_uuid;
+    
+    MAKE_UUID(pebble_metadata_svc_uuid, {
+        0xda, 0xda, 0x9b, 0x69, 0xa6, 0x1a, 0x42, 0xc6,
+        0xbb, 0x0f, 0x8e, 0x32, 0x03, 0x00, 0x00, 0x00 });
+    
+    md_uuid.type = BLE_UUID_TYPE_BLE;
+    md_uuid.uuid = 0x328E;
+    
+    rv = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &md_uuid, &pebble_metadata_srv_svc_hnd);
+    assert(rv == NRF_SUCCESS && "sd_ble_gatts_service_add(pebble_metadata_srv_svc)");
+
+    memset(&params, 0, sizeof(params));
+    params.uuid = 0x0001;
+    params.uuid_type = pebble_metadata_svc_uuid.type;
+    params.init_len = 4;
+    params.max_len = 4;
+    params.is_var_len = 0;
+    params.p_init_value = pebble_metadata_connectivity_buf;
+    params.char_props.notify = 1;
+    params.char_props.read = 1;
+    params.read_access = SEC_OPEN /* XXX */;
+    params.cccd_write_access = SEC_OPEN /* XXX */;
+    
+    rv = characteristic_add(pebble_metadata_srv_svc_hnd, &params, &pebble_metadata_srv_connectivity_hnd);
+    assert(rv == NRF_SUCCESS && "characteristic_add(pebble_metadata_srv_connectivity_hnd)");
+
+    memset(&params, 0, sizeof(params));
+    params.uuid = 0x0002;
+    params.uuid_type = pebble_metadata_svc_uuid.type;
+    params.init_len = 1;
+    params.max_len = 1;
+    params.is_var_len = 0;
+    params.p_init_value = pebble_metadata_pairing_buf;
+    params.char_props.read = 1;
+    params.char_props.write = 1;
+    params.read_access = SEC_OPEN /* XXX */;
+    params.write_access = SEC_OPEN /* XXX */;
+    
+    rv = characteristic_add(pebble_metadata_srv_svc_hnd, &params, &pebble_metadata_srv_pairing_hnd);
+    assert(rv == NRF_SUCCESS && "characteristic_add(pebble_metadata_srv_pairing_hnd)");
+
+    memset(&params, 0, sizeof(params));
+    params.uuid = 0x0003;
+    params.uuid_type = pebble_metadata_svc_uuid.type;
+    params.init_len = 2;
+    params.max_len = 2;
+    params.is_var_len = 0;
+    params.p_init_value = pebble_metadata_mtu_buf;
+    params.char_props.read = 1;
+    params.char_props.notify = 1;
+    params.char_props.write = 1;
+    params.read_access = SEC_OPEN /* XXX */;
+    params.write_access = SEC_OPEN /* XXX */;
+    params.cccd_write_access = SEC_OPEN /* XXX */;
+    
+    rv = characteristic_add(pebble_metadata_srv_svc_hnd, &params, &pebble_metadata_srv_mtu_hnd);
+    assert(rv == NRF_SUCCESS && "characteristic_add(pebble_metadata_srv_mtu_hnd)");
+
+    memset(&params, 0, sizeof(params));
+    params.uuid = 0x0005;
+    params.uuid_type = pebble_metadata_svc_uuid.type;
+    params.init_len = 7;
+    params.max_len = 7;
+    params.is_var_len = 0;
+    params.p_init_value = pebble_metadata_parameters_buf;
+    params.char_props.read = 1;
+    params.char_props.notify = 1;
+    params.char_props.write = 1;
+    params.read_access = SEC_OPEN /* XXX */;
+    params.write_access = SEC_OPEN /* XXX */;
+    params.cccd_write_access = SEC_OPEN /* XXX */;
+    
+    rv = characteristic_add(pebble_metadata_srv_svc_hnd, &params, &pebble_metadata_srv_parameters_hnd);
+    assert(rv == NRF_SUCCESS && "characteristic_add(pebble_metadata_srv_parameters_hnd)");
+
     /* Listen for the server on the phone. */
     MAKE_UUID(ppogatt_cli_svc_uuid, {
         0xda, 0xda, 0x9b, 0x69, 0xa6, 0x1a, 0x42, 0xc6,
