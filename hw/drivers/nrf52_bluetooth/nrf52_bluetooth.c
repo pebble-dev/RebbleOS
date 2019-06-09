@@ -207,6 +207,26 @@ static uint8_t ppogatt_srv_rd_buf[PPOGATT_MTU];
 static ble_ppogatt_callback_txready_t _ppogatt_callback_txready;
 static ble_ppogatt_callback_rx_t _ppogatt_callback_rx;
 
+static ble_gap_enc_key_t _bt_own_enc_key, _bt_peer_enc_key;
+static ble_gap_id_key_t  _bt_own_id_key , _bt_peer_id_key;
+
+static int _bt_has_keys = 0;
+
+static ble_gap_sec_keyset_t _bt_peer_keys = {
+    .keys_own = {
+        .p_enc_key = &_bt_own_enc_key,
+        .p_id_key = &_bt_own_id_key,
+        .p_pk = NULL,
+        .p_sign_key = NULL,
+    },
+    .keys_peer = {
+        .p_enc_key = &_bt_peer_enc_key,
+        .p_id_key = &_bt_peer_id_key,
+        .p_pk = NULL,
+        .p_sign_key = NULL,
+    }
+};
+
 static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     ret_code_t rv;
     
@@ -230,11 +250,31 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         rv = sd_ble_gap_adv_start(_adv_handle, CONN_TAG);
         assert(rv == NRF_SUCCESS && "sd_ble_gap_adv_start");
         break;
-    case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
-        /* For now, pairing is not supported.  We'll have to do better
-         * sooner or later, once we can write to flash. */
-        rv = sd_ble_gap_sec_params_reply(_bt_conn, BLE_GAP_SEC_STATUS_PAIRING_NOT_SUPP, NULL, NULL);
+    case BLE_GAP_EVT_SEC_PARAMS_REQUEST: {
+        const ble_gap_sec_params_t params = {
+            .bond = 1,
+            .io_caps = BLE_GAP_IO_CAPS_NONE,
+            .mitm = 0,
+            .kdist_own = { .enc = 1, .id = 1 },
+            .kdist_peer = { .enc = 1, .id = 1 },
+            .min_key_size = 7,
+            .max_key_size = 16,
+        };
+        rv = sd_ble_gap_sec_params_reply(_bt_conn, BLE_GAP_SEC_STATUS_SUCCESS, &params, &_bt_peer_keys);
+        _bt_has_keys = 1;
         assert(rv == NRF_SUCCESS && "sd_ble_gap_sec_params_reply");
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "initiating bonding");
+        break;
+    }
+    case BLE_GAP_EVT_SEC_INFO_REQUEST:
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_SEC_INFO_REQUEST");
+        rv = sd_ble_gap_sec_info_reply(_bt_conn, _bt_has_keys ? &_bt_own_enc_key.enc_info : NULL, _bt_has_keys ? &_bt_own_id_key.id_info : NULL, NULL);
+        break;
+    case BLE_GAP_EVT_AUTH_STATUS:
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_AUTH_STATUS: bonded %d", evt->evt.gap_evt.params.auth_status.bonded);
+        break;
+    case BLE_GAP_EVT_CONN_SEC_UPDATE:
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_CONN_SEC_UPDATE");
         break;
     case BLE_GAP_EVT_PHY_UPDATE_REQUEST: {
         const ble_gap_phys_t phys = {
