@@ -264,6 +264,10 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         }
         break;
     }
+    case BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST: 
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST");
+        rv = sd_ble_gatts_exchange_mtu_reply(_bt_conn, PPOGATT_MTU);
+        break;
     case BLE_GATTC_EVT_CHAR_DISC_RSP:
     case BLE_GATTC_EVT_DESC_DISC_RSP:
     case BLE_GATTC_EVT_PRIM_SRVC_DISC_RSP:
