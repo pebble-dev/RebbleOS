@@ -324,6 +324,7 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     case BLE_GATTC_EVT_PRIM_SRVC_DISC_RSP:
     case BLE_GATTC_EVT_CHAR_VAL_BY_UUID_READ_RSP:
     case BLE_GATTC_EVT_READ_RSP:
+    case BLE_GATTC_EVT_WRITE_RSP:
         /* ignore */
         break;
     case BLE_GAP_EVT_PHY_UPDATE:
