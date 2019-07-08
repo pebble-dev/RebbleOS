@@ -405,9 +405,8 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
                 params.offset = 0;
                 params.write_op = BLE_GATT_OP_WRITE_REQ;
                 
-                // ret_code_t rv = sd_ble_gattc_write(_bt_conn, &params);
-                // XXX: the resulting timeout event causes the ATT stack to give up
-                // assert(rv == NRF_SUCCESS);
+                ret_code_t rv = sd_ble_gattc_write(_bt_conn, &params);
+                assert(rv == NRF_SUCCESS);
             } else {
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: other characteristic uuid %04x value handle %04x, cccd handle %04x", dbchar->characteristic.uuid.uuid, dbchar->characteristic.handle_value, dbchar->cccd_handle);
             }
