@@ -18,7 +18,7 @@ directory for the SDK using the following.
 ```sh
     mkdir ~/pebble-dev/
     cd ~/pebble-dev/
-    wget https://s3.amazonaws.com/assets.getpebble.com/pebble-tool/pebble-sdk-4.5-linux64.tar.bz2
+    wget https://developer.rebble.io/s3.amazonaws.com/assets.getpebble.com/pebble-tool/pebble-sdk-4.5-linux64.tar.bz2
     tar -jxf pebble-sdk-4.5-linux64.tar.bz2
     echo 'export PATH=~/pebble-dev/pebble-sdk-4.5-linux64/bin:$PATH' >> ~/.bash_profile
     . ~/.bash_profile
@@ -29,6 +29,7 @@ directory for the SDK using the following.
     cd ~/pebble-dev/pebble-sdk-4.5-linux64
     virtualenv --no-site-packages .env
     source .env/bin/activate
+    sed -i 's/https:\/\/s3-us-west-2.amazonaws.com\/pebble-sdk-homebrew\/pypkjs-1.0.6.tar.gz/https:\/\/github.com\/ltpitt\/vagrant-pebble-sdk\/blob\/master\/pypkjs-1.0.6.tar.gz?raw=true/g' requirements.txt
     pip install -r requirements.txt
     deactivate
     mkdir ~/.pebble-sdk/
@@ -37,4 +38,4 @@ directory for the SDK using the following.
     pebble ping --emulator aplite
 ```
 
-As the SDK is no longer available from an official source, this example uses an archived version from [this](https://github.com/aveao/PebbleArchive/) GitHub repository
+As the SDK is no longer available from an official source, this example uses an archived version from [this](https://github.com/aveao/PebbleArchive/) GitHub repository. URL for the pypkjs module is also used from the [backup repository](https://github.com/ltpitt/vagrant-pebble-sdk).
