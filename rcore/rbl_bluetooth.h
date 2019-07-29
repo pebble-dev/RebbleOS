@@ -41,11 +41,15 @@ void ppogatt_init(void);
 
 /* BLE stack <-> PPoGATT module communications */
 
+typedef void (*ble_ppogatt_callback_connected_t)();
 typedef void (*ble_ppogatt_callback_txready_t)();
 typedef void (*ble_ppogatt_callback_rx_t)(const uint8_t *buf, size_t len);
+typedef void (*ble_ppogatt_callback_disconnected_t)();
 
 extern int ble_ppogatt_tx(const uint8_t *buf, size_t len);
+extern void ble_ppogatt_set_callback_connected(ble_ppogatt_callback_connected_t cbk);
 extern void ble_ppogatt_set_callback_txready(ble_ppogatt_callback_txready_t cbk);
 extern void ble_ppogatt_set_callback_rx(ble_ppogatt_callback_rx_t cbk);
+extern void ble_ppogatt_set_callback_disconnected(ble_ppogatt_callback_disconnected_t cbk);
 
 #endif

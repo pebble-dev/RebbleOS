@@ -142,6 +142,8 @@ uint8_t hw_bluetooth_init() {
     
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "advertising as \"%s\"", (char *)_name_buf);
     
+    bluetooth_init_complete(INIT_RESP_OK);
+    
     return 0;
 }
 
@@ -215,8 +217,12 @@ static ble_gatts_char_handles_t pebble_metadata_srv_mtu_hnd;
 static uint8_t pebble_metadata_parameters_buf[7] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 static ble_gatts_char_handles_t pebble_metadata_srv_parameters_hnd;
 
+static ble_ppogatt_callback_connected_t _ppogatt_callback_connected;
 static ble_ppogatt_callback_txready_t _ppogatt_callback_txready;
 static ble_ppogatt_callback_rx_t _ppogatt_callback_rx;
+static ble_ppogatt_callback_disconnected_t _ppogatt_callback_disconnected;
+
+static int _ppogatt_is_ready = 0;
 
 static ble_gap_enc_key_t _bt_own_enc_key, _bt_peer_enc_key;
 static ble_gap_id_key_t  _bt_own_id_key , _bt_peer_id_key;
@@ -250,6 +256,7 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         assert(rv == NRF_SUCCESS && "ble_db_discovery_start");
         
         ppogatt_srv_notify_cccd = 0;
+        _ppogatt_is_ready = 0;
         
         break;
     case BLE_GAP_EVT_DISCONNECTED:
@@ -260,6 +267,7 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         ppogatt_cli_data_cccd_hnd = BLE_GATT_HANDLE_INVALID;
         rv = sd_ble_gap_adv_start(_adv_handle, CONN_TAG);
         assert(rv == NRF_SUCCESS && "sd_ble_gap_adv_start");
+        _ppogatt_callback_disconnected();
         break;
     case BLE_GAP_EVT_SEC_PARAMS_REQUEST: {
         const ble_gap_sec_params_t params = {
@@ -328,6 +336,11 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
             _ppogatt_callback_rx(evtwr->data, evtwr->len);
         } else if (evtwr->handle == ppogatt_srv_notify_hnd.cccd_handle && evtwr->len <= 2) {
             memcpy(&ppogatt_srv_notify_cccd, evtwr->data, evtwr->len);
+            if (ppogatt_srv_notify_cccd) {
+                if (!_ppogatt_is_ready)
+                    _ppogatt_callback_connected();
+                _ppogatt_is_ready = 1;
+            }
         }
         break;
     }
@@ -424,6 +437,10 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
                 
                 ret_code_t rv = sd_ble_gattc_write(_bt_conn, &params);
                 assert(rv == NRF_SUCCESS);
+                
+                if (!_ppogatt_is_ready)
+                    _ppogatt_callback_connected();
+                _ppogatt_is_ready = 1;
             } else {
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: other characteristic uuid %04x value handle %04x, cccd handle %04x", dbchar->characteristic.uuid.uuid, dbchar->characteristic.handle_value, dbchar->cccd_handle);
             }
@@ -646,10 +663,18 @@ int ble_ppogatt_tx(const uint8_t *buf, size_t len) {
     }
 }
 
+void ble_ppogatt_set_callback_connected(ble_ppogatt_callback_connected_t cbk) {
+    _ppogatt_callback_connected = cbk;
+}
+
 void ble_ppogatt_set_callback_txready(ble_ppogatt_callback_txready_t cbk) {
     _ppogatt_callback_txready = cbk;
 }
 
 void ble_ppogatt_set_callback_rx(ble_ppogatt_callback_rx_t cbk) {
     _ppogatt_callback_rx = cbk;
+}
+
+void ble_ppogatt_set_callback_disconnected(ble_ppogatt_callback_disconnected_t cbk) {
+    _ppogatt_callback_disconnected = cbk;
 }

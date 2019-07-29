@@ -123,7 +123,6 @@ uint8_t hw_power_get_chg_status(void)
 
 void hw_backlight_init()
 {
-    bluetooth_init_complete(-1);
 }
 
 void hw_backlight_set() { }
