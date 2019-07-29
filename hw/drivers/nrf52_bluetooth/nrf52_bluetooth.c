@@ -495,7 +495,7 @@ void _ppogatt_init() {
         0xbb, 0x0f, 0x8e, 0x32, 0x03, 0x00, 0x00, 0x00 });
     
     md_uuid.type = BLE_UUID_TYPE_BLE;
-    md_uuid.uuid = 0x328E;
+    md_uuid.uuid = 0xFED9;
     
     rv = sd_ble_gatts_service_add(BLE_GATTS_SRVC_TYPE_PRIMARY, &md_uuid, &pebble_metadata_srv_svc_hnd);
     assert(rv == NRF_SUCCESS && "sd_ble_gatts_service_add(pebble_metadata_srv_svc)");
