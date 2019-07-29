@@ -306,6 +306,22 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
             hname = "notify value";
         else if (evtwr->handle == ppogatt_srv_notify_hnd.cccd_handle)
             hname = "notify CCCD";
+        else if (evtwr->handle == pebble_metadata_srv_connectivity_hnd.value_handle)
+            hname = "connectivity value";
+        else if (evtwr->handle == pebble_metadata_srv_connectivity_hnd.cccd_handle)
+            hname = "connectivity CCCD";
+        else if (evtwr->handle == pebble_metadata_srv_pairing_hnd.value_handle)
+            hname = "pairing value";
+        else if (evtwr->handle == pebble_metadata_srv_pairing_hnd.cccd_handle)
+            hname = "pairing CCCD";
+        else if (evtwr->handle == pebble_metadata_srv_mtu_hnd.value_handle)
+            hname = "MTU value";
+        else if (evtwr->handle == pebble_metadata_srv_mtu_hnd.cccd_handle)
+            hname = "MTU CCCD";
+        else if (evtwr->handle == pebble_metadata_srv_parameters_hnd.value_handle)
+            hname = "parameters value";
+        else if (evtwr->handle == pebble_metadata_srv_parameters_hnd.cccd_handle)
+            hname = "parameters CCCD";
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "GATTS write evt: handle %04x %s, op %02x, auth req %u, offset %02x, len %d", evtwr->handle, hname, evtwr->op, evtwr->auth_required, evtwr->offset, evtwr->len);
         
         if (evtwr->handle == ppogatt_srv_write_hnd.value_handle) {
