@@ -4,7 +4,7 @@
 //We are a square device
 #define PBL_RECT
 
-#define RTOS_HEAP_SIZE 12 * 1024
+#define RTOS_HEAP_SIZE 8 * 1024
 
 /* Memory Configuration
  * Size of the app + stack + heap of the running app.
