@@ -13,12 +13,10 @@
 #include "backlight.h"
 #include "ambient.h"
 #include "rebble_memory.h"
+#include "rtoswrap.h"
 
-static TaskHandle_t _backlight_task;
-static StaticTask_t _backlight_task_buf;
-
-static StackType_t _backlight_task_stack[configMINIMAL_STACK_SIZE + 190];
 static void _backlight_thread(void *pvParameters);
+THREAD_DEFINE(backlight, configMINIMAL_STACK_SIZE + 190, tskIDLE_PRIORITY + 2UL, _backlight_thread);
 
 typedef struct backlight_message
 {
@@ -28,9 +26,7 @@ typedef struct backlight_message
 } backlight_message_t;
 
 #define BACKLIGHT_QUEUE_SIZE 2
-static uint8_t _backlight_queue_contents[BACKLIGHT_QUEUE_SIZE * sizeof(backlight_message_t)];
-static xQueueHandle _backlight_queue;
-static StaticQueue_t _backlight_queue_buf;
+QUEUE_DEFINE(backlight, backlight_message_t, BACKLIGHT_QUEUE_SIZE);
 
 static uint16_t _backlight_brightness;
 static uint8_t _backlight_is_on;
@@ -45,9 +41,8 @@ uint8_t rcore_backlight_init(void)
     _backlight_is_on = 0;
     _backlight_brightness = 0;
    
-    _backlight_queue = xQueueCreateStatic(BACKLIGHT_QUEUE_SIZE, sizeof(backlight_message_t), _backlight_queue_contents, &_backlight_queue_buf);
-    
-    _backlight_task = xTaskCreateStatic(_backlight_thread, "Bl", configMINIMAL_STACK_SIZE + 190, NULL, tskIDLE_PRIORITY + 2UL, _backlight_task_stack, &_backlight_task_buf);
+    QUEUE_CREATE(backlight);
+    THREAD_CREATE(backlight);
 
     rcore_backlight_on(100, 3000);
     
