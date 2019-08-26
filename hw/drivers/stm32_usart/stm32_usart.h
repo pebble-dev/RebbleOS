@@ -12,6 +12,9 @@
 #    include "stm32f4xx.h"
 #elif defined(STM32F2XX)
 #    include "stm32f2xx.h"
+#    include "stm32f2xx_gpio.h"
+#    include "stm32f2xx_usart.h"
+#    include "stm32f2xx_rcc.h"
 #else
 #    error "I have no idea what kind of stm32 this is; sorry"
 #endif
