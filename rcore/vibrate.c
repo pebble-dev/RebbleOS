@@ -78,14 +78,18 @@ static const VibratePattern_t _default_vibrate_patterns[VIBRATE_CMD_MAX] = {
     }
 };
 
-static TaskHandle_t _vibrate_task;
+static uint8_t _vibrate_queue_contents[VIBRATE_QUEUE_MAX_ITEMS * sizeof(VibratePattern_t *)];
 static xQueueHandle _vibrate_queue;
+static StaticQueue_t _vibrate_queue_buf;
 
 static void _enable(uint8_t enabled);
 static void _set_frequency(uint16_t frequency);
 static void _vibrate_thread(void *pvParameters);
 static void _print_pattern(const VibratePattern_t *pattern);
 
+static TaskHandle_t _vibrate_task;
+static StaticTask_t _vibrate_task_buf;
+static StackType_t _vibrate_task_stack[configMINIMAL_STACK_SIZE];
 
 /*
  * Initialize the vibration controller and tasks
@@ -94,11 +98,9 @@ uint8_t vibrate_init(void)
 {
     int rv;
     hw_vibrate_init();
-    _vibrate_queue = xQueueCreate(VIBRATE_QUEUE_MAX_ITEMS, sizeof(VibratePattern_t*));
-    
-    rv = xTaskCreate(_vibrate_thread, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, &_vibrate_task); /* XXX: allocate statically later */
-    assert(rv == pdPASS);
-    
+
+    _vibrate_queue = xQueueCreateStatic(VIBRATE_QUEUE_MAX_ITEMS, sizeof(VibratePattern_t *), _vibrate_queue_contents, &_vibrate_queue_buf);
+    _vibrate_task = xTaskCreateStatic(_vibrate_thread, "Vibrate", configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 2UL, _vibrate_task_stack, &_vibrate_task_buf);
     
     return 0;
 }
