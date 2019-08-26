@@ -16,6 +16,7 @@
 #include "power.h"
 #include "qemu.h"
 #include "blob_db_ramfs.h"
+#include "rtoswrap.h"
 
 typedef uint8_t (*mod_callback)(void);
 static TaskHandle_t _os_task;
@@ -32,13 +33,8 @@ typedef struct os_msg_t {
     size_t len;
 } os_msg;
 
-#define _QUEUE_LENGTH    2
-#define _ITEM_SIZE       sizeof( os_msg )
-
-static StaticQueue_t _os_queue;
-static uint8_t _os_queue_buf[_QUEUE_LENGTH * _ITEM_SIZE];
-static QueueHandle_t _os_queue_handle;
-
+QUEUE_DEFINE(os, os_msg, 2);
+THREAD_DEFINE(os, 1920, tskIDLE_PRIORITY + 6UL, _os_thread);
 
 SystemSettings _system_settings = 
 {
@@ -50,14 +46,8 @@ SystemSettings _system_settings =
 void rebbleos_init(void)
 {   
     _os_init_sem = xSemaphoreCreateBinary();
-    _os_queue_handle = xQueueCreateStatic( _QUEUE_LENGTH,
-                                 _ITEM_SIZE,
-                                 _os_queue_buf,
-                                 &_os_queue );
-
-    configASSERT( _os_queue_handle );
-    
-    xTaskCreate(_os_thread, "OS", 1920, NULL, tskIDLE_PRIORITY + 6UL, &_os_task);
+    QUEUE_CREATE(os);
+    THREAD_CREATE(os);
 }
 
 char buf[100];
@@ -98,7 +88,7 @@ static void _os_thread(void *pvParameters)
     while(1)
     {
         /* block forever in slumber? */
-        if(xQueueReceive(_os_queue_handle, &(msg), pdMS_TO_TICKS(1000)))
+        if(xQueueReceive(QUEUE_HANDLE(os), &(msg), pdMS_TO_TICKS(1000)))
         {
             bluetooth_send((uint8_t *)msg.data, msg.len);
         }
@@ -126,7 +116,7 @@ void send_os_msg(char *data, size_t len)
         .data = data,
         .len = len
     };
-    xQueueSendFromISR(_os_queue_handle, &msg, NULL);
+    xQueueSendFromISR(QUEUE_HANDLE(os), &msg, NULL);
 }
 
 
