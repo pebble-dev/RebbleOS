@@ -1,25 +1,25 @@
 #include "strftime.h"
 #include <string.h>
 
-static const char *s_abbrWeekday[] = {
+static const char *const s_abbrWeekday[] = {
 	"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"
 };
-static const char *s_weekday[] = {
+static const char *const s_weekday[] = {
 	"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
 };
-static const char *s_abbrMonth[] = {
+static const char *const s_abbrMonth[] = {
 	"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
-static const char *s_month[] = {
+static const char *const s_month[] = {
 	"January", "February", "March", "April", "May", "June", "July",
 	"August", "September","October", "November", "December"
 };
-static const char *s_12hourSpec[] = {
+static const char *const s_12hourSpec[] = {
 	"AM", "PM"
 };
-static const char *s_prefDateTimeFormat = "%a %b %e %H:%M:%S %Y";
-static const char *s_prefTimeFormat = "%H:%M:%S";
-static const char *s_prefDateFormat = "%m/%d/%y";
+static const char *const s_prefDateTimeFormat = "%a %b %e %H:%M:%S %Y";
+static const char *const s_prefTimeFormat = "%H:%M:%S";
+static const char *const s_prefDateFormat = "%m/%d/%y";
 
 static size_t prv_getCharLength(char firstChar) {
 	unsigned char firstByte = (unsigned char)firstChar;
