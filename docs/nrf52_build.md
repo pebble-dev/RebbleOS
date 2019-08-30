@@ -26,6 +26,18 @@ On my Mac, this contains:
 You can then build for Asterix-family devices by running `make asterix` or
 `make asterix_vla_dvb1`.
 
+Here are commands to do some of these things:
+
+    cd ~/pebble-dev
+    wget https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5/Binaries/nRF5SDK153059ac345.zip
+    unzip nRF5SDK153059ac345.zip
+    git clone https://github.com/pebble-dev/RebbleOS
+    cd RebbleOS
+    git checkout asterix
+    echo "NRF52_SDK_PATH=$HOME/pebble-dev/nRF5_SDK_15.3.0_59ac345" > localconfig.mk
+    echo "PEBBLE_TOOLCHAIN_PATH=/usr/bin" >> localconfig.mk
+    make asterix
+
 # Getting started on Asterix-family devices
 
 Booting RebbleOS on Asterix-family devices takes some doing to get initially
