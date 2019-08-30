@@ -6,6 +6,7 @@
  */
 #include "qemu.h"
 #include "hw_qemu.h"
+#include "FreeRTOS.h"
 #include "task.h"
 #include "log.h"
 #include "rebbleos.h"

@@ -1,5 +1,6 @@
 #pragma once
 #include "platform.h"
+#include <stddef.h>
 
 void hw_qemu_init(void);
 size_t hw_qemu_read(void *buffer, size_t max_len);

@@ -1,3 +1,5 @@
+#if defined(STM32F2XX) || defined(STM32F4XX)
+
 #include "hw_qemu.h"
 #include "stm32_usart.h"
 #include "stm32_power.h"
@@ -55,3 +57,33 @@ void hw_qemu_irq_enable(void)
 {
     stm32_usart_rx_irq_enable(&_usart2, ENABLE);
 }
+
+#else
+
+#include <stddef.h>
+
+void _hw_qemu_rx(void);
+
+void hw_qemu_init(void)
+{
+}
+
+void _hw_qemu_rx(void)
+{
+}
+
+size_t hw_qemu_read(void *buffer, size_t max_len)
+{
+    return 0;
+}
+
+size_t hw_qemu_write(const void *buffer, size_t len)
+{
+    return len;
+}
+
+void hw_qemu_irq_enable(void)
+{
+}
+
+#endif

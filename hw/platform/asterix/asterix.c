@@ -131,3 +131,6 @@ void rtc_init() { }
 
 static struct tm tm;
 struct tm *hw_get_time(void) { return &tm; }
+
+void hw_set_time(struct tm *tm) { }
+
