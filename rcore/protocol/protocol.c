@@ -75,7 +75,7 @@ static void _is_rx_buf_expired(void)
     if (!_buf_ptr)
         return;
     TickType_t now = xTaskGetTickCount();
-    if (now - _last_rx > pdMS_TO_TICKS(10))
+    if ((now - _last_rx) > pdMS_TO_TICKS(250))
     {
         LOG_ERROR("RX: Buffer timed out. Reset %d %d", now, _last_rx);
         _buf_ptr = 0;
