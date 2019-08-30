@@ -22,6 +22,7 @@ directory for the SDK using the following.
     tar -jxf pebble-sdk-4.5-linux64.tar.bz2
     echo 'export PATH=~/pebble-dev/pebble-sdk-4.5-linux64/bin:$PATH' >> ~/.bash_profile
     . ~/.bash_profile
+    curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
     sudo apt-get update
     sudo apt-get install python-pip python2.7-dev python-gevent libsdl1.2debian libfdt1 libpixman-1-0 git gcc-arm-none-eabi npm
     pip install virtualenv
