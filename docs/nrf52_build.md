@@ -36,6 +36,7 @@ Here are commands to do some of these things:
     git checkout asterix
     echo "NRF52_SDK_PATH=$HOME/pebble-dev/nRF5_SDK_15.3.0_59ac345" > localconfig.mk
     echo "PEBBLE_TOOLCHAIN_PATH=/usr/bin" >> localconfig.mk
+    git submodule update --init --recursive
     make asterix
 
 # Getting started on Asterix-family devices
