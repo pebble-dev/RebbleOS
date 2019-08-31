@@ -127,7 +127,6 @@ int ramfs_read(struct fd *fd, void *p, size_t size)
     if (size > (fd->file.size - fd->offset))
         size = fd->file.size - fd->offset;
 
-    LOG_DEBUG("RAMFS READ: %d %d,", fd->curpofs, size);
     memcpy(p, fs->data + fd->curpofs, size); 
     fd->curpofs += size;
     fd->offset += size;

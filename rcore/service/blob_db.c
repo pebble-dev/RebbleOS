@@ -19,7 +19,14 @@
 #define MODULE_TYPE "SYS"
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
+#define BLOBDB_FLAG_WRITTEN  1
+/* XXX: add ERASED flag */
 
+typedef struct blobdb_hdr {
+    uint32_t flags;
+    uint16_t key_len;
+    uint16_t data_len;
+} blobdb_hdr;
 
 typedef struct database_t {
     uint8_t id;
@@ -75,13 +82,20 @@ static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_
     char buf[UUID_STRING_BUFFER_LENGTH];
     uint8_t _tmp_key[key_size];
     size_t _data_size = 0;
+    struct blobdb_hdr hdr;
 
     while(idx < file_size)
     {
-        fs_seek(fd, idx + db->key_offset, FS_SEEK_SET);
+        fs_seek(fd, idx, FS_SEEK_SET);
+        if (fs_read(fd, &hdr, sizeof(hdr)) < sizeof(hdr))
+            break;
+        
+        if (hdr.key_len != key_size)
+            goto next;
+        if (!(hdr.flags & BLOBDB_FLAG_WRITTEN))
+            goto next;
+        
         fs_read(fd, _tmp_key, key_size);
-        fs_seek(fd, idx + db->data_size_offset, FS_SEEK_SET);
-        fs_read(fd, &_data_size, db->data_size_bytes);
 
         /* End of file */
         if (uuid_is_int((Uuid  *)_tmp_key, 0xFF))
@@ -97,8 +111,8 @@ static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_
         uuid_to_string((Uuid  *)_tmp_key, buf);
         LOG_DEBUG("NOTIF: %s %d", buf, idx);
 
-        idx += db->hdr_size + _data_size;
-        fs_seek(fd, idx, FS_SEEK_SET);
+next:
+        idx += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
     }
 
     LOG_DEBUG("DB SIZE: %d", idx);
@@ -231,12 +245,17 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
     int idx = 0;
     char buf[UUID_STRING_BUFFER_LENGTH];
     const database *db = _find_database(database_id);
-    uint8_t _tmp_key[db->key_size];
+    struct blobdb_hdr hdr;
 
     while(idx < fd->file.size)
     {
-        fs_seek(fd, idx + db->key_offset, FS_SEEK_SET);
-        fs_read(fd, &_tmp_key, db->key_size);
+        fs_seek(fd, idx, FS_SEEK_SET);
+        if (fs_read(fd, &hdr, sizeof(hdr)) < sizeof(hdr))
+            break;
+        
+        uint8_t _tmp_key[hdr.key_len];
+        if (fs_read(fd, &_tmp_key, hdr.key_len) < hdr.key_len)
+            break;
 
         uint8_t done = 0;
 
@@ -249,11 +268,12 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
 
         bool comp1 = true;
         bool comp2 = true;
-
+        
+        /* XXX: check property sizes vs data_size */
         if (where_property_size && where_offsetof_property)
         {
             uint8_t where_prop[where_property_size];
-            fs_seek(fd, idx + where_offsetof_property, FS_SEEK_SET);
+            fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + where_offsetof_property, FS_SEEK_SET);
             fs_read(fd, where_prop, where_property_size);
 
             comp1 = _compare(operator, where_prop, where_val, where_property_size);
@@ -261,7 +281,7 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
         if (where_property_size1 && where_offsetof_property1)
         {
             uint8_t where_prop1[where_property_size1];
-            fs_seek(fd, idx + where_offsetof_property1, FS_SEEK_SET);
+            fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + where_offsetof_property1, FS_SEEK_SET);
             fs_read(fd, where_prop1, where_property_size1);
 
             comp2 = _compare(operator1, where_prop1, where_val1, where_property_size1);
@@ -274,25 +294,20 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
             list_init_node(&set->node);
 
             set->select1 = app_calloc(1, select1_property_size);
-            fs_seek(fd, idx + select1_offsetof_property, FS_SEEK_SET);
+            fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + select1_offsetof_property, FS_SEEK_SET);
             fs_read(fd, set->select1, select1_property_size);
 
             if (select2_property_size)
             {
                 set->select2 = app_calloc(1, select2_property_size);
-                fs_seek(fd, idx + select2_offsetof_property, FS_SEEK_SET);
+                fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + select2_offsetof_property, FS_SEEK_SET);
                 fs_read(fd, set->select2, select2_property_size);
             }
 
             list_insert_tail(head, &set->node);
         }
 
-        size_t data_size = 0;
-        fs_seek(fd, idx + db->data_size_offset, FS_SEEK_SET);
-        fs_read(fd, &data_size, db->data_size_bytes);
-
-        idx += db->hdr_size + data_size;
-        fs_seek(fd, idx, FS_SEEK_SET);
+        idx += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
     }
 
 //     return head;
@@ -339,18 +354,16 @@ int32_t _blob_db_flash_load_blob(const database *db, Uuid *uuid, uint8_t **data)
     if (!data)
         return idx;
 
+    struct blobdb_hdr hdr;
     fs_seek(&fd, idx, FS_SEEK_SET);
-    *data = app_calloc(1, db->hdr_size);
-    if (fs_read(&fd, *data, db->hdr_size) != db->hdr_size)
+    if (fs_read(&fd, &hdr, sizeof(hdr)) != sizeof(hdr))
         return -1;
 
-    uint32_t data_size = 0;
-    fs_seek(&fd, idx + db->hdr_size, FS_SEEK_SET);
-    memcpy(&data_size, *data + db->data_size_offset, db->data_size_bytes);
-    LOG_DEBUG("Data Size %d", (uint16_t)data_size);
-    *data = app_realloc(*data, db->hdr_size + data_size);
-
-    if (fs_read(&fd, *data + db->hdr_size, data_size) != data_size)
+    LOG_DEBUG("Data Size %d", hdr.data_len);
+    *data = app_calloc(hdr.data_len, 1);
+    
+    fs_seek(&fd, idx + sizeof(hdr) + hdr.key_len, FS_SEEK_SET);
+    if (fs_read(&fd, *data, hdr.data_len) != hdr.data_len)
         return -1;
 
     return idx;
@@ -408,8 +421,17 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     /* in this case we are going to append the message to a fake fs. yay? */
     struct file file;
     struct fd fd;
+    struct blobdb_hdr hdr;
 
     ramfs_open(&fd, &file, database_id);
+    
+    /* XXX: update after the fact when on flash */
+    hdr.flags = BLOBDB_FLAG_WRITTEN;
+    hdr.key_len = key_size;
+    hdr.data_len = data_size;
+    ramfs_write(&fd, &hdr, sizeof(hdr));
+    
+    ramfs_write(&fd, key, key_size);
     ramfs_write(&fd, data, data_size);
 
     return Blob_Success;
