@@ -303,8 +303,8 @@ static void _ppogatt_mgr_main(void *param) {
 void ppogatt_init() {
     /* We can't do queue and task management in interrupt context, so we
      * create a manager thread to stop and start PPoGATT rx/tx threads.  */
-    _task_ppogatt_mgr = xTaskCreateStatic(_ppogatt_mgr_main, "PPoGATT mgr", STACK_SIZE_PPOGATT_MGR, NULL, tskIDLE_PRIORITY + 4UL, _task_ppogatt_mgr_stack, &_task_ppogatt_mgr_tcb);
     _queue_ppogatt_mgr = xQueueCreateStatic(PPOGATT_MGR_QUEUE_SIZE, sizeof(uint8_t), (void *)_queue_ppogatt_mgr_buf, &_queue_ppogatt_mgr_qcb);
+    _task_ppogatt_mgr = xTaskCreateStatic(_ppogatt_mgr_main, "PPoGATT mgr", STACK_SIZE_PPOGATT_MGR, NULL, tskIDLE_PRIORITY + 4UL, _task_ppogatt_mgr_stack, &_task_ppogatt_mgr_tcb);
     
     /* Point the ISRs at us. */
     ble_ppogatt_set_callback_connected(_ppogatt_callback_connected);
