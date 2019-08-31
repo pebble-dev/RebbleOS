@@ -8,6 +8,7 @@
  */
 
 #include "minilib.h"
+#include "debug.h"
 
 /* We have both _memcpy and memcpy, because gcc might be able to do better in lwip.
  * For small things, gcc inlines its memcpy, but for large things, we call out
@@ -69,6 +70,7 @@ void _memcpy_slow(void *dest, const void *src, int bytes)
 
 void *memcpy(void *dest, const void *src, int bytes)
 {
+	assert(bytes >= 0);
 	if (((unsigned int)dest & 3) == ((unsigned int)src & 3))
 		_memcpy_fast(dest, src, bytes);
 	else
