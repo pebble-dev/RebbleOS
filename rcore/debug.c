@@ -12,9 +12,12 @@
 
 #define PANIC_STACK_SIZE (224 / 2)
 
+int in_panic = 0;
+
 static StackType_t _panic_stack[PANIC_STACK_SIZE] CCRAM;
 
 __attribute__((__noreturn__)) static void _panic(const char *s) {
+    in_panic = 1;
     portDISABLE_INTERRUPTS();
     puts("*** PANIC ***");
     puts(s);

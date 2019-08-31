@@ -19,7 +19,12 @@
 static StaticSemaphore_t _dprint_lock_buf;
 static SemaphoreHandle_t _dprint_lock = NULL;
 
+extern int in_panic;
+
 static int _lock() {
+	if (in_panic)
+		return 1;
+	
 	if (!_dprint_lock) {
 		_dprint_lock = xSemaphoreCreateBinaryStatic(&_dprint_lock_buf);
 		xSemaphoreGive(_dprint_lock);
@@ -44,6 +49,9 @@ static int _lock() {
 }
 
 static void _unlock() {
+	if (in_panic)
+		return;
+	
 	if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED)
 		return;
 	
