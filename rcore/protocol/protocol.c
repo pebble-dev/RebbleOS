@@ -124,6 +124,11 @@ bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender tr
     uint16_t pkt_length = (pkt->data[0] << 8) | (pkt->data[1] & 0xff);
     uint16_t pkt_endpoint = (pkt->data[2] << 8) | (pkt->data[3] & 0xff);
 
+    LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
+    
+    if (_buf_ptr < 4) /* not enough data to parse a header */
+        return false;
+
     /* done! (usually) */
     if (pkt_length == 0)
         return false;
@@ -134,22 +139,20 @@ bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender tr
         LOG_ERROR("RX: payload length %d. Seems suspect!", pkt_length);
         return false;
     }
-    LOG_INFO("RX: %d %d", pkt_length, _buf_ptr);
+
     if (_buf_ptr < pkt_length + 4)
     {
-        LOG_INFO("RX: Partial. Still waiting for %d bytes", pkt_length - 4 - _buf_ptr);
+        LOG_INFO("RX: Partial. Still waiting for %d bytes", (pkt_length + 4) - _buf_ptr);
         return false;
     }
 
-    LOG_INFO("RX: GOOD packet. len %d end %d", pkt_length, pkt_endpoint);
+    LOG_INFO("RX: packet is complete");
 
     /* it's a valid packet. fill out passed packet and finish up */
     pkt->length = pkt_length;
     pkt->endpoint = pkt_endpoint;
     pkt->data = pkt->data + 4;
     pkt->transport_sender = transport;
-
-    LOG_INFO("RX: Done");
 
     return true;
 }

@@ -112,20 +112,12 @@ static void _ppogatt_rx_main(void *param) {
         
         xQueueReceive(_queue_ppogatt_rx, &pkt, portMAX_DELAY); /* does not fail, since we wait forever */
         
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: did rx %d bytes, cmd %02x", pkt.len, pkt.buf[0]);
-        
         uint8_t cmd = pkt.buf[0] & 7;
         uint8_t seq = pkt.buf[0] >> 3;
         
         switch (cmd) {
         case PPOGATT_CMD_DATA:
-            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: data: %02x %02x %02x %02x %02x %02x",
-                pkt.buf[0], 
-                pkt.buf[1], 
-                pkt.buf[2], 
-                pkt.buf[3], 
-                pkt.buf[4],
-                pkt.buf[5]);
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: data seq %d", seq);
             bluetooth_data_rx(pkt.buf + 1, pkt.len - 1);
             
             /* Send an ACK (not that Gadgetbridge cares... */
