@@ -49,11 +49,11 @@ void debug_write(const unsigned char *p, size_t len) {
         if (*p == '\n') {
             unsigned char c = '\r';
             err = nrfx_uart_tx(&debug_uart, &c, 1);
-            assert(err == NRFX_SUCCESS);
+            /* assert(err == NRFX_SUCCESS); */
         }
         
         err = nrfx_uart_tx(&debug_uart, p, 1);
-        assert(err == NRFX_SUCCESS);
+        /* assert(err == NRFX_SUCCESS); */
         
         len--;
         p++;
