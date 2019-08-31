@@ -135,6 +135,7 @@
 #define INCLUDE_vTaskDelayUntil   1
 #define INCLUDE_vTaskDelay    1
 #define INCLUDE_xTaskGetCurrentTaskHandle 1
+#define INCLUDE_xTaskGetSchedulerState 1
 // #define INCLUDE_xSemaphoreGetMutexHolder 1
 
 /* Cortex-M specific definitions. */

@@ -11,16 +11,76 @@
 
 #include "platform.h"
 #include <minilib.h>
+#include "FreeRTOS.h"
+#include "semphr.h"
+#include "task.h"
+#include "portmacro.h"
+
+static StaticSemaphore_t _dprint_lock_buf;
+static SemaphoreHandle_t _dprint_lock = NULL;
+
+static int _lock() {
+	if (!_dprint_lock) {
+		_dprint_lock = xSemaphoreCreateBinaryStatic(&_dprint_lock_buf);
+		xSemaphoreGive(_dprint_lock);
+	}
+	
+	if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED)
+		return 1;
+	
+	if (xPortIsInsideInterrupt()) {
+		BaseType_t dmy;
+		
+		if (!xSemaphoreTakeFromISR(_dprint_lock, &dmy)) {
+			return 0;
+		}
+		
+		return 1;
+	}
+	
+	xSemaphoreTake(_dprint_lock, portMAX_DELAY);
+	
+	return 1;
+}
+
+static void _unlock() {
+	if (xTaskGetSchedulerState() == taskSCHEDULER_NOT_STARTED)
+		return;
+	
+	if (xPortIsInsideInterrupt()) {
+		BaseType_t dmy;
+		
+		xSemaphoreGiveFromISR(_dprint_lock, &dmy);
+		
+		return;
+	}
+	
+	xSemaphoreGive(_dprint_lock);
+}
 
 int putchar(int c) {
 	unsigned char _c = c;
+	
+	if (!_lock())
+		return c;
+	
 	debug_write(&_c, 1);
+	
+	_unlock();
+	
 	return c;
 }
 
 int puts(const char *s) {
+	if (!_lock())
+		return 0;
+	
 	debug_write((const unsigned char *)s, strlen(s));
+	
+	_unlock();
+	
 	putchar('\n');
+	
 	return 0;
 }
 
