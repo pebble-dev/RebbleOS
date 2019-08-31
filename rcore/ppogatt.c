@@ -83,12 +83,12 @@ static StackType_t  _task_ppogatt_tx_stack[STACK_SIZE_PPOGATT_TX];
  * packets by allocating from a variable-sized pool, so we don't waste a
  * whole queue entry when we potentially only need an ACK's worth of data */
 
-#define PPOGATT_MTU 256
+#define PPOGATT_MTU 128
 
 /* XXX: need to do MTU detection */
 #define PPOGATT_TX_MTU 20
 
-#define PPOGATT_RX_QUEUE_SIZE 4
+#define PPOGATT_RX_QUEUE_SIZE 8
 #define PPOGATT_TX_QUEUE_SIZE 4
 
 struct ppogatt_packet {
@@ -104,6 +104,8 @@ static QueueHandle_t         _queue_ppogatt_tx = 0;
 static StaticQueue_t         _queue_ppogatt_tx_qcb;
 static struct ppogatt_packet _queue_ppogatt_tx_buf[PPOGATT_TX_QUEUE_SIZE];
 
+static int pktslost = 0;
+
 static void _ppogatt_rx_main(void *param) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: rx thread awake");
 
@@ -111,6 +113,11 @@ static void _ppogatt_rx_main(void *param) {
         static struct ppogatt_packet pkt;
         
         xQueueReceive(_queue_ppogatt_rx, &pkt, portMAX_DELAY); /* does not fail, since we wait forever */
+        
+        if (pktslost) {
+            pktslost = 0;
+            DRV_LOG("bt", APP_LOG_LEVEL_ERROR, "rx: packet lost!");
+        }
         
         uint8_t cmd = pkt.buf[0] & 7;
         uint8_t seq = pkt.buf[0] >> 3;
@@ -191,7 +198,11 @@ static void _ppogatt_callback_rx(const uint8_t *buf, size_t len) {
     _ppogatt_rx_msg.len = len;
     
     /* If it fails, we'll retransmit later -- ignore the return. */
-    (void) xQueueSendFromISR(_queue_ppogatt_rx, &_ppogatt_rx_msg, &woken);
+    int rv;
+    rv = xQueueSendFromISR(_queue_ppogatt_rx, &_ppogatt_rx_msg, &woken);
+    
+    if (!rv)
+        pktslost++;
     
     portYIELD_FROM_ISR(woken);
 }
