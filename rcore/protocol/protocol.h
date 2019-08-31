@@ -24,6 +24,7 @@ uint8_t protocol_rx_buffer_append(uint8_t *data, size_t len);
 uint16_t protocol_get_rx_buf_size(void);
 uint8_t *protocol_rx_buffer_request(void);
 void protocol_rx_buffer_release(uint16_t len);
+void protocol_rx_buffer_consume(uint16_t len);
 EndpointHandler protocol_find_endpoint_handler(uint16_t protocol, const PebbleEndpoint *endpoint);
 uint8_t *protocol_get_rx_buffer(void);
 

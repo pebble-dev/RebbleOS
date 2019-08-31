@@ -113,6 +113,13 @@ void protocol_rx_buffer_release(uint16_t len)
     _buf_ptr += len;
 }
 
+void protocol_rx_buffer_consume(uint16_t len)
+{
+    _last_rx = xTaskGetTickCount();
+    memmove(_rx_buffer, _rx_buffer + len, _buf_ptr - len);
+    _buf_ptr -= len;
+}
+
 /*
  * Parse a packet in the buffer. Will fill the given pbl_transport with
  * the parsed data
@@ -177,21 +184,6 @@ void protocol_process_packet(const pbl_transport_packet *pkt)
     }
 
     handler(pkt);
-
-    if (_buf_ptr - (pkt->data - _rx_buffer) > pkt->length + 4)
-    {
-        /* Theres more data */
-        uint16_t bstart = pkt->length + 4;
-        LOG_INFO("RX: MORE %d %d", pkt->length, _buf_ptr);
-
-        for(uint16_t i = 0; i < _buf_ptr - bstart; i++)
-        {
-            _rx_buffer[i] = _rx_buffer[bstart + i];
-        }
-        _buf_ptr = _buf_ptr - bstart;
-        return;
-    }
-    _buf_ptr = 0;
 }
 
 /*

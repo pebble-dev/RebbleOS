@@ -169,14 +169,18 @@ void bluetooth_data_rx(uint8_t *data, size_t len)
     pbl_transport_packet pkt;
     protocol_rx_buffer_append(data, len);
     
-    pkt.data = protocol_get_rx_buffer();
-    pkt.length = protocol_get_rx_buf_size();
+    while (protocol_get_rx_buf_size() > 0) {
+        pkt.data = protocol_get_rx_buffer();
+        pkt.length = protocol_get_rx_buf_size();
+    
+        if (!protocol_parse_packet(&pkt, bluetooth_send_data))
+            return; // we are done, no point looking as we have no data left
 
-    if (!protocol_parse_packet(&pkt, bluetooth_send_data))
-        return; // we are done, no point looking as we have no data left
-
-    // seems legit
-    protocol_process_packet(&pkt);
+        // seems legit
+        protocol_process_packet(&pkt);
+    
+        protocol_rx_buffer_consume(pkt.length + 4);
+    }
 }
 
 /*
