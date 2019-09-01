@@ -129,18 +129,6 @@ UNIMPL(_rot_bitmap_layer_set_angle);
 UNIMPL(_rot_bitmap_layer_set_corner_clip_color_2bit);
 UNIMPL(_rot_bitmap_set_compositing_mode);
 UNIMPL(_rot_bitmap_set_src_ic);
-UNIMPL(_text_layer_legacy2_create);
-UNIMPL(_text_layer_legacy2_destroy);
-UNIMPL(_text_layer_legacy2_get_content_size);
-UNIMPL(_text_layer_legacy2_get_layer);
-UNIMPL(_text_layer_legacy2_get_text);
-UNIMPL(_text_layer_legacy2_set_background_color_2bit);
-UNIMPL(_text_layer_legacy2_set_font);
-UNIMPL(_text_layer_legacy2_set_overflow_mode);
-UNIMPL(_text_layer_legacy2_set_size);
-UNIMPL(_text_layer_legacy2_set_text);
-UNIMPL(_text_layer_legacy2_set_text_alignment);
-UNIMPL(_text_layer_legacy2_set_text_color_2bit);
 UNIMPL(_window_set_status_bar_icon);
 UNIMPL(_app_focus_service_subscribe);
 UNIMPL(_app_focus_service_unsubscribe);
@@ -424,6 +412,18 @@ const VoidFunc sym[] = {
     [246] = (VoidFunc)strncat,                                                                 // strncat@000003d8                                                                                               
     [247] = (VoidFunc)strncmp,                                                                 // strncmp@000003dc
     [248] = (VoidFunc)strncpy,                                                                 // strncpy@000003e0
+    [249] = (VoidFunc)text_layer_legacy2_create,                                            // text_layer_legacy2_create@000003e4
+    [250] = (VoidFunc)text_layer_legacy2_destroy,                                           // text_layer_legacy2_destroy@000003e8
+    [251] = (VoidFunc)text_layer_legacy2_get_content_size,                                  // text_layer_legacy2_get_content_size@000003ec
+    [252] = (VoidFunc)text_layer_legacy2_get_layer,                                         // text_layer_legacy2_get_layer@000003f0
+    [253] = (VoidFunc)text_layer_legacy2_get_text,                                          // text_layer_legacy2_get_text@000003f4
+    [254] = (VoidFunc)text_layer_legacy2_set_background_color_2bit,                         // text_layer_legacy2_set_background_color_2bit@000003f8
+    [255] = (VoidFunc)text_layer_legacy2_set_font,                                          // text_layer_legacy2_set_font@000003fc
+    [256] = (VoidFunc)text_layer_legacy2_set_overflow_mode,                                 // text_layer_legacy2_set_overflow_mode@00000400
+    [257] = (VoidFunc)text_layer_legacy2_set_size,                                          // text_layer_legacy2_set_size@00000404
+    [258] = (VoidFunc)text_layer_legacy2_set_text,                                          // text_layer_legacy2_set_text@00000408
+    [259] = (VoidFunc)text_layer_legacy2_set_text_alignment,                                // text_layer_legacy2_set_text_alignment@0000040c
+    [260] = (VoidFunc)text_layer_legacy2_set_text_color_2bit,                               // text_layer_legacy2_set_text_color_2bit@00000410
                                                                                                
     [262] = (VoidFunc)tick_timer_service_subscribe,                                            // tick_timer_service_subscribe@00000418
     [263] = (VoidFunc)tick_timer_service_unsubscribe,                                          // tick_timer_service_unsubscribe@0000041c
@@ -799,18 +799,6 @@ const VoidFunc sym[] = {
     [214] = (UnimplFunc)_rot_bitmap_layer_set_corner_clip_color_2bit,                          // rot_bitmap_layer_set_corner_clip_color_2bit@00000358
     [215] = (UnimplFunc)_rot_bitmap_set_compositing_mode,                                      // rot_bitmap_set_compositing_mode@0000035c
     [216] = (UnimplFunc)_rot_bitmap_set_src_ic,                                                // rot_bitmap_set_src_ic@00000360
-    [249] = (UnimplFunc)_text_layer_legacy2_create,                                            // text_layer_legacy2_create@000003e4
-    [250] = (UnimplFunc)_text_layer_legacy2_destroy,                                           // text_layer_legacy2_destroy@000003e8
-    [251] = (UnimplFunc)_text_layer_legacy2_get_content_size,                                  // text_layer_legacy2_get_content_size@000003ec
-    [252] = (UnimplFunc)_text_layer_legacy2_get_layer,                                         // text_layer_legacy2_get_layer@000003f0
-    [253] = (UnimplFunc)_text_layer_legacy2_get_text,                                          // text_layer_legacy2_get_text@000003f4
-    [254] = (UnimplFunc)_text_layer_legacy2_set_background_color_2bit,                         // text_layer_legacy2_set_background_color_2bit@000003f8
-    [255] = (UnimplFunc)_text_layer_legacy2_set_font,                                          // text_layer_legacy2_set_font@000003fc
-    [256] = (UnimplFunc)_text_layer_legacy2_set_overflow_mode,                                 // text_layer_legacy2_set_overflow_mode@00000400
-    [257] = (UnimplFunc)_text_layer_legacy2_set_size,                                          // text_layer_legacy2_set_size@00000404
-    [258] = (UnimplFunc)_text_layer_legacy2_set_text,                                          // text_layer_legacy2_set_text@00000408
-    [259] = (UnimplFunc)_text_layer_legacy2_set_text_alignment,                                // text_layer_legacy2_set_text_alignment@0000040c
-    [260] = (UnimplFunc)_text_layer_legacy2_set_text_color_2bit,                               // text_layer_legacy2_set_text_color_2bit@00000410
     [277] = (UnimplFunc)_window_set_background_color_2bit,                                     // window_set_background_color_2bit@00000454
     [281] = (UnimplFunc)_window_set_status_bar_icon,                                           // window_set_status_bar_icon@00000464
     [289] = (UnimplFunc)_app_focus_service_subscribe,                                          // app_focus_service_subscribe@00000484
