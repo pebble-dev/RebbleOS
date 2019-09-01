@@ -29,6 +29,8 @@ void nivz_main(void);
 #define APPDB_DBFLAGS_OVERWRITING 2
 #define APPDB_DBFLAGS_DEAD 4
 
+#define APPDB_FLAGS_IS_WATCHFACE 1
+
 #define APPDB_IS_EOF(ent) (((ent).last_modified == 0xFFFFFFFF) && ((ent).hash == 0xFF) && ((ent).dbflags == 0x3F) && ((ent).key_length == 0x7F) && ((ent).value_length == 0x7FF))
 
 struct appdb
@@ -179,15 +181,15 @@ static void _appmanager_flash_load_app_manifest(void)
             * TODO
             * crc32....(header.header)
             */
-        KERN_LOG("app", APP_LOG_LEVEL_INFO, "appdb: app \"%s\" found, flags %08x, icon %08x", header.name, appdb.flags, appdb.icon);
+        KERN_LOG("app", APP_LOG_LEVEL_INFO, "appdb: app \"%s\" found, id %08x, flags %02x, kl %d, vl %d, flags %08x, icon %08x", header.name, appdb.application_id, appdb.dbflags, appdb.key_length, appdb.value_length, appdb.flags, appdb.icon);
 
         /* main gets set later */
         _appmanager_add_to_manifest(_appmanager_create_app(header.name,
-                                                            APP_TYPE_FACE,
-                                                            NULL,
-                                                            false,
-                                                            &app_file,
-                                                            &res_file));
+                                                           (appdb.flags & APPDB_FLAGS_IS_WATCHFACE) ? APP_TYPE_FACE : APP_TYPE_APP,
+                                                           NULL,
+                                                           false,
+                                                           &app_file,
+                                                           &res_file));
     }
 }
 

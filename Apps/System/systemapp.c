@@ -67,8 +67,26 @@ static MenuItems* watch_list_item_selected(const MenuItem *item) {
     list_foreach(app, app_head, App, node)
     {
         if ((!strcmp(app->name, "System")) ||
-            //             (!strcmp(node->name, "91 Dub 4.0")) ||
-            (!strcmp(app->name, "watchface")))
+            (!strcmp(app->name, "watchface")) ||
+            app->type != APP_TYPE_FACE)
+        {
+            continue;
+        }
+        menu_items_add(items, MenuItem(app->name, NULL, RESOURCE_ID_CLOCK, app_item_selected));
+    }
+    return items;
+}
+
+static MenuItems* app_list_item_selected(const MenuItem *item) {
+    MenuItems *items = menu_items_create(16);
+    // loop through all apps
+    list_head * app_head = app_manager_get_apps_head();
+    App * app;
+    list_foreach(app, app_head, App, node)
+    {
+        if ((!strcmp(app->name, "System")) ||
+            (!strcmp(app->name, "watchface")) ||
+            app->type == APP_TYPE_FACE)
         {
             continue;
         }
@@ -99,8 +117,9 @@ static void systemapp_window_load(Window *window)
 
     menu_set_click_config_onto_window(s_menu, window);
 
-    MenuItems *items = menu_items_create(5);
+    MenuItems *items = menu_items_create(6);
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", RESOURCE_ID_CLOCK, watch_list_item_selected));
+    menu_items_add(items, MenuItem("Apps", "Get appy", RESOURCE_ID_CLOCK, app_list_item_selected));
     menu_items_add(items, MenuItem("Settings", "Config", RESOURCE_ID_SPANNER, settings_item_selected));
     menu_items_add(items, MenuItem("Tests", NULL, RESOURCE_ID_CLOCK, run_test_item_selected));
     menu_items_add(items, MenuItem("Notifications", NULL, RESOURCE_ID_SPEECH_BUBBLE, notification_item_selected));

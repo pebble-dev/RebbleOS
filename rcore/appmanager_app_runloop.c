@@ -145,13 +145,14 @@ void app_event_loop(void)
     
     window_configure(window_stack_get_top_window());
     
-    /* Install our own handler to hijack the long back press
-     * window_long_click_subscribe(BUTTON_ID_BACK, 1100, back_long_click_handler, back_long_click_release_handler);
-     */
-    
-    if (_running_app->type != APP_TYPE_SYSTEM)
+    if (_running_app->type == APP_TYPE_FACE)
     {
         window_single_click_subscribe(BUTTON_ID_SELECT, app_select_single_click_handler);
+    }
+    
+    if (_running_app->type == APP_TYPE_APP)
+    {
+        window_long_click_subscribe(BUTTON_ID_BACK, 1100, back_long_click_handler, back_long_click_release_handler);
     }
     
     
@@ -268,6 +269,7 @@ void back_long_click_handler(ClickRecognizerRef recognizer, void *context)
             LOG_DEBUG("TODO: Quiet time");
             break;
         case APP_TYPE_SYSTEM:
+        case APP_TYPE_APP:
             // quit the app
             appmanager_app_start("Simple");
             break;
