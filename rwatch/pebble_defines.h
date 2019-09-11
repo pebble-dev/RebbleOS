@@ -30,6 +30,12 @@
 #error Add the new platform to PBL_PLATFORM_SWITCH in pebble_defines.h
 #endif
 
+#ifdef PBL_COLOR
+#define PBL_IF_COLOR_ELSE(color, bw) (color)
+#else
+#define PBL_IF_COLOR_ELSE(color, bw) (bw)
+#endif
+
 #define GCompOp n_GCompOp
 #define GCompOpAssign n_GCompOpAssign
 #define GCompOpAssignInverted n_GCompOpAssignInverted
