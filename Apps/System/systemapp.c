@@ -203,7 +203,7 @@ static void about_update_proc(Layer *layer, GContext *nGContext)
 	graphics_draw_text(nGContext, "Join us!", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+20, 140, 20),
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
 
-	graphics_draw_text(nGContext, "discord.gg/aRUAYFN", fonts_get_system_font(FONT_KEY_GOTHIC_18), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+35, 140, 20),
+	graphics_draw_text(nGContext, "https://rebble.io/discord", fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+38, 140, 20),
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
 
     #ifdef PBL_BW
@@ -213,7 +213,7 @@ static void about_update_proc(Layer *layer, GContext *nGContext)
     #else
         graphics_draw_bitmap_in_rect(nGContext, gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_DARK), GRect((bounds.size.w/2)-17, (bounds.size.h/2)-63, 34, 53));
         graphics_draw_bitmap_in_rect(nGContext, gbitmap_create_with_resource(RESOURCE_ID_TO_MOON), GRect((bounds.size.w/2)-8, (bounds.size.h/2)+60, 19, 19));
-    #endif
+    #endif    
 }
 
 static void about_window_unload(Window *window)
