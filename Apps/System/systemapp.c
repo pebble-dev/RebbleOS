@@ -14,9 +14,17 @@
 #include "node_list.h"
 
 extern void flash_dump(void);
+extern const char git_version[];
 
 static Window *s_main_window;
 static Menu *s_menu;
+
+static Window *s_about_window;
+static Layer *s_aboutCanvas_layer;
+static ScrollLayer *s_about_scroll;
+static void about_update_proc(Layer *layer, GContext *nGContext);
+static GBitmap *logo_bitmap;
+static GBitmap *rocket_bitmap;
 
 StatusBarLayer *status_bar;
 
@@ -56,6 +64,12 @@ static MenuItems* run_test_item_selected(const MenuItem *item)
 static MenuItems* notification_item_selected(const MenuItem *item)
 {
     appmanager_app_start("Notification");
+    return NULL;
+}
+
+static MenuItems* about_item_selected(const MenuItem *item)
+{
+    window_stack_push(s_about_window, false);
     return NULL;
 }
 
@@ -123,7 +137,7 @@ static void systemapp_window_load(Window *window)
     menu_items_add(items, MenuItem("Settings", "Config", RESOURCE_ID_SPANNER, settings_item_selected));
     menu_items_add(items, MenuItem("Tests", NULL, RESOURCE_ID_CLOCK, run_test_item_selected));
     menu_items_add(items, MenuItem("Notifications", NULL, RESOURCE_ID_SPEECH_BUBBLE, notification_item_selected));
-    menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.2", RESOURCE_ID_SPEECH_BUBBLE, NULL));
+    menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.2", RESOURCE_ID_SPEECH_BUBBLE, about_item_selected));
     menu_set_items(s_menu, items);
 
 #ifdef PBL_RECT
@@ -140,6 +154,76 @@ static void systemapp_window_unload(Window *window)
     menu_destroy(s_menu);
 }
 
+static void window_exit_handler(ClickRecognizerRef recognizer, void *context)
+{
+    window_stack_pop(true);  
+}
+
+static void about_window_load(Window *window)
+{
+    Layer *window_layer = window_get_root_layer(s_about_window);
+    GRect bounds = layer_get_bounds(window_layer);
+
+    status_bar = status_bar_layer_create();
+    status_bar_layer_set_separator_mode(status_bar, StatusBarLayerSeparatorModeDotted);
+
+    status_bar_layer_set_colors(status_bar, PBL_IF_COLOR_ELSE(GColorRed,GColorBlack), GColorWhite);
+
+    status_bar_layer_set_text(status_bar, "About RebbleOS");
+
+    s_about_scroll = scroll_layer_create(bounds);
+    scroll_layer_set_click_config_onto_window(s_about_scroll, window);
+
+	s_aboutCanvas_layer = layer_create(bounds);
+    layer_set_update_proc(s_aboutCanvas_layer, about_update_proc);
+	scroll_layer_add_child(s_about_scroll, s_aboutCanvas_layer);	
+	layer_mark_dirty(s_aboutCanvas_layer);
+
+    layer_add_child(window_layer, scroll_layer_get_layer(s_about_scroll));
+    layer_add_child(window_layer, status_bar_layer_get_layer(status_bar));
+
+    #ifdef PBL_BW
+         //TODO: Get black and white rocket bitmap for Classic
+        logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_BW);
+        rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON_BW);       
+    #else
+        logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_DARK);
+        rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON);
+    #endif
+
+}
+
+static void about_update_proc(Layer *layer, GContext *nGContext)
+{  
+	GRect bounds = layer_get_unobstructed_bounds(layer);
+	graphics_context_set_text_color(nGContext, GColorBlack);
+    graphics_context_set_compositing_mode(nGContext, GCompOpSet);
+
+    window_single_click_subscribe(BUTTON_ID_BACK, window_exit_handler);
+
+	graphics_draw_text(nGContext, "Version:", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect((bounds.size.w/2)-70, (bounds.size.h/2)-10, 140, 20),
+                               GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
+
+	graphics_draw_text(nGContext, git_version, fonts_get_system_font(FONT_KEY_GOTHIC_18), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+5, 140, 20),
+                               GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
+
+	graphics_draw_text(nGContext, "Join us!", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+20, 140, 20),
+                               GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
+
+	graphics_draw_text(nGContext, "https://rebble.io/discord", fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+38, 140, 20),
+                               GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
+
+    graphics_draw_bitmap_in_rect(nGContext, logo_bitmap, GRect((bounds.size.w/2)-17, (bounds.size.h/2)-63, 34, 53));
+    graphics_draw_bitmap_in_rect(nGContext, rocket_bitmap, GRect((bounds.size.w/2)-8, (bounds.size.h/2)+60, 19, 19));
+}
+
+static void about_window_unload(Window *window)
+{
+    scroll_layer_destroy(s_about_scroll);
+    gbitmap_destroy(logo_bitmap);
+    gbitmap_destroy(rocket_bitmap);
+}
+
 void systemapp_init(void)
 {
     s_main_window = window_create();
@@ -149,12 +233,20 @@ void systemapp_init(void)
         .unload = systemapp_window_unload,
     });
 
+    s_about_window = window_create();
+
+    window_set_window_handlers(s_about_window, (WindowHandlers) {
+        .load = about_window_load,
+        .unload = about_window_unload,
+    });
+
     window_stack_push(s_main_window, true);
 }
 
 void systemapp_deinit(void)
 {
     window_destroy(s_main_window);
+    window_destroy(s_about_window);
 }
 
 void systemapp_main(void)
