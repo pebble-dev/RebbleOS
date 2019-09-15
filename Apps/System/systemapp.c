@@ -23,10 +23,8 @@ static Window *s_about_window;
 static Layer *s_aboutCanvas_layer;
 static ScrollLayer *s_about_scroll;
 static void about_update_proc(Layer *layer, GContext *nGContext);
-static GBitmap *logo_color;
-static GBitmap *rocket_color;
-static GBitmap *logo_bw;
-static GBitmap *rocket_color;
+static GBitmap *logo_bitmap;
+static GBitmap *rocket_bitmap;
 
 StatusBarLayer *status_bar;
 
@@ -169,12 +167,7 @@ static void about_window_load(Window *window)
     status_bar = status_bar_layer_create();
     status_bar_layer_set_separator_mode(status_bar, StatusBarLayerSeparatorModeDotted);
 
-    #ifdef PBL_BW
-        status_bar_layer_set_colors(status_bar, GColorBlack, GColorWhite);
-    #else
-        status_bar_layer_set_colors(status_bar, GColorRed, GColorWhite);
-    #endif
-
+    status_bar_layer_set_colors(status_bar, PBL_IF_COLOR_ELSE(GColorRed,GColorBlack), GColorWhite);
 
     status_bar_layer_set_text(status_bar, "About RebbleOS");
 
@@ -190,11 +183,12 @@ static void about_window_load(Window *window)
     layer_add_child(window_layer, status_bar_layer_get_layer(status_bar));
 
     #ifdef PBL_BW
-        logo_bw = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_BW);
-        //TODO: rocket_bw = 
+         //TODO: Get black and white rocket bitmap for Classic
+        logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_BW);
+        rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON_BW);       
     #else
-        logo_color = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_DARK);
-        rocket_color = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON);
+        logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_DARK);
+        rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON);
     #endif
 
 }
@@ -219,21 +213,15 @@ static void about_update_proc(Layer *layer, GContext *nGContext)
 	graphics_draw_text(nGContext, "https://rebble.io/discord", fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+38, 140, 20),
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
 
-    #ifdef PBL_BW
-        graphics_draw_bitmap_in_rect(nGContext, logo_bw, GRect((bounds.size.w/2)-17, (bounds.size.h/2)-63, 34, 53));
-        //TODO: Get black and white rocket bitmap for Classic
-        //graphics_draw_bitmap_in_rect(nGContext, gbitmap_create_with_resource(RESOURCE_ID_TO_MOON_BW), GRect((bounds.size.w/2)-8, (bounds.size.h/2)+60, 19, 19));
-    #else
-        graphics_draw_bitmap_in_rect(nGContext, logo_color, GRect((bounds.size.w/2)-17, (bounds.size.h/2)-63, 34, 53));
-        graphics_draw_bitmap_in_rect(nGContext, rocket_color, GRect((bounds.size.w/2)-8, (bounds.size.h/2)+60, 19, 19));
-    #endif    
+    graphics_draw_bitmap_in_rect(nGContext, logo_bitmap, GRect((bounds.size.w/2)-17, (bounds.size.h/2)-63, 34, 53));
+    graphics_draw_bitmap_in_rect(nGContext, rocket_bitmap, GRect((bounds.size.w/2)-8, (bounds.size.h/2)+60, 19, 19));
 }
 
 static void about_window_unload(Window *window)
 {
     scroll_layer_destroy(s_about_scroll);
-    gbitmap_destroy(logo_color);
-    gbitmap_destroy(rocket_color);
+    gbitmap_destroy(logo_bitmap);
+    gbitmap_destroy(rocket_bitmap);
 }
 
 void systemapp_init(void)

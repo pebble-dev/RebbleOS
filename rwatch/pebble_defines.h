@@ -14,6 +14,12 @@
 #define PBL_IF_RECT_ELSE(rct, round) (round)
 #endif
 
+#ifdef PBL_BW
+#define PBL_IF_COLOR_ELSE(color, bw) (bw)
+#else
+#define PBL_IF_COLOR_ELSE(color, bw) (color)
+#endif
+
 #if defined REBBLE_PLATFORM_TINTIN
 #define PBL_PLATFORM_SWITCH(tintin, snowy, chalk, diorite, emery) (tintin)
 #elif defined REBBLE_PLATFORM_SNOWY
