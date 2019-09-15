@@ -15,6 +15,7 @@
 
 extern void flash_dump(void);
 extern const char git_version[];
+extern const char *git_authors[];
 
 static Window *s_main_window;
 static Menu *s_menu;
@@ -22,6 +23,7 @@ static Menu *s_menu;
 static Window *s_about_window;
 static Layer *s_aboutCanvas_layer;
 static ScrollLayer *s_about_scroll;
+static int about_did_set_size;
 static void about_update_proc(Layer *layer, GContext *nGContext);
 static GBitmap *logo_bitmap;
 static GBitmap *rocket_bitmap;
@@ -137,7 +139,7 @@ static void systemapp_window_load(Window *window)
     menu_items_add(items, MenuItem("Settings", "Config", RESOURCE_ID_SPANNER, settings_item_selected));
     menu_items_add(items, MenuItem("Tests", NULL, RESOURCE_ID_CLOCK, run_test_item_selected));
     menu_items_add(items, MenuItem("Notifications", NULL, RESOURCE_ID_SPEECH_BUBBLE, notification_item_selected));
-    menu_items_add(items, MenuItem("RebbleOS", "... v0.0.0.2", RESOURCE_ID_SPEECH_BUBBLE, about_item_selected));
+    menu_items_add(items, MenuItem("About", "It's-a me!", RESOURCE_ID_SPEECH_BUBBLE, about_item_selected));
     menu_set_items(s_menu, items);
 
 #ifdef PBL_RECT
@@ -174,10 +176,10 @@ static void about_window_load(Window *window)
     s_about_scroll = scroll_layer_create(bounds);
     scroll_layer_set_click_config_onto_window(s_about_scroll, window);
 
-	s_aboutCanvas_layer = layer_create(bounds);
+    s_aboutCanvas_layer = layer_create(bounds);
     layer_set_update_proc(s_aboutCanvas_layer, about_update_proc);
-	scroll_layer_add_child(s_about_scroll, s_aboutCanvas_layer);	
-	layer_mark_dirty(s_aboutCanvas_layer);
+    scroll_layer_add_child(s_about_scroll, s_aboutCanvas_layer);	
+    layer_mark_dirty(s_aboutCanvas_layer);
 
     layer_add_child(window_layer, scroll_layer_get_layer(s_about_scroll));
     layer_add_child(window_layer, status_bar_layer_get_layer(status_bar));
@@ -191,30 +193,51 @@ static void about_window_load(Window *window)
         rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON);
     #endif
 
+    about_did_set_size = 0;
+    
+    /* XXX: Some day it would be cool to automatically scroll the credits after a short delay. */
 }
 
 static void about_update_proc(Layer *layer, GContext *nGContext)
 {  
-	GRect bounds = layer_get_unobstructed_bounds(layer);
-	graphics_context_set_text_color(nGContext, GColorBlack);
+    GRect bounds = layer_get_unobstructed_bounds(layer);
+    graphics_context_set_text_color(nGContext, GColorBlack);
     graphics_context_set_compositing_mode(nGContext, GCompOpSet);
 
     window_single_click_subscribe(BUTTON_ID_BACK, window_exit_handler);
 
-	graphics_draw_text(nGContext, "Version:", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect((bounds.size.w/2)-70, (bounds.size.h/2)-10, 140, 20),
+    graphics_draw_text(nGContext, "Version:", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect((bounds.size.w/2)-70, (bounds.size.h/2)-10, 140, 20),
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
 
-	graphics_draw_text(nGContext, git_version, fonts_get_system_font(FONT_KEY_GOTHIC_18), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+5, 140, 20),
+    graphics_draw_text(nGContext, git_version, fonts_get_system_font(FONT_KEY_GOTHIC_18), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+5, 140, 20),
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
 
-	graphics_draw_text(nGContext, "Join us!", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+20, 140, 20),
+    graphics_draw_text(nGContext, "Join us!", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+20, 140, 20),
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
 
-	graphics_draw_text(nGContext, "https://rebble.io/discord", fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+38, 140, 20),
+    graphics_draw_text(nGContext, "https://rebble.io/discord", fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect((bounds.size.w/2)-70, (bounds.size.h/2)+38, 140, 20),
                                GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
 
     graphics_draw_bitmap_in_rect(nGContext, logo_bitmap, GRect((bounds.size.w/2)-17, (bounds.size.h/2)-63, 34, 53));
     graphics_draw_bitmap_in_rect(nGContext, rocket_bitmap, GRect((bounds.size.w/2)-8, (bounds.size.h/2)+60, 19, 19));
+    
+    graphics_draw_text(nGContext, "Credits", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(10, bounds.size.h, bounds.size.w - 20, 20),
+                       n_GTextOverflowModeWordWrap, GTextAlignmentCenter, 0);
+    
+    const char **authorp = git_authors;
+    int y = bounds.size.h + 30;
+    for (authorp = git_authors; *authorp; authorp++) {
+        /* XXX: Do better about authors who have long names. */
+        graphics_draw_text(nGContext, *authorp, fonts_get_system_font(FONT_KEY_GOTHIC_14), GRect(10, y, bounds.size.w - 20, 16),
+                           n_GTextOverflowModeWordWrap, GTextAlignmentCenter, 0);
+        y += 16;
+    }
+    
+    /* Set the size on the first render only, lest we interfere with actual scrolling. */
+    if (!about_did_set_size) {
+        about_did_set_size = 1;
+        scroll_layer_set_content_size(s_about_scroll, (GSize) {bounds.size.w, y});
+    }
 }
 
 static void about_window_unload(Window *window)
