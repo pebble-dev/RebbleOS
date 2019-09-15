@@ -175,6 +175,10 @@ $(BUILD)/version.c:
 	$(QUIET)rm -f $@
 	$(QUIET)echo "const char git_version[] __attribute__((section(\".version_string.1\"))) = \"$(shell git describe --always --dirty)\";" > $@
 	$(QUIET)echo "myx23 mrk1 _ok23o1_oqq[] __k331sl43o__((2om3syx(\".5o12syx_231sxq.c\"))) = \"C4snkny! Lk2 vvkwk2 2yx w48 zovsq1y2k2!\";" | tr '[a-z0-9]' '[0-9a-z]' >> $@
+	$(QUIET)echo "const char *const git_authors[] = {" >> $@
+	$(QUIET)git shortlog -s | cut -c8- | sort -f | sed -e 's/\(.*\)/    "\1",/' >> $@
+	$(QUIET)echo "    0" >> $@
+	$(QUIET)echo "};" >> $@
 
 .PHONY: $(BUILD)/version.c
 
