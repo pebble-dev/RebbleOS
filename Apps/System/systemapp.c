@@ -120,12 +120,10 @@ static void exit_to_watchface(struct Menu *menu, void *context)
 static void systemapp_window_load(Window *window)
 {
     Layer *window_layer = window_get_root_layer(s_main_window);
-#ifdef PBL_RECT
-    s_menu = menu_create(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16));
-#else
-    // Let the menu draw behind the statusbar so it is perfectly centered
-    s_menu = menu_create(GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS));
-#endif
+
+    // For round, let the menu draw behind the statusbar so it is perfectly centered
+    s_menu = menu_create(PBL_IF_RECT_ELSE(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16), GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS)));
+
     menu_set_callbacks(s_menu, s_menu, (MenuCallbacks) {
         .on_menu_exit = exit_to_watchface
     });
@@ -184,14 +182,9 @@ static void about_window_load(Window *window)
     layer_add_child(window_layer, scroll_layer_get_layer(s_about_scroll));
     layer_add_child(window_layer, status_bar_layer_get_layer(status_bar));
 
-    #ifdef PBL_BW
-         //TODO: Get black and white rocket bitmap for Classic
-        logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_BW);
-        rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON_BW);       
-    #else
-        logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_DARK);
-        rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON);
-    #endif
+    //TODO: Get black and white rocket bitmap for Classic
+    logo_bitmap = gbitmap_create_with_resource(PBL_IF_BW_ELSE(RESOURCE_ID_REBBLE_LOGO_BW, RESOURCE_ID_REBBLE_LOGO_DARK));
+    rocket_bitmap = gbitmap_create_with_resource(PBL_IF_BW_ELSE(RESOURCE_ID_TO_MOON_BW, RESOURCE_ID_TO_MOON));
 
     about_did_set_size = 0;
     
