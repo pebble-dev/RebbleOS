@@ -7,78 +7,18 @@
 #include "platform.h"
 #include "log.h"
 #include "fs.h"
+#include "fs_internal.h"
 #include "flash.h"
 #include "blob_db_ramfs.h"
-
 
 /* XXX: should filesystem bits and bobs get split out somewhere else? 
  * Probably, but who's counting, anyway?  */
 
-struct page_hdr {
-    uint16_t v_0x5001;
-    uint8_t  empty; /* 0xFF if empty, 0xFC if not empty, 0xFE if the first empty block before the rest of the device is empty? */
-#define HDR_EMPTY_ALLOCATED 0x1
-#define HDR_EMPTY_MOREBLOCKS 0x2
-    uint8_t  status;   /* bitfield; f4, f8, ... */
-#define HDR_STATUS_VALID 0x1
-#define HDR_STATUS_DEAD 0x2
-#define HDR_STATUS_FILE_START 0x4
-#define HDR_STATUS_FILE_CONT 0x8
-    uint32_t rsvd_0; /* ff ff ff ff */
-    uint32_t wear_level_counter;
-    uint32_t rsvd_1;
-    uint32_t rsvd_2;
-    uint8_t  rsvd_3;
-    uint8_t  next_page_crc;
-    uint16_t next_page;
-    uint32_t pagehdr_crc; /* random numbers? */
-};
-
-struct file_hdr {
-    uint16_t v_0x5001;
-    uint8_t  empty; /* 0xFF if empty, 0xFC if not empty, 0xFE if the first empty block before the rest of the device is empty? */
-#define HDR_EMPTY_ALLOCATED 0x1
-#define HDR_EMPTY_MOREBLOCKS 0x2
-    uint8_t  status;   /* bitfield; f4, f8, ... */
-#define HDR_STATUS_VALID 0x1
-#define HDR_STATUS_DEAD 0x2
-#define HDR_STATUS_FILE_START 0x4
-#define HDR_STATUS_FILE_CONT 0x8
-    uint32_t rsvd_0; /* ff ff ff ff */
-    uint32_t wear_level_counter;
-    uint32_t rsvd_1;
-    uint32_t rsvd_2;
-    uint8_t  rsvd_3;
-    uint8_t  next_page_crc;
-    uint16_t next_page;
-    uint32_t pagehdr_crc; /* random numbers? */
-    
-    uint32_t file_size;
-    uint8_t  flag_2; /* FF or FE; FE if there's a filename */
-#define HDR_FLAG_2_HAS_FILENAME 0x1
-    uint8_t  filename_len;
-    uint16_t rsvd_4; /* FF FF */
-    uint32_t rsvd_5;
-    uint32_t filehdr_crc;
-    uint16_t st_tmp_file; /* non-zero if temp file, zero if not temp file */
-    uint16_t st_create_complete; /* zero if create complete, non-zero if not */
-    uint16_t st_delete_complete; /* zero if delete complete, non-zero if not */
-    uint8_t  v_full[26];
-};
-
 /* flag values are *cleared* to mean "true" */
 #define FLASHFLAG(val, flag) (((val) & (flag)) == 0)
 
-/* assuming that no longer files are possible, just a guess */
-#define MAX_FILENAME_LEN 32
-
-struct file_hdr_with_name {
-    struct file_hdr hdr;
-    char name[MAX_FILENAME_LEN + 1];
-};
-
-static void _fs_read_file_hdr(int pg, struct file_hdr_with_name *p) {
-    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct file_hdr_with_name));
+static void _fs_read_file_hdr(int pg, struct fs_file_hdr_with_name *p) {
+    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct fs_file_hdr_with_name));
 
     p->name[(MAX_FILENAME_LEN < p->hdr.filename_len) ? MAX_FILENAME_LEN : p->hdr.filename_len] = 0;
 }
@@ -115,8 +55,8 @@ void fs_init()
     /* Do a basic integrity check to see if there's any cleanup that needs
      * to be done that we don't know how to do yet.
      */
-    struct file_hdr_with_name buffer;
-    struct file_hdr *hdr = &buffer.hdr;
+    struct fs_file_hdr_with_name buffer;
+    struct fs_file_hdr *hdr = &buffer.hdr;
     int pg;
     
     KERN_LOG("flash", APP_LOG_LEVEL_INFO, "doing basic filesystem check");
@@ -224,8 +164,8 @@ int fs_find_file(struct file *file, const char *name)
     if (!_fs_valid)
         return -1;
 
-    struct file_hdr_with_name buffer;
-    struct file_hdr *hdr = &buffer.hdr;
+    struct fs_file_hdr_with_name buffer;
+    struct fs_file_hdr *hdr = &buffer.hdr;
 
     for (uint16_t pg = 0; pg < REGION_FS_N_PAGES; pg++)
     {
@@ -235,7 +175,7 @@ int fs_find_file(struct file *file, const char *name)
             if (!strcmp(name, buffer.name)) {
                 file->startpage = pg;
                 file->size = hdr->file_size;
-                file->startpofs = sizeof(struct file_hdr) + hdr->filename_len;
+                file->startpofs = sizeof(struct fs_file_hdr) + hdr->filename_len;
                 file->is_ramfs = 0;
                 return 0;
             }
@@ -282,7 +222,7 @@ int fs_read(struct fd *fd, void *p, size_t bytes)
         
         if (fd->curpofs == REGION_FS_PAGE_SIZE)
         {
-            struct page_hdr hdr;
+            struct fs_page_hdr hdr;
             
             _fs_read_page_ofs(fd->curpage, 0, &hdr, sizeof(hdr));
             fd->curpage = hdr.next_page; /* XXX check this */
@@ -330,7 +270,7 @@ long fs_seek(struct fd *fd, long ofs, enum seek whence)
         
         if (fd->curpofs == REGION_FS_PAGE_SIZE)
         {
-            struct page_hdr hdr;
+            struct fs_page_hdr hdr;
             
             _fs_read_page_ofs(fd->curpage, 0, &hdr, sizeof(hdr));
             fd->curpage = hdr.next_page; /* XXX check this */
