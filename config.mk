@@ -30,6 +30,7 @@ CFLAGS_all += -Irwatch/graphics
 CFLAGS_all += -Irwatch/event
 CFLAGS_all += -Ihw/platform/qemu
 CFLAGS_all += -DNGFX_IS_CORE
+CFLAGS_all += -Ihw/drivers/littlefs-master/
 
 # XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
@@ -63,6 +64,7 @@ SRCS_all += lib/musl/time/__secs_to_tm.c
 SRCS_all += lib/musl/time/__tm_to_secs.c
 SRCS_all += lib/musl/time/__year_to_secs.c
 SRCS_all += lib/musl/time/__month_to_secs.c
+SRCS_all += lib/minilib/strx.c
 
 SRCS_all += lib/neographics/src/common.c
 SRCS_all += lib/neographics/src/context.c
@@ -125,6 +127,8 @@ SRCS_all += rcore/service/blob_db.c
 SRCS_all += rcore/service/blob_db_ramfs.c
 SRCS_all += rcore/service/timeline.c
 
+SRCS_all += rcore/littlefs.c
+
 SRCS_all += rwatch/librebble.c
 SRCS_all += rwatch/ngfxwrap.c
 SRCS_all += rwatch/math_sin.c
@@ -164,6 +168,9 @@ SRCS_all += Apps/System/test.c
 SRCS_all += Apps/System/notification.c
 
 SRCS_all += hw/platform/qemu/hw_qemu.c
+
+SRCS_all += hw/drivers/littlefs-master/lfs.c
+SRCS_all += hw/drivers/littlefs-master/lfs_util.c
 
 include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk

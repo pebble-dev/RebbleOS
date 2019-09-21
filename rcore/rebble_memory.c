@@ -35,6 +35,13 @@ void *system_malloc(size_t size)
     return pvPortMalloc(size);
 }
 
+void system_free(void *mem)
+{
+    if (appmanager_is_thread_system())
+        LOG_ERROR("XXX System Free. Check who did this");
+    vPortFree(mem);
+}
+
 void *app_malloc(size_t size)
 {
     return app_calloc(1, size);    

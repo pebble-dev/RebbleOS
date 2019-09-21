@@ -61,6 +61,7 @@ static void _os_thread(void *pvParameters)
      * can report completion
      */
     _module_init(flash_init,            "Flash Storage");
+    rbl_littlefs_init();
     _module_init(vibrate_init,          "Vibro");
     _module_init(display_init,          "Display");
     _module_init(rcore_buttons_init,    "Buttons");
@@ -80,6 +81,7 @@ static void _os_thread(void *pvParameters)
     _module_init(notification_init,     "Notifications");
     _module_init(overlay_window_init,   "Overlay");
     _module_init(appmanager_init,       "Main App");
+
 
     /* This is a runloop for all generic OS related stuff. */
     

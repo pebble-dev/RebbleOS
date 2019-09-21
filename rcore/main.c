@@ -87,8 +87,6 @@ void vApplicationStackOverflowHook(xTaskHandle pxTask, signed char *pcTaskName) 
 implementation of vApplicationGetIdleTaskMemory() to provide the memory that is
 used by the Idle task. */
 /*
- * 
- *           Joshua 
  * The below works on the device as well as qemu.
  * The stack data size on arm is 32 bit, so setting to a uint type causes weird
  * pointer issues in freertos.

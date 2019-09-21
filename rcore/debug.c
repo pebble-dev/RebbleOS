@@ -36,3 +36,5 @@ __attribute__((__noreturn__)) static void _panic(const char *s) {
         [s]"r" (s) );
     __builtin_unreachable();
 }
+
+void passert(int x) { assert(x); }
