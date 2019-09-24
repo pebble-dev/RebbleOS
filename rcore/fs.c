@@ -28,6 +28,7 @@ static void _fs_read_page_ofs(int pg, size_t ofs, void *p, size_t n) {
 }
 
 static uint8_t _fs_valid = 1;
+static int _fs_lastpg = -1;
 
 enum page_state {
     PageStateUnallocated = 0,
@@ -61,6 +62,7 @@ void fs_init()
     
     KERN_LOG("flash", APP_LOG_LEVEL_INFO, "doing basic filesystem check");
     _fs_valid = 1;
+    _fs_lastpg = -1;
     memset(&_fs_page_flags, 0, sizeof(_fs_page_flags));
 
     /* Make sure that at least the first page has the header of the right
@@ -74,14 +76,10 @@ void fs_init()
         return;
     }
 
-    /* Make sure that all pages have headers of the right version and are "in
-     * the right order", and aren't half-dead.
-     */
-    int lastpg = -1;
+    /* Start off by finding the last written page. */
     uint8_t saw_blank_page = 0;
     uint8_t saw_page_in_outer_space = 0;
-    for (pg = 0; pg < REGION_FS_N_PAGES; pg++)
-    {
+    for (pg = 0; pg < REGION_FS_N_PAGES; pg++) {
         _fs_read_file_hdr(pg, &buffer);
         if (hdr->v_0x5001 == 0xFFFF) {
             if (!saw_blank_page)
@@ -94,16 +92,19 @@ void fs_init()
             _fs_valid = 0;
             return;
         }
-        if (hdr->status == 0xFE && lastpg != -1) {
-            lastpg = pg;
-        }
-        if ((lastpg != -1) && FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED)) {
+        if (FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED) && !FLASHFLAG(hdr->empty, HDR_EMPTY_MOREBLOCKS) && _fs_lastpg == -1) {
+            _fs_lastpg = pg;
+        } else if ((_fs_lastpg != -1) && FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED)) {
             if (!saw_page_in_outer_space)
-                KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d is marked as allocated, but page %d had the last page marker... hmm...", pg, lastpg);
+                KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d is marked as allocated, but page %d had the last page marker... hmm...", pg, _fs_lastpg);
             saw_page_in_outer_space = 1;
         }
-        
-        /* The rest of the checks only apply to an allocated page. */
+    }
+    
+    /* Do file-level cleanup. */
+    for (pg = 0; pg <= _fs_lastpg; pg++) {
+        _fs_read_file_hdr(pg, &buffer);
+
         if (!FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED))
             continue;
 
@@ -139,7 +140,7 @@ void fs_init()
         _fs_set_page_state(pg, PageStateFileStart);
     }
     
-    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "checked %d pages, and it's good enough to read, at least", pg);
+    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "checked %d pages, and it's good enough to read, at least", _fs_lastpg);
     
     /* test it out some ... */
     struct file file;
@@ -155,7 +156,38 @@ void fs_init()
     fs_read(&fd, b, 3);
     b[3] = 0;
     KERN_LOG("flash", APP_LOG_LEVEL_DEBUG, "first 3 bytes of appdb are %s", b);
+}
+
+int fs_format()
+{
+    int rv;
     
+    _fs_valid = 0;
+    _fs_lastpg = 0;
+    
+    rv = flash_erase(REGION_FS_START, REGION_FS_N_PAGES * REGION_FS_PAGE_SIZE);
+    if (rv)
+        return rv;
+    
+    struct fs_page_hdr hdr;
+    memset(&hdr, 0xFF, sizeof(hdr));
+    hdr.v_0x5001 = 0x5001;
+    
+    /* XXX: PebbleOS in theory formats this to 0xFE, but in reality, flash
+     * dumps that we see all have 0xFF here?  */
+    hdr.empty = 0xFF;
+    
+    hdr.wear_level_counter = 0x0001;
+    
+    for (int pg = 0; pg < REGION_FS_N_PAGES; pg++) {
+        rv = flash_write_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)&hdr, sizeof(hdr));
+        if (rv)
+            return rv;
+    }
+    
+    _fs_valid = 1;
+    
+    return 0;
 }
 
 int fs_find_file(struct file *file, const char *name)
@@ -167,7 +199,7 @@ int fs_find_file(struct file *file, const char *name)
     struct fs_file_hdr_with_name buffer;
     struct fs_file_hdr *hdr = &buffer.hdr;
 
-    for (uint16_t pg = 0; pg < REGION_FS_N_PAGES; pg++)
+    for (uint16_t pg = 0; pg <= _fs_lastpg; pg++)
     {
         if (_fs_get_page_state(pg) == PageStateFileStart)
         {

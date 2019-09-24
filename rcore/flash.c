@@ -63,10 +63,12 @@ void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
     }
 }
 
-void flash_write_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
+int flash_write_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
 {
+    int rv;
+    
     xSemaphoreTake(_flash_mutex, portMAX_DELAY);
-    hw_flash_write_sync(address, buffer, num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1));
+    rv = hw_flash_write_sync(address, buffer, num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1));
     
     /* writes currently are synchronous */
     
@@ -79,15 +81,21 @@ void flash_write_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
         uint32_t offset = num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1);
         
         memcpy(extra, buffer + offset, num_bytes - offset);
-        flash_write_bytes(address + offset, extra, PLATFORM_FLASH_ALIGNMENT);
+        rv |= flash_write_bytes(address + offset, extra, PLATFORM_FLASH_ALIGNMENT);
     }
+    
+    return rv;
 }
 
-void flash_erase(uint32_t address, uint32_t len)
+int flash_erase(uint32_t address, uint32_t len)
 {
+    int rv;
+    
     xSemaphoreTake(_flash_mutex, portMAX_DELAY);
-    hw_flash_erase_sync(address, len);
+    rv = hw_flash_erase_sync(address, len);
     xSemaphoreGive(_flash_mutex);
+    
+    return rv;
 }
 
 void flash_dump(void)
