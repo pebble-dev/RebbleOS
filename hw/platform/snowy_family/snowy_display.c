@@ -58,7 +58,7 @@
  * This does mean we can't (not that we could) dma from CCRAM to the SPI.
  * It's an unsupported hardware config for stm32 at least
  */
-static uint8_t _frame_buffer[DISPLAY_ROWS * DISPLAY_COLS] CCRAM;
+static uint8_t _frame_buffer[DISPLAY_ROWS * DISPLAY_COLS] MEM_REGION_DISPLAY;
 static uint8_t _column_buffer[DISPLAY_ROWS];
 static uint8_t _display_ready;
 

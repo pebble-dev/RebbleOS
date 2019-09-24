@@ -58,7 +58,8 @@
 /* Use the prefix CCRAM to force the memory of an object to be pushed
  * into memory bank 2. Note bank 2 is NOT DMA capable
  */
-#define CCRAM __attribute__((section(".ccmram")))
+#define MEM_REGION_CCRAM __attribute__((section(".ccmram")))
+
 
 //Snowy uses OC1 for backlight
 #define BL_TIM_CH 1
