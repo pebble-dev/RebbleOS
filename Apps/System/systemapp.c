@@ -122,7 +122,9 @@ static void systemapp_window_load(Window *window)
     Layer *window_layer = window_get_root_layer(s_main_window);
 
     // For round, let the menu draw behind the statusbar so it is perfectly centered
-    s_menu = menu_create(PBL_IF_RECT_ELSE(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16), GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS)));
+    s_menu = menu_create(PBL_IF_RECT_ELSE(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16), //Draw Rect
+                                        GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS) //Draw Round
+                                        ));
 
     menu_set_callbacks(s_menu, s_menu, (MenuCallbacks) {
         .on_menu_exit = exit_to_watchface
