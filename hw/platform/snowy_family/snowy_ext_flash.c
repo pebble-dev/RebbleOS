@@ -340,10 +340,10 @@ void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length)
     flash_operation_complete(0);
 }
 
-uint8_t  hw_flash_write_bytes(uint32_t address, uint8_t *buffer, size_t length)
+int hw_flash_write_sync(uint32_t address, uint8_t *buffer, size_t length)
 {
     _nor_clock_request();
-    uint8_t ex = 1;
+    uint8_t rv = 0;
     uint8_t alength = length % 2;
     printf("write id %d %x\n", length,  SHF(address));
     uint16_t exis = *(__IO uint8_t *)(Bank1_NOR_ADDR + SHF(address + length/2));
@@ -372,10 +372,10 @@ uint8_t  hw_flash_write_bytes(uint32_t address, uint8_t *buffer, size_t length)
     _nor_reset_state();
     _nor_clock_release();
     //flash_operation_complete(ex);
-    return ex;
+    return rv;
 }
 
-int hw_flash_erase_address(uint32_t address)
+int hw_flash_erase_32k_sync(uint32_t address)
 {
     _nor_clock_request();
     printf("erase %x %x\n", address, (address));
@@ -386,6 +386,20 @@ int hw_flash_erase_address(uint32_t address)
     _nor_reset_state();
 
     _nor_clock_release();
-    return 1;
+    return 0;
 }
 
+int hw_flash_erase_sync(uint32_t addr, uint32_t len) {
+    assert((addr & (32*1024 - 1)) == 0);
+    assert((len & (32*1024 - 1)) == 0);
+
+    while (len) {
+        int rv = hw_flash_erase_32k_sync(addr);
+        if (rv)
+            return rv;
+        addr += 32*1024;
+        len -= 32*1024;
+    }
+
+    return 0;
+}
