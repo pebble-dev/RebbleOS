@@ -71,7 +71,7 @@ static void _os_thread(void *pvParameters)
     platform_init_late();
     rcore_watchdog_init_late();
     KERN_LOG("OS", APP_LOG_LEVEL_INFO,  "Watchdog is ticking");
-    //_module_init(bluetooth_init,        "Bluetooth");
+    _module_init(bluetooth_init,        "Bluetooth");
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     SYS_LOG("OS", APP_LOG_LEVEL_INFO,   "Init: Main hardware up. Starting OS modules");

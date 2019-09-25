@@ -233,6 +233,14 @@ void _snowy_display_init_intn(void)
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
 
+#if defined(REBBLE_PLATFORM_CHALK)
+/* snowy bluetooth handles this interrupt. We dont have that hooked up on chalk */
+void EXTI15_10_IRQHandler(void)
+{
+    EXTI_ClearITPendingBit(EXTI_Line10);
+}
+#endif
+
 static void _snowy_display_request_clocks()
 {
     stm32_power_request(STM32_POWER_APB2, RCC_APB2Periph_SPI6);
