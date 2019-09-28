@@ -225,13 +225,21 @@ void fs_init()
             continue;
         }
 
+        /* Cases we might need to clean up from. */
         if (!FLASHFLAG(hdr->status, HDR_STATUS_DEAD) && hdr->st_create_complete) {
             KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d incompletely created; cleaning up", pg);
             assert(_delete_file_by_pg(pg) == 0);
+            continue;
         }
         if (FLASHFLAG(hdr->status, HDR_STATUS_DEAD) && hdr->st_delete_complete) {
             KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d incompletely deleted; cleaning up", pg);
             assert(_delete_file_by_pg(pg) == 0);
+            continue;
+        }
+        if (hdr->st_tmp_file) {
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d is a temp file; cleaning up", pg);
+            assert(_delete_file_by_pg(pg) == 0);
+            continue;
         }
 
         if (hdr->filename_len > MAX_FILENAME_LEN)
