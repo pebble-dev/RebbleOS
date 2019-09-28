@@ -17,15 +17,20 @@
 /* flag values are *cleared* to mean "true" */
 #define FLASHFLAG(val, flag) (((val) & (flag)) == 0)
 
+static void _fs_read_page_ofs(int pg, size_t ofs, void *p, size_t n) {
+    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE + ofs, (uint8_t *)p, n);
+}
+
+static int _fs_write_page_ofs(int pg, size_t ofs, void *p, size_t n) {
+    return flash_write_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE + ofs, (uint8_t *)p, n);
+}
+
 static void _fs_read_file_hdr(int pg, struct fs_file_hdr_with_name *p) {
-    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE, (uint8_t *)p, sizeof(struct fs_file_hdr_with_name));
+    _fs_read_page_ofs(pg, 0, (void *)p, sizeof(struct fs_file_hdr_with_name));
 
     p->name[(MAX_FILENAME_LEN < p->hdr.filename_len) ? MAX_FILENAME_LEN : p->hdr.filename_len] = 0;
 }
 
-static void _fs_read_page_ofs(int pg, size_t ofs, void *p, size_t n) {
-    flash_read_bytes(REGION_FS_START + pg * REGION_FS_PAGE_SIZE + ofs, (uint8_t *)p, n);
-}
 
 static uint8_t _fs_valid = 1;
 static int _fs_lastpg = -1;
@@ -49,6 +54,34 @@ static void _fs_set_page_state(uint16_t pg, enum page_state state)
 static enum page_state _fs_get_page_state(uint16_t pg)
 {
     return (_fs_page_flags[pg >> 2] >> (6  - 2 * (pg & 3))) & 3;
+}
+
+static int _delete_file_by_pg(int pg)
+{
+    struct fs_page_hdr pagehdr;
+    struct fs_file_hdr filehdr;
+    
+    /* The page must either be alive or incomplete-deleted. */
+    _fs_read_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
+    assert(!FLASHFLAG(filehdr.status, HDR_STATUS_DEAD) || filehdr.st_delete_complete);
+    
+    /* Mark all pages as deallocated. */
+    int curpg = pg;
+    do {
+        _fs_read_page_ofs(curpg, 0, &pagehdr, sizeof(pagehdr));
+        pagehdr.status &= ~HDR_STATUS_DEAD;
+        if (_fs_write_page_ofs(curpg, 0, &pagehdr, sizeof(pagehdr)))
+            return -1;
+        curpg = pagehdr.next_page;
+    } while (curpg != 0xFFFF);
+    
+    /* Now mark it as deleted. */
+    _fs_read_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
+    filehdr.st_delete_complete = 0x0000;
+    if (_fs_write_page_ofs(pg, 0, &filehdr, sizeof(filehdr)))
+        return -1;
+    
+    return 0;
 }
 
 void fs_init()
@@ -115,14 +148,12 @@ void fs_init()
             continue;
 
         if (!FLASHFLAG(hdr->status, HDR_STATUS_DEAD) && hdr->st_create_complete) {
-            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d creation not complete; I can't deal with this; go boot PebbleOS to clean up first", pg);
-            _fs_valid = 0;
-            return;
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d incompletely created; cleaning up", pg);
+            assert(_delete_file_by_pg(pg) == 0);
         }
         if (FLASHFLAG(hdr->status, HDR_STATUS_DEAD) && hdr->st_delete_complete) {
-            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d deletion not complete; I can't deal with this; go boot PebbleOS to clean up first", pg);
-            _fs_valid = 0;
-            return;
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d incompletely deleted; cleaning up", pg);
+            assert(_delete_file_by_pg(pg) == 0);
         }
 
         if (hdr->filename_len > MAX_FILENAME_LEN)
