@@ -33,7 +33,15 @@ static void _fs_read_file_hdr(int pg, struct fs_file_hdr_with_name *p) {
 
 
 static uint8_t _fs_valid = 1;
+
+/*** Page table routines. ***/
+
 static int _fs_lastpg = -1;
+
+/* We store the lowest erase count, and the first available page with that
+ * erase count, for use with the block allocator.  */
+static uint32_t _fs_best_erase_count = 0xFFFFFFFF;
+static int _fs_first_avail_page = -1;
 
 enum page_state {
     PageStateClean = 0,     /* Block is erased, and we can write to it. */
@@ -56,37 +64,90 @@ static enum page_state _fs_get_page_state(uint16_t pg)
     return (_fs_page_flags[pg >> 2] >> (6  - 2 * (pg & 3))) & 3;
 }
 
-static int _delete_file_by_pg(int pg)
+static int _fs_page_table_init()
 {
     struct fs_page_hdr pagehdr;
-    struct fs_file_hdr filehdr;
+    uint8_t saw_blank_page = 0;
+    uint8_t saw_page_in_outer_space = 0;
     
-    /* The page must either be alive or incomplete-deleted. */
-    _fs_read_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
-    assert(!FLASHFLAG(filehdr.status, HDR_STATUS_DEAD) || filehdr.st_delete_complete);
+    int nclean = 0;
+    int ndirty = 0;
+    int nused = 0;
     
-    /* Mark all pages as deallocated. */
-    int curpg = pg;
-    do {
-        _fs_read_page_ofs(curpg, 0, &pagehdr, sizeof(pagehdr));
-        pagehdr.status &= ~HDR_STATUS_DEAD;
-        if (_fs_write_page_ofs(curpg, 0, &pagehdr, sizeof(pagehdr)))
+    /* Find the last written page, and while we're at it, populate the page
+     * state table, and find the earliest, lowest, page with the smallest
+     * erase count.
+     *
+     * XXX: Of course, this will get blown away as soon as it gets claimed
+     * as the GC page, but oh well.  It's just an optimization.  */
+    
+    _fs_lastpg = -1;
+    _fs_best_erase_count = 0xFFFFFFFF;
+    _fs_first_avail_page = -1;
+    
+    for (int pg = 0; pg < REGION_FS_N_PAGES; pg++) {
+        _fs_read_page_ofs(pg, 0, &pagehdr, sizeof(pagehdr));
+        
+        if (pagehdr.v_0x5001 == 0xFFFF) {
+            if (!saw_blank_page)
+                KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "this filesystem has a blank page in it... hmm...");
+            saw_blank_page = 1;
+            _fs_set_page_state(pg, PageStateClean);
+            continue;
+        }
+        
+        if (pagehdr.v_0x5001 != 0x5001) {
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d has bad header version 0x%04x; I give up", pg, pagehdr.v_0x5001);
             return -1;
-        _fs_set_page_state(curpg, PageStateDirty);
-        curpg = pagehdr.next_page;
-    } while (curpg != 0xFFFF);
-    
-    /* Now mark it as deleted. */
-    _fs_read_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
-    filehdr.st_delete_complete = 0x0000;
-    if (_fs_write_page_ofs(pg, 0, &filehdr, sizeof(filehdr)))
-        return -1;
+        }
+        
+        if (FLASHFLAG(pagehdr.empty, HDR_EMPTY_ALLOCATED) && !FLASHFLAG(pagehdr.empty, HDR_EMPTY_MOREBLOCKS) && _fs_lastpg == -1) {
+            _fs_lastpg = pg;
+        } else if ((_fs_lastpg != -1) && FLASHFLAG(pagehdr.empty, HDR_EMPTY_ALLOCATED)) {
+            if (!saw_page_in_outer_space)
+                KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d is marked as allocated, but page %d had the last page marker... hmm...", pg, _fs_lastpg);
+            saw_page_in_outer_space = 1;
+        }
+        
+        if (!FLASHFLAG(pagehdr.empty, HDR_EMPTY_ALLOCATED) || /* block has never been written to */
+            (/* allocated && */ !FLASHFLAG(pagehdr.status, HDR_STATUS_FILE_START) && !FLASHFLAG(pagehdr.status, HDR_STATUS_FILE_CONT)) /* block was erased, has no data now */) {
+            _fs_set_page_state(pg, PageStateClean);
+            if (pagehdr.wear_level_counter < _fs_best_erase_count) {
+                _fs_best_erase_count = pagehdr.wear_level_counter;
+                _fs_first_avail_page = pg;
+            }
+            nclean++;
+            continue;
+        }
+        
+        if (FLASHFLAG(pagehdr.status, HDR_STATUS_DEAD)) {
+            _fs_set_page_state(pg, PageStateDirty);
+            ndirty++;
+            continue;
+        }
+        
+        if (FLASHFLAG(pagehdr.status, HDR_STATUS_FILE_START)) {
+            _fs_set_page_state(pg, PageStateFileStart);
+            nused++;
+            continue;
+        }
+
+        if (FLASHFLAG(pagehdr.status, HDR_STATUS_FILE_CONT)) {
+            _fs_set_page_state(pg, PageStateFileCont);
+            nused++;
+            continue;
+        }
+        
+        /* We should have hit one of those cases. */
+        assert(0);
+    }
+ 
+    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "filesystem has last page %d/%d (%d used, %d dirty, %d clean; next clean %d w/ count %d)", _fs_lastpg, REGION_FS_N_PAGES, nused, ndirty, nclean, _fs_first_avail_page, _fs_best_erase_count);
     
     return 0;
 }
 
-
-/* GC routines. */
+/*** GC routines. ***/
 
 static int _gc_sector;
 
@@ -99,7 +160,7 @@ struct fs_gc_file_hdr {
 };
 
 #define PAGES_PER_SECTOR (REGION_FS_ERASE_SIZE / REGION_FS_PAGE_SIZE)
-static void _gc_find_sector()
+static void _fs_gc_find_sector()
 {
     /* What we want to find is an erase-block-contiguous region of empty
      * pages with the lowest erase count.  */
@@ -108,7 +169,7 @@ static void _gc_find_sector()
     
     int pg;
     
-    for (pg = 0; pg <= REGION_FS_N_PAGES; pg += PAGES_PER_SECTOR) {
+    for (pg = 0; pg < REGION_FS_N_PAGES; pg += PAGES_PER_SECTOR) {
         int is_possible = 1;
         int is_dirty = 0;
         
@@ -146,13 +207,45 @@ static void _gc_find_sector()
     
     _gc_sector = best_sector;
     assert(_gc_sector != -1);
-    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "chose GC sector of %d", _gc_sector);
+    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "chose GC sector of %d, with erase count %d", _gc_sector, lowest_erase_count);
     
     /* Mark it all as in use so the allocator doesn't come for it. */
     for (int i = 0; i < PAGES_PER_SECTOR; i++) {
         _fs_set_page_state(_gc_sector + i, PageStateDirty);
     }
 }
+
+/*** File creation and deletion. ***/
+
+static int _delete_file_by_pg(int pg)
+{
+    struct fs_page_hdr pagehdr;
+    struct fs_file_hdr filehdr;
+    
+    /* The page must either be alive or incomplete-deleted. */
+    _fs_read_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
+    assert(!FLASHFLAG(filehdr.status, HDR_STATUS_DEAD) || filehdr.st_delete_complete);
+    
+    /* Mark all pages as deallocated. */
+    int curpg = pg;
+    do {
+        _fs_read_page_ofs(curpg, 0, &pagehdr, sizeof(pagehdr));
+        pagehdr.status &= ~HDR_STATUS_DEAD;
+        if (_fs_write_page_ofs(curpg, 0, &pagehdr, sizeof(pagehdr)))
+            return -1;
+        _fs_set_page_state(curpg, PageStateDirty);
+        curpg = pagehdr.next_page;
+    } while (curpg != 0xFFFF);
+    
+    /* Now mark it as deleted. */
+    _fs_read_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
+    filehdr.st_delete_complete = 0x0000;
+    if (_fs_write_page_ofs(pg, 0, &filehdr, sizeof(filehdr)))
+        return -1;
+    
+    return 0;
+}
+
 
 void fs_init()
 {
@@ -180,48 +273,20 @@ void fs_init()
     }
 
     /* Start off by finding the last written page. */
-    uint8_t saw_blank_page = 0;
-    uint8_t saw_page_in_outer_space = 0;
-    for (pg = 0; pg < REGION_FS_N_PAGES; pg++) {
-        _fs_set_page_state(pg, PageStateClean);
-        
-        _fs_read_file_hdr(pg, &buffer);
-        if (hdr->v_0x5001 == 0xFFFF) {
-            if (!saw_blank_page)
-                KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "this filesystem has a blank page in it... hmm...");
-            saw_blank_page = 1;
-            continue;
-        }
-        if (hdr->v_0x5001 != 0x5001) {
-            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d has bad header version 0x%04x; I give up", pg, hdr->v_0x5001);
-            _fs_valid = 0;
-            return;
-        }
-        if (FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED) && !FLASHFLAG(hdr->empty, HDR_EMPTY_MOREBLOCKS) && _fs_lastpg == -1) {
-            _fs_lastpg = pg;
-        } else if ((_fs_lastpg != -1) && FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED)) {
-            if (!saw_page_in_outer_space)
-                KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d is marked as allocated, but page %d had the last page marker... hmm...", pg, _fs_lastpg);
-            saw_page_in_outer_space = 1;
-        }
+    if (_fs_page_table_init()) {
+        _fs_valid = 0;
+        return;
     }
     
     /* Do file-level cleanup. */
     for (pg = 0; pg <= _fs_lastpg; pg++) {
+        if ((_fs_get_page_state(pg) != PageStateFileStart) &&
+            (_fs_get_page_state(pg) != PageStateDirty))
+            continue;
+        
         _fs_read_file_hdr(pg, &buffer);
 
-        if (!FLASHFLAG(hdr->empty, HDR_EMPTY_ALLOCATED)) {
-            _fs_set_page_state(pg, PageStateClean);
-            continue;
-        }
-
-        if (FLASHFLAG(hdr->status, HDR_STATUS_FILE_CONT)) {
-            _fs_set_page_state(pg, PageStateFileCont);
-            continue;
-        }
-
-        if (!FLASHFLAG(hdr->status, HDR_STATUS_FILE_START)) {
-            _fs_set_page_state(pg, PageStateClean);
+        if (!FLASHFLAG(hdr->status, HDR_STATUS_FILE_START)) { /* Only dead file starts need be considered. */
             continue;
         }
 
@@ -250,18 +315,9 @@ void fs_init()
             _fs_valid = 0;
             return;
         }
-
-        if (FLASHFLAG(hdr->status, HDR_STATUS_DEAD)) {
-            _fs_set_page_state(pg, PageStateDirty);
-            continue;
-        }
-        
-        _fs_set_page_state(pg, PageStateFileStart);
     }
     
-    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "checked %d pages, and it's good enough to read, at least", _fs_lastpg);
-    
-    _gc_find_sector();
+    _fs_gc_find_sector();
     
     /* test it out some ... */
     struct file file;
