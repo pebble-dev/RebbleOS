@@ -70,5 +70,21 @@ fi
 cp "$SDK/chalk/qemu/qemu_spi_flash.bin" "Resources/chalk_spi.bin"
 fi
 
+if [ -f Resources/silk_boot.bin ]; then
+echo "silk_boot already exists, not overwriting"
+else
+dd if="$SDK/diorite/qemu/qemu_micro_flash.bin" of=Resources/silk_boot.bin bs=16384 count=1
+fi
+
+if [ -f Resources/silk_spi.bin ]; then
+echo "silk_spi already exists, not overwriting"
+else
+if [ -f "$SDK/diorite/qemu/qemu_spi_flash.bin.bz2" ];then
+bzip2 -d "$SDK/diorite/qemu/qemu_spi_flash.bin.bz2"
+fi
+cp "$SDK/diorite/qemu/qemu_spi_flash.bin" "Resources/silk_spi.bin"
+fi
+
+
 echo "all done"
 echo "you may have to execute 'cp Resources/* ../Resources/"
