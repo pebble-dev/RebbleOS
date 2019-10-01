@@ -58,7 +58,7 @@
  * This does mean we can't (not that we could) dma from CCRAM to the SPI.
  * It's an unsupported hardware config for stm32 at least
  */
-static uint8_t _frame_buffer[DISPLAY_ROWS * DISPLAY_COLS] CCRAM;
+static uint8_t _frame_buffer[DISPLAY_ROWS * DISPLAY_COLS] MEM_REGION_DISPLAY;
 static uint8_t _column_buffer[DISPLAY_ROWS];
 static uint8_t _display_ready;
 
@@ -232,6 +232,14 @@ void _snowy_display_init_intn(void)
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SYSCFG);
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOG);
 }
+
+#if defined(REBBLE_PLATFORM_CHALK)
+/* snowy bluetooth handles this interrupt. We dont have that hooked up on chalk */
+void EXTI15_10_IRQHandler(void)
+{
+    EXTI_ClearITPendingBit(EXTI_Line10);
+}
+#endif
 
 static void _snowy_display_request_clocks()
 {

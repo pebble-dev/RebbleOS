@@ -17,7 +17,7 @@
 /* RAM FS */
 #define MSG_HEAP_SIZE 10000
 
-static uint8_t _ramfs_heap[MSG_HEAP_SIZE] CCRAM;
+static uint8_t _ramfs_heap[MSG_HEAP_SIZE] MEM_REGION_RAMFS;
 static qarena_t *_ramfs_arena;
 
 static list_head _ramfs_head = LIST_HEAD(_ramfs_head);

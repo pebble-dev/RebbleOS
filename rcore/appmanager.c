@@ -47,8 +47,8 @@ static StackType_t _app_thread_manager_stack[APP_THREAD_MANAGER_STACK_SIZE];  //
  * or at least add dynamicness to it. But honestly we have 3 threads
  * max at the moment, so if we get there, maybe */
 static uint8_t _heap_app[MEMORY_SIZE_APP_HEAP];
-static CCRAM uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
-static CCRAM uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
+static MEM_REGION_HEAP_WRK uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
+static MEM_REGION_HEAP_OVL uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
 
 /* keep these stacks off CCRAM */
 static StackType_t _stack_app[MEMORY_SIZE_APP_STACK];
