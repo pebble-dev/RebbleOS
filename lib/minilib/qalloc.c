@@ -236,7 +236,7 @@ static void qcheck(qarena_t *arena, qblock_t *blk) {
 		
 		for (i = 0; i < BLK_SZ(blk) - sizeof(qblock_t); i++)
 			if (p[i] != 0xAA) {
-				printf("%08x %08x %08x %02x\n", p, i, &p[i], p[i]);
+				SYS_LOG("qalloc", APP_LOG_LEVEL_INFO, "%08x %08x %08x %02x\n", p, i, &p[i], p[i])
 				panic("qcheck: paranoia pays off -- heap corruption deep inside free block");
 			}
 	}
