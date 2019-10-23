@@ -9,7 +9,7 @@
 #include "flash.h"
 #include "stm32_usart.h"
 
-extern int printf ( const char* , ... );
+// extern int printf ( const char* , ... );
 
 void debug_init();
 void debug_write(const unsigned char *p, size_t len);
