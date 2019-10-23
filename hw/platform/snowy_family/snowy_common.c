@@ -203,13 +203,13 @@ static void  MemMang_Handler()
 
 void HardFault_Handler()
 {
-    printf("*** HARD FAULT ***\n");
+    SYS_LOG("platform_snowy", APP_LOG_LEVEL_ERROR, "*** HARD FAULT ***");
     while(1);
 }
 
 void BusFault_Handler()
 {
-    printf("*** BUS FAULT ***\n");
+    SYS_LOG("platform_snowy", APP_LOG_LEVEL_ERROR, "*** BUS FAULT ***");
     while(1);
 }
 
@@ -217,13 +217,13 @@ void UsageFault_Handler_C(uint32_t *sp)
 {
     uint16_t ufsr = *(uint16_t *)0xE000ED2A;
     
-    printf("*** USAGE FAULT ***\n");
-    printf("   R0: %08lx, R1: %08lx, R2: %08lx, R3: %08lx\n", sp[0], sp[1], sp[2], sp[3]);
-    printf("  R12: %08lx, LR: %08lx, PC: %08lx, SP: %08lx\n", sp[4], sp[5], sp[6], (uint32_t) sp);
-    printf("  UFSR: %04x\n", ufsr);
+    SYS_LOG("platform_snowy", APP_LOG_LEVEL_ERROR, "*** USAGE FAULT ***");
+    SYS_LOG("platform_snowy", APP_LOG_LEVEL_ERROR, "   R0: %08lx, R1: %08lx, R2: %08lx, R3: %08lx", sp[0], sp[1], sp[2], sp[3]);
+    SYS_LOG("platform_snowy", APP_LOG_LEVEL_ERROR, "  R12: %08lx, LR: %08lx, PC: %08lx, SP: %08lx", sp[4], sp[5], sp[6], (uint32_t) sp);
+    SYS_LOG("platform_snowy", APP_LOG_LEVEL_ERROR, "  UFSR: %04x", ufsr);
     
     if (ufsr & 1) {
-        printf("    *PC == %04x\n", *(uint16_t *)sp[6]);
+        SYS_LOG("platform_snowy", APP_LOG_LEVEL_ERROR, "    *PC == %04x", *(uint16_t *)sp[6]);
     }
     while(1);
 }
