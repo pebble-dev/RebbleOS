@@ -8,7 +8,8 @@ Note: You will need to aquire the FPGA blobs from the [discord](discord.gg/aRUAY
     cd FreeRTOS-Pebble
     git submodule update --init --recursive
     virtualenv --no-site-packages .env
-    souce .env/bin/activate
+    source .env/bin/activate
+    cd ..
     make
     deactivate
 ```
