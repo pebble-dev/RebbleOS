@@ -40,7 +40,7 @@ typedef struct {
 void printblock(void *data, size_t len)
 {
     for(int i = 0; i < len; i++)
-		SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "%02x", *(((uint8_t *)data) + i));
+        SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "%02x", *(((uint8_t *)data) + i));
 }
 
 uint8_t blob_process(pcol_blob_db_key *blob, void *data, uint16_t data_size)
@@ -66,7 +66,7 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     void *val_sz_start = (void *)blob + sizeof(pcol_blob_db_key) + blob->key_size;
     uint8_t val_sz = *((uint8_t *)val_sz_start);
 
-	SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "  ValueSize: %d,", val_sz);
+    SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "  ValueSize: %d,", val_sz);
     void *val_start = val_sz_start + sizeof(iblob->value_size);
 
     /* insert to database */
@@ -93,7 +93,7 @@ void protocol_process_blobdb(const pbl_transport_packet *packet)
     uint8_t ret = 0;
     switch(blob->blobdb.command) {
         case Blob_Insert:
-			SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "  INSERT,");
+            SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "  INSERT,");
             ret = blob_insert(blob);
             break;
         case Blob_Delete:
@@ -101,7 +101,7 @@ void protocol_process_blobdb(const pbl_transport_packet *packet)
         default:
             break;
     }
-	SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "}");
+    SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "}");
 
     pcol_blob_db_response response;
     response.token = blob->blobdb.token;

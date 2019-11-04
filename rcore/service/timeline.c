@@ -51,28 +51,28 @@ static uint16_t _process_attribute(list_head *list, void *raw_data)
 
 void printattr(rebble_attribute *attr, const char *indent)
 {
-	SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s{", indent);
-	SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Id: %d,", indent, attr->timeline_attribute.attribute_id);
-	SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Length: %d,", indent, attr->timeline_attribute.length);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s{", indent);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Id: %d,", indent, attr->timeline_attribute.attribute_id);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Length: %d,", indent, attr->timeline_attribute.length);
     if (attr->timeline_attribute.length) {
         if (attr->timeline_attribute.attribute_id == TimelineAttributeType_SourceType)
-			SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Type: %d,", indent, (int)*(uint32_t *)attr->data);
+            SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Type: %d,", indent, (int)*(uint32_t *)attr->data);
         else
-			SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Data: %s,", indent, attr->data ? (char *)attr->data : "n/a");
+            SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Data: %s,", indent, attr->data ? (char *)attr->data : "n/a");
     }
-	SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s},", indent);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s},", indent);
 }
 
 void printblob(rebble_notification *notification)
 {
     char buf[UUID_STRING_BUFFER_LENGTH];
     timeline_item *ti = &notification->timeline_item;
-	SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "  Notification: {");
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "  Notification: {");
     uuid_to_string(&ti->uuid, buf);
-	SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Uuid: %s,", buf);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Uuid: %s,", buf);
     uuid_to_string(&ti->parent_uuid, buf);
-	SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Parent: %s,", buf);
-	SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Parent: %s,", buf);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Parent: %s,", buf);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Parent: %s,", buf);
     SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    TimeStamp: %d,", (int)ti->timestamp);
     SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Duration: %d,", ti->duration);
     SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Type: %d,", ti->timeline_type);

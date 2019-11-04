@@ -168,7 +168,7 @@ const char *text_layer_legacy2_get_text(TextLayer *text_layer)
 void text_layer_legacy2_set_background_color_2bit(TextLayer *text_layer, int color_2bit)
 {
     /* XXX: not sure about this... */
-	SYS_LOG("text", APP_LOG_LEVEL_INFO, "TEXT LAYER BACKGROUND COLOR -> %d\n", color_2bit);
+    SYS_LOG("text", APP_LOG_LEVEL_INFO, "TEXT LAYER BACKGROUND COLOR -> %d\n", color_2bit);
     text_layer_set_background_color(text_layer,
         color_2bit == 0 ? GColorClear :
         color_2bit == 1 ? GColorClear :
@@ -205,7 +205,7 @@ void text_layer_legacy2_set_text_alignment(TextLayer *text_layer, GTextAlignment
 void text_layer_legacy2_set_text_color_2bit(TextLayer *text_layer, int color_2bit)
 {
     /* XXX: not sure about this... */
-	SYS_LOG("text", APP_LOG_LEVEL_INFO, "TEXT LAYER TEXT COLOR -> %d\n", color_2bit);
+    SYS_LOG("text", APP_LOG_LEVEL_INFO, "TEXT LAYER TEXT COLOR -> %d\n", color_2bit);
     text_layer_set_text_color(text_layer,
         color_2bit == 0 ? GColorClear :
         color_2bit == 1 ? GColorClear :

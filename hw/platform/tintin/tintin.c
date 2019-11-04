@@ -235,7 +235,7 @@ void UsageFault_Handler_C(uint32_t *sp)
     SYS_LOG("platform_tintin", APP_LOG_LEVEL_ERROR, "  UFSR: %04x", ufsr);
     
     if (ufsr & 1) {
-		SYS_LOG("platform_tintin", APP_LOG_LEVEL_ERROR, "    *PC == %04x", *(uint16_t *)sp[6]);
+        SYS_LOG("platform_tintin", APP_LOG_LEVEL_ERROR, "    *PC == %04x", *(uint16_t *)sp[6]);
     }
     while(1);
 }
