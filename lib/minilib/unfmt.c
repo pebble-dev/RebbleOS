@@ -266,7 +266,7 @@ int main() {
 	
 	rv = unsfmt("hmm...?\t\t\nab0:cD:2345% \t\r934x5", "hmm...? %2x0:%2x:%d%% %2d", convs, convs+1, convs+2, convs+3);
 	
-	SYS_LOG("unfmt", APP_LOG_LEVEL_INFO, "%d: %x %x %d %d", rv, convs[0], convs[1], convs[2], convs[3])
+	printf("%d: %x %x %d %d", rv, convs[0], convs[1], convs[2], convs[3]);
 	
 	return 0;
 }
