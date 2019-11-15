@@ -3,6 +3,7 @@
  * RebbleOS
  */
 #include <stdint.h>
+#include "debug.h"
 #include "minilib.h"
 #include "platform.h"
 #include "log.h"
@@ -41,7 +42,7 @@ static int _fs_lastpg = -1;
 /* We store the lowest erase count, and the first available page with that
  * erase count, for use with the block allocator.  */
 static uint32_t _fs_best_erase_count = 0xFFFFFFFF;
-static int _fs_first_avail_page = -1;
+static int _fs_last_allocated_page = -1;
 
 enum page_state {
     PageStateClean = 0,     /* Block is erased, and we can write to it. */
@@ -83,7 +84,7 @@ static int _fs_page_table_init()
     
     _fs_lastpg = -1;
     _fs_best_erase_count = 0xFFFFFFFF;
-    _fs_first_avail_page = -1;
+    _fs_last_allocated_page = -1;
     
     for (int pg = 0; pg < REGION_FS_N_PAGES; pg++) {
         _fs_read_page_ofs(pg, 0, &pagehdr, sizeof(pagehdr));
@@ -114,7 +115,7 @@ static int _fs_page_table_init()
             _fs_set_page_state(pg, PageStateClean);
             if (pagehdr.wear_level_counter < _fs_best_erase_count) {
                 _fs_best_erase_count = pagehdr.wear_level_counter;
-                _fs_first_avail_page = pg;
+                _fs_last_allocated_page = pg;
             }
             nclean++;
             continue;
@@ -142,9 +143,63 @@ static int _fs_page_table_init()
         assert(0);
     }
  
-    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "filesystem has last page %d/%d (%d used, %d dirty, %d clean; next clean %d w/ count %d)", _fs_lastpg, REGION_FS_N_PAGES, nused, ndirty, nclean, _fs_first_avail_page, _fs_best_erase_count);
+    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "filesystem has last page %d/%d (%d used, %d dirty, %d clean; next clean %d w/ count %d)", _fs_lastpg, REGION_FS_N_PAGES, nused, ndirty, nclean, _fs_last_allocated_page, _fs_best_erase_count);
     
     return 0;
+}
+
+/* Note that this should be immediately followed by an _fs_set_page_state. */
+static int _fs_page_alloc()
+{
+    assert(_fs_best_erase_count != 0xFFFFFFFF);
+    assert(_fs_last_allocated_page != -1);
+    
+    /* The general algorithm is: we look at the last allocated page, then if
+     * it's taken, we iterate through the entire flash looking for an open
+     * page with the best erase count.  At the same time, we write down the
+     * new best erase count, and if we don't find a page with the old best
+     * erase count, we iterate again with the new one.
+     */
+    
+    int pgstart = _fs_last_allocated_page;
+    int new_best_erase_count = 0xFFFFFFFF;
+    
+    for (int i = 0; i < REGION_FS_N_PAGES; i++) {
+        struct fs_page_hdr pagehdr;
+        
+        int pg = (i + pgstart) % REGION_FS_N_PAGES;
+        if (_fs_get_page_state(pg) != PageStateClean)
+            continue;
+        
+        _fs_read_page_ofs(pg, 0, &pagehdr, sizeof(pagehdr));
+        if (pagehdr.wear_level_counter < new_best_erase_count)
+            new_best_erase_count = pagehdr.wear_level_counter;
+        if (pagehdr.wear_level_counter == _fs_best_erase_count) {
+            /* Looks like we're in luck. */
+            _fs_last_allocated_page = pg;
+            return pg;
+        }
+    }
+    
+    /* Ok, that didn't work out, but at least we have a new best erase
+     * count.  Loop again with the new one. */
+    _fs_best_erase_count = new_best_erase_count;
+    for (int i = 0; i < REGION_FS_N_PAGES; i++) {
+        struct fs_page_hdr pagehdr;
+
+        int pg = (i + pgstart) % REGION_FS_N_PAGES;
+        if (_fs_get_page_state(pg) != PageStateClean)
+            continue;
+
+        _fs_read_page_ofs(pg, 0, &pagehdr, sizeof(pagehdr));
+        if (pagehdr.wear_level_counter == _fs_best_erase_count) {
+            /* Finally, found one. */
+            _fs_last_allocated_page = pg;
+            return pg;
+        }
+    }
+    
+    return -1;
 }
 
 /*** GC routines. ***/
