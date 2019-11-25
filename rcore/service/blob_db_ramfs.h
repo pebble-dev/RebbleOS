@@ -9,7 +9,7 @@
 
 void ramfs_init(void);
 void ramfs_open(struct fd *fd, struct file *file, uint8_t database_id);
-int ramfs_write(struct fd *fd, void *p, size_t size);
+int ramfs_write(struct fd *fd, const void *p, size_t size);
 int ramfs_read(struct fd *fd, void *p, size_t bytes);
 void ramfs_delete(Uuid *uuid);
 long ramfs_seek(struct fd *fd, long ofs, enum seek whence);

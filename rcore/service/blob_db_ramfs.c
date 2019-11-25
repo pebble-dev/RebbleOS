@@ -85,7 +85,7 @@ void ramfs_open(struct fd *fd, struct file *file, uint8_t database_id)
     LOG_DEBUG("RAMFS OPEN: %d,", fd->file.size);
 }
 
-int ramfs_write(struct fd *fd, void *p, size_t size)
+int ramfs_write(struct fd *fd, const void *p, size_t size)
 {
     ramfs *fs = _get_db(fd->curpage);
 
