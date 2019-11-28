@@ -22,4 +22,6 @@ QEMUSPINAME_snowy = basalt/3.0
 
 HWREV_snowy = snowy_dvt
 
+TESTABLE_snowy = true
+
 PLATFORMS += snowy
