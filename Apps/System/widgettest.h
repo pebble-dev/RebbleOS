@@ -16,4 +16,4 @@
 #define BTN_DOWN_PRESS   4
 
 
-void test_main(void);
+void widgettest_main(void);

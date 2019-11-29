@@ -10,7 +10,7 @@
 #include "rebbleos.h"
 #include "appmanager.h"
 #include "systemapp.h"
-#include "test.h"
+#include "widgettest.h"
 #include "notification.h"
 #include "test_defs.h"
 #include "node_list.h"
@@ -67,7 +67,7 @@ void appmanager_app_loader_init()
     _appmanager_add_to_manifest(_appmanager_create_app("System", APP_TYPE_SYSTEM, systemapp_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Simple", APP_TYPE_FACE, simple_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", APP_TYPE_FACE, nivz_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("Settings", APP_TYPE_SYSTEM, test_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Settings", APP_TYPE_SYSTEM, widgettest_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Notification", APP_TYPE_SYSTEM, notif_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("TestApp", APP_TYPE_SYSTEM, testapp_main, true, &empty, &empty));
     

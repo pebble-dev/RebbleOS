@@ -17,6 +17,7 @@
 #include "qemu.h"
 #include "blob_db_ramfs.h"
 #include "rtoswrap.h"
+#include "test.h"
 
 typedef uint8_t (*mod_callback)(void);
 static TaskHandle_t _os_task;
@@ -77,9 +78,14 @@ static void _os_thread(void *pvParameters)
     SYS_LOG("OS", APP_LOG_LEVEL_INFO,   "Init: Main hardware up. Starting OS modules");
     _module_init(resource_init,         "Resources");
     ramfs_init();
+    
+#ifndef REBBLEOS_TESTING
     _module_init(notification_init,     "Notifications");
     _module_init(overlay_window_init,   "Overlay");
     _module_init(appmanager_init,       "Main App");
+#else
+    _module_init(test_init,             "Test driver");
+#endif
 
     /* This is a runloop for all generic OS related stuff. */
     

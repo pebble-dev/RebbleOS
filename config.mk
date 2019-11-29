@@ -160,10 +160,13 @@ SRCS_all += Apps/System/systemapp.c
 SRCS_all += Apps/System/menu.c
 SRCS_all += Apps/System/testapp.c
 
-SRCS_all += Apps/System/test.c
+SRCS_all += Apps/System/widgettest.c
 SRCS_all += Apps/System/notification.c
 
 SRCS_all += hw/platform/qemu/hw_qemu.c
+
+CFLAGS_testing += -DREBBLEOS_TESTING
+SRCS_testing += rcore/test.c
 
 include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk
