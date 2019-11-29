@@ -55,8 +55,11 @@ SECTIONS
   } >FLASH
 
   .rodata : {
+    __tests_start = .;
+    *(.rodata.tests);
+    __tests_end = .;
+    *(SORT(.rodata.*));
     *(.rodata);
-    *(.rodata*);
     *(.jcr);
     *(.tm_clone_table);
     *(.igot.plt);
