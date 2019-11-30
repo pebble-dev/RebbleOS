@@ -19,5 +19,6 @@ uint8_t test_init() {
 }
 
 TEST(simple) {
+    SYS_LOG("Test", APP_LOG_LEVEL_DEBUG, "simple test passes");
     return TEST_PASS;
 }
