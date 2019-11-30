@@ -19,12 +19,12 @@ struct test {
 };
 
 #define TEST(name) \
-static int test_##__FILE__##_##__LINE__();\
-const struct test testdef_##__FILE__##_##__LINE__ __attribute__((section(".rodata.tests"))) = { \
+static int test_##name();\
+const struct test testdef_##name __attribute__((section(".rodata.tests"))) = { \
     .testname = #name, \
-    .testfn = test_##__FILE__##_##__LINE__ \
+    .testfn = test_##name \
 }; \
-static int test_##__FILE__##_##__LINE__()
+static int test_##name()
 
 #define TEST_PASS 0
 #define TEST_FAIL -1
@@ -32,7 +32,7 @@ static int test_##__FILE__##_##__LINE__()
 #else
 
 #define TEST(name) \
-static int test_##__FILE__##_##__LINE__() __attribute__((section(".throwaway")))
+static int test_## #name() __attribute__((section(".throwaway")))
 
 #endif
 
