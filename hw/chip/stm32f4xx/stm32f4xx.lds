@@ -54,10 +54,13 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
-  .rodata : {
+  .rodata.tests : {
     __tests_start = .;
     *(.rodata.tests);
     __tests_end = .;
+  } >FLASH
+
+  .rodata : {
     *(SORT(.rodata.*));
     *(.rodata);
     *(.jcr);
