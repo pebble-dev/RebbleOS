@@ -150,6 +150,14 @@ int strlen(const char *c)
 	return l;
 }
 
+int strnlen(const char *c, int n)
+{
+	int l = 0;
+	while (*(c++) && n--)
+		l++;
+	return l;
+}
+
 void *strcpy(char *a2, const char *a1)
 {
 	char *origa2 = a2;
