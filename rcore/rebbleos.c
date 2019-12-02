@@ -72,9 +72,11 @@ static void _os_thread(void *pvParameters)
     platform_init_late();
     rcore_watchdog_init_late();
     KERN_LOG("OS", APP_LOG_LEVEL_INFO,  "Watchdog is ticking");
-#ifndef REBBLEOS_TESTING
+#ifdef REBBLEOS_TESTING
     /* No bluetooth in test mode -- the hardware isn't there, and we use the
-     * USART to talk to the test driver */
+     * USART to talk to the test driver. */
+    _module_init(qemu_init,             "QEMU");
+#else
     _module_init(bluetooth_init,        "Bluetooth");
 #endif
     power_init();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
 
 typedef void (*ProtocolTransportSender)(uint16_t endpoint, uint8_t *data, uint16_t len);
 

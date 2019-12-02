@@ -9,7 +9,10 @@
 #include <stdint.h>
 
 #ifdef REBBLEOS_TESTING
+#include "protocol.h"
+
 uint8_t test_init(void);
+void test_packet_handler(const pbl_transport_packet *packet);
 
 typedef int (*testfn_t)();
 #define TESTNAME_LEN 32
