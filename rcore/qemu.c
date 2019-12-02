@@ -95,6 +95,29 @@ void qemu_send_data(uint16_t endpoint, uint8_t *data, uint16_t len)
     xSemaphoreGive(_qemu_mutex);
 }
 
+#ifdef REBBLEOS_TESTING
+void qemu_reply_test(uint8_t *data, uint16_t len)
+{
+    xSemaphoreTake(_qemu_mutex, portMAX_DELAY);
+    QemuCommChannelHeader header;
+    header.signature = htons(QEMU_HEADER_SIGNATURE);
+    header.protocol = htons(QemuProtocol_Tests);
+    header.len = htons(len);
+    hw_qemu_write((const void *)&header, sizeof(QemuCommChannelHeader));
+
+    /* data */
+    hw_qemu_write((const void *)data, len);
+
+    /* footer */
+    QemuCommChannelFooter footer = {
+            .signature = htons(QEMU_FOOTER_SIGNATURE)
+        };
+    hw_qemu_write((const void *)&footer, sizeof(QemuCommChannelFooter));
+
+    xSemaphoreGive(_qemu_mutex);
+}
+#endif
+
 void qemu_rx_started_isr(void)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -176,4 +199,6 @@ static void _qemu_handle_packet(void)
     }
 
     handler(&pkt);
+    
+    protocol_rx_buffer_consume(header.len + sizeof(QemuCommChannelHeader) + sizeof(QemuCommChannelFooter));
 }
