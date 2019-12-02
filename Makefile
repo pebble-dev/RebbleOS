@@ -64,7 +64,7 @@ ifneq ($(TESTABLE_$(1)),)
 # Build a new platform.
 $(foreach var, \
 	CFLAGS SRCS LDFLAGS LIBS QEMUFLAGS QEMUSPITYPE QEMUPACKSIZE QEMUPACKOFS QEMUSPINAME HWREV, \
-	$$(eval $(var)_$(1)_test = $($(var)_$(1))) \
+	$$(eval $(var)_$(1)_test += $($(var)_$(1))) \
 	)
 $$(eval CFLAGS_$(1)_test += $(CFLAGS_testing))
 $$(eval SRCS_$(1)_test += $(SRCS_testing))
