@@ -105,7 +105,7 @@ void test_packet_handler(const pbl_transport_packet *packet)
         
         for (test = __tests_start, i = 0; test < __tests_end; test++, i++) {
             resp.opcode = htons(QEMU_TEST_LIST_RESPONSE);
-            resp.id = i;
+            resp.id = htons(i);
             resp.is_last_test = test == (__tests_end - 1);
             resp.name_len = strnlen(test->testname, RESPONSE_NAME_MAX_SIZE);
             strncpy(resp.name, test->testname, RESPONSE_NAME_MAX_SIZE);
