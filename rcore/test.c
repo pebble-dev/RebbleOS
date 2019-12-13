@@ -1,13 +1,11 @@
 #include "test.h"
 #include "rebbleos.h"
 #include "protocol.h"
+#include "rtoswrap.h"
 
 #ifndef REBBLEOS_TESTING
 #error these routines only get compiled in test mode
 #endif
-
-extern struct test __tests_start[];
-extern struct test __tests_end[];
 
 enum qemu_test_packet_types {
     QEMU_TEST_LIST_REQUEST  = 0x0000,
@@ -43,21 +41,61 @@ union qemu_test_packet {
     struct qemu_test_complete test_complete;
 } __attribute__((__packed__));
 
+extern struct test __tests_start[];
+extern struct test __tests_end[];
+
+static void _test_thread(void *par);
+THREAD_DEFINE(test, 1024, tskIDLE_PRIORITY + 2UL, _test_thread);
+QUEUE_DEFINE(test, uint16_t, 1);
+
 uint8_t test_init() {
     struct test *test;
     int i;
     
+    QUEUE_CREATE(test);
+    THREAD_CREATE(test);
+    
     for (test = __tests_start; test < __tests_end; test++) {
-        SYS_LOG("Test", APP_LOG_LEVEL_DEBUG, "Test \"%s\" available", test->testname);
+        SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "Test \"%s\" available", test->testname);
     }
     return INIT_RESP_OK;
+}
+
+static void _test_thread(void *par) {
+    while (1) {
+        uint16_t testreq;
+        static struct qemu_test_complete resp;
+        resp.opcode = htons(QEMU_TEST_COMPLETE);
+        
+        xQueueReceive(_test_queue, &testreq, portMAX_DELAY); /* does not fail */
+        
+        if (&__tests_start[testreq] >= __tests_end) {
+            KERN_LOG("test", APP_LOG_LEVEL_ERROR, "request for out-of-bound test %d", testreq);
+            
+            resp.passed = 0;
+            resp.artifact = htonl(0xBAADF00DU);
+            qemu_reply_test(&resp, sizeof(resp));
+            continue;
+        }
+        
+        KERN_LOG("test", APP_LOG_LEVEL_INFO, "running test %d (%s)", testreq, __tests_start[testreq].testname);
+        
+        uint32_t artifact;
+        int rv;
+        
+        rv = __tests_start[testreq].testfn(&artifact);
+        
+        resp.passed = rv == TEST_PASS;
+        resp.artifact = htonl(artifact);
+        qemu_reply_test(&resp, sizeof(resp));
+    }
 }
 
 void test_packet_handler(const pbl_transport_packet *packet)
 {
     union qemu_test_packet *qpkt = (union qemu_test_packet *)packet->data;
     
-    KERN_LOG("Test", APP_LOG_LEVEL_INFO, "test protocol packet from qemu, %d bytes, opcode %d", packet->length, qpkt->opcode);
+    KERN_LOG("test", APP_LOG_LEVEL_INFO, "test protocol packet from qemu, %d bytes, opcode %d", packet->length, qpkt->opcode);
     
     switch (ntohs(qpkt->opcode)) {
     case QEMU_TEST_LIST_REQUEST: {
@@ -78,22 +116,20 @@ void test_packet_handler(const pbl_transport_packet *packet)
         break;
     }
     case QEMU_TEST_RUN_REQUEST: {
-        KERN_LOG("Test", APP_LOG_LEVEL_INFO, "test run request from qemu, id %d", qpkt->test_run_request.id);
+        uint16_t testreq = ntohs(qpkt->test_run_request.id);
         
-        static struct qemu_test_complete resp;
-        resp.opcode = htons(QEMU_TEST_COMPLETE);
-        resp.passed = 0;
-        resp.artifact = 0xAA55AA55;
-        qemu_reply_test(&resp, sizeof(resp));
+        if (!xQueueSendToBack(_test_queue, &testreq, 0))
+            KERN_LOG("test", APP_LOG_LEVEL_ERROR, "test engine was busy");
         
         break;
     }
     default:
-        KERN_LOG("Test", APP_LOG_LEVEL_ERROR, "unknown qemu opcode %04x", qpkt->opcode);
+        KERN_LOG("test", APP_LOG_LEVEL_ERROR, "unknown qemu opcode %04x", qpkt->opcode);
     }
 }
 
 TEST(simple) {
-    SYS_LOG("Test", APP_LOG_LEVEL_DEBUG, "simple test passes");
+    *artifact = 42;
+    SYS_LOG("test", APP_LOG_LEVEL_DEBUG, "simple test passes");
     return TEST_PASS;
 }
