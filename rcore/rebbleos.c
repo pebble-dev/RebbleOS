@@ -16,6 +16,7 @@
 #include "power.h"
 #include "qemu.h"
 #include "blob_db_ramfs.h"
+#include "protocol_service.h"
 #include "rtoswrap.h"
 
 typedef uint8_t (*mod_callback)(void);
@@ -71,7 +72,11 @@ static void _os_thread(void *pvParameters)
     platform_init_late();
     rcore_watchdog_init_late();
     KERN_LOG("OS", APP_LOG_LEVEL_INFO,  "Watchdog is ticking");
-    _module_init(bluetooth_init,        "Bluetooth");
+    //_module_init(bluetooth_init,        "Bluetooth");
+    /* BT Doesn't like to come up async */
+    bluetooth_init();
+    _module_init(qemu_init, "QEMU");
+    rebble_protocol_init();
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     SYS_LOG("OS", APP_LOG_LEVEL_INFO,   "Init: Main hardware up. Starting OS modules");
@@ -82,7 +87,7 @@ static void _os_thread(void *pvParameters)
     _module_init(appmanager_init,       "Main App");
 
     /* This is a runloop for all generic OS related stuff. */
-    
+
     os_msg msg;
     uint8_t count = 0;
     while(1)

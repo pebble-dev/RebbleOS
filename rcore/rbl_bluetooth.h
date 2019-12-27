@@ -2,8 +2,7 @@
 #include "stdbool.h"
 #include "platform.h"
 
-#define TX_BUFFER_SIZE 250
-#define TX_TIMEOUT_MS 5
+#define TX_TIMEOUT_MS 10
 
 
 typedef void (*tx_complete_callback)();
@@ -28,6 +27,8 @@ uint8_t hw_bluetooth_init(void);
 void bluetooth_device_connected(void);
 void bluetooth_device_disconnected(void);
 bool bluetooth_is_device_connected(void);
+void bluetooth_enable(void);
+bool bluetooth_is_enabled(void);
 
 #ifdef BLUETOOTH_IS_BLE
 void ppogatt_init(void);
