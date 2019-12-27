@@ -89,6 +89,7 @@ void overlay_window_create_with_context(OverlayCreateCallback creation_callback,
 
 void overlay_window_draw(bool window_is_dirty)
 {
+    SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "DRAWWWWWW");
     OverlayMessage om = (OverlayMessage) {
         .command = OVERLAY_DRAW,
         .data = (void *)window_is_dirty,
@@ -166,16 +167,22 @@ uint8_t overlay_window_count(void)
 void overlay_window_stack_push(OverlayWindow *overlay_window, bool animated)
 {
     list_init_node(&overlay_window->node);
-    list_insert_head(&_overlay_window_list_head, &overlay_window->node);
-
+    list_insert_tail(&_overlay_window_list_head, &overlay_window->node);
+    window_stack_push_configure(&overlay_window->window, animated);
     overlay_window->window.is_render_scheduled = true;
     window_dirty(true);
 }
 
 void overlay_window_stack_push_window(Window *window, bool animated)
 {
-    OverlayWindow *overlay_window = container_of(window, OverlayWindow, window);
-    overlay_window_stack_push(overlay_window, animated);
+    /* Add the window to the list of the existing overlay windows */
+    list_init_node(&window->node);
+    OverlayWindow *overlay_window = overlay_stack_get_top_overlay_window();
+    list_insert_tail(&overlay_window->head, &window->node);
+    overlay_window->window.is_render_scheduled = true;
+    window_stack_push_configure(window, false);
+    window_dirty(true);
+    appmanager_post_draw_message(1);
 }
 
 Window *overlay_window_stack_pop_window(bool animated)
@@ -246,6 +253,7 @@ static void _overlay_window_create(OverlayCreateCallback create_callback, void *
     overlay_window->context = (context ? context : overlay_window);
     overlay_window->window.background_color = GColorClear;
     overlay_window->graphics_context = n_root_graphics_context_from_buffer(display_get_buffer());
+    list_init_head(&overlay_window->head);
     SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "W OFFSET: %d", overlay_window->graphics_context->offset.origin.y);
     /* invoke creation callback so it can be drawn in the right heap */
     ((OverlayCreateCallback)create_callback)(overlay_window, &overlay_window->window);
@@ -290,6 +298,7 @@ static void _overlay_window_draw(bool window_is_dirty)
     list_foreach(ow, &_overlay_window_list_head, OverlayWindow, node)
     {
         Window *window = &ow->window;
+        SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "DRAW %x.", window);
         assert(window);
         /* we would normally check render scheduled here, but if
          * the main app has forced a redraw, then we have to do painting
@@ -297,6 +306,14 @@ static void _overlay_window_draw(bool window_is_dirty)
         rbl_window_draw(window);
         
         window->is_render_scheduled = false;
+        
+        Window *w;
+        list_foreach(w, &ow->head, Window, node)
+        {
+            SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "DRAW SUB %x.", window);
+            rbl_window_draw(w);
+            w->is_render_scheduled = false;
+        }
     }
     
     xSemaphoreGive(_ovl_done_sem);
@@ -338,6 +355,7 @@ static void _overlay_thread(void *pvParameters)
                     appmanager_post_draw_message(1);
                     break;
                 case OVERLAY_DRAW:
+                    SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "DDDDDDDDD");
                     _overlay_window_draw((bool)data.data);
                     break;
                 case OVERLAY_DESTROY:
@@ -355,6 +373,7 @@ static void _overlay_thread(void *pvParameters)
                         ButtonMessage *message = (ButtonMessage *)data.data;
                         SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON ACC MCB %x", message->callback);
                         ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
+                        appmanager_post_draw_message(1);
                         break;
                     }
 
