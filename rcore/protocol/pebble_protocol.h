@@ -15,6 +15,7 @@ enum {
     WatchProtocol_Reset            = 2003,
     WatchProtocol_PhoneMessage     = 0x0bc2, // legacy?
     WatchProtocol_BlobDbMessage    = 0xb1db,
+    WatchProtocol_TimelineAction   = 11440,
 };
 
 

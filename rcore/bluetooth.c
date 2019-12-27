@@ -69,7 +69,7 @@ static StackType_t _bt_cmd_task_stack[STACK_SZ_CMD];
 static StaticTask_t _bt_cmd_task_buf;
 
 /* Processing Queue */
-#define _CMD_QUEUE_LENGTH 1
+#define _CMD_QUEUE_LENGTH 5
 #define _CMD_QUEUE_SIZE sizeof(rebble_bt_packet)
 static QueueHandle_t _bt_cmd_queue;
 static StaticQueue_t _bt_cmd_queue_ptr;
@@ -78,8 +78,6 @@ static uint8_t _bt_cmd_queue_buf[_CMD_QUEUE_LENGTH * _CMD_QUEUE_SIZE];
 static SemaphoreHandle_t _bt_tx_mutex;
 static StaticSemaphore_t _bt_tx_mutex_buf;
 
-/* When a TX is complete, this will hold the orig task */
-static TaskHandle_t _tx_task_to_notify = NULL;
 
 static bool _enabled;
 static bool _connected;
@@ -93,7 +91,7 @@ static void _bt_thread(void *pvParameters);
 static void _bt_cmd_thread(void *pvParameters);
 static uint8_t _bluetooth_tx(uint8_t *data, uint16_t len);
 
-// #define BT_LOG_ENABLED
+ #define BT_LOG_ENABLED
 #ifdef BT_LOG_ENABLED
     #define BT_LOG SYS_LOG
 #else
@@ -107,12 +105,12 @@ uint8_t bluetooth_init(void)
     _bt_tx_mutex = xSemaphoreCreateMutexStatic(&_bt_tx_mutex_buf);
     _bt_task = xTaskCreateStatic(_bt_thread, 
                                      "BT", STACK_SZ_BT, NULL, 
-                                     tskIDLE_PRIORITY + 3UL, 
+                                     tskIDLE_PRIORITY + 12UL, 
                                      _bt_task_stack, &_bt_task_buf);
     
     _bt_cmd_task = xTaskCreateStatic(_bt_cmd_thread, 
                                      "BTCmd", STACK_SZ_CMD, NULL, 
-                                     tskIDLE_PRIORITY + 4UL, 
+                                     tskIDLE_PRIORITY + 11UL, 
                                      _bt_cmd_task_stack, &_bt_cmd_task_buf);
 
 #ifdef BLUETOOTH_IS_BLE
@@ -128,33 +126,6 @@ void bluetooth_init_complete(uint8_t state)
     os_module_init_complete(state);
 }
 
-/*
- * Just send some raw data
- * returns bytes sent
- * DO NOT CALL FROM ISR
- */
-uint32_t bluetooth_send_serial_raw(uint8_t *data, size_t len)
-{
-    xSemaphoreTake(_bt_tx_mutex, portMAX_DELAY);
-
-    bt_device_request_tx(data, len);
-    
-    // block this thread until we are done
-    if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(200)))
-    {
-        // clean unlock
-        BT_LOG("BT", APP_LOG_LEVEL_DEBUG, "Sent %d bytes", len);
-    }
-    else
-    {
-        // timed out
-        BT_LOG("BT", APP_LOG_LEVEL_ERROR, "Timed out sending!");
-    }
-    
-    xSemaphoreGive(_bt_tx_mutex);
-    
-    return len;
-}
 
 /*
  * Callbacks and ISR from the bluetooth stack
@@ -190,13 +161,8 @@ void bluetooth_tx_complete_from_isr(void)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
-    // Notify the task that the transmission is complete.
     vTaskNotifyGiveFromISR(_bt_cmd_task, &xHigherPriorityTaskWoken);
 
-    /* If xHigherPriorityTaskWoken is now set to pdTRUE then a context switch
-    should be performed to ensure the interrupt returns directly to the highest
-    priority task.  The macro used for this purpose is dependent on the port in
-    use and may be called portEND_SWITCHING_ISR(). */
     portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
 
@@ -225,7 +191,7 @@ static void _bt_thread(void *pvParameters)
  */
 static void _bt_cmd_thread(void *pvParameters)
 {
-    rebble_bt_packet pkt;
+    static rebble_bt_packet pkt;
     BT_LOG("BT", APP_LOG_LEVEL_INFO, "BT CMD Thread started");
     
     uint8_t noty_data[] = {/* test nofy data ripped from gb */
@@ -239,30 +205,24 @@ static void _bt_cmd_thread(void *pvParameters)
         /* We are going to wait for a message. This is mostly going to be TX messages
          * We have a queue size of one, which blocks and serialises all callers
          */
-        if (xQueueReceive(_bt_cmd_queue, &pkt, portMAX_DELAY))
+        xQueueReceive(_bt_cmd_queue, &pkt, portMAX_DELAY);
+        
+        if (pkt.packet_type == PACKET_TYPE_TX)
         {
-            if (pkt.packet_type == PACKET_TYPE_TX)
+            BT_LOG("BT", APP_LOG_LEVEL_INFO, "TX %d byte", pkt.length);
+            int n = 0;
+            while(n < 5)
             {
-//                 BT_LOG("BT", APP_LOG_LEVEL_INFO, "TX %d byte", pkt.length);
-                /* Do a blocking send. The thread will be asleep while the data is DMAed */
-                bluetooth_send_serial_raw(pkt.data, pkt.length);
+                bt_device_request_tx(pkt.data, pkt.length);
+                int rv = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50));
+                if(rv == 0)
+                    BT_LOG("BT", APP_LOG_LEVEL_ERROR, "Timed out sending!");
                 
-                /* Use our semaphore to notify the calling thread that we are TX done */
-                if (!xTaskNotify(_tx_task_to_notify, TX_NOTIFY_COMPLETE, eSetBits))
-                {
-                    BT_LOG("BT", APP_LOG_LEVEL_ERROR, "TX Timed out after %dms", TX_TIMEOUT_MS);
-                    xTaskNotify(_tx_task_to_notify, TX_NOTIFY_COMPLETE, eSetBits);
-                    continue;
-                }
-                
-                /* We might have been given a TX callback function to call */
-//                 if (pkt.callback != NULL)
-//                     pkt.callback();
+                n++;
+                break;
             }
-        }
-        else
-        {
-            
+            /* XXX ugh, should be using a better dynamic pool of memory not sys malloc */
+            system_free(pkt.data);
         }
     }
 }
@@ -275,6 +235,7 @@ void bluetooth_send_data(uint16_t endpoint, uint8_t *data, uint16_t len)
 {
     uint16_t ep = htons(endpoint);
     uint16_t l = htons(len);
+
     bluetooth_send((uint8_t *)&l, 2);
     bluetooth_send((uint8_t *)&ep, 2);
     bluetooth_send(data, len);
@@ -285,16 +246,21 @@ void bluetooth_send_data(uint16_t endpoint, uint8_t *data, uint16_t len)
  */
 void bluetooth_send_async(uint8_t *data, size_t len, tx_complete_callback cb)
 {
+    static rebble_bt_packet packet;
+    
     if (!_enabled || !_connected)
         return;
     
-    rebble_bt_packet packet = {
-        .length = len,
-        .packet_type = PACKET_TYPE_TX,
-        .data = data,
-        .callback = cb
-    };
-
+    /* XXX ugh, should be using a better dynamic pool of memory not sys malloc */
+    uint8_t *ndata = system_malloc(len);
+    assert(ndata && "Well that will teach you for letting me abuse malloc. Fix this code");
+    memcpy(ndata, data, len);
+    
+    packet.length = len;
+    packet.packet_type = PACKET_TYPE_TX;
+    packet.data = ndata;
+    packet.callback = cb;
+    
     xQueueSendToBack(_bt_cmd_queue, &packet, portMAX_DELAY);
 }
     
@@ -323,37 +289,39 @@ bool bluetooth_is_device_connected(void)
     return _connected;
 }
 
+bool bluetooth_is_enabled(void)
+{
+    return _enabled;
+}
+
+void bluetooth_enable(void)
+{
+    _enabled = true;
+}
+
+
 static uint8_t _bluetooth_tx(uint8_t *data, uint16_t len)
 {
     BaseType_t result;
     uint32_t notif_value;
     
-    /* Grab the callee's task handle so we can sleep on it */
-     _tx_task_to_notify = xTaskGetCurrentTaskHandle();
-     
-    /* This will block if there is something in progress already (queue size 1) */
-    bluetooth_send_async(data, len, NULL);
+    xSemaphoreTake(_bt_tx_mutex, portMAX_DELAY);
+    BT_LOG("BT", APP_LOG_LEVEL_INFO, "_tx %d", len);
+
+    /* We need to break the tx into chunks that fit into the MTU size
+     * rfcomm also needs a little room for the header */
+    uint32_t sz = HCI_ACL_PAYLOAD_SIZE - 10;
     
-    /* We sleep block again waiting for TX complete */
-    result = xTaskNotifyWait(pdFALSE,    /* Don't clear bits on entry. */
-                         0xffffffff,        /* Clear all bits on exit. */
-                         &notif_value, /* Stores the notified value. */
-                         pdMS_TO_TICKS(TX_TIMEOUT_MS));
+    while(len > 0)
+    {           
+        uint32_t thissendlen = len > sz ? sz : len;
+        bluetooth_send_async(data, thissendlen, NULL);
 
-    if(result == pdPASS)
-    {
-        if ((notif_value & TX_NOTIFY_COMPLETE) != 0)
-        {
-            BT_LOG("BT", APP_LOG_LEVEL_INFO, "TX Sent %d bytes", len);
-        }
-    }
-    else
-    {
-        BT_LOG("BT", APP_LOG_LEVEL_ERROR, "TX Timed out after %dms", TX_TIMEOUT_MS);
-        return 0;
+        len  -= thissendlen;
+        data += thissendlen;
     }
 
-
+    xSemaphoreGive(_bt_tx_mutex);
     return len;
 }
 

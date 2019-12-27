@@ -16,6 +16,7 @@
 #include "power.h"
 #include "qemu.h"
 #include "blob_db_ramfs.h"
+#include "protocol_service.h"
 #include "rtoswrap.h"
 #include "test.h"
 
@@ -79,6 +80,8 @@ static void _os_thread(void *pvParameters)
 #else
     _module_init(bluetooth_init,        "Bluetooth");
 #endif
+    rebble_protocol_init();
+    _module_init(qemu_init, "QEMU");
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     SYS_LOG("OS", APP_LOG_LEVEL_INFO,   "Init: Main hardware up. Starting OS modules");
@@ -94,7 +97,7 @@ static void _os_thread(void *pvParameters)
 #endif
 
     /* This is a runloop for all generic OS related stuff. */
-    
+
     os_msg msg;
     uint8_t count = 0;
     while(1)
