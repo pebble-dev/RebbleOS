@@ -41,6 +41,7 @@ typedef struct OverlayWindow {
     void *context;
     struct n_GContext *graphics_context;
     list_node node;
+    list_head head;
 } OverlayWindow;
 
 

@@ -139,6 +139,7 @@ static void _qemu_thread(void *pvParameters)
         protocol_rx_buffer_release(lenr);
 
         _qemu_handle_packet();
+        protocol_rx_buffer_consume(lenr);
         hw_qemu_irq_enable();
     }
 }
