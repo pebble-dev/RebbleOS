@@ -14,7 +14,7 @@
 /* Configure Logging */
 #define MODULE_NAME "proto"
 #define MODULE_TYPE "KERN"
-#define LOG_LEVEL RBL_LOG_LEVEL_INFO //RBL_LOG_LEVEL_NONE
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_NONE
 
 static void _thread_protocol_tx();
 
@@ -33,7 +33,7 @@ struct rebble_packet {
 
 list_head _messages_awaiting_reponse_head = LIST_HEAD(_messages_awaiting_reponse_head);
 
-#define STACK_SIZE_PROTOCOL_TX (configMINIMAL_STACK_SIZE + 300)
+#define STACK_SIZE_PROTOCOL_TX (configMINIMAL_STACK_SIZE + 600)
 static TaskHandle_t _task_protocol_tx = 0;
 static StaticTask_t _task_protocol_tx_tcb;
 static StackType_t  _task_protocol_tx_stack[STACK_SIZE_PROTOCOL_TX];
@@ -82,6 +82,9 @@ void _add_packet_to_send_list(rebble_packet *packet)
     rebble_packet *pkt_copy = protocol_calloc(1, sizeof(rebble_packet));
     assert(pkt_copy);
     memcpy(pkt_copy, packet, sizeof(rebble_packet));
+    TickType_t curtime = xTaskGetTickCount();
+    pkt_copy->next_time = curtime + pdMS_TO_TICKS(pkt_copy->timeout_ms);
+
     list_init_node(&pkt_copy->node);
     list_insert_tail(&_messages_awaiting_reponse_head, &pkt_copy->node);
     // unlock
@@ -131,13 +134,22 @@ static void _check_for_timed_out_packets()
             {
                 pkt->retries--;
                 pkt->next_time = curtime + pdMS_TO_TICKS(pkt->timeout_ms);
-                protocol_send_packet(pkt->packet); /* send a transport packet */
+                pbl_transport_packet tpkt = {
+                    .length = pkt->length,
+                    .endpoint = pkt->endpoint,
+                    .data = pkt->packet,
+                    .transport_sender = protocol_get_current_transport_sender()
+                };
+                LOG_ERROR("Timed out sending. Retreies %d", pkt->retries);
+                protocol_send_packet(&tpkt); /* send a transport packet */
             }
             else
             {
                 /* get the previous element. we are deleting the current one, so we need to repoint */
                 rebble_packet *pc = list_elem(list_get_prev(&_messages_awaiting_reponse_head, &pkt->node), rebble_packet, node);
-                
+                if (!pc)
+                    continue;
+                LOG_ERROR("Gave Up");
                 rebble_protocol_remove_packet(pkt);
                 protocol_free(pkt);
                 pkt = pc;
@@ -168,7 +180,13 @@ static void _thread_protocol_tx()
             if (pkt.needs_ack)
                 _add_packet_to_send_list(&pkt);
             
-            protocol_send_packet(pkt.packet); /* send a transport packet */
+            pbl_transport_packet tpkt = {
+                    .length = pkt.length,
+                    .endpoint = pkt.endpoint,
+                    .data = pkt.packet,
+                    .transport_sender = protocol_get_current_transport_sender()
+                };
+            protocol_send_packet(&tpkt); /* send a transport packet */
             
             if (!pkt.needs_ack)
                 protocol_free(pkt.packet);
@@ -183,7 +201,7 @@ void *protocol_calloc(uint8_t count, size_t size)
     void *x = qalloc(_protocol_arena, count * size);
     if (x == NULL)
     {
-        LOG_ERROR("!!! NO MEM!\n");
+        LOG_ERROR("!!! NO MEM!");
         return NULL;
     }
 
