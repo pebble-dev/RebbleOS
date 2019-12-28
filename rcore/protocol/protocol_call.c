@@ -7,6 +7,7 @@
 #include "rebbleos.h"
 #include "protocol.h"
 #include "pebble_protocol.h"
+#include "protocol_service.h"
 
 /* Configure Logging */
 #define MODULE_NAME "p-call"
@@ -114,15 +115,18 @@ void protocol_phone_get_state()
 void protocol_phone_message_send(uint8_t command_id, uint32_t cookie, bool needs_ack)
 {
     if (!cookie)
-        cookie = (uint32_t)xTaskGetTickCount();
+    {
+        int tc = xTaskGetTickCount();
+        cookie = (uint32_t)tc;
+    }
+    
     phone_message *pm = protocol_calloc(1, sizeof(phone_message));
-        pm->command_id = command_id;
-        pm->cookie = cookie;
-    };
+    pm->command_id = command_id;
+    pm->cookie = cookie;
     
     /* Send a phone action */
     Uuid uuid;
-    memcpy(&uuid, cookie, 4);
+    memcpy(&uuid, &cookie, 4);
     rebble_protocol_send(WatchProtocol_PhoneMessage, &uuid, pm, sizeof(phone_message), 
                           3, 1500, needs_ack);
 }

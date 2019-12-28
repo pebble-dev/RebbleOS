@@ -120,6 +120,8 @@ SRCS_all += rcore/protocol/protocol_system.c
 SRCS_all += rcore/protocol/protocol.c
 SRCS_all += rcore/protocol/protocol_app.c
 SRCS_all += rcore/protocol/protocol_blob.c
+SRCS_all += rcore/protocol/protocol_call.c
+SRCS_all += rcore/protocol/protocol_music.c
 
 SRCS_all += rcore/service/blob_db.c
 SRCS_all += rcore/service/blob_db_ramfs.c
