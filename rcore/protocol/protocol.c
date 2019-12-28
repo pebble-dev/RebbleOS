@@ -31,6 +31,7 @@ const PebbleEndpoint pebble_endpoints[] =
     { .endpoint = WatchProtocol_LegacyMessage,      .handler  = protocol_process_legacy2_notification },
     { .endpoint = WatchProtocol_BlobDbMessage,      .handler  = protocol_process_blobdb },
     { .endpoint = WatchProtocol_PhoneMessage,       .handler  = protocol_phone_message_process },
+    { .endpoint = WatchProtocol_MusicControl,       .handler  = protocol_music_message_process },
     { .handler = NULL }
 };
 
