@@ -1,3 +1,9 @@
+/* protocol_system.c
+ * R/Pebble Protocol System requests.
+ * libRebbleOS
+ *
+ * Author: Barry Carter <barry.carter@gmail.com>
+ */
 #include "rebbleos.h"
 #include "protocol.h"
 #include "protocol_system.h"
