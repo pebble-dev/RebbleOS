@@ -33,7 +33,7 @@ uint8_t *protocol_get_rx_buffer(void);
 void protocol_send_packet(const pbl_transport_packet *pkt);
 bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender transport);
 void protocol_process_packet(const pbl_transport_packet *pkt);
-
+ProtocolTransportSender protocol_get_current_transport_sender();
 
 typedef enum  {
     Unknown = 0,

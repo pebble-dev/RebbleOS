@@ -108,8 +108,11 @@ static void _push_animation_teardown(Animation *animation) {
  */
 list_head *window_thread_get_head(Window *window)
 {
-    if (appmanager_get_thread_type() == AppThreadMainApp)
+    int ttype = appmanager_get_thread_type();
+    if (ttype == AppThreadMainApp)
         return &_window_list_head;
+    else if (ttype == AppThreadOverlay)
+        return overlay_window_get_list_head();
     
     assert(!"I don't know how to deal with a window in this thread!");
     return NULL;
@@ -238,7 +241,8 @@ uint16_t window_count(void)
     uint16_t count = 0;
     Window *w;
     
-    assert(!appmanager_is_thread_overlay() && "Please use overlay_window_count");
+    if (appmanager_is_thread_overlay())
+        return overlay_window_count();
         
     if (list_get_head(&_window_list_head) == NULL)
         return 0;

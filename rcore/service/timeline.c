@@ -13,6 +13,10 @@
 #include "blob_db.h"
 #include "notification_manager.h"
 
+/* Configure Logging */
+#define MODULE_NAME "timeln"
+#define MODULE_TYPE "SYS"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 static uint16_t _process_attribute(list_head *list, void *raw_data)
 {
@@ -277,7 +281,7 @@ void timeline_action_send(uint8_t timeline_action, Uuid *uuid, uint8_t *reply_te
     int r_len = strlen((char *)reply_text);
     int t_len = strlen((char *)reply_to);
     int attr_count = 0;
-    
+
     if (reply_text) attr_count++;
     if (reply_to)   attr_count++;
     
@@ -303,7 +307,7 @@ void timeline_action_send(uint8_t timeline_action, Uuid *uuid, uint8_t *reply_te
                                               reply_to, t_len, action->attributes + pkt_len);
     
     rebble_protocol_send(WatchProtocol_TimelineAction, uuid, buf, pkt_len + sizeof(timeline_action_request), 
-                         3 /*retries*/, 100 /* timeout */, true);
+                         3 /*retries*/, 1000 /* timeout */, true);
     /* memory will be freed in protocol */
 }
 

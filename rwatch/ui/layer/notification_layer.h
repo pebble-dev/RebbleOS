@@ -27,8 +27,7 @@ typedef struct NotificationLayer
     uint16_t anim_offset_goal;
     
     PropertyAnimation prop_anim;
-//     NotificationAction *actions;
-    
+   
     uint8_t notif_count;
     uint8_t selected_notif_idx;
 
@@ -39,6 +38,7 @@ typedef struct NotificationLayer
     uint32_t message_type;
 
     rebble_notification *notification;
+
     ResultSetList all_notifications;
     ResultSetItem selected_result_item;
 

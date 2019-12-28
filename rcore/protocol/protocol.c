@@ -60,6 +60,7 @@ EndpointHandler protocol_find_endpoint_handler(uint16_t protocol, const PebbleEn
 static uint8_t _rx_buffer[RX_BUFFER_SIZE];
 static uint16_t _buf_ptr = 0;
 static TickType_t _last_rx;
+static ProtocolTransportSender _last_transport_used;
 
 uint8_t *protocol_get_rx_buffer(void)
 {
@@ -120,6 +121,11 @@ void protocol_rx_buffer_consume(uint16_t len)
     _buf_ptr -= len;
 }
 
+ProtocolTransportSender protocol_get_current_transport_sender()
+{
+    return _last_transport_used;
+}
+
 /*
  * Parse a packet in the buffer. Will fill the given pbl_transport with
  * the parsed data
@@ -130,7 +136,9 @@ bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender tr
 {
     uint16_t pkt_length = (pkt->data[0] << 8) | (pkt->data[1] & 0xff);
     uint16_t pkt_endpoint = (pkt->data[2] << 8) | (pkt->data[3] & 0xff);
-
+    
+    _last_transport_used = transport;
+    
     LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
     
     if (_buf_ptr < 4) /* not enough data to parse a header */
@@ -153,7 +161,7 @@ bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender tr
         return false;
     }
 
-    LOG_INFO("RX: packet is complete");
+    LOG_INFO("RX: packet is complete %x", transport);
 
     /* it's a valid packet. fill out passed packet and finish up */
     pkt->length = pkt_length;
@@ -194,7 +202,7 @@ void protocol_send_packet(const pbl_transport_packet *pkt)
     uint16_t len = pkt->length;
     uint16_t endpoint = pkt->endpoint;
 
-    LOG_DEBUG("TX protocol: e:%d");
+    LOG_DEBUG("TX protocol: e:%d s %x", endpoint, pkt->transport_sender);
 
     pkt->transport_sender(endpoint, pkt->data, len);
 }

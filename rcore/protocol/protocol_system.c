@@ -139,7 +139,7 @@ void protocol_app_version(const pbl_transport_packet *packet)
 
     pbl_transport_packet pkt = {
         .length = sizeof(app_version_response),
-        .endpoint = WatchProtocol_PingPong,
+        .endpoint = WatchProtocol_AppVersion,
         .data = (uint8_t *)&appv,
         .transport_sender = packet->transport_sender
     };
@@ -190,7 +190,7 @@ void protocol_time(const pbl_transport_packet *packet)
     }
     else if (packet->data[0] == SetUTC)
     {
-        cmd_set_time_utc *utc = (cmd_set_time_utc *)packet->data;
+        cmd_set_time_utc *utc = (cmd_set_time_utc *)&packet->data[1];
         rcore_set_time(ntohl(utc->unix_time));
         rcore_set_utc_offset(utc->utc_offset);
         rcore_set_tz_name(utc->tz_name, utc->pstr_len);
@@ -198,29 +198,3 @@ void protocol_time(const pbl_transport_packet *packet)
     else
         assert(!"Invalid time request!");
 }
-/*
-
-typedef struct notif_db_entry_t {
-    uint8_t key[32];
-    uint8_t data[];
-} blob_db_entry;
-
-enum TimelineItemType {
-    TimelineItemType_Notification = 1,
-    TimelineItemType_Pin = 2,
-    TimelineItemType_Reminder = 3
-};
-
-typedef struct timeline_item_t {
-    Uuid uuid;
-    Uuid parent_uuid;
-    uint32_t timestamp;
-    uint16_t duration;
-    uint8_t timeline_type;
-    uint16_t flags;
-    uint8_t layout;
-    uint16_t data_size;
-    uint8_t attr_count;
-    uint8_t action_count;
-    uint8_t data[];
-} timeline_item;*/
