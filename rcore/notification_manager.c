@@ -12,6 +12,7 @@
 #include "platform_res.h"
 #include "notification_message.h"
 #include "blob_db.h"
+#include "protocol_call.h"
 
 /* Configure Logging */
 #define MODULE_NAME "notym"
@@ -116,9 +117,40 @@ void notification_show_small_message(const char *message, GRect frame)
     overlay_window_post_create_notification(_notification_show_small_message, (void *)message);
 }
 
-void notification_show_incoming_call(const char *caller)
+
+void _notification_show_call(void *context)
 {
+    if (!context)
+        return;
+
+    if (call_window_visible())
+    {
+        call_window_message_arrived((void *)context);
+        return;
+    }
+
+    rebble_phone_message *msg = (rebble_phone_message *)context;
     
+    notification_call *nmsg = app_calloc(1, sizeof(notification_call));
+    
+    nmsg->data.create_callback = &call_window_overlay_display;
+    nmsg->data.destroy_callback = &call_window_overlay_destroy;
+    nmsg->data.timeout_ms = 300000;
+    nmsg->data.timer = 0;
+    nmsg->command_id = msg->phone_message.command_id;
+    nmsg->number = app_calloc(1, strlen((char *)msg->number) + 1);
+    strncpy((char *)nmsg->number, (char *)msg->number, 256);
+    nmsg->name = app_calloc(1, strlen((char *)msg->name) + 1);
+    strncpy((char *)nmsg->name, (char *)msg->name, 256);
+    nmsg->frame = GRect(10, 15, DISPLAY_COLS - 40, 80);
+
+    /* get an overlay */
+    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
+}
+
+void notification_show_incoming_call(rebble_phone_message *msg)
+{
+    overlay_window_post_create_notification(_notification_show_call, (void *)msg);
 }
 
 void notification_show_alarm(uint8_t alarm_id)

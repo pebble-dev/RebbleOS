@@ -14,30 +14,8 @@
 #define MODULE_TYPE "KERN"
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_NONE
 
-typedef struct phone_message_t {
-    uint8_t command_id;
-    uint32_t cookie;
-    uint8_t pascal_string_data[];
-}  __attribute__((__packed__)) phone_message;
 
-typedef struct rebble_phone_message_t {
-    phone_message phone_message;
-    uint8_t *number;
-    uint8_t *name;
-} rebble_phone_message;
 
-enum {
-    PhoneMessage_AnswerCall         = 0x01,
-    PhoneMessage_HangupCall         = 0x02,
-    PhoneMessage_PhoneStateRequest  = 0x03,
-    PhoneMessage_PhoneStateResponse = 0x83,
-    PhoneMessage_IncomingCall       = 0x04,
-    PhoneMessage_OutgoingCall       = 0x05,
-    PhoneMessage_MissedCall         = 0x06,
-    PhoneMessage_Ring               = 0x07,
-    PhoneMessage_CallStart          = 0x08,
-    PhoneMessage_CallEnd            = 0x09,
-};
 
 
 uint8_t pascal_string_to_string(uint8_t *pstr, uint8_t *result_buf)
@@ -71,10 +49,18 @@ void protocol_phone_message_process(const pbl_transport_packet *packet)
         len = pascal_string_to_string(msg->pascal_string_data + len, msg->pascal_string_data + len);
     }
     
+    notification_show_incoming_call(&pmsg);
+    return;
+    
+    
+    
+    
+    
     switch(msg->command_id)
     {
         case PhoneMessage_IncomingCall:
             LOG_INFO("Incoming Call %s, %s", pmsg.number, pmsg.name);
+            notification_show_incoming_call(&pmsg);
             break;
         case PhoneMessage_MissedCall:
             LOG_INFO("Missed Call %s, %s", pmsg.number, pmsg.name);
