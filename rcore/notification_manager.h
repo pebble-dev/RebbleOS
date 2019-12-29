@@ -11,6 +11,7 @@
 #include "overlay_manager.h"
 #include "notification_layer.h"
 #include "protocol_notification.h"
+#include "protocol_call.h"
 #include "notification_message.h"
 #include "timeline.h"
 
@@ -45,7 +46,7 @@ void notification_show_battery(uint32_t timeout_ms);
  * @param frame \ref GRect the size and position of the window
  */
 void notification_show_small_message(const char *message, GRect frame);
-void notification_show_incoming_call(const char *caller);
+void notification_show_incoming_call(rebble_phone_message *msg);
 void notification_show_alarm(uint8_t alarm_id);
 void notification_window_dismiss();
 
@@ -63,6 +64,8 @@ void battery_overlay_destroy(OverlayWindow *overlay, Window *window);
 void mini_message_overlay_display(OverlayWindow *overlay, Window *window);
 void mini_message_overlay_destroy(OverlayWindow *overlay, Window *window);
 void notification_reschedule_timer(Window *window, uint32_t timeout_ms);
+void call_window_overlay_display(OverlayWindow *overlay, Window *window);
+void call_window_overlay_destroy(OverlayWindow *overlay, Window *window);
 
 typedef struct notification_data_t {
     OverlayCreateCallback create_callback;
@@ -88,3 +91,11 @@ typedef struct notification_mini_msg_t {
     uint16_t icon;
     GRect frame;
 } notification_mini_msg;
+
+typedef struct notification_call_t {
+    notification_data data;
+    uint8_t command_id;
+    char *name;
+    char *number;
+    GRect frame;
+} notification_call;

@@ -1,3 +1,9 @@
+/* mini_message.c
+ * Allows a small message to be displayed at the bottom of the screen
+ * RebbleOS
+ * 
+ * Author: Barry Carter <barry.carter@gmail.com>.
+ */
 #include "rebbleos.h"
 #include "protocol_notification.h"
 #include "notification_manager.h"

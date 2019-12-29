@@ -157,6 +157,7 @@ SRCS_all += rwatch/ui/animation/property_animation.c
 SRCS_all += rwatch/ui/notifications/notification_window.c
 SRCS_all += rwatch/ui/notifications/battery_overlay.c
 SRCS_all += rwatch/ui/notifications/mini_message.c
+SRCS_all += rwatch/ui/notifications/call_window.c
 SRCS_all += rwatch/ui/vibes.c
 
 SRCS_all += Watchfaces/simple.c
