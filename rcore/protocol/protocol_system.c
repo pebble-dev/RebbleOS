@@ -44,7 +44,6 @@ void protocol_watch_version(const pbl_transport_packet *packet)
     }
 
     SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "Get Version");
-    uint16_t tx_len = strlen(FW_VERSION);
 
     const firmware_version_response response = (firmware_version_response) {
             .command = 1,
@@ -76,40 +75,19 @@ void protocol_watch_version(const pbl_transport_packet *packet)
             .is_unfaithful = 1, // = Optional(Boolean())
         };
 
-    /* Reply back with our firmware version */
-    pbl_transport_packet pkt = {
-            .length = sizeof(firmware_version_response),
-            .endpoint = WatchProtocol_FirmwareVersion,
-            .data = (uint8_t *)&response,
-            .transport_sender = packet->transport_sender
-        };
-
-
-    protocol_send_packet(&pkt);
+    rebble_protocol_send(WatchProtocol_FirmwareVersion, &response, sizeof(firmware_version_response));
 }
 
 void protocol_watch_model(const pbl_transport_packet *packet)
 {
     uint8_t resp[6] = { 1, 4, 0, 0, 0, SnowyBlack };
-    pbl_transport_packet pkt = {
-        .length = 6,
-        .endpoint = WatchProtocol_WatchModel,
-        .data = (uint8_t *)resp,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+    rebble_protocol_send(WatchProtocol_WatchModel, &resp, 6);
 }
 
 void protocol_ping_pong(const pbl_transport_packet *packet)
 {
     uint8_t resp[5] = { 1, packet->data[1], packet->data[2], packet->data[3], packet->data[4] };
-    pbl_transport_packet pkt = {
-        .length = 5,
-        .endpoint = WatchProtocol_PingPong,
-        .data = (uint8_t *)resp,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+    rebble_protocol_send(WatchProtocol_PingPong, &resp, 5);
 }
 
 void protocol_watch_reset(const pbl_transport_packet *packet)
@@ -143,13 +121,7 @@ void protocol_app_version(const pbl_transport_packet *packet)
         .protocol_caps = 0,
     };
 
-    pbl_transport_packet pkt = {
-        .length = sizeof(app_version_response),
-        .endpoint = WatchProtocol_AppVersion,
-        .data = (uint8_t *)&appv,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+    rebble_protocol_send(WatchProtocol_AppVersion, &appv, sizeof(app_version_response));
 }
 
 /* Time Command functions */
@@ -172,26 +144,20 @@ extern struct tm *boot_time_tm;
 void protocol_time(const pbl_transport_packet *packet)
 {
     uint8_t buf[5];
-    pbl_transport_packet pkt = {
-            .length = 5,
-            .endpoint = WatchProtocol_Time,
-            .data = buf,
-            .transport_sender = packet->transport_sender
-        };
 
     if (packet->data[0] == GetTimeRequest)
     {
         buf[0] = GetTimeResponse;
         uint32_t t = ntohl(rcore_get_time()); //pbl_time_t_deprecated(NULL);
         memcpy(&buf[1], &t, 4);
-        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX Time %d", htonl(t));
-        protocol_send_packet(&pkt);
+        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX Time %x", htonl(t));
+        rebble_protocol_send(WatchProtocol_Time, buf, 5);
     }
     else if (packet->data[0] == SetLocalTime)
     {
         uint32_t nt;
         memcpy(&nt, &packet->data[1], 4);
-        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX aTime %d %d", nt, ntohl(nt));
+        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX aTime %x %x", nt, ntohl(nt));
         rcore_set_time(ntohl(nt));
     }
     else if (packet->data[0] == SetUTC)

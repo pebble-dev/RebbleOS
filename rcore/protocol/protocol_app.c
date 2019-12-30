@@ -27,13 +27,8 @@ static void _app_send_state(const pbl_transport_packet *packet)
     {
         memcpy(&resp[1], &app->header->uuid, sizeof(Uuid));
     }
-    pbl_transport_packet pkt = {
-        .length = sizeof(Uuid) + 1,
-        .endpoint = WatchProtocol_AppRunState,
-        .data = (uint8_t *)resp,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+
+    rebble_protocol_send(WatchProtocol_AppRunState, &resp, sizeof(Uuid) + 1);
 }
 
 
@@ -91,11 +86,6 @@ void protocol_app_fetch(const pbl_transport_packet *packet)
         .command = 1,
         .response = AppFetchStatusStart,
     };
-    pbl_transport_packet pkt = {
-        .length = sizeof(_app_fetch_response),
-        .endpoint = WatchProtocol_AppFetch,
-        .data = (uint8_t *)&resp,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+
+    rebble_protocol_send(AppFetchStatusStart, &resp, sizeof(_app_fetch_response));
 }

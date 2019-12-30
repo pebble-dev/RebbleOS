@@ -39,31 +39,6 @@ void call_window_overlay_display(OverlayWindow *overlay, Window *window)
 {       
     notification_call *call = (notification_call*)window->context;
     _current_command = call->command_id;
-
-    switch(call->command_id)
-    {
-        case PhoneMessage_IncomingCall:
-            LOG_INFO("Incoming Call %s, %s", call->number, call->name);
-            break;
-        case PhoneMessage_MissedCall:
-            LOG_INFO("Missed Call %s, %s", call->number, call->name);
-            break;
-        case PhoneMessage_CallStart:
-            LOG_INFO("Call Started %s, %s", call->number, call->name);
-            break;
-        case PhoneMessage_CallEnd:
-            LOG_INFO("Call End %s, %s", call->number, call->name);
-            break;
-        case PhoneMessage_Ring:
-            LOG_INFO("Call Ring %s, %s", call->number, call->name);
-            break;
-        case PhoneMessage_PhoneStateResponse:
-            LOG_INFO("Phone State");
-            // payload is a pascal list of status packets. each list entry prefixed by length byte
-            break;
-        default:
-            LOG_ERROR("Unknown Command %d", call->command_id);    
-    }
     
     if (_visible)
     {
@@ -86,7 +61,7 @@ void call_window_overlay_destroy(OverlayWindow *overlay, Window *window)
     notification_call *call = (notification_call *)window->context;
     LOG_DEBUG("DESTROY %s", call->name);
     app_free(call->number);
-//     app_free(call->name);
+//     app_free(call->name);??? XXX Throws double free?
     app_free(window->context);
 }
 

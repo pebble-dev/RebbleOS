@@ -67,5 +67,5 @@ void protocol_app_fetch(const pbl_transport_packet *packet);
 
 
 void protocol_process_blobdb(const pbl_transport_packet *packet);
-
+void protocol_process_timeline_action_response(const pbl_transport_packet *packet);
 

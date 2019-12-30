@@ -306,8 +306,8 @@ void timeline_action_send(uint8_t timeline_action, Uuid *uuid, uint8_t *reply_te
         pkt_len += _timeline_attribute_create_to_buf(TimelineActionAttribute_ReplyTo, 
                                               reply_to, t_len, action->attributes + pkt_len);
     
-    rebble_protocol_send(WatchProtocol_TimelineAction, uuid, buf, pkt_len + sizeof(timeline_action_request), 
-                         3 /*retries*/, 1000 /* timeout */, true);
+    rebble_protocol_send_with_ack(WatchProtocol_TimelineAction, uuid, buf, pkt_len + sizeof(timeline_action_request), 
+                         3 /*retries*/, 1000 /* timeout */);
     /* memory will be freed in protocol */
 }
 
