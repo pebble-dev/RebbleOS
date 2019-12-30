@@ -32,6 +32,7 @@ const PebbleEndpoint pebble_endpoints[] =
     { .endpoint = WatchProtocol_BlobDbMessage,      .handler  = protocol_process_blobdb },
     { .endpoint = WatchProtocol_PhoneMessage,       .handler  = protocol_phone_message_process },
     { .endpoint = WatchProtocol_MusicControl,       .handler  = protocol_music_message_process },
+    { .endpoint = WatchProtocol_TimelineAction,     .handler  = protocol_process_timeline_action_response },
     { .handler = NULL }
 };
 
@@ -204,7 +205,7 @@ void protocol_send_packet(const pbl_transport_packet *pkt)
     uint16_t len = pkt->length;
     uint16_t endpoint = pkt->endpoint;
 
-    LOG_DEBUG("TX protocol: e:%d s %x", endpoint, pkt->transport_sender);
+    LOG_DEBUG("TX protocol: e:%d l %d", endpoint, len);
 
     pkt->transport_sender(endpoint, pkt->data, len);
 }

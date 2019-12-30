@@ -33,7 +33,7 @@ struct rebble_packet {
 
 list_head _messages_awaiting_reponse_head = LIST_HEAD(_messages_awaiting_reponse_head);
 
-#define STACK_SIZE_PROTOCOL_TX (configMINIMAL_STACK_SIZE + 600)
+#define STACK_SIZE_PROTOCOL_TX (configMINIMAL_STACK_SIZE + 300)
 static TaskHandle_t _task_protocol_tx = 0;
 static StaticTask_t _task_protocol_tx_tcb;
 static StackType_t  _task_protocol_tx_stack[STACK_SIZE_PROTOCOL_TX];
@@ -59,12 +59,17 @@ void rebble_protocol_init()
                                           (void *)_task_protocol_tx_stack, &_task_protocol_tx_tcb);
 }
 
-void rebble_protocol_send(uint32_t endpoint, Uuid *uuid, void *data, size_t length, 
+void _rebble_protocol_send(uint32_t endpoint, Uuid *uuid, void *data, size_t length, 
                           uint8_t retries, uint16_t timeout_ms, 
                           bool needs_ack) /*, callback callback)*/
 {
+    uint8_t *cdata = protocol_calloc(1, length);
+    if (!cdata)
+        panic("mem");
+    memcpy(cdata, data, length);
+    
     rebble_packet packet = {
-        .packet = data,
+        .packet = cdata,
         .length = length,
         .uuid = uuid,
         .endpoint = endpoint,
@@ -74,6 +79,17 @@ void rebble_protocol_send(uint32_t endpoint, Uuid *uuid, void *data, size_t leng
         //.callback = callback
     };
     xQueueSendToBack(_queue_protocol_tx, &packet, portMAX_DELAY);
+}
+
+void rebble_protocol_send(uint32_t endpoint, void *data, size_t length)
+{
+    _rebble_protocol_send(endpoint, NULL, data, length, 0, 0, false);
+}
+
+void rebble_protocol_send_with_ack(uint32_t endpoint, Uuid *uuid, void *data, size_t length, 
+                          uint8_t retries, uint16_t timeout_ms)
+{
+    _rebble_protocol_send(endpoint, uuid, data, length, retries, timeout_ms, true);
 }
 
 void _add_packet_to_send_list(rebble_packet *packet)
@@ -140,7 +156,7 @@ static void _check_for_timed_out_packets()
                     .data = pkt->packet,
                     .transport_sender = protocol_get_current_transport_sender()
                 };
-                LOG_ERROR("Timed out sending. Retreies %d", pkt->retries);
+                LOG_ERROR("Timed out sending. Retries %d", pkt->retries);
                 protocol_send_packet(&tpkt); /* send a transport packet */
             }
             else

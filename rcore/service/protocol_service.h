@@ -1,9 +1,9 @@
 typedef struct rebble_packet rebble_packet;
 
 void rebble_protocol_init();
-void rebble_protocol_send(uint32_t endpoint, Uuid *uuid, void *data, size_t length, 
-                          uint8_t retries, uint16_t timeout_ms, 
-                          bool needs_ack) ;
+void rebble_protocol_send_with_ack(uint32_t endpoint, Uuid *uuid, void *data, size_t length, 
+                          uint8_t retries, uint16_t timeout_ms);
+void rebble_protocol_send(uint32_t endpoint, void *data, size_t length);
 rebble_packet *rebble_protocol_get_awaiting_by_uuid(Uuid *uuid);
 void rebble_protocol_remove_packet(rebble_packet *packet);
 

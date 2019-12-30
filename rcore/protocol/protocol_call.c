@@ -15,9 +15,6 @@
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_NONE
 
 
-
-
-
 uint8_t pascal_string_to_string(uint8_t *pstr, uint8_t *result_buf)
 {
     uint8_t len = (uint8_t)pstr[0];
@@ -50,37 +47,6 @@ void protocol_phone_message_process(const pbl_transport_packet *packet)
     }
     
     notification_show_incoming_call(&pmsg);
-    return;
-    
-    
-    
-    
-    
-    switch(msg->command_id)
-    {
-        case PhoneMessage_IncomingCall:
-            LOG_INFO("Incoming Call %s, %s", pmsg.number, pmsg.name);
-            notification_show_incoming_call(&pmsg);
-            break;
-        case PhoneMessage_MissedCall:
-            LOG_INFO("Missed Call %s, %s", pmsg.number, pmsg.name);
-            break;
-        case PhoneMessage_CallStart:
-            LOG_INFO("Call Started %s, %s", pmsg.number, pmsg.name);
-            break;
-        case PhoneMessage_CallEnd:
-            LOG_INFO("Call End %s, %s", pmsg.number, pmsg.name);
-            break;
-        case PhoneMessage_Ring:
-            LOG_INFO("Call Ring %s, %s", pmsg.number, pmsg.name);
-            break;
-        case PhoneMessage_PhoneStateResponse:
-            LOG_INFO("Phone State");
-            // payload is a pascal list of status packets. each list entry prefixed by length byte
-            break;
-        default:
-            LOG_ERROR("Unknown Command %d", msg->command_id);    
-    }
 }
 
 void protocol_phone_answer()
@@ -106,14 +72,17 @@ void protocol_phone_message_send(uint8_t command_id, uint32_t cookie, bool needs
         cookie = (uint32_t)tc;
     }
     
-    phone_message *pm = protocol_calloc(1, sizeof(phone_message));
-    pm->command_id = command_id;
-    pm->cookie = cookie;
+    phone_message pm = {
+        .command_id = command_id,
+        .cookie = cookie,
+    };
     
     /* Send a phone action */
     Uuid uuid;
     memcpy(&uuid, &cookie, 4);
-    rebble_protocol_send(WatchProtocol_PhoneMessage, &uuid, pm, sizeof(phone_message), 
-                          3, 1500, needs_ack);
+    if (needs_ack)
+        rebble_protocol_send_with_ack(WatchProtocol_PhoneMessage, &uuid, &pm, sizeof(phone_message), 3, 1500);
+    else
+        rebble_protocol_send(WatchProtocol_PhoneMessage, &pm, sizeof(phone_message));
 }
 

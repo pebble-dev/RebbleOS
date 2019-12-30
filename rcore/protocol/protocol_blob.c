@@ -109,12 +109,5 @@ void protocol_process_blobdb(const pbl_transport_packet *packet)
     SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "Done: Send Response: token %d, %d\n", response.token, response.response);
 
     /* Reply back with the cookie */
-    pbl_transport_packet pkt = {
-            .length = sizeof(pcol_blob_db_response),
-            .endpoint = packet->endpoint,
-            .data = (uint8_t *)&response,
-            .transport_sender = packet->transport_sender
-        };
-
-    protocol_send_packet(&pkt);
+    rebble_protocol_send(packet->endpoint, &response, sizeof(pcol_blob_db_response));
 }
