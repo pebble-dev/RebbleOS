@@ -55,6 +55,11 @@ EndpointHandler protocol_find_endpoint_handler(uint16_t protocol, const PebbleEn
     return NULL;
 }
 
+inline PebbleEndpoint *protocol_get_pebble_endpoints(void)
+{
+    return pebble_endpoints;
+}
+
 
 /*
  * Packet processing
@@ -135,10 +140,11 @@ ProtocolTransportSender protocol_get_current_transport_sender()
  * 
  * Returns false when done or on completion errors
  */
-bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender transport)
+bool protocol_parse_packet(RebblePacketDataHeader *packet, ProtocolTransportSender transport)
 {
-    uint16_t pkt_length = (pkt->data[0] << 8) | (pkt->data[1] & 0xff);
-    uint16_t pkt_endpoint = (pkt->data[2] << 8) | (pkt->data[3] & 0xff);
+    uint8_t *data = packet_get_data(packet);
+    uint16_t pkt_length = (data[0] << 8) | (data[1] & 0xff);
+    uint16_t pkt_endpoint = (data[2] << 8) | (data[3] & 0xff);
     
     _last_transport_used = transport;
     
@@ -167,10 +173,10 @@ bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender tr
     LOG_INFO("RX: packet is complete %x", transport);
 
     /* it's a valid packet. fill out passed packet and finish up */
-    pkt->length = pkt_length;
-    pkt->endpoint = pkt_endpoint;
-    pkt->data = pkt->data + 4;
-    pkt->transport_sender = transport;
+    packet->length = pkt_length;
+    packet->endpoint = pkt_endpoint;
+    packet->data = data + 4;
+    packet->transport_sender = transport;
 
     return true;
 }
@@ -178,34 +184,20 @@ bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender tr
 /* 
  * Given a packet, process it and call the relevant function
  */
-void protocol_process_packet(const pbl_transport_packet *pkt)
+void protocol_process_packet(const RebblePacket packet)
 {
-    /*
-     * We should be fast in this function!
-     * Work out which message needs to be processed, and escape from here fast
-     * This will likely be holding up RX otherwise.
-     */
-    LOG_INFO("BT Got Data L:%d", pkt->length);
-
-    EndpointHandler handler = protocol_find_endpoint_handler(pkt->endpoint, pebble_endpoints);
-    if (handler == NULL)
-    {
-        LOG_ERROR("Unknown protocol: %d", pkt->endpoint);
-        return;
-    }
-
-    handler(pkt);
+    protocol_service_rx_data(packet);
 }
 
 /*
  * Send a Pebble packet right now
  */
-void protocol_send_packet(const pbl_transport_packet *pkt)
+void protocol_send_packet(const RebblePacket packet)
 {
-    uint16_t len = pkt->length;
-    uint16_t endpoint = pkt->endpoint;
+    uint16_t len = packet_get_data_length(packet);
+    uint16_t endpoint = packet_get_endpoint(packet);
 
     LOG_DEBUG("TX protocol: e:%d l %d", endpoint, len);
 
-    pkt->transport_sender(endpoint, pkt->data, len);
+    packet_send_to_transport(packet, endpoint, packet_get_data(packet), len);
 }

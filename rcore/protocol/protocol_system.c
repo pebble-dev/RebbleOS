@@ -35,10 +35,10 @@ typedef struct firmware_version_response_t {
 }  __attribute__((__packed__)) firmware_version_response;
 
 // firmware version processing
-void protocol_watch_version(const pbl_transport_packet *packet)
+void protocol_watch_version(const RebblePacket packet)
 {
-    if (((uint8_t *)packet->data)[0] != 0)
-    {
+    uint8_t *data = packet_get_data(packet);
+    if (data[0] != 0) {
         SYS_LOG("FWPKT", APP_LOG_LEVEL_ERROR, "Not a request");
         return;
     }
@@ -78,19 +78,20 @@ void protocol_watch_version(const pbl_transport_packet *packet)
     rebble_protocol_send(WatchProtocol_FirmwareVersion, &response, sizeof(firmware_version_response));
 }
 
-void protocol_watch_model(const pbl_transport_packet *packet)
+void protocol_watch_model(const RebblePacket packet)
 {
     uint8_t resp[6] = { 1, 4, 0, 0, 0, SnowyBlack };
     rebble_protocol_send(WatchProtocol_WatchModel, &resp, 6);
 }
 
-void protocol_ping_pong(const pbl_transport_packet *packet)
+void protocol_ping_pong(const RebblePacket packet)
 {
-    uint8_t resp[5] = { 1, packet->data[1], packet->data[2], packet->data[3], packet->data[4] };
+    uint8_t *data = packet_get_data(packet);
+    uint8_t resp[5] = { 1, data[1], data[2], data[3], data[4] };
     rebble_protocol_send(WatchProtocol_PingPong, &resp, 5);
 }
 
-void protocol_watch_reset(const pbl_transport_packet *packet)
+void protocol_watch_reset(const RebblePacket packet)
 {
    assert(0);
 }
@@ -107,7 +108,7 @@ typedef struct app_version_response_t {
     uint64_t protocol_caps;
 } __attribute__((__packed__)) app_version_response;
 
-void protocol_app_version(const pbl_transport_packet *packet)
+void protocol_app_version(const RebblePacket packet)
 {
     app_version_response appv = {
         .command = 1,
@@ -141,11 +142,12 @@ typedef struct cmd_set_time_utc_t {
 } __attribute__((__packed__)) cmd_set_time_utc;
 
 extern struct tm *boot_time_tm;
-void protocol_time(const pbl_transport_packet *packet)
+void protocol_time(const RebblePacket packet)
 {
+    uint8_t *data = packet_get_data(packet);
     uint8_t buf[5];
 
-    if (packet->data[0] == GetTimeRequest)
+    if (data[0] == GetTimeRequest)
     {
         buf[0] = GetTimeResponse;
         uint32_t t = ntohl(rcore_get_time()); //pbl_time_t_deprecated(NULL);
@@ -153,16 +155,16 @@ void protocol_time(const pbl_transport_packet *packet)
         SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX Time %x", htonl(t));
         rebble_protocol_send(WatchProtocol_Time, buf, 5);
     }
-    else if (packet->data[0] == SetLocalTime)
+    else if (data[0] == SetLocalTime)
     {
         uint32_t nt;
-        memcpy(&nt, &packet->data[1], 4);
+        memcpy(&nt, &data[1], 4);
         SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX aTime %x %x", nt, ntohl(nt));
         rcore_set_time(ntohl(nt));
     }
-    else if (packet->data[0] == SetUTC)
+    else if (data[0] == SetUTC)
     {
-        cmd_set_time_utc *utc = (cmd_set_time_utc *)&packet->data[1];
+        cmd_set_time_utc *utc = (cmd_set_time_utc *)&data[1];
         rcore_set_time(ntohl(utc->unix_time));
         rcore_set_utc_offset(utc->utc_offset);
         rcore_set_tz_name(utc->tz_name, utc->pstr_len);

@@ -73,11 +73,11 @@ enum {
     MusicMessageRepeat_All,
 };
 
-void protocol_music_message_process(const pbl_transport_packet *packet)
+void protocol_music_message_process(const RebblePacket packet)
 {
-    music_message *msg = (music_message *)packet->data;
+    music_message *msg = (music_message *)packet_get_data(packet);
     
-    LOG_DEBUG("M Message l %d", packet->length);
+    LOG_DEBUG("M Message l %d", packet_get_data_length(packet));
     
     switch(msg->command_id)
     {
@@ -106,7 +106,7 @@ void protocol_music_message_process(const pbl_transport_packet *packet)
             break;
         case MusicMessage_UpdatePlayStateInfo:
             LOG_INFO("Play State");
-            rebble_play_state *ps = (rebble_play_state *)packet->data;
+            rebble_play_state *ps = (rebble_play_state *)msg;
             LOG_INFO("Play State S %x, P %d R %d Sh %x Rp %x", ps->state, ps->track_pos, ps->play_rate, ps->shuffle, ps->repeat);
             break;
         case MusicMessage_UpdateVolumeInfo:

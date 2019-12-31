@@ -79,15 +79,16 @@ void blob_delete(pcol_blob_db_delete *blob)
 {
 }
 
-void protocol_process_blobdb(const pbl_transport_packet *packet)
+void protocol_process_blobdb(const RebblePacket packet)
 {
-    pcol_blob_db_key *blob = (pcol_blob_db_key *)packet->data;
+    uint8_t *data = packet_get_data(packet);
+    pcol_blob_db_key *blob = (pcol_blob_db_key *)data;
     printf("Blob:  %d{\n", blob->blobdb.command);
     printf("  Token: %d,\n", blob->blobdb.token);
     printf("  DbId: %d,\n", blob->blobdb.database_id);
     printf("  KeySize: %d,\n", blob->key_size);
     printf("  Key: ");
-    printblock(&packet->data[offsetof(pcol_blob_db_key, key)], blob->key_size);
+    printblock(&data[offsetof(pcol_blob_db_key, key)], blob->key_size);
     printf(",\n  Command: ");
 
     uint8_t ret = 0;
@@ -109,5 +110,5 @@ void protocol_process_blobdb(const pbl_transport_packet *packet)
     SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "Done: Send Response: token %d, %d\n", response.token, response.response);
 
     /* Reply back with the cookie */
-    rebble_protocol_send(packet->endpoint, &response, sizeof(pcol_blob_db_response));
+    rebble_protocol_send(packet_get_endpoint(packet), &response, sizeof(pcol_blob_db_response));
 }

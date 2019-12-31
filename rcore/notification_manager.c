@@ -44,7 +44,7 @@ void _notification_show_message(void *context)
 {
     if (!context)
         return;
-
+   
     if (notification_window_overlay_visible())
     {
         /* Free as much memory as we can for the message conversion */
@@ -54,15 +54,10 @@ void _notification_show_message(void *context)
 
     rebble_notification *rn;
 
-    Uuid *uid = app_calloc(1, sizeof(Uuid));
-    if (!uid)
-        return;
-    memcpy(uid, context, sizeof(Uuid));
-
     notification_message *nmsg = app_calloc(1, sizeof(notification_message));
     nmsg->data.create_callback = &notification_message_display;
-    nmsg->uuid = uid;
-    nmsg->data.timeout_ms = 30000;
+    nmsg->uuid = (Uuid *)context;
+    nmsg->data.timeout_ms = 3000;
     nmsg->data.timer = 0;
 
     /* get an overlay */
@@ -71,7 +66,11 @@ void _notification_show_message(void *context)
 
 void notification_arrived(Uuid *uuid)
 {
-    overlay_window_post_create_notification(_notification_show_message, (void *)uuid);
+    Uuid *uid = app_calloc(1, sizeof(Uuid));
+    if (!uid)
+        return;
+    memcpy(uid, uuid, sizeof(Uuid));
+    overlay_window_post_create_notification(_notification_show_message, (void *)uid);
 }
 
 void _notification_show_battery(void *context)
@@ -122,35 +121,35 @@ void _notification_show_call(void *context)
 {
     if (!context)
         return;
-
+       
+    RebblePacket packet = (RebblePacket)context;
+    rebble_phone_message *msg = protocol_phone_create(packet_get_data(packet), packet_get_data_length(packet));
+    
     if (call_window_visible())
     {
-        call_window_message_arrived((void *)context);
+        call_window_message_arrived((void *)msg);
+        packet_destroy(context);
+        protocol_phone_destroy(msg);
         return;
     }
 
-    rebble_phone_message *msg = (rebble_phone_message *)context;
-    
     notification_call *nmsg = app_calloc(1, sizeof(notification_call));
     
     nmsg->data.create_callback = &call_window_overlay_display;
     nmsg->data.destroy_callback = &call_window_overlay_destroy;
-    nmsg->data.timeout_ms = 300000;
-    nmsg->data.timer = 0;
-    nmsg->command_id = msg->phone_message.command_id;
-    nmsg->number = app_calloc(1, strlen((char *)msg->number) + 1);
-    strncpy((char *)nmsg->number, (char *)msg->number, 256);
-    nmsg->name = app_calloc(1, strlen((char *)msg->name) + 1);
-    strncpy((char *)nmsg->name, (char *)msg->name, 256);
+    nmsg->data.timeout_ms = 30000;
+    nmsg->phone_call = msg;
     nmsg->frame = GRect(10, 15, DISPLAY_COLS - 40, 80);
 
+    packet_destroy(context);
+    
     /* get an overlay */
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
 
-void notification_show_incoming_call(rebble_phone_message *msg)
+void notification_show_incoming_call(RebblePacket packet)
 {
-    overlay_window_post_create_notification(_notification_show_call, (void *)msg);
+    overlay_window_post_create_notification(_notification_show_call, (void *)packet);
 }
 
 void notification_show_alarm(uint8_t alarm_id)
@@ -186,21 +185,20 @@ void notification_load_click_config(Window *app_window)
  */
 static void _notification_quit_click(ClickRecognizerRef _, void *context)
 {
-    notification_message *nm = (notification_message *)context;
-    LOG_INFO("Quit %x", nm->data.overlay_window);
+    notification_data *nm = (notification_data*)context;
 
-    if (!nm->data.overlay_window) {
+    if (!nm->overlay_window) {
         LOG_ERROR("notification window was already dead?");
         return;
     }
 
-    LOG_DEBUG("CB: %x %x", nm->data, nm->data.destroy_callback);
-    if (nm->data.destroy_callback)
-        nm->data.destroy_callback(nm->data.overlay_window, &nm->data.overlay_window->window);
-//     app_timer_cancel(nm->data.timer);
-    overlay_window_destroy(nm->data.overlay_window);
-    nm->data.overlay_window = NULL;
-    app_free(nm->uuid);
+    app_timer_cancel(nm->timer);
+    if (nm->destroy_callback)
+        nm->destroy_callback(nm->overlay_window, &nm->overlay_window->window);
+
+    overlay_window_destroy(nm->overlay_window);
+    nm->overlay_window = NULL;
+
     window_set_click_context(BUTTON_ID_BACK, NULL);
     LOG_DEBUG("DESTROY _notification_quit_click");
     window_dirty(true);
@@ -243,11 +241,7 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
 
 static void _notif_timeout_cb(void *data)
 {
-    LOG_INFO("Timed out %x", data);
-    notification_message *nm = (notification_message *)data;
-
-//     app_timer_cancel(nm->data.timer);
-    nm->data.timer = 0;
+    LOG_INFO("Notification window timed out");
 
     _notification_quit_click(NULL, data);
 }

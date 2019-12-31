@@ -233,7 +233,7 @@ void notification_window_update_proc(Layer *layer, GContext *ctx)
 
 void notification_window_unload(Window *window)
 {
-    
+    app_free(window->context); // the uuid
     app_free(notification_window);
 }
 

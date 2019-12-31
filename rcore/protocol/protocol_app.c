@@ -16,7 +16,7 @@ enum {
 };
 
 
-static void _app_send_state(const pbl_transport_packet *packet)
+static void _app_send_state(const RebblePacket packet)
 {
     uint8_t resp[sizeof(Uuid) + 1];
     resp[0] = AppRunStateStart;
@@ -32,20 +32,21 @@ static void _app_send_state(const pbl_transport_packet *packet)
 }
 
 
-static void _app_start_app(const pbl_transport_packet *packet)
+static void _app_start_app(const RebblePacket packet)
 {
     
 }
 
-static void _app_stop_app(const pbl_transport_packet *packet)
+static void _app_stop_app(const RebblePacket packet)
 {
     
 }
 
 
-void protocol_app_run_state(const pbl_transport_packet *packet)
+void protocol_app_run_state(const RebblePacket packet)
 {
-    switch (packet->data[0]) {
+    uint8_t *data = packet_get_data(packet);
+    switch (data[0]) {
         case AppRunStateRequest:
             _app_send_state(packet);
             break;
@@ -79,9 +80,10 @@ enum {
     AppFetchStatusNoData = 0x04,
 };
 
-void protocol_app_fetch(const pbl_transport_packet *packet)
+void protocol_app_fetch(const RebblePacket packet)
 {
-    _app_fetch *app = (_app_fetch *)packet->data;
+    uint8_t *data = packet_get_data(packet);
+    _app_fetch *app = (_app_fetch *)data;
     _app_fetch_response resp = {
         .command = 1,
         .response = AppFetchStatusStart,

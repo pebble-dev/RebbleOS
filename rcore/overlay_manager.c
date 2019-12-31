@@ -89,7 +89,6 @@ void overlay_window_create_with_context(OverlayCreateCallback creation_callback,
 
 void overlay_window_draw(bool window_is_dirty)
 {
-    SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "DRAWWWWWW");
     OverlayMessage om = (OverlayMessage) {
         .command = OVERLAY_DRAW,
         .data = (void *)window_is_dirty,
@@ -298,7 +297,6 @@ static void _overlay_window_draw(bool window_is_dirty)
     list_foreach(ow, &_overlay_window_list_head, OverlayWindow, node)
     {
         Window *window = &ow->window;
-        SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "DRAW %x.", window);
         assert(window);
         /* we would normally check render scheduled here, but if
          * the main app has forced a redraw, then we have to do painting
@@ -355,7 +353,6 @@ static void _overlay_thread(void *pvParameters)
                     appmanager_post_draw_message(1);
                     break;
                 case OVERLAY_DRAW:
-                    SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "DDDDDDDDD");
                     _overlay_window_draw((bool)data.data);
                     break;
                 case OVERLAY_DESTROY:

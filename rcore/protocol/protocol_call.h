@@ -8,8 +8,8 @@ typedef struct phone_message_t {
 
 typedef struct rebble_phone_message_t {
     phone_message phone_message;
-    uint8_t *number;
-    uint8_t *name;
+    char *number;
+    char *name;
 } rebble_phone_message;
 
 enum {
@@ -26,4 +26,4 @@ enum {
 };
 
 
-void protocol_phone_message_process(const pbl_transport_packet *packet);
+void protocol_phone_message_process(const RebblePacket packet);

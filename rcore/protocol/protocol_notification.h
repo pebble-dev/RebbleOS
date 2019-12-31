@@ -15,4 +15,4 @@
 
 // full_msg_t *notification_get(void);
 // void notification_packet_push(uint8_t *data, full_msg_t **message);
-void protocol_process_legacy2_notification(const pbl_transport_packet *packet);
+void protocol_process_legacy2_notification(const RebblePacket packet);
