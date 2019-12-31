@@ -15,12 +15,12 @@
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_NONE
 
 
-uint8_t pascal_string_to_string(uint8_t *pstr, uint8_t *result_buf)
+uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf)
 {
-    uint8_t len = (uint8_t)pstr[0];
+    uint8_t len = (uint8_t)source_buf[0];
     /* Byte by byte copy the src to the dest */
     for(int i = 0; i < len; i++)
-        result_buf[i] = pstr[i+1];
+        result_buf[i] = source_buf[i+1];
     
     /* and null term it */
     result_buf[len] = 0;
@@ -28,26 +28,47 @@ uint8_t pascal_string_to_string(uint8_t *pstr, uint8_t *result_buf)
     return len + 1;
 }
 
-void protocol_phone_message_process(const pbl_transport_packet *packet)
+void protocol_phone_message_process(const RebblePacket packet)
+{   
+    notification_show_incoming_call(packet);
+}
+
+rebble_phone_message *protocol_phone_create(uint8_t *data, uint16_t length)
 {
-    phone_message *msg = (phone_message *)packet->data;
-    rebble_phone_message pmsg;
-    memcpy(&pmsg, msg, sizeof(phone_message));
-    LOG_DEBUG("Message l %d", packet->length);
+    phone_message *msg = (phone_message *)data;
+    /* We are allocating on the app's heap here */
+    rebble_phone_message *pmsg = app_calloc(1, sizeof(rebble_phone_message));
+    memcpy(pmsg, data, sizeof(phone_message));
     
-    if (packet->length > sizeof(phone_message))
+    if (length > sizeof(phone_message))
     {
         /* We have extended attributes */
-        int len = 0;
+        int len1 = 0;
+        int len2 = 0;
         /* Convert the strings from pascal strings to normal */
-        len = pascal_string_to_string(msg->pascal_string_data, msg->pascal_string_data);
-        pmsg.number = msg->pascal_string_data;
-        pmsg.name   = msg->pascal_string_data + len;
-        len = pascal_string_to_string(msg->pascal_string_data + len, msg->pascal_string_data + len);
+        len1 = pascal_string_to_string(msg->pascal_string_data, msg->pascal_string_data);
+        pmsg->number = app_calloc(1, len1 + 1);
+        memcpy(pmsg->number, msg->pascal_string_data, len1 + 1);
+        
+        len2 = pascal_string_to_string(msg->pascal_string_data + len1, msg->pascal_string_data + len1);
+        pmsg->name = app_calloc(1, len2 + 1);
+        memcpy(pmsg->name, msg->pascal_string_data + len1, len2 + 1);
+        LOG_DEBUG("Decoded Phone Message: Name %s Num %s Len %d", pmsg->name, pmsg->number, length);
     }
+    else
+        LOG_DEBUG("Decoded Phone Message: Cmd 0x%02x, Len %d", msg->command_id, length);
     
-    notification_show_incoming_call(&pmsg);
+    return pmsg;
 }
+
+void protocol_phone_destroy(rebble_phone_message *msg)
+{
+    app_free(msg->name);
+    app_free(msg->number);
+    app_free(msg);
+}
+
+/* Client API */
 
 void protocol_phone_answer()
 {
@@ -80,9 +101,16 @@ void protocol_phone_message_send(uint8_t command_id, uint32_t cookie, bool needs
     /* Send a phone action */
     Uuid uuid;
     memcpy(&uuid, &cookie, 4);
+    RebblePacket packet = packet_create_with_data(WatchProtocol_PhoneMessage, &pm, sizeof(phone_message));
     if (needs_ack)
-        rebble_protocol_send_with_ack(WatchProtocol_PhoneMessage, &uuid, &pm, sizeof(phone_message), 3, 1500);
+    {
+        packet_set_ack_required(packet, &uuid);
+        packet_set_retries(packet, 3);
+        packet_set_timeout(packet, 1500);
+    }
     else
-        rebble_protocol_send(WatchProtocol_PhoneMessage, &pm, sizeof(phone_message));
+    {
+        packet_send(packet);
+    }
 }
 

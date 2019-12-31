@@ -4,19 +4,23 @@
 #include "protocol.h"
 #include "test.h"
 
-static void other_handler(const pbl_transport_packet *packet)
+void test_handler(const RebblePacketDataHeader *packet)
 {
-    KERN_LOG("QEMU", APP_LOG_LEVEL_INFO, "I got these %d bytes from qemu:", packet->length);
+    KERN_LOG("QEMU", APP_LOG_LEVEL_INFO, "I got these %d bytes from qemu:", packet_get_data_length(packet));
     debug_write((const unsigned char *)"\n", 1);
 }
 
-static void spp_handler(pbl_transport_packet *packet)
+void spp_handler(const RebblePacketDataHeader *packet)
 {
     if (!protocol_parse_packet(packet, qemu_send_data))
         return; // we are done, no point looking as we have no data left
 
-    // seems legit
-    protocol_process_packet(packet);
+    /* seems legit. We have a valid packet. Create a data packet and process it */
+    RebblePacket newpacket = packet_create(packet->endpoint, packet->length);
+    assert(newpacket);
+    uint8_t *data = packet_get_data(newpacket);
+    memcpy(data, packet->data, packet->length);
+    protocol_process_packet(newpacket);
 }
 
 const PebbleEndpoint qemu_endpoints[] =

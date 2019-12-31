@@ -137,20 +137,24 @@ void bluetooth_init_complete(uint8_t state)
  */
 void bluetooth_data_rx(uint8_t *data, size_t len)
 {
-    pbl_transport_packet pkt;
+    RebblePacketDataHeader header;
     protocol_rx_buffer_append(data, len);
     
     while (protocol_get_rx_buf_size() > 0) {
-        pkt.data = protocol_get_rx_buffer();
-        pkt.length = protocol_get_rx_buf_size();
+        header.data = protocol_get_rx_buffer();
+        header.length = protocol_get_rx_buf_size();
     
-        if (!protocol_parse_packet(&pkt, bluetooth_send_data))
-            return; // we are done, no point looking as we have no data left
+        if (!protocol_parse_packet(&header, bluetooth_send_data))
+            return; /* Packet is incomplete */
 
-        // seems legit
-        protocol_process_packet(&pkt);
+        /* seems legit. We have a valid packet. Create a data packet and process it */
+        RebblePacket packet = packet_create(header.endpoint, header.length);
+        assert(packet);
+        uint8_t *data = packet_get_data(packet);
+        memcpy(data, header.data, header.length);
+        protocol_process_packet(packet);
     
-        protocol_rx_buffer_consume(pkt.length + 4);
+        protocol_rx_buffer_consume(header.length + sizeof(RebblePacketHeader));
     }
 }
 

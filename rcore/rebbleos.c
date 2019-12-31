@@ -21,7 +21,7 @@
 #include "test.h"
 
 typedef uint8_t (*mod_callback)(void);
-static TaskHandle_t _os_task;
+// static TaskHandle_t _os_task;
 static SemaphoreHandle_t _os_init_sem;
 
 static void _os_thread(void *pvParameters);
@@ -52,7 +52,7 @@ void rebbleos_init(void)
     THREAD_CREATE(os);
 }
 
-char buf[100];
+// char buf[100];
 static void _os_thread(void *pvParameters)
 {
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Starting Init...");

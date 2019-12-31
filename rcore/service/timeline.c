@@ -305,10 +305,11 @@ void timeline_action_send(uint8_t timeline_action, Uuid *uuid, uint8_t *reply_te
     if (reply_to)
         pkt_len += _timeline_attribute_create_to_buf(TimelineActionAttribute_ReplyTo, 
                                               reply_to, t_len, action->attributes + pkt_len);
-    
-    rebble_protocol_send_with_ack(WatchProtocol_TimelineAction, uuid, buf, pkt_len + sizeof(timeline_action_request), 
-                         3 /*retries*/, 1000 /* timeout */);
-    /* memory will be freed in protocol */
+
+    RebblePacket packet = packet_create_with_data(WatchProtocol_TimelineAction, buf, pkt_len + sizeof(timeline_action_request));
+    packet_set_ack_required(packet, uuid);
+    packet_set_retries(packet, 3);
+    packet_set_timeout(packet, 1000);
 }
 
 enum {
@@ -321,44 +322,44 @@ enum {
 };
 
 /* We get an action back with some attributes */
-void protocol_process_timeline_action_response(const pbl_transport_packet *packet)
+void protocol_process_timeline_action_response(const RebblePacket packet)
 {
     //notify_andwhatnot(packet->data);
 }
 
-void timeline_action_response_process(uint8_t *data)
+void timeline_action_response_process(const RebblePacket packet)
 {
-    rebble_action_response *response = app_calloc(1, sizeof(rebble_action_response));
-    assert(response);
-
-    list_init_head(&response->attributes);
-
-    timeline_action_request *ti = (timeline_action_request *)(data);
-    memcpy(&response->response_item, ti, sizeof(timeline_action_request));
-    
-    timeline_action_request *resp = &response->response_item;
-    rebble_packet *rp = rebble_protocol_get_awaiting_by_uuid(&response->response_item.uuid);    
-    switch(resp->command)
-    {
-        case TimelineActionResponseCommand_Response:
-            switch(resp->action)
-            {
-                case TimelineActionResponseCommand_Nack:
-                    rebble_protocol_resend_packet(rp);
-                    break;
-                case TimelineActionResponseCommand_Ack:
-                    rebble_protocol_remove_packet(rp);
-                    /* parse the attributes out */
-                    /* attr with id subject, and id with icon */                    
-                    uint16_t ptr = 0;
-                    for (uint16_t i = 0; i < resp->attr_count; i++)
-                    {
-                        uint16_t len = _process_attribute(&response->attributes, ti->attributes + ptr);
-                        ptr += len;
-                    }
-            }
-            break;
-    }
+//     rebble_action_response *response = app_calloc(1, sizeof(rebble_action_response));
+//     assert(response);
+// 
+//     list_init_head(&response->attributes);
+// 
+//     timeline_action_request *ti = (timeline_action_request *)(data);
+//     memcpy(&response->response_item, ti, sizeof(timeline_action_request));
+//     
+//     timeline_action_request *resp = &response->response_item;
+//     rebble_packet *rp = rebble_protocol_get_awaiting_by_uuid(&response->response_item.uuid);    
+//     switch(resp->command)
+//     {
+//         case TimelineActionResponseCommand_Response:
+//             switch(resp->action)
+//             {
+//                 case TimelineActionResponseCommand_Nack:
+//                     rebble_protocol_resend_packet(rp);
+//                     break;
+//                 case TimelineActionResponseCommand_Ack:
+//                     rebble_protocol_remove_packet(rp);
+//                     /* parse the attributes out */
+//                     /* attr with id subject, and id with icon */                    
+//                     uint16_t ptr = 0;
+//                     for (uint16_t i = 0; i < resp->attr_count; i++)
+//                     {
+//                         uint16_t len = _process_attribute(&response->attributes, ti->attributes + ptr);
+//                         ptr += len;
+//                     }
+//             }
+//             break;
+//     }
 }
 
 void timeline_action_response_destroy()

@@ -46,7 +46,7 @@ void notification_show_battery(uint32_t timeout_ms);
  * @param frame \ref GRect the size and position of the window
  */
 void notification_show_small_message(const char *message, GRect frame);
-void notification_show_incoming_call(rebble_phone_message *msg);
+void notification_show_incoming_call(RebblePacket packet);
 void notification_show_alarm(uint8_t alarm_id);
 void notification_window_dismiss();
 
@@ -94,8 +94,6 @@ typedef struct notification_mini_msg_t {
 
 typedef struct notification_call_t {
     notification_data data;
-    uint8_t command_id;
-    char *name;
-    char *number;
+    rebble_phone_message *phone_call;
     GRect frame;
 } notification_call;

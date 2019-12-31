@@ -38,7 +38,7 @@ void call_window_message_arrived(rebble_phone_message *call)
 void call_window_overlay_display(OverlayWindow *overlay, Window *window)
 {       
     notification_call *call = (notification_call*)window->context;
-    _current_command = call->command_id;
+    _current_command = call->phone_call->phone_message.command_id;
     
     if (_visible)
     {
@@ -59,10 +59,8 @@ void call_window_overlay_display(OverlayWindow *overlay, Window *window)
 void call_window_overlay_destroy(OverlayWindow *overlay, Window *window)
 {
     notification_call *call = (notification_call *)window->context;
-    LOG_DEBUG("DESTROY %s", call->name);
-    app_free(call->number);
-//     app_free(call->name);??? XXX Throws double free?
-    app_free(window->context);
+    LOG_DEBUG("DESTROY %s %s", call->phone_call->name, call->phone_call->number);
+    protocol_phone_destroy(call->phone_call);
 }
 
 bool call_window_visible(void)
@@ -88,6 +86,9 @@ static void _call_window_load(Window *window)
 static void _call_window_unload(Window *window)
 {
     _visible = false;
+    notification_call *call = (notification_call *)window->context;
+//     protocol_phone_destroy(call->phone_call);
+//    app_free(window->context);
 }
 
 static void _call_window_draw(Layer *layer, GContext *ctx)
@@ -107,7 +108,7 @@ static void _call_window_draw(Layer *layer, GContext *ctx)
         case PhoneMessage_IncomingCall:
             graphics_draw_text(ctx, "Incoming Call", fonts_get_system_font(FONT_KEY_GOTHIC_18), wrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
             r = GRect(wrect.origin.x, wrect.origin.y + 40, wrect.size.w, wrect.size.h);   
-            graphics_draw_text(ctx, call->number, fonts_get_system_font(FONT_KEY_GOTHIC_18), r, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
+            graphics_draw_text(ctx, call->phone_call->number, fonts_get_system_font(FONT_KEY_GOTHIC_18), r, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
             break;
         case PhoneMessage_CallStart:
             graphics_draw_text(ctx, "Talking", fonts_get_system_font(FONT_KEY_GOTHIC_18), wrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
@@ -121,7 +122,7 @@ static void _call_window_draw(Layer *layer, GContext *ctx)
     }
     
     r = GRect(wrect.origin.x, wrect.origin.y + 20, wrect.size.w, wrect.size.h);
-    graphics_draw_text(ctx, call->name, fonts_get_system_font(FONT_KEY_GOTHIC_18), r, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
+    graphics_draw_text(ctx, call->phone_call->name, fonts_get_system_font(FONT_KEY_GOTHIC_18), r, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
 }
 
 
