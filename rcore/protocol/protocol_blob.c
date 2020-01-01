@@ -111,4 +111,5 @@ void protocol_process_blobdb(const RebblePacket packet)
 
     /* Reply back with the cookie */
     rebble_protocol_send(packet_get_endpoint(packet), &response, sizeof(pcol_blob_db_response));
+    packet_destroy(packet);
 }

@@ -59,7 +59,7 @@ void protocol_app_run_state(const RebblePacket packet)
         default:
             assert(!"IMPLEMENT ME");
     }
-    
+    packet_destroy(packet);
 }
 
 typedef struct _app_fetch_t {
@@ -90,4 +90,5 @@ void protocol_app_fetch(const RebblePacket packet)
     };
 
     rebble_protocol_send(AppFetchStatusStart, &resp, sizeof(_app_fetch_response));
+    packet_destroy(packet);
 }

@@ -18,7 +18,7 @@ typedef struct rebble_packet_data_header_t {
     uint16_t endpoint;
     uint8_t  *data;
     ProtocolTransportSender transport_sender;
-} RebblePacketDataHeader;
+} __attribute__((__packed__)) RebblePacketDataHeader;
 
 typedef void (*EndpointHandler)(const RebblePacket packet);
 
@@ -40,7 +40,7 @@ uint8_t *protocol_get_rx_buffer(void);
 /* API */
 
 void protocol_send_packet(const RebblePacket packet);
-bool protocol_parse_packet(RebblePacketDataHeader *packet, ProtocolTransportSender transport);
+bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport);
 void protocol_process_packet(const RebblePacket packet);
 ProtocolTransportSender protocol_get_current_transport_sender();
 

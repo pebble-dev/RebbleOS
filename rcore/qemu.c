@@ -184,10 +184,6 @@ static void _qemu_handle_packet(void)
     size_t len = header.len;
     uint8_t *buf = protocol_get_rx_buffer();
     
-    RebblePacket packet = packet_create(header.protocol, len);
-    uint8_t *data = packet_get_data(packet);
-    memcpy(data, buf + sizeof(QemuCommChannelHeader), len);
-
     QemuCommChannelFooter *footer = (QemuCommChannelFooter *)(buf + header.len + sizeof(QemuCommChannelHeader));
     footer->signature = ntohs(footer->signature);
     if (footer->signature != QEMU_FOOTER_SIGNATURE)
@@ -196,5 +192,6 @@ static void _qemu_handle_packet(void)
         return;
     }
 
+    RebblePacketDataHeader *packet = buf + sizeof(QemuCommChannelHeader);
     handler(packet);
 }
