@@ -140,9 +140,8 @@ ProtocolTransportSender protocol_get_current_transport_sender()
  * 
  * Returns false when done or on completion errors
  */
-bool protocol_parse_packet(RebblePacketDataHeader *packet, ProtocolTransportSender transport)
+bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport)
 {
-    uint8_t *data = packet_get_data(packet);
     uint16_t pkt_length = (data[0] << 8) | (data[1] & 0xff);
     uint16_t pkt_endpoint = (data[2] << 8) | (data[3] & 0xff);
     

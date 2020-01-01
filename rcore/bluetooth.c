@@ -140,11 +140,8 @@ void bluetooth_data_rx(uint8_t *data, size_t len)
     RebblePacketDataHeader header;
     protocol_rx_buffer_append(data, len);
     
-    while (protocol_get_rx_buf_size() > 0) {
-        header.data = protocol_get_rx_buffer();
-        header.length = protocol_get_rx_buf_size();
-    
-        if (!protocol_parse_packet(&header, bluetooth_send_data))
+    while (protocol_get_rx_buf_size() > 0) {           
+        if (!protocol_parse_packet(protocol_get_rx_buffer(), &header, bluetooth_send_data));
             return; /* Packet is incomplete */
 
         /* seems legit. We have a valid packet. Create a data packet and process it */
