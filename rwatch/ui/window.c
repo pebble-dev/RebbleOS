@@ -538,16 +538,7 @@ void _window_unload_proc(Window *window)
 }
 
 void window_load_click_config(Window *window)
-{
-    /* A window is being configured. If it is a normal window and we are
-     * in an overlay thread, ignore */
-    /* Commented out for now to give the overlays and notifications
-     * opportunity to override clicks instead of exclusively owning them
-    if (appmanager_is_thread_app() && overlay_window_accepts_keypress())
-    {
-        return;
-    }*/
-   
+{  
     if (window->click_config_provider) {
         void* context = window->click_config_context ? window->click_config_context : window;
         for (int i = 0; i < NUM_BUTTONS; i++) {

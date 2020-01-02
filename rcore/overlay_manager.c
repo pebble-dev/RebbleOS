@@ -166,7 +166,7 @@ uint8_t overlay_window_count(void)
 void overlay_window_stack_push(OverlayWindow *overlay_window, bool animated)
 {
     list_init_node(&overlay_window->node);
-    list_insert_tail(&_overlay_window_list_head, &overlay_window->node);
+    list_insert_head(&_overlay_window_list_head, &overlay_window->node);
     window_stack_push_configure(&overlay_window->window, animated);
     overlay_window->window.is_render_scheduled = true;
     window_dirty(true);
@@ -177,7 +177,7 @@ void overlay_window_stack_push_window(Window *window, bool animated)
     /* Add the window to the list of the existing overlay windows */
     list_init_node(&window->node);
     OverlayWindow *overlay_window = overlay_stack_get_top_overlay_window();
-    list_insert_tail(&overlay_window->head, &window->node);
+    list_insert_head(&overlay_window->head, &window->node);
     overlay_window->window.is_render_scheduled = true;
     window_stack_push_configure(window, false);
     window_dirty(true);

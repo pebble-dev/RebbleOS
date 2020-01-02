@@ -105,12 +105,12 @@ uint8_t bluetooth_init(void)
     _bt_tx_mutex = xSemaphoreCreateMutexStatic(&_bt_tx_mutex_buf);
     _bt_task = xTaskCreateStatic(_bt_thread, 
                                      "BT", STACK_SZ_BT, NULL, 
-                                     tskIDLE_PRIORITY + 12UL, 
+                                     tskIDLE_PRIORITY + 5UL, 
                                      _bt_task_stack, &_bt_task_buf);
     
     _bt_cmd_task = xTaskCreateStatic(_bt_cmd_thread, 
                                      "BTCmd", STACK_SZ_CMD, NULL, 
-                                     tskIDLE_PRIORITY + 11UL, 
+                                     tskIDLE_PRIORITY + 6UL, 
                                      _bt_cmd_task_stack, &_bt_cmd_task_buf);
 
 #ifdef BLUETOOTH_IS_BLE
@@ -141,14 +141,14 @@ void bluetooth_data_rx(uint8_t *data, size_t len)
     protocol_rx_buffer_append(data, len);
     
     while (protocol_get_rx_buf_size() > 0) {           
-        if (!protocol_parse_packet(protocol_get_rx_buffer(), &header, bluetooth_send_data));
+        if (!protocol_parse_packet(protocol_get_rx_buffer(), &header, bluetooth_send_data))
             return; /* Packet is incomplete */
 
         /* seems legit. We have a valid packet. Create a data packet and process it */
         RebblePacket packet = packet_create(header.endpoint, header.length);
         assert(packet);
-        uint8_t *data = packet_get_data(packet);
-        memcpy(data, header.data, header.length);
+        uint8_t *newdata = packet_get_data(packet);
+        memcpy(newdata, header.data, header.length);
         protocol_process_packet(packet);
     
         protocol_rx_buffer_consume(header.length + sizeof(RebblePacketHeader));
