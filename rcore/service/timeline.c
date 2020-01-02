@@ -260,36 +260,39 @@ enum {
 };
 
 static uint16_t _timeline_attribute_create_to_buf(uint8_t attribute_id, uint8_t *data, uint8_t data_len, uint8_t *buf)
-{
-    timeline_attribute reply = {
-        .attribute_id = attribute_id,
-        .length = data_len
-        //.data =  // wont work struct etc
-    };
-    
+{   
     /* header */
     buf[0] = attribute_id;
+    buf[1] = data_len;
     /* attr data */
-    memcpy(buf + 1, data, data_len);
+    memcpy(buf + 2, data, data_len);
     
-    return data_len + 1;
+    return data_len + 2;
 }
 
 
-void timeline_action_send(uint8_t timeline_action, Uuid *uuid, uint8_t *reply_text, uint8_t *reply_to)
+void timeline_action_send(uint8_t timeline_action, Uuid *uuid, const char *reply_text, const char *reply_to)
 {
     int r_len = strlen((char *)reply_text);
     int t_len = strlen((char *)reply_to);
     int attr_count = 0;
 
-    if (reply_text) attr_count++;
-    if (reply_to)   attr_count++;
+    if (reply_text) 
+    {
+        attr_count++;
+        r_len++;
+    }
+    if (reply_to)
+    {
+        attr_count++;
+        t_len++;
+    }
     
-    uint8_t *buf = protocol_calloc(1, sizeof(timeline_action_request) + 
+    int total_len = sizeof(timeline_action_request) + 
                             (attr_count * (sizeof(timeline_attribute)) + 
-                            r_len + t_len));
-    assert(buf);
-    timeline_action_request *action = (timeline_action_request *)buf;
+                            r_len + t_len);
+    RebblePacket packet = packet_create(WatchProtocol_TimelineAction, total_len);
+    timeline_action_request *action = (timeline_action_request *)packet_get_data(packet);
     
     action->command = TimelineActionCommand_Invoke;
     memcpy(&action->uuid, uuid, UUID_SIZE);
@@ -300,13 +303,12 @@ void timeline_action_send(uint8_t timeline_action, Uuid *uuid, uint8_t *reply_te
     
     if (reply_text)
         pkt_len += _timeline_attribute_create_to_buf(TimelineActionAttribute_ReplyText, 
-                                              reply_text, r_len, action->attributes);
+                                              reply_text, r_len - 1, action->attributes);
 
     if (reply_to)
         pkt_len += _timeline_attribute_create_to_buf(TimelineActionAttribute_ReplyTo, 
-                                              reply_to, t_len, action->attributes + pkt_len);
+                                              reply_to, t_len - 1, action->attributes + pkt_len);
 
-    RebblePacket packet = packet_create_with_data(WatchProtocol_TimelineAction, buf, pkt_len + sizeof(timeline_action_request));
     packet_set_ack_required(packet, uuid);
     packet_set_retries(packet, 3);
     packet_set_timeout(packet, 1000);

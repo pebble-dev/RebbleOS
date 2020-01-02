@@ -56,17 +56,19 @@ void _notification_show_message(void *context)
 
     notification_message *nmsg = app_calloc(1, sizeof(notification_message));
     nmsg->data.create_callback = &notification_message_display;
-    nmsg->uuid = (Uuid *)context;
-    nmsg->data.timeout_ms = 3000;
+    nmsg->uuid = app_calloc(1, sizeof(Uuid));
+    memcpy(nmsg->uuid, context, sizeof(Uuid));
+    nmsg->data.timeout_ms = 15000;
     nmsg->data.timer = 0;
-
+    rcore_backlight_on(100, 3000);
+    protocol_free(context);
     /* get an overlay */
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
 
 void notification_arrived(Uuid *uuid)
 {
-    Uuid *uid = app_calloc(1, sizeof(Uuid));
+    Uuid *uid = protocol_calloc(1, sizeof(Uuid));
     if (!uid)
         return;
     memcpy(uid, uuid, sizeof(Uuid));
@@ -130,6 +132,7 @@ void _notification_show_call(void *context)
         call_window_message_arrived((void *)msg);
         packet_destroy(context);
         protocol_phone_destroy(msg);
+        rcore_backlight_on(100, 1000);
         return;
     }
 
@@ -140,7 +143,9 @@ void _notification_show_call(void *context)
     nmsg->data.timeout_ms = 30000;
     nmsg->phone_call = msg;
     nmsg->frame = GRect(10, 15, DISPLAY_COLS - 40, 80);
-
+    
+    rcore_backlight_on(100, 3000);
+    
     packet_destroy(context);
     
     /* get an overlay */
@@ -161,21 +166,21 @@ void notification_window_dismiss()
 {
 }
 
+static void _notification_quit_from_button(ClickRecognizerRef ref, void *context)
+{
+    notification_data *nm = (notification_data*)context;
+    app_timer_cancel(nm->timer);
+
+    _notification_quit_click(ref, context);
+}
+
 /* window click config will call into here to apply the settings.
  */
 void notification_load_click_config(Window *app_window)
 {
-    /* if there are any windows that have their own click config, then it
-     * will always get preference over any notification without a click config */
-    Window *ov_wind = overlay_window_get_next_window_with_click_config();
-    if (!ov_wind)
-    {
-        window_single_click_subscribe(BUTTON_ID_BACK, _notification_quit_click);
-        OverlayWindow *top_ov_window = (OverlayWindow *)app_window;
-        window_set_click_context(BUTTON_ID_BACK, top_ov_window->context);
-        return;
-    }
-    window_load_click_config(ov_wind);
+    window_single_click_subscribe(BUTTON_ID_BACK, _notification_quit_from_button);
+    OverlayWindow *top_ov_window = (OverlayWindow *)app_window;
+    window_set_click_context(BUTTON_ID_BACK, top_ov_window->context);
 }
 
 /* XXX: this could happen on *either* the app thread *or* the overlay
@@ -191,8 +196,8 @@ static void _notification_quit_click(ClickRecognizerRef _, void *context)
         LOG_ERROR("notification window was already dead?");
         return;
     }
-
-    app_timer_cancel(nm->timer);
+LOG_DEBUG("DESTROY TIMER %d", nm->timer);
+    
     if (nm->destroy_callback)
         nm->destroy_callback(nm->overlay_window, &nm->overlay_window->window);
 

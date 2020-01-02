@@ -157,7 +157,8 @@ static void _thread_protocol_rx()
             if (handler == NULL)
             {
                 LOG_ERROR("Unknown protocol: %d", packet->endpoint);
-                return;
+                packet_destroy(packet);
+                continue;
             }
 
             handler(packet);

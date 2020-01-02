@@ -196,11 +196,6 @@ void app_event_loop(void)
                 if (appmanager_is_app_shutting_down())
                     continue;
 
-                if (overlay_window_accepts_keypress())
-                {
-                    overlay_window_post_button_message(data.data);
-                    continue;
-                }
                 /* execute the button's callback */
                 ButtonMessage *message = (ButtonMessage *)data.data;
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);

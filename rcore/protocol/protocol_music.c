@@ -166,11 +166,11 @@ inline void protocol_music_get_current_track()
 
 void protocol_music_message_send(uint8_t command_id)
 {
-    music_message *mm = protocol_calloc(1, sizeof(music_message));
+    RebblePacket *packet = packet_create(WatchProtocol_PhoneMessage, sizeof(music_message));
+    music_message * mm = packet_get_data(packet);
     mm->command_id = command_id;
     
     /* Send a phone action */
-    rebble_protocol_send(WatchProtocol_PhoneMessage, NULL, mm, sizeof(music_message), 
-                          3, 1500, false);
+    packet_send(packet);
 }
 
