@@ -76,19 +76,19 @@ static n_GPath *s_arm_1_path_ptr;
 static n_GPath *s_arm_2_path_ptr;
 static n_GPath *s_arm_head_path_ptr;
 
-static const n_GPathInfo pathinfo_arm_base = {
+static n_GPathInfo pathinfo_arm_base = {
     .num_points = 2,
     .points = (n_GPoint[]) {{0, -3}, {0, 3}}
 };
-static const n_GPathInfo pathinfo_arm_1 = {
+static n_GPathInfo pathinfo_arm_1 = {
     .num_points = 2,
     .points = (n_GPoint[]) {{0, -3}, {0, -3-19}}
 };
-static const n_GPathInfo pathinfo_arm_2 = {
+static n_GPathInfo pathinfo_arm_2 = {
     .num_points = 2,
     .points = (n_GPoint[]) {{0, -3-19}, {19, -3-19-15}}
 };
-static const n_GPathInfo pathinfo_arm_head = {
+static n_GPathInfo pathinfo_arm_head = {
     .num_points = 2,
     .points = (n_GPoint[]) {{19, -3-19-14}, {19+9, -3-19-15-6}}
 };
@@ -423,10 +423,10 @@ static void _main_layer_update_proc(Layer *layer, GContext *ctx) {
 
     char progress_string[6] = "";
     // TODO display tracks over 59:59s long differently
-    snprintf(progress_string, 6, "%d:%02d", s_progress / 60, s_progress % 60);
+    snprintf(progress_string, 6, "%ld:%02ld", s_progress / 60, s_progress % 60);
 
     char length_string[6] = "";
-    snprintf(length_string, 6, "%d:%02d", s_length / 60, s_length % 60);
+    snprintf(length_string, 6, "%ld:%02ld", s_length / 60, s_length % 60);
 
     graphics_context_set_text_color(ctx, GColorBlack);
     graphics_draw_text(ctx, s_artist,
