@@ -11,6 +11,7 @@
 #include "pebble_protocol.h"
 #include "protocol_notification.h"
 #include "protocol_system.h"
+#include "qemu.h"
 
 /* Configure Logging */
 #define MODULE_NAME "pcol"
@@ -131,7 +132,7 @@ void protocol_rx_buffer_consume(uint16_t len)
 
 ProtocolTransportSender protocol_get_current_transport_sender()
 {
-    return _last_transport_used;
+    return _last_transport_used ? _last_transport_used : qemu_send_data;
 }
 
 /*

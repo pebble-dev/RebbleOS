@@ -7,21 +7,28 @@
 #include "rebbleos.h"
 #include "ngfxwrap.h"
 #include "overlay_manager.h"
+#include "protocol.h"
+#include "protocol_music.h"
+#include "event_service.h"
 #include "ngfxwrap.h"
 
 /* A message to talk to the overlay thread */
 typedef struct OverlayMessage {
     uint8_t command;
+    uint8_t subcommand;
     void *data;
     void *context;
 } OverlayMessage;
 
-#define OVERLAY_CREATE     0
-#define OVERLAY_DRAW       1
-#define OVERLAY_DESTROY    2
-#define OVERLAY_APP_BUTTON 3
-#define OVERLAY_NOTIF      4
-#define OVERLAY_TIMER      5
+enum {
+    AppMessageOverlayCreate,
+    AppMessageOverlayDraw,
+    AppMessageOverlayDestroy,
+    AppMessageOverlayButton,
+    AppMessageOverlayNotification,
+    AppMessageOverlayTimer,
+    AppMessageOverlayEvent,
+};
 
 static xQueueHandle _overlay_queue;
 static void _overlay_thread(void *pvParameters);
@@ -57,7 +64,7 @@ uint8_t overlay_window_init(void)
 void overlay_timer_recalc(void)
 {
     OverlayMessage om = (OverlayMessage) {
-        .command = OVERLAY_TIMER,
+        .command = AppMessageOverlayTimer,
         .data = NULL,
         .context = NULL
     };
@@ -70,7 +77,7 @@ void overlay_timer_recalc(void)
 void overlay_window_create(OverlayCreateCallback creation_callback)
 {
     OverlayMessage om = (OverlayMessage) {
-        .command = OVERLAY_CREATE,
+        .command = AppMessageOverlayCreate,
         .data = (void *)creation_callback,
         .context = NULL
     };
@@ -80,7 +87,7 @@ void overlay_window_create(OverlayCreateCallback creation_callback)
 void overlay_window_create_with_context(OverlayCreateCallback creation_callback, void *context)
 {
     OverlayMessage om = (OverlayMessage) {
-        .command = OVERLAY_CREATE,
+        .command = AppMessageOverlayCreate,
         .data = (void *)creation_callback,
         .context = context
     };
@@ -90,7 +97,7 @@ void overlay_window_create_with_context(OverlayCreateCallback creation_callback,
 void overlay_window_draw(bool window_is_dirty)
 {
     OverlayMessage om = (OverlayMessage) {
-        .command = OVERLAY_DRAW,
+        .command = AppMessageOverlayDraw,
         .data = (void *)window_is_dirty,
     };    
     xQueueSendToBack(_overlay_queue, &om, 0);
@@ -102,7 +109,7 @@ void overlay_window_draw(bool window_is_dirty)
 void overlay_window_destroy(OverlayWindow *overlay_window)
 {
     OverlayMessage om = (OverlayMessage) {
-        .command = OVERLAY_DESTROY,
+        .command = AppMessageOverlayDestroy,
         .data = (void *)overlay_window
     };
     xQueueSendToBack(_overlay_queue, &om, 0);
@@ -111,7 +118,7 @@ void overlay_window_destroy(OverlayWindow *overlay_window)
 void overlay_window_post_button_message(ButtonMessage *message)
 {
     OverlayMessage om = (OverlayMessage) {
-        .command = OVERLAY_APP_BUTTON,
+        .command = AppMessageOverlayButton,
         .data = (void *)message
     };
     xQueueSendToBack(_overlay_queue, &om, 0);
@@ -121,8 +128,19 @@ void overlay_window_post_create_notification(NotificationCreateCallback cb, void
 {
     OverlayMessage om = (OverlayMessage) {
         .data = (void *)cb,
-        .command = OVERLAY_NOTIF,
+        .command = AppMessageOverlayNotification,
         .context = context,
+    };
+    xQueueSendToBack(_overlay_queue, &om, 0);
+}
+
+void overlay_window_post_event(uint8_t command, void *data, DestroyEventProc destroy_callback)
+{
+    OverlayMessage om = (OverlayMessage) {
+        .data = (void *)data,
+        .command = AppMessageOverlayEvent,
+        .subcommand = command,
+        .context = destroy_callback,
     };
     xQueueSendToBack(_overlay_queue, &om, 0);
 }
@@ -347,21 +365,21 @@ static void _overlay_thread(void *pvParameters)
         {
             switch(data.command)
             {
-                case OVERLAY_CREATE:
+                case AppMessageOverlayCreate:
                     assert(data.data && "You MUST provide a callback");
                     _overlay_window_create((OverlayCreateCallback)data.data, data.context);
                     appmanager_post_draw_message(1);
                     break;
-                case OVERLAY_DRAW:
+                case AppMessageOverlayDraw:
                     _overlay_window_draw((bool)data.data);
                     break;
-                case OVERLAY_DESTROY:
+                case AppMessageOverlayDestroy:
                     assert(data.data && "You MUST provide a valid overlay window");
                     OverlayWindow *ow = (OverlayWindow *)data.data;
                     _overlay_window_destroy(ow, false);
                     appmanager_post_draw_message(1);
                     break;
-                case OVERLAY_APP_BUTTON:
+                case AppMessageOverlayButton:
                     SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON");
                     assert(data.data && "You MUST provide a valid button message");
                     if (overlay_window_accepts_keypress())
@@ -375,17 +393,24 @@ static void _overlay_thread(void *pvParameters)
                     }
 
                     AppMessage am = (AppMessage) {
-                        .command = APP_BUTTON,
+                        .command = AppMessageButton,
                         .data = (void *)data.data
                     };
                     appmanager_post_generic_app_message(&am, 100);
                     break;
-                case OVERLAY_NOTIF:
+                case AppMessageOverlayNotification:
                     assert(data.context);
                     NotificationCreateCallback cb = (NotificationCreateCallback)data.data;
                     cb(data.context);
                     break;
-                case OVERLAY_TIMER:
+                case AppMessageOverlayTimer:
+                    break;
+                    /* We have an event that the app might want. Lets check */
+                case AppMessageOverlayEvent:
+                    if (appmanager_is_app_shutting_down())
+                        continue;
+
+                    event_service_event_trigger(data.subcommand, data.data, data.context);
                     break;
                 default:
                     assert(!"I don't know this command!");

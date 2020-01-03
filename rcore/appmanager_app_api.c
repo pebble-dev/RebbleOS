@@ -9,6 +9,9 @@
 #include "rebbleos.h"
 #include "appmanager.h"
 #include "overlay_manager.h"
+#include "protocol.h"
+#include "protocol_music.h"
+#include "event_service.h"
 /*
  * Start an application by name
   * The message contains the app name
@@ -26,7 +29,7 @@ void appmanager_app_start(char *name)
 void appmanager_app_quit(void)
 {
     AppMessage am = (AppMessage) {
-        .command = APP_QUIT,
+        .command = AppMessageQuit,
         .data = NULL
     };
     appmanager_post_generic_app_message(&am, 10);
@@ -34,6 +37,7 @@ void appmanager_app_quit(void)
 
 void appmanager_post_button_message(ButtonMessage *bmessage)
 {
+    /* we post to overlay first, app thread gets it relayed */
     overlay_window_post_button_message(bmessage);
 }
 
@@ -44,7 +48,7 @@ void appmanager_post_draw_message(uint8_t force)
         return;
 
     AppMessage am = (AppMessage) {
-        .command = APP_DRAW,
+        .command = AppMessageDraw,
         .data = (void*)(uint32_t)force
     };
 
@@ -59,4 +63,15 @@ void appmanager_post_draw_message(uint8_t force)
     }
 }
 
-
+/* Send a message to a running app. This could be an event, such as "hey data arrived" or
+ * some other request, such as IPC between worker and main threads */
+void appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyEventProc destroy_callback)
+{
+        AppMessage am = (AppMessage) {
+        .command = AppMessageEvent,
+        .subcommand = protocol_id,
+        .data = message,
+        .context = destroy_callback
+    };
+    appmanager_post_generic_app_message(&am, 10);
+}
