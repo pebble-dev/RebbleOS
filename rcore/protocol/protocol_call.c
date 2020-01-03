@@ -28,6 +28,11 @@ uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf)
     return len + 1;
 }
 
+uint8_t pascal_strlen(char *str)
+{
+    return (uint8_t)str[0];
+}
+
 void protocol_phone_message_process(const RebblePacket packet)
 {   
     notification_show_incoming_call(packet);

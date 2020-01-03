@@ -17,8 +17,6 @@
 #include <stdbool.h>
 #include "uuid.h"
 
-// TODO     Make this dynamic. hacky 
-#define NUM_APPS 3
 #define MAX_APP_STR_LEN 32
 
 typedef struct CoreTimer
@@ -32,7 +30,9 @@ typedef struct AppMessage
 {
     uint8_t thread_id;
     uint8_t command;
+    uint8_t subcommand;
     void *data;
+    void *context;
 } AppMessage;
 
 typedef struct ButtonMessage
@@ -90,16 +90,20 @@ typedef struct AppTypeHeader {
     char type[3];
 } AppTypeHeader;
 
+/* Allowed command types when posted to the app runloop queue */
+typedef enum {
+    AppMessageButton,
+    AppMessageQuit,
+    AppMessageTick,
+    AppMessageDraw,
+    AppMessageEvent,
+} AppMesssageType;
 
-#define APP_BUTTON       0
-#define APP_QUIT         1
-#define APP_TICK         2
-#define APP_DRAW         3
-
-#define APP_TYPE_SYSTEM  0
-#define APP_TYPE_FACE    1
-#define APP_TYPE_APP     2
-
+enum {
+    AppTypeSystem,
+    AppTypeWatchface,
+    AppTypeApp
+};
 
 /* Running App stuff */
 

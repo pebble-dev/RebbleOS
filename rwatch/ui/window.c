@@ -147,7 +147,7 @@ void window_stack_push_configure(Window *window, bool animated)
          * If we are an app => face, then we go left
          * Face to app => right
          */
-        if (app->type == APP_TYPE_FACE)
+        if (app->type == AppTypeWatchface)
             _animation_setup(true);
         else 
             _animation_setup(false);

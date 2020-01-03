@@ -7,6 +7,7 @@
 #include "rebbleos.h"
 #include "protocol.h"
 #include "pebble_protocol.h"
+#include "event_service.h"
 
 /* Configure Logging */
 #define MODULE_NAME "p-,us"
@@ -18,15 +19,7 @@ typedef struct music_message_t {
     uint8_t data[];
 }  __attribute__((__packed__)) music_message;
 
-typedef struct rebble_music_track_t {
-    uint8_t command_id;
-    uint8_t *artist;
-    uint8_t *album;
-    uint8_t *title;
-    uint32_t track_length;
-    uint16_t track_count;
-    uint16_t current_track;
-} rebble_music_track;
+
 
 typedef struct rebble_play_state_t {
     uint8_t command_id;
@@ -83,26 +76,7 @@ void protocol_music_message_process(const RebblePacket packet)
     {
         case MusicMessage_UpdateCurrentTrack:
             LOG_INFO("Track");
-            int len = 0;
-            rebble_music_track track = {
-                .command_id = msg->command_id,
-            };
-            int tlen = 0;
-            len = pascal_string_to_string(msg->data, msg->data);
-            track.artist = msg->data;
-            tlen += len;
-            len = pascal_string_to_string(msg->data + tlen, msg->data + tlen);
-            track.album = msg->data + tlen;
-            tlen += len;
-            len = pascal_string_to_string(msg->data + tlen, msg->data + tlen);
-            track.title = msg->data + tlen;
-
-            /* These are optional apparently */
-            //if (packet->length < len)
-            //track_length, track_count, current_track
-            LOG_INFO("Title: %s", track.title);
-            LOG_INFO("Artist: %s", track.artist);
-            LOG_INFO("Album: %s", track.album);
+            event_service_post(EventServiceCommandMusic, (void *)packet, protocol_music_destroy);
             break;
         case MusicMessage_UpdatePlayStateInfo:
             LOG_INFO("Play State");
@@ -113,63 +87,95 @@ void protocol_music_message_process(const RebblePacket packet)
             LOG_INFO("Volume Pct %d", msg->data[0]);
             break;
         case MusicMessage_UpdatePlayerInfo:
-            len = pascal_string_to_string(msg->data, msg->data);
+            LOG_INFO("Player");
+            uint16_t len = pascal_string_to_string(msg->data, msg->data);
             uint8_t *package = msg->data;
             len = pascal_string_to_string(msg->data + len, msg->data + len);
             uint8_t *name = msg->data + len;
-            LOG_INFO("Player %s %s", package, name);            
+            LOG_INFO("Player %s %s", package, name);
             break;
         default:
             LOG_ERROR("Unknown Command %d", msg->command_id);    
-    }
+    }   
+}
+
+MusicTrackInfo *protocol_music_decode(RebblePacket packet)
+{
+    int len = 0;
+    int tlen = 0;
+    
+    music_message *msg = (music_message *)packet_get_data(packet);
+    MusicTrackInfo *music = app_calloc(1, sizeof(MusicTrackInfo));
+
+    music->command_id = msg->command_id;
+    
+    len = pascal_strlen(msg->data);
+    music->artist = app_calloc(1, len + 1);
+    tlen = pascal_string_to_string(music->artist, msg->data);
+    
+    len = pascal_strlen(msg->data + tlen);
+    music->album = app_calloc(1, len + 1);
+    len = pascal_string_to_string(music->album, msg->data + tlen);
+    tlen += len;
+    
+    len = pascal_strlen(msg->data + tlen);
+    music->title = app_calloc(1, len + 1);
+    len = pascal_string_to_string(music->title, msg->data + tlen);
+    
+    return music;
+}
+
+void protocol_music_destroy(RebblePacket packet)
+{
+    packet_destroy(packet);
 }
 
 inline void protocol_music_playpause()
 {
-    protocol_phone_message_send(MusicMessage_PlayPause);
+    protocol_music_message_send(MusicMessage_PlayPause);
 }
 
 inline void protocol_music_pause()
 {
-    protocol_phone_message_send(MusicMessage_Pause);
+    protocol_music_message_send(MusicMessage_Pause);
 }
 
 inline void protocol_music_play()
 {
-    protocol_phone_message_send(MusicMessage_Play);
+    protocol_music_message_send(MusicMessage_Play);
 }
 
 inline void protocol_music_next()
 {
-    protocol_phone_message_send(MusicMessage_NextTrack);
+    protocol_music_message_send(MusicMessage_NextTrack);
 }
 
 inline void protocol_music_prev()
 {
-    protocol_phone_message_send(MusicMessage_PreviousTrack);
+    protocol_music_message_send(MusicMessage_PreviousTrack);
 }
 
 inline void protocol_music_volup()
 {
-    protocol_phone_message_send(MusicMessage_VolumeUp);
+    protocol_music_message_send(MusicMessage_VolumeUp);
 }
 
 inline void protocol_music_voldown()
 {
-    protocol_phone_message_send(MusicMessage_VolumeDown);
+    protocol_music_message_send(MusicMessage_VolumeDown);
 }
 
-inline void protocol_music_get_current_track()
+void protocol_music_get_current_track()
 {
-    protocol_phone_message_send(MusicMessage_GetCurrentTrack);
+    protocol_music_message_send(MusicMessage_GetCurrentTrack);
 }
 
 void protocol_music_message_send(uint8_t command_id)
 {
-    RebblePacket *packet = packet_create(WatchProtocol_PhoneMessage, sizeof(music_message));
+    RebblePacket *packet = packet_create(WatchProtocol_MusicControl, sizeof(music_message));
     music_message * mm = packet_get_data(packet);
     mm->command_id = command_id;
-    
+
     /* Send a phone action */
     packet_send(packet);
 }

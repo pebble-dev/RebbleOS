@@ -1,6 +1,11 @@
 /* protocol_service.c
  * Sends a fuly fledged packet over the transport
- * deals with retries and ack responses
+ * deals with retries and ack responses.
+ * All RX and TX and send through their own threads. 
+ * Each thread has a queue for the incoming/outgoing data. 
+ * All data from RX is send through the queue as a RebblePacket, processing
+ * taken away from the driver to this protocol handler. The packet is then parsed and sent.
+ * See header for more details.
  * libRebbleOS
  *
  * Author: Barry Carter <barry.carter@gmail.com>
@@ -13,7 +18,7 @@
 #include "FreeRTOS.h"
 #include "rtoswrap.h"
 /* Configure Logging */
-#define MODULE_NAME "proto"
+#define MODULE_NAME "pcolsvc"
 #define MODULE_TYPE "KERN"
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_NONE
 
@@ -106,6 +111,21 @@ void rebble_protocol_resend_packet(rebble_packet *packet)
     // unlock
 }
 
+enum {
+    ProtocolServiceAppUnknown,
+    ProtocolServiceAppPhoneMessage,
+    ProtocolServiceAppTimelineMessage,
+    ProtocolServiceAppMusicInfo,
+};
+
+// void protocol_service_register(uint8_t message_type, ProtocolServiceCallback callback)
+// {
+// }
+// 
+// void protocol_service_deregister(uint8_t message_type, ProtocolServiceCallback callback)
+// {
+// }
+
 static void _check_for_timed_out_packets()
 {
     TickType_t curtime = xTaskGetTickCount();
@@ -152,7 +172,6 @@ static void _thread_protocol_rx()
     {
         if(xQueueReceive(QUEUE_HANDLE(rx), &packet, pdMS_TO_TICKS(200)))
         {
-            LOG_ERROR("PS %x", packet->endpoint);
             EndpointHandler handler = protocol_find_endpoint_handler(packet->endpoint, protocol_get_pebble_endpoints());
             if (handler == NULL)
             {

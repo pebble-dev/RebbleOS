@@ -64,12 +64,12 @@ void appmanager_app_loader_init()
     struct file empty = { 0, 0, 0 }; /* TODO: make files optional in `App` to avoid this */
     
     /* add the baked in apps */
-    _appmanager_add_to_manifest(_appmanager_create_app("System", APP_TYPE_SYSTEM, systemapp_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("Simple", APP_TYPE_FACE, simple_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", APP_TYPE_FACE, nivz_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("Settings", APP_TYPE_SYSTEM, widgettest_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("Notification", APP_TYPE_SYSTEM, notif_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("TestApp", APP_TYPE_SYSTEM, testapp_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("System", AppTypeSystem, systemapp_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Simple", AppTypeWatchface, simple_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", AppTypeWatchface, nivz_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Settings", AppTypeSystem, test_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Notification", AppTypeSystem, notif_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("TestApp", AppTypeSystem, testapp_main, true, &empty, &empty));
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
@@ -185,7 +185,7 @@ static void _appmanager_flash_load_app_manifest(void)
 
         /* main gets set later */
         _appmanager_add_to_manifest(_appmanager_create_app(header.name,
-                                                           (appdb.flags & APPDB_FLAGS_IS_WATCHFACE) ? APP_TYPE_FACE : APP_TYPE_APP,
+                                                           (appdb.flags & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
                                                            NULL,
                                                            false,
                                                            &app_file,

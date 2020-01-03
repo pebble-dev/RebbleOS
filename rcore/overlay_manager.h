@@ -1,6 +1,6 @@
 #pragma once
 /**
- * @file overlay_manager_c.h
+ * @file overlay_manager.h
  * @author Barry Carter
  * @date 02 Feb 2018
  * @brief Overlay Windows management. You can create overlay windows over an app
@@ -23,7 +23,6 @@
  * and constrain memory and runtime of the window
  */
 #include "rebbleos.h"
-#include "overlay_manager.h"
 
 /* NOT USED YET */
 typedef enum OverlayMode {
