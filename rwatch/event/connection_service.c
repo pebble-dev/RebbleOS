@@ -6,15 +6,19 @@
 
 #include "librebble.h"
 #include "node_list.h"
+#include "event_service.h"
+#include "event_service.h"
 #include "connection_service.h"
 
-static list_head _subscriber_list_head = LIST_HEAD(_subscriber_list_head);
 
-typedef struct connection_service_subscriber {
-    ConnectionHandlers conn_handlers;
-    app_running_thread *thread;
-    list_node node;
-} connection_service_subscriber;
+static void _connection_service_cb(EventServiceCommand command, void *data, void *context)
+{
+    /* context contains the handlers */
+    ConnectionHandlers *handlers = (ConnectionHandlers *)context;
+    
+    if (handlers->pebble_app_connection_handler)
+        handlers->pebble_app_connection_handler((uint32_t)data);
+}
 
 bool connection_service_peek_pebble_app_connection(void)
 {
@@ -28,47 +32,30 @@ bool connection_service_peek_pebblekit_connection(void)
 
 void connection_service_subscribe(ConnectionHandlers conn_handlers)
 {
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    connection_service_subscriber *conn = app_calloc(1, sizeof(connection_service_subscriber));
-    conn->thread = _this_thread;
-    conn->conn_handlers = conn_handlers;
+    ConnectionHandlers *handlers = app_calloc(1, sizeof(ConnectionHandlers));
+    handlers->pebble_app_connection_handler = conn_handlers.pebble_app_connection_handler;
+    handlers->pebblekit_connection_handler = conn_handlers.pebblekit_connection_handler;
 
-    if (conn->conn_handlers.pebble_app_connection_handler)
-        MK_THUMB_CB(conn->conn_handlers.pebble_app_connection_handler);
+    if (handlers->pebble_app_connection_handler)
+        MK_THUMB_CB(handlers->pebble_app_connection_handler);
 
-    if (conn->conn_handlers.pebblekit_connection_handler)
-        MK_THUMB_CB(conn->conn_handlers.pebblekit_connection_handler);
-
-    list_init_node(&conn->node);
-    list_insert_head(&_subscriber_list_head, &conn->node);
+    if (handlers->pebblekit_connection_handler)
+        MK_THUMB_CB(handlers->pebblekit_connection_handler);
+    
+    event_service_subscribe_with_context(EventServiceCommandConnectionService, _connection_service_cb, handlers);
 }
 
 void connection_service_unsubscribe(void)
 {
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    connection_service_subscriber *conn;
-    list_foreach(conn, &_subscriber_list_head, connection_service_subscriber, node)
-    {
-        if (conn->thread == _this_thread)
-        {
-            list_remove(&_subscriber_list_head, &conn->node);
-            app_free(conn);
-        }
-    }
+    void *context = event_service_get_context(EventServiceCommandConnectionService);
+    if (context)
+        app_free(context);
+    event_service_unsubscribe(EventServiceCommandConnectionService);
 }
 
 void connection_service_update(bool connected)
 {
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    connection_service_subscriber *conn;
-    list_foreach(conn, &_subscriber_list_head, connection_service_subscriber, node)
-    {
-        if (conn->thread == _this_thread &&
-            conn->conn_handlers.pebble_app_connection_handler)
-        {
-                conn->conn_handlers.pebble_app_connection_handler(connected);
-        }
-    }
+    event_service_post(EventServiceCommandConnectionService, (void *)connected, NULL);
 }
 
 bool bluetooth_connection_service_peek(void)
