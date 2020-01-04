@@ -12,7 +12,7 @@
 #include "platform_res.h"
 #include "notification_message.h"
 #include "blob_db.h"
-#include "protocol_call.h"
+#include "event_service.h"
 
 /* Configure Logging */
 #define MODULE_NAME "notym"
@@ -36,19 +36,19 @@ extern NotificationLayer *notification_window_get_layer(void);
 
 uint8_t notification_init(void)
 {
-
     return 0;
 }
 
-void _notification_show_message(void *context)
+void notification_arrived(EventServiceCommand command, void *data, void *context)
 {
-    if (!context)
+    Uuid *uuid = (Uuid *)data;
+    if (!uuid)
         return;
    
     if (notification_window_overlay_visible())
     {
         /* Free as much memory as we can for the message conversion */
-        notification_layer_message_arrived(notification_window_get_layer(), (Uuid *)context);
+        notification_layer_message_arrived(notification_window_get_layer(), uuid);
         return;
     }
 
@@ -57,32 +57,11 @@ void _notification_show_message(void *context)
     notification_message *nmsg = app_calloc(1, sizeof(notification_message));
     nmsg->data.create_callback = &notification_message_display;
     nmsg->uuid = app_calloc(1, sizeof(Uuid));
-    memcpy(nmsg->uuid, context, sizeof(Uuid));
+    memcpy(nmsg->uuid, uuid, sizeof(Uuid));
     nmsg->data.timeout_ms = 15000;
     nmsg->data.timer = 0;
     rcore_backlight_on(100, 3000);
-    protocol_free(context);
-    /* get an overlay */
-    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
-}
-
-void notification_arrived(Uuid *uuid)
-{
-    Uuid *uid = protocol_calloc(1, sizeof(Uuid));
-    if (!uid)
-        return;
-    memcpy(uid, uuid, sizeof(Uuid));
-    overlay_window_post_create_notification(_notification_show_message, (void *)uid);
-}
-
-void _notification_show_battery(void *context)
-{
-    /* construct a BatteryLayer */
-    notification_battery *nmsg = app_calloc(1, sizeof(notification_battery));
-    nmsg->data.create_callback = &battery_overlay_display;
-    nmsg->data.destroy_callback = &battery_overlay_destroy;
-    nmsg->data.timeout_ms = *(uint32_t *)context;
-
+    
     /* get an overlay */
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
@@ -95,17 +74,25 @@ void notification_show_battery(uint32_t timeout_ms)
         window_dirty(true);
         return;
     }
-    overlay_window_post_create_notification(_notification_show_battery, (void *)timeout_ms);
+    
+    /* construct a BatteryLayer */
+    notification_battery *nmsg = app_calloc(1, sizeof(notification_battery));
+    nmsg->data.create_callback = &battery_overlay_display;
+    nmsg->data.destroy_callback = &battery_overlay_destroy;
+    nmsg->data.timeout_ms = timeout_ms;
+
+    /* get an overlay */
+    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
 
-void _notification_show_small_message(void *context)
+void notification_show_small_message(EventServiceCommand command, void *data, void *context)
 {
     GRect frame = GRect(0, DISPLAY_ROWS - 20, DISPLAY_COLS, 20);
     notification_mini_msg *nmsg = app_calloc(1, sizeof(notification_mini_msg));
     nmsg->data.create_callback = &mini_message_overlay_display;
     nmsg->data.destroy_callback = &mini_message_overlay_destroy;
     nmsg->data.timeout_ms = 10000;
-    nmsg->message = (char *)context;
+    nmsg->message = data;
     nmsg->icon = 0;
     nmsg->frame = frame;
 
@@ -113,24 +100,17 @@ void _notification_show_small_message(void *context)
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
 
-void notification_show_small_message(const char *message, GRect frame)
+void notification_show_incoming_call(EventServiceCommand command, void *data, void *context)
 {
-    overlay_window_post_create_notification(_notification_show_small_message, (void *)message);
-}
-
-
-void _notification_show_call(void *context)
-{
-    if (!context)
+    RebblePacket packet = (RebblePacket)data;
+    if (!packet)
         return;
        
-    RebblePacket packet = (RebblePacket)context;
     rebble_phone_message *msg = protocol_phone_create(packet_get_data(packet), packet_get_data_length(packet));
     
     if (call_window_visible())
     {
         call_window_message_arrived((void *)msg);
-        packet_destroy(context);
         protocol_phone_destroy(msg);
         rcore_backlight_on(100, 1000);
         return;
@@ -146,16 +126,10 @@ void _notification_show_call(void *context)
     
     rcore_backlight_on(100, 3000);
     
-    packet_destroy(context);
-    
     /* get an overlay */
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
 
-void notification_show_incoming_call(RebblePacket packet)
-{
-    overlay_window_post_create_notification(_notification_show_call, (void *)packet);
-}
 
 void notification_show_alarm(uint8_t alarm_id)
 {

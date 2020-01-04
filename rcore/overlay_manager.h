@@ -51,7 +51,6 @@ typedef struct OverlayWindow {
  */
 typedef void (*OverlayCreateCallback)(OverlayWindow *overlay, Window *window);
 
-typedef void (*NotificationCreateCallback)(void *context);
 
 /* Internal initialiser */
 uint8_t overlay_window_init(void);
@@ -174,10 +173,6 @@ Window *overlay_window_get_next_window_with_click_config(void);
 
 void overlay_await_draw_complete(void);
 
-/**
- * @brief Create a notification window with a callback 
- */
-void overlay_window_post_create_notification(NotificationCreateCallback cb, void *context);
 
 /**
  * @brief force a timer recalculation

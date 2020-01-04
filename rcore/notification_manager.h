@@ -12,6 +12,7 @@
 #include "notification_layer.h"
 #include "protocol_notification.h"
 #include "protocol_call.h"
+#include "event_service.h"
 #include "notification_message.h"
 #include "timeline.h"
 
@@ -27,9 +28,8 @@ uint8_t notification_init(void);
 /**
  * @brief Show a fullscreen message. Or if already visible, show the new message
  * 
- * @param msuuid \ref Uuid the uuid of the new message
  */
-void notification_arrived(Uuid *uuid);
+void notification_arrived(EventServiceCommand command, void *data, void *context);
 
 /**
  * @brief Show a battery overlay. Shows current battery status
@@ -37,17 +37,10 @@ void notification_arrived(Uuid *uuid);
  * @param timeout_ms Time in ms before we auto close the window. 0 is disabled
  */
 void notification_show_battery(uint32_t timeout_ms);
-
-/**
- * @brief Show a small overlayed box that is not fullscreen.
- * 
- * @note default timeout is 5000ms
- * @param message a char of the message to show.
- * @param frame \ref GRect the size and position of the window
- */
-void notification_show_small_message(const char *message, GRect frame);
-void notification_show_incoming_call(RebblePacket packet);
+void notification_show_incoming_call(EventServiceCommand command, void *data, void *context);
+void notification_show_small_message(EventServiceCommand command, void *data, void *context);
 void notification_show_alarm(uint8_t alarm_id);
+
 void notification_window_dismiss();
 
 /**
@@ -66,6 +59,7 @@ void mini_message_overlay_destroy(OverlayWindow *overlay, Window *window);
 void notification_reschedule_timer(Window *window, uint32_t timeout_ms);
 void call_window_overlay_display(OverlayWindow *overlay, Window *window);
 void call_window_overlay_destroy(OverlayWindow *overlay, Window *window);
+
 
 typedef struct notification_data_t {
     OverlayCreateCallback create_callback;

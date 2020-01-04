@@ -12,6 +12,7 @@
 #include "timeline.h"
 #include "blob_db.h"
 #include "notification_manager.h"
+#include "event_service.h"
 
 /* Configure Logging */
 #define MODULE_NAME "timeln"
@@ -157,9 +158,16 @@ rebble_notification *timeline_item_process(void *data)
     return notification;
 }
 
+static void _timeline_event_destroy(void *uuid)
+{
+    protocol_free(uuid);
+}
+
 void timeline_notification_arrived(Uuid *uuid)
 {
-    notification_arrived(uuid);
+    Uuid *uuidc = protocol_calloc(1, sizeof(Uuid));
+    memcpy(uuidc, uuid, UUID_SIZE);
+    event_service_post(EventServiceCommandNotification, (void *)uuidc, _timeline_event_destroy);
 }
 
 void timeline_destroy(rebble_notification *notification)

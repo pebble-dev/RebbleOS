@@ -8,6 +8,7 @@
 #include "protocol.h"
 #include "pebble_protocol.h"
 #include "protocol_service.h"
+#include "event_service.h"
 
 /* Configure Logging */
 #define MODULE_NAME "p-call"
@@ -33,9 +34,14 @@ uint8_t pascal_strlen(char *str)
     return (uint8_t)str[0];
 }
 
+static void _protocol_phone_event_destroy(RebblePacket packet)
+{
+    packet_destroy(packet);
+}
+
 void protocol_phone_message_process(const RebblePacket packet)
 {   
-    notification_show_incoming_call(packet);
+    event_service_post(EventServiceCommandCall, (void *)packet, _protocol_phone_event_destroy);
 }
 
 rebble_phone_message *protocol_phone_create(uint8_t *data, uint16_t length)
