@@ -129,7 +129,7 @@ void event_service_event_trigger(EventServiceCommand command, void *data, Destro
     {
         if (conn->command == command)
         {
-            LOG_INFO("Triggering %x %x", data, destroy_callback);
+            LOG_INFO("Triggering %x %x %x", data, destroy_callback, conn->callback);
             if (conn->thread == _this_thread && conn->callback)
                 conn->callback(command, data, conn->context);
             
@@ -140,9 +140,11 @@ void event_service_event_trigger(EventServiceCommand command, void *data, Destro
             /* Step 3. if we are the overlay thread, then destroy this packet */
             else if (_this_thread->thread_type == AppThreadOverlay)
             {
-                destroy_callback = MK_THUMB_CB(destroy_callback);
                 if (destroy_callback)
+                {
+                    destroy_callback = MK_THUMB_CB(destroy_callback);
                     destroy_callback(data);
+                }
                 appmanager_post_draw_message(1);
             }
         }

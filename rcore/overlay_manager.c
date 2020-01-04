@@ -10,6 +10,7 @@
 #include "protocol.h"
 #include "protocol_music.h"
 #include "event_service.h"
+#include "notification_manager.h"
 #include "ngfxwrap.h"
 
 /* A message to talk to the overlay thread */
@@ -25,7 +26,6 @@ enum {
     AppMessageOverlayDraw,
     AppMessageOverlayDestroy,
     AppMessageOverlayButton,
-    AppMessageOverlayNotification,
     AppMessageOverlayTimer,
     AppMessageOverlayEvent,
 };
@@ -120,16 +120,6 @@ void overlay_window_post_button_message(ButtonMessage *message)
     OverlayMessage om = (OverlayMessage) {
         .command = AppMessageOverlayButton,
         .data = (void *)message
-    };
-    xQueueSendToBack(_overlay_queue, &om, 0);
-}
-
-void overlay_window_post_create_notification(NotificationCreateCallback cb, void *context)
-{
-    OverlayMessage om = (OverlayMessage) {
-        .data = (void *)cb,
-        .command = AppMessageOverlayNotification,
-        .context = context,
     };
     xQueueSendToBack(_overlay_queue, &om, 0);
 }
@@ -345,6 +335,10 @@ static void _overlay_thread(void *pvParameters)
     _this_thread->status = AppThreadLoaded;
     os_module_init_complete(0);
     
+    event_service_subscribe(EventServiceCommandCall, notification_show_incoming_call);
+    event_service_subscribe(EventServiceCommandAlert, notification_show_small_message);
+    event_service_subscribe(EventServiceCommandNotification, notification_arrived);
+    
     while(1)
     {
         TickType_t next_timer = appmanager_timer_get_next_expiry(_this_thread);
@@ -397,11 +391,6 @@ static void _overlay_thread(void *pvParameters)
                         .data = (void *)data.data
                     };
                     appmanager_post_generic_app_message(&am, 100);
-                    break;
-                case AppMessageOverlayNotification:
-                    assert(data.context);
-                    NotificationCreateCallback cb = (NotificationCreateCallback)data.data;
-                    cb(data.context);
                     break;
                 case AppMessageOverlayTimer:
                     break;

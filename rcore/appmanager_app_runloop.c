@@ -12,6 +12,7 @@
 #include "notification_manager.h"
 #include "timers.h"
 #include "ngfxwrap.h"
+#include "event_service.h"
 
 /* Configure Logging */
 #define MODULE_NAME "apploop"
@@ -155,21 +156,21 @@ void app_event_loop(void)
         window_long_click_subscribe(BUTTON_ID_BACK, 1100, back_long_click_handler, back_long_click_release_handler);
     }
     
+    TickType_t next_timer;
     
     /* clear the queue of any work from the previous app
     * ... such as an errant quit */
     xQueueReset(_app_message_queue);
+    
+    _this_thread->status = AppThreadRunloop;
 
     if (!booted)
     {
-        GRect frame = GRect(0, DISPLAY_ROWS - 20, DISPLAY_COLS, 20);
-        notification_show_small_message("Welcome to RebbleOS", frame);
+        event_service_post(EventServiceCommandAlert, "Welcome to RebbleOS", NULL);
 
         booted = true;
     }
 
-    TickType_t next_timer;
-    _this_thread->status = AppThreadRunloop;
 
     next_timer = portMAX_DELAY;
     /* App is now fully initialised and inside the runloop. */
@@ -189,7 +190,6 @@ void app_event_loop(void)
         /* we are inside the apps main loop event handler now */
         if (xQueueReceive(_app_message_queue, &data, next_timer))
         {
-
             /* We woke up for some kind of event that someone posted.  But what? */
             if (data.command == AppMessageButton)
             {
