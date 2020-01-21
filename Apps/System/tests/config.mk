@@ -8,3 +8,7 @@ SRCS_all += Apps/System/tests/menu_simple_test.c
 SRCS_all += Apps/System/tests/menu_multi_column_test.c
 SRCS_all += Apps/System/tests/action_menu_test.c
 SRCS_all += Apps/System/tests/vibes_test.c
+SRCS_all += Apps/System/tests/checkbox_list_test.c
+SRCS_all += Apps/System/tests/radio_button_test.c
+SRCS_all += Apps/System/tests/progress_layer_test.c
+SRCS_all += Apps/System/tests/dialog_choice_test.c

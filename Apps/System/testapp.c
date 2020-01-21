@@ -96,6 +96,34 @@ app_test _tests[] = {
         .test_init = &vibes_test_init,
         .test_execute = &vibes_test_exec,
         .test_deinit = &vibes_test_deinit
+    },
+    {
+        .test_name = "Checkbox Test",
+        .test_desc = "Checkbox List Test",
+        .test_init = &checkbox_test_init,
+        .test_execute = &checkbox_test_exec,
+        .test_deinit = &checkbox_test_deinit
+    },
+    {
+        .test_name = "Radio Test",
+        .test_desc = "Radio Button Test",
+        .test_init = &radio_button_test_init,
+        .test_execute = &radio_button_test_exec,
+        .test_deinit = &radio_button_test_deinit
+    },
+    {
+        .test_name = "Progress Test",
+        .test_desc = "Progress Bar Test",
+        .test_init = &progress_layer_test_init,
+        .test_execute = &progress_layer_test_exec,
+        .test_deinit = &progress_layer_test_deinit
+    },
+    {
+        .test_name = "Dialog Test",
+        .test_desc = "Dialog Choice Test",
+        .test_init = &dialog_choice_test_init,
+        .test_execute = &dialog_choice_test_exec,
+        .test_deinit = &dialog_choice_test_deinit
     }
 };
 

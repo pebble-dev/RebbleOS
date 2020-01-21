@@ -153,3 +153,19 @@ bool action_menu_test_deinit(void);
 bool vibes_test_init(Window *window);
 bool vibes_test_exec(void);
 bool vibes_test_deinit(void);
+
+bool checkbox_test_init(Window *window);
+bool checkbox_test_exec(void);
+bool checkbox_test_deinit(void);
+
+bool radio_button_test_init(Window *window);
+bool radio_button_test_exec(void);
+bool radio_button_test_deinit(void);
+
+bool progress_layer_test_init(Window *window);
+bool progress_layer_test_exec(void);
+bool progress_layer_test_deinit(void);
+
+bool dialog_choice_test_init(Window *window);
+bool dialog_choice_test_exec(void);
+bool dialog_choice_test_deinit(void);
