@@ -12,6 +12,7 @@ enum qemu_test_packet_types {
     QEMU_TEST_RUN_REQUEST   = 0x0001,
     QEMU_TEST_LIST_RESPONSE = 0x8000,
     QEMU_TEST_COMPLETE      = 0x8001,
+    QEMU_TEST_ALIVE         = 0xFFFF,
 };
 
 #define RESPONSE_NAME_MAX_SIZE 256
@@ -62,6 +63,10 @@ uint8_t test_init() {
 }
 
 static void _test_thread(void *par) {
+    uint16_t alive;
+    alive = htons(QEMU_TEST_ALIVE);
+    qemu_reply_test(&alive, sizeof(alive)); /* Tell QEMU we are awake. */
+    
     while (1) {
         uint16_t testreq;
         static struct qemu_test_complete resp;
