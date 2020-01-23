@@ -45,6 +45,9 @@ GDB = $(PFX)gdb
 OBJCOPY = $(PFX)objcopy
 
 # Do not override this here!  Override this in localconfig.mk.
+PYTHON3 ?= python3
+
+# Do not override this here!  Override this in localconfig.mk.
 QEMU ?= qemu-pebble
 
 # output directory
@@ -224,6 +227,14 @@ $(BUILD)/version.c:
 	$(QUIET)echo "};" >> $@
 
 .PHONY: $(BUILD)/version.c
+
+$(BUILD)/testenv: Utilities/requirements.txt
+	$(call SAY,RM $@)
+	$(QUIET)rm -rf $@
+	$(call SAY,VIRTUALENV $@)
+	$(QUIET)$(PYTHON3) -m virtualenv $@
+	$(call SAY,PIP INSTALL $@)
+	$(QUIET)$(BUILD)/testenv/bin/pip3 install -r $<
 
 clean:
 	rm -rf $(BUILD)
