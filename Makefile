@@ -52,6 +52,8 @@ QEMU ?= qemu-pebble
 
 # output directory
 BUILD = build
+VIRTUALENV = $(BUILD)/python_env
+VPYTHON3 = $(VIRTUALENV)/bin/python3
 
 all: $(PLATFORMS)
 
@@ -108,6 +110,14 @@ $(1): $(BUILD)/$(1)/$(1).pbz
 
 $(1)_qemu: $(BUILD)/$(1)/fw.qemu_flash.bin $(BUILD)/$(1)/fw.qemu_spi.bin
 	$(QEMU) -rtc base=localtime -serial null -serial tcp::63771,server,nowait -serial stdio -gdb tcp::63770,server,nowait $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) $(BUILD)/$(1)/fw.qemu_spi.bin $(QEMUFLAGS)
+
+ifneq ($(TESTABLE_$(1)),)
+# This is kind of cheesy.
+$(1)_runtest: $(BUILD)/$(1)_test/fw.qemu_flash.bin $(BUILD)/$(1)_test/fw.qemu_spi.bin $(VIRTUALENV)
+	$(VPYTHON3) Utilities/runtests.py --qemu="$(QEMU) -rtc base=localtime -serial null -serial tcp::63771,server,nowait -serial stdio -gdb tcp::63770,server,nowait $(QEMUFLAGS_$(1)) $(QEMUFLAGS) -pflash $(BUILD)/$(1)_test/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1))" --platform=$(1) $(TESTARGS)
+
+.PHONY: $(1)_runtest
+endif
 
 $(1)_gdb:
 	$(PFX)gdb -ex 'target remote localhost:63770' -ex "sym $(BUILD)/$(1)/tintin_fw.elf"
@@ -228,13 +238,13 @@ $(BUILD)/version.c:
 
 .PHONY: $(BUILD)/version.c
 
-$(BUILD)/testenv: Utilities/requirements.txt
+$(VIRTUALENV): Utilities/requirements.txt
 	$(call SAY,RM $@)
 	$(QUIET)rm -rf $@
 	$(call SAY,VIRTUALENV $@)
 	$(QUIET)$(PYTHON3) -m virtualenv $@
 	$(call SAY,PIP INSTALL $@)
-	$(QUIET)$(BUILD)/testenv/bin/pip3 install -r $<
+	$(QUIET)$(VIRTUALENV)/bin/pip3 install -r $<
 
 clean:
 	rm -rf $(BUILD)
