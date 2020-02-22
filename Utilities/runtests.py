@@ -24,6 +24,30 @@ parser.add_argument("--resofs", nargs = 1, required = True, help = "offset into 
 args = parser.parse_args()
 
 # Load the testplan.
+class Test:
+    def __init__(self, name, testname = None, image = 'blank', golden = None):
+        self.name = name
+        self.testname = testname
+        self.image = image
+        self.golden = golden
+    
+    def run(self, testenv):
+        if self.testname not in testenv:
+            return f"{self.testname} does not exist in running system!"
+        
+        data = None
+        with make_image(f'tests/{args.platform[0]}/{self.image}.gz') as f, Emulator(f) as e:
+            e.send(QemuRebbleTestRunRequest(id = testenv[self.testname]))
+            target,data = e.recv()
+
+        if data.payload.passed == 0:
+            return f"Test reported failure with artifact {data.payload.artifact}"
+        if self.golden and data.payload.artifact != self.golden:
+            return f"Test reported pass, but artifact {data.payload.artifact} differs from golden {self.golden}"
+        
+        return None
+        
+
 sys.path.append(f'tests/{args.platform[0]}')
 from testplan import testplan
 
@@ -109,25 +133,31 @@ def load_tests():
     tests = {}
     
     with make_image(f'tests/{args.platform[0]}/blank.gz') as f, Emulator(f) as e:
-        print("Asking for test list...")
         e.send(QemuRebbleTestListRequest())
         while True:
             target,data = e.recv()
             assert(isinstance(data, QemuRebbleTest))
             assert(isinstance(data.payload, QemuRebbleTestListResponse))
-            print(data.payload)
-            print(f"Test {data.payload.id}: {str(data.payload.name)}")
             tests[data.payload.name] = data.payload.id
             if data.payload.is_last_test == 1:
                 break
     
     return tests
 
+print("Reading tests...")
 tests = load_tests()
+print(f"... loaded {len(tests)} tests.")
 
-print("Running test...")
-with make_image(f'tests/{args.platform[0]}/blank.gz') as f, Emulator(f) as e:
-    e.send(QemuRebbleTestRunRequest(id = tests[b'simple']))
-    target,data = e.recv()
-    print(data.payload)
+passed,failed = 0,0
+for t in testplan:
+    print(f"Running \"{t.name}\"...")
+    res = t.run(tests)
+    if res is None:
+        print("PASSED")
+        passed += 1
+    else:
+        print(f"FAILED: {res}")
+        failed += 1
+
+print(f"*** {passed} test(s) passed, {failed} test(s) failed. ***")
 
