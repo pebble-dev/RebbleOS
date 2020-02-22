@@ -23,8 +23,12 @@ parser.add_argument("--resofs", nargs = 1, required = True, help = "offset into 
 
 args = parser.parse_args()
 
+# Load the testplan.
+sys.path.append(f'tests/{args.platform[0]}')
+from testplan import testplan
+
 import shlex
-import subprocess
+import subprocess, signal
 import time
 import gzip
 
@@ -47,56 +51,83 @@ def make_image(fs = None, keep = False):
     
     return newimg
 
-def launch_qemu(image):
-    nargs = shlex.split(args.qemu[0])
-    nargs += [image]
-    qemu = subprocess.Popen(nargs)
-  
-    # Wait for the emulator to launch.
-    launched = False
-    for _ in range(50):
-        try:
-            skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            skt.connect(('127.0.0.1', 63771))
-            launched = True
-            break
-        except socket.error as e:
-            time.sleep(0.1)
-    if not launched:
-        raise Exception("QEMU did not launch in five seconds")
+class Emulator:
+    def __init__(self, image = None):
+        if image == None:
+            image = make_image()
+        
+        nargs = shlex.split(args.qemu[0])
+        nargs += [image.name]
+        
+        self.qemu = subprocess.Popen(nargs, stderr = subprocess.STDOUT, stdout = subprocess.PIPE)
+        # Wait for the emulator to launch.
+        launched = False
+        for _ in range(50):
+            try:
+                skt = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                skt.connect(('127.0.0.1', 63771))
+                launched = True
+                break
+            except socket.error as e:
+                time.sleep(0.1)
+        if not launched:
+            raise Exception("QEMU did not launch in five seconds")
+        
+        self.transport = QemuTransport(socket = skt)
 
-    print("Waiting for QEMU to wake up...")
-    t = QemuTransport(socket = skt)
-
-    target,data = t.read_packet()
-    assert(isinstance(data, QemuRebbleTest))
-    assert(isinstance(data.payload, QemuRebbleTestAlive))
+        target,data = self.recv()
+        assert(isinstance(data, QemuRebbleTest))
+        assert(isinstance(data.payload, QemuRebbleTestAlive))
     
-    return qemu, t
+    def recv(self):
+        return self.transport.read_packet()
+    
+    def send(self, payload):
+        self.transport.send_packet(QemuRebbleTest(payload = payload), target = MessageTargetQemu(protocol = 100))
+        
+    def kill(self):
+        if self.qemu is not None:
+            self.qemu.send_signal(signal.SIGINT)
+            self.logs = self.qemu.communicate()[0]
+        self.qemu = None
 
-with make_image(f'tests/{args.platform[0]}/blank.gz') as f:
-    q, t = launch_qemu(f.name)
+    def __enter__(self):
+        return self
 
-def send_data(d):
-    t.send_packet(QemuRebbleTest(payload = d), target = MessageTargetQemu(protocol = 100))
+    def __exit__(self, exc, value, tb):
+        self.kill()
+        if exc:
+            print("*** Emulator stopped because of exception ***")
+            print("Emulator logs:")
+            print(self.logs.decode('iso-8859-1', 'ignore')) # Ugh.  This will bite me some day.
+        return False
+    
+    def __del__(self):
+        self.kill()
 
-def recv_data():
-    return t.read_packet()
+def load_tests():
+    tests = {}
+    
+    with make_image(f'tests/{args.platform[0]}/blank.gz') as f, Emulator(f) as e:
+        print("Asking for test list...")
+        e.send(QemuRebbleTestListRequest())
+        while True:
+            target,data = e.recv()
+            assert(isinstance(data, QemuRebbleTest))
+            assert(isinstance(data.payload, QemuRebbleTestListResponse))
+            print(data.payload)
+            print(f"Test {data.payload.id}: {str(data.payload.name)}")
+            tests[data.payload.name] = data.payload.id
+            if data.payload.is_last_test == 1:
+                break
+    
+    return tests
 
-print("Asking for test list...")
-send_data(QemuRebbleTestListRequest())
-while True:
-    target,data = t.read_packet()
-    assert(isinstance(data, QemuRebbleTest))
-    assert(isinstance(data.payload, QemuRebbleTestListResponse))
-    print(data.payload)
-    print(f"Test {data.payload.id}: {str(data.payload.name)}")
-    if data.payload.is_last_test == 1:
-        break
+tests = load_tests()
 
 print("Running test...")
-send_data(QemuRebbleTestRunRequest(id = 1))
-target,data = t.read_packet()
-print(data.payload)
+with make_image(f'tests/{args.platform[0]}/blank.gz') as f, Emulator(f) as e:
+    e.send(QemuRebbleTestRunRequest(id = tests[b'simple']))
+    target,data = e.recv()
+    print(data.payload)
 
-q.terminate()
