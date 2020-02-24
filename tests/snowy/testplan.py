@@ -1,5 +1,4 @@
-# XXX: This is hokey as fuck.
-from __main__ import Test
+from rebbletest import Test
 
 testplan = [
     Test("Simple", testname = b'simple', golden = 42),
