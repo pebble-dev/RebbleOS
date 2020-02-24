@@ -116,7 +116,7 @@ ifneq ($(TESTABLE_$(1)),)
 $(1)_runtest: $(BUILD)/$(1)_test/fw.qemu_flash.bin $(BUILD)/$(1)_test/fw.qemu_spi.bin $(VIRTUALENV)
 	$(VPYTHON3) Utilities/runtests.py \
 		--qemu="$(QEMU) -rtc base=localtime -serial null -serial tcp::63771,server,nowait -serial stdio -gdb tcp::63770,server,nowait $(QEMUFLAGS_$(1)) $(QEMUFLAGS) -pflash $(BUILD)/$(1)_test/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1))" \
-		--platform=$(1) --resofs=$(QEMUPACKOFS_$(1)) --flashsize=$(QEMUSPISIZE_$(1)) --fsofs=$(QEMUFSOFS_$(1)) --fssize=$(QEMUFSSIZE_$(1)) $(TESTARGS)
+		--platform=$(1)
 
 .PHONY: $(1)_runtest
 endif

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Launches one or more QEMUs and runs tests as needed.
+Test driver to launches one or more QEMUs and run tests as needed.
 RebbleOS
 """
 
@@ -12,21 +12,15 @@ import struct
 
 parser = argparse.ArgumentParser(description = "Test runner for RebbleOS.")
 parser.add_argument("--qemu", nargs = 1, required = True, help = "QEMU command, not including SPI flash image")
-parser.add_argument("--platform", nargs = 1, required = True, help = "platform name for SPI images")
-parser.add_argument("--fsofs", nargs = 1, required = True, help = "offset into SPI image of filesystem")
-parser.add_argument("--fssize", nargs = 1, required = True, help = "size of filesystem inside of SPI image")
-parser.add_argument("--flashsize", nargs = 1, required = True, help = "total SPI flash size")
-parser.add_argument("--resofs", nargs = 1, required = True, help = "offset into SPI image of resource pack")
+parser.add_argument("--platform", nargs = 1, required = True, help = "platform name for testplan")
 
 args = parser.parse_args()
 
 # Load the testplan.
 sys.path.append(f'tests/{args.platform[0]}')
-from testplan import testplan
+from testplan import ThisPlatform, testplan
 
-from rebbletest import *
-
-plat = Platform(name = args.platform[0], flashsize = int(args.flashsize[0]), resofs = int(args.resofs[0]), fsofs = int(args.fsofs[0]), qemu = args.qemu[0])
+plat = ThisPlatform(qemu = args.qemu[0])
 
 print("Reading tests...")
 plat.load_tests()
