@@ -11,7 +11,6 @@
 #include "fs_internal.h"
 #include "flash.h"
 #include "blob_db_ramfs.h"
-#include "test.h"
 
 /* XXX: should filesystem bits and bobs get split out somewhere else? 
  * Probably, but who's counting, anyway?  */
@@ -471,6 +470,8 @@ static uint16_t _fs_verily_alloc_page(enum page_state st)
     assert(pg >= 0);
     
     _fs_set_page_state(pg, st);
+    if (pg > _fs_lastpg)
+        _fs_lastpg = pg;
     
     return (uint16_t) pg;
 }
@@ -529,6 +530,11 @@ struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, con
             
             int rv = _fs_write_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
             assert(rv >= 0);
+            
+            if (name) {
+                rv = _fs_write_page_ofs(pg, sizeof(filehdr), name, strlen(name));
+                assert(rv >= 0);
+            }
             
             KERN_LOG("flash", APP_LOG_LEVEL_DEBUG, "wrote start page at %d", pg);
             
