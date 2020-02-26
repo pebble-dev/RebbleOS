@@ -33,8 +33,12 @@
 #define SECTOR_ADDRESS(sector) ((((sector) << 17) & 0xFFFF0000))
 #define ALIGN(a) (a & 0xFFFFFFFE)
 #define ADDR_SHIFT(Address)   (Bank1_NOR_ADDR + (2 * (Address)))
-#define SHF(Address)   (Address << 1)
-#define NOR_WRITE(Address, Data)   (*(__IO uint16_t *)(Address) = (Data))
+#define SHF(Address)   ((Address) << 1)
+#if 0
+#define NOR_WRITE(Address, Data)   do { printf("NOR + %08x <- %08x\n", (Address) - Bank1_NOR_ADDR, (Data)); *(__IO uint16_t *)(Address) = (Data); } while(0)
+#else
+#define NOR_WRITE(Address, Data)   do { *(__IO uint16_t *)(Address) = (Data); } while(0)
+#endif
 #define NOR_WRITE8(Address, Data)   (*(__IO uint8_t *)(Address) = (Data))
 
 void _nor_gpio_config(void);
@@ -344,23 +348,25 @@ int hw_flash_write_sync(uint32_t address, uint8_t *buffer, size_t length)
 {
     _nor_clock_request();
     uint8_t rv = 0;
-    uint8_t alength = length % 2;
-    printf("write id %d %x\n", length,  SHF(address));
-    uint16_t exis = *(__IO uint8_t *)(Bank1_NOR_ADDR + SHF(address + length/2));
-        
-    NOR_WRITE(Bank1_NOR_ADDR + address, FLASH_CMD_WRITE_BUFFER_LOAD);
-    NOR_WRITE(Bank1_NOR_ADDR + address +  SHF(0x2AA), (length / 2) - 1 + alength);
+    int start_align = address % 2;
+    int end_align = (address + length) % 2;
+    uint32_t addr_aligned = address & ~1;
+    uint32_t len_padded = length + start_align + end_align;
+    assert((len_padded & 1) == 0);
     
-    for(size_t i = 0; i < length; i+=2)
+    // assert(len_padded <= 64); /* write buffer size is only 64b */
+
+    NOR_WRITE(Bank1_NOR_ADDR + addr_aligned, FLASH_CMD_WRITE_BUFFER_LOAD);
+    NOR_WRITE(Bank1_NOR_ADDR + addr_aligned +  SHF(0x2AA), len_padded / 2);
+    
+    size_t bufpos = 0;
+    for(size_t i = 0; i < len_padded; i+=2)
     {
-        // if its an odd byte read the existing byte and merge the result back in
-        if (alength && i + 2 > length)
-        {
-            uint16_t v = (buffer[i]) | (exis << 8);
-            NOR_WRITE(Bank1_NOR_ADDR + SHF((address/2) + length/2),  v);
-            break;
-        }
-        NOR_WRITE(Bank1_NOR_ADDR + SHF((address/2) + i/2),  *((uint16_t *)buffer + i/2));
+        uint8_t v[2];
+        
+        v[0] = (i ==                0 && start_align) ? 0xFF : buffer[bufpos++];
+        v[1] = (i == (len_padded - 2) && end_align  ) ? 0xFF : buffer[bufpos++];
+        NOR_WRITE(Bank1_NOR_ADDR + SHF((addr_aligned/2) + i/2),  *((uint16_t *)v));
     }
     
     

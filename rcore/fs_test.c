@@ -67,7 +67,7 @@ TEST(fs_two_files) {
     fs_open(&fd1, &file1);
     rv = fs_read(&fd1, buf, 5);
     if (rv < 5) { *artifact = 7; return TEST_FAIL; }
-    if (memcmp(buf, "Horld", 5)) { *artifact = 8; return TEST_FAIL; }
+    if (memcmp(buf, "Hello", 5)) { *artifact = 8; return TEST_FAIL; }
     
     *artifact = 0;
     return TEST_PASS;
