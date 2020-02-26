@@ -20,4 +20,5 @@ testplan = [
     Test("RAMFS basic test", testname = b'ramfs_two_files'),
     Test("Filesystem: find nonexistent file", testname = b'fs_find_noent', golden = 0),
     Test("Filesystem: basic create test", testname = b'fs_creat_basic', golden = 0),
+    Test("Filesystem: I/O on two files", testname = b'fs_two_files', golden = 0),
 ]
