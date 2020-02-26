@@ -10,6 +10,8 @@ import socket
 import sys
 import struct
 
+from rebbletest import TestFailureException, TestConfigurationException
+
 parser = argparse.ArgumentParser(description = "Test runner for RebbleOS.")
 parser.add_argument("--qemu", nargs = 1, required = True, help = "QEMU command, not including SPI flash image")
 parser.add_argument("--platform", nargs = 1, required = True, help = "platform name for testplan")
@@ -29,12 +31,12 @@ print(f"... loaded {len(plat.testmap)} tests.")
 passed,failed = 0,0
 for t in testplan:
     print(f"Running \"{t.name}\"...")
-    res = t.run(plat)
-    if res is None:
+    try:
+        t.run(plat)
         print("PASSED")
         passed += 1
-    else:
-        print(f"FAILED: {res}")
+    except (TestFailureException, TestConfigurationException) as e:
+        print(f"FAILED: {e}")
         failed += 1
 
 print(f"*** {passed} test(s) passed, {failed} test(s) failed. ***")

@@ -120,6 +120,11 @@ class Platform:
                 if data.payload.is_last_test == 1:
                     break
 
+class TestConfigurationException(Exception):
+    pass
+
+class TestFailureException(Exception):
+    pass
 
 class Test:
     def __init__(self, name, testname = None, image = 'blank', golden = None):
@@ -130,16 +135,17 @@ class Test:
     
     def run(self, platform):
         if self.testname not in platform.testmap:
-            return f"{self.testname} does not exist in running system!"
+            raise TestConfigurationException(f"{self.testname} does not exist in running system!")
         
         data = None
         with platform.launch(platform.image_path(self.image)) as e:
             e.send(QemuRebbleTestRunRequest(id = platform.testmap[self.testname]))
             target,data = e.recv()
 
-        if data.payload.passed == 0:
-            return f"Test reported failure with artifact {data.payload.artifact}"
-        if self.golden and data.payload.artifact != self.golden:
-            return f"Test reported pass, but artifact {data.payload.artifact} differs from golden {self.golden}"
+            if data.payload.passed == 0:
+                raise TestFailureException(f"Test reported failure with artifact {data.payload.artifact}")
+            if self.golden and data.payload.artifact != self.golden:
+                raise TestFailureException(f"Test reported pass, but artifact {data.payload.artifact} differs from golden {self.golden}")
         
-        return None
+        return data.payload.artifact
+
