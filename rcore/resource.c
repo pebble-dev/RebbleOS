@@ -61,9 +61,10 @@ ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
 //    LOG_DEBUG("Resource sys:%d idx:%d adr:0x%x sz:%d", is_system, new_header.index, new_header.offset, new_header.size);
 
     // sanity check the resource
-    if (new_header.size > 200000) // arbitary 200k
+    if (!_resource_is_sane(&new_header))
     {
-        LOG_ERROR("Res: WARN. Suspect res size %d", new_header.size);
+        LOG_ERROR("Res: Resource is not sane, size of  %d", new_header.size);
+		return;
     }
 
     return new_header;
@@ -73,6 +74,11 @@ ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
 bool _resource_is_sane(ResHandleFileHeader *res_handle)
 {
     size_t sz = res_handle->size;
+    app_running_thread *_this_thread = appmanager_get_current_thread();
+    App *_running_app = _this_thread->app;
+    uint32_t total_app_size = &_running_app->header->app_size;
+    uint32_t app_heap_size = _this_thread->heap_size - total_app_size;
+
 
     if (sz <= 0)
     {
@@ -80,9 +86,9 @@ bool _resource_is_sane(ResHandleFileHeader *res_handle)
         return false;
     }
 
-    if (sz > 100000)
+    if (sz > app_heap_size)
     {
-        LOG_ERROR("Res: malloc will fail. > 100Kb requested");
+        LOG_ERROR("Res: Attempted to load resource that is larger than the remaining memory");
         return false;
     }
 
