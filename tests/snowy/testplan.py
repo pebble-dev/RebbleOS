@@ -15,8 +15,8 @@ ThisPlatform = SnowyPlatform
 
 testplan = [
     Test("Simple", testname = b'simple', golden = 42),
-    Test("bad-artifact", testname = b'simple', golden = 43),
-    Test("non-exist", testname = b'ne', golden = 42),
+#    Test("bad-artifact", testname = b'simple', golden = 43),
+#    Test("non-exist", testname = b'ne', golden = 42),
     Test("RAMFS basic test", testname = b'ramfs_two_files'),
     Test("Filesystem: find nonexistent file", testname = b'fs_find_noent', golden = 0),
     Test("Filesystem: basic create test", testname = b'fs_creat_basic', golden = 0),
