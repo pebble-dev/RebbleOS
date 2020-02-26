@@ -3,12 +3,15 @@
 The following builds RebbleOS on Arch Linux and Parabola once the Pebble SDK is installed:
 
 Note: You will need to aquire the FPGA blobs from the [discord](discord.gg/aRUAYFN) before building.
+
 ```sh
     git clone https://github.com/pebble-dev/RebbleOS.git
-    cd FreeRTOS-Pebble
+    cd RebbleOS
     git submodule update --init --recursive
-    virtualenv --no-site-packages .env
-    souce .env/bin/activate
+    cd FreeRTOS
+    virtualenv .env
+    source .env/bin/activate
+    cd ..
     make
     deactivate
 ```
@@ -27,11 +30,12 @@ directory for the SDK using the following.
     . ~/.bash_profile
     sudo pacman -Syyu
     sudo pacman -S python2 python2-pip  python2-gevent sdl dtc pixman git arm-none-eabi-gcc arm-none-eabi-newlib npm
-    pip2 install virtualenv --user
     pip2 install --upgrade pip --user
+    pip2 install virtualenv --user
     cd ~/pebble-dev/pebble-sdk-4.5-linux64
-    virtualenv --no-site-packages .env
+    virtualenv .env
     source .env/bin/activate
+    sed -i 's/https:\/\/s3-us-west-2.amazonaws.com\/pebble-sdk-homebrew\/pypkjs-1.0.6.tar.gz/https:\/\/github.com\/ltpitt\/vagrant-pebble-sdk\/blob\/master\/pypkjs-1.0.6.tar.gz?raw=true/g' requirements.txt
     pip2 install -r requirements.txt
     deactivate
     mkdir ~/.pebble-sdk/
