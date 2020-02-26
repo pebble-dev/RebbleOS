@@ -11,6 +11,7 @@
 #include "fs_internal.h"
 #include "flash.h"
 #include "blob_db_ramfs.h"
+#include "test.h"
 
 /* XXX: should filesystem bits and bobs get split out somewhere else? 
  * Probably, but who's counting, anyway?  */
