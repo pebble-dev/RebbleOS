@@ -8,6 +8,8 @@
 #include "debug.h"
 #include <string.h>
 
+#ifdef REBBLEOS_TESTING
+
 TEST(fs_creat_basic) {
     struct fd fd, *fdp;
     struct file file;
@@ -72,3 +74,5 @@ TEST(fs_two_files) {
     *artifact = 0;
     return TEST_PASS;
 }
+
+#endif
