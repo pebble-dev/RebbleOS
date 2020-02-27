@@ -94,7 +94,7 @@ static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_
         
         if (hdr.key_len != key_size)
             goto next;
-        if (!(hdr.flags & BLOBDB_FLAG_WRITTEN))
+        if (hdr.flags & BLOBDB_FLAG_WRITTEN)
             goto next;
         
         fs_read(fd, _tmp_key, key_size);
@@ -426,7 +426,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             return Blob_DatabaseFull;
         }
         
-        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 0 && hdr.key_len == 0xFF && hdr.data_len == 0xFF)
+        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0xFFFF && hdr.data_len == 0xFFFF)
             break; /* found a spot! */
         
         pos += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
