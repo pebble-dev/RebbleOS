@@ -169,6 +169,7 @@ void ramfs_delete(Uuid *uuid)
 //     }
 }
 
+#ifdef REBBLEOS_TESTING
 TEST(ramfs_two_files) {
     struct fd fd1, fd2;
     struct file file1, file2;
@@ -205,3 +206,4 @@ TEST(ramfs_two_files) {
     
     return rv;
 }
+#endif

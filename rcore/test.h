@@ -35,7 +35,8 @@ static int test_##name(uint32_t *artifact)
 #else
 
 #define TEST(name) \
-static int test_## #name(uint32_t artifact) __attribute__((section(".throwaway")))
+static int TEST_##name##_macro_called_outside_of_REBBLEOS_TESTING_barf_barf_barf[-1]; \
+static int test_##name(uint32_t artifact)
 
 #endif
 
