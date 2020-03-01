@@ -28,7 +28,7 @@ directory for the SDK using the following.
     pip install virtualenv
     pip install --upgrade pip
     cd ~/pebble-dev/pebble-sdk-4.5-linux64
-    virtualenv --no-site-packages .env
+    virtualenv .env
     source .env/bin/activate
     sed -i 's/https:\/\/s3-us-west-2.amazonaws.com\/pebble-sdk-homebrew\/pypkjs-1.0.6.tar.gz/https:\/\/github.com\/ltpitt\/vagrant-pebble-sdk\/blob\/master\/pypkjs-1.0.6.tar.gz?raw=true/g' requirements.txt
     pip install -r requirements.txt
