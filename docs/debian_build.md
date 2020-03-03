@@ -1,14 +1,20 @@
 # Building on Debian Stretch
 
+## Prerequisites
+
+Before building RebbleOS you will need the [Pebble SDK](#PebbleSDK) and if you wish to run the firmware in `qemu`, you'll need to make the [resources](#Qemu-Resources)
+
+## Building Rebble OS
 The following builds RebbleOS on Debian Stretch:
 
 ```sh
     apt install -y gcc-arm-none-eabi
     git clone https://github.com/pebble-dev/RebbleOS.git
-    cd FreeRTOS-Pebble
+    cd RebbleOS
     git submodule update --init --recursive
     make
 ```
+## PebbleSDK
 
 The Pebble SDK is a prerequisite for portions of RebbleOS. The
 SDK is available [here](https://developer.rebble.io/developer.pebble.com/sdk/download/index.html).
@@ -30,7 +36,6 @@ directory for the SDK using the following.
     cd ~/pebble-dev/pebble-sdk-4.5-linux64
     virtualenv .env
     source .env/bin/activate
-    sed -i 's/https:\/\/s3-us-west-2.amazonaws.com\/pebble-sdk-homebrew\/pypkjs-1.0.6.tar.gz/https:\/\/github.com\/ltpitt\/vagrant-pebble-sdk\/blob\/master\/pypkjs-1.0.6.tar.gz?raw=true/g' requirements.txt
     pip install -r requirements.txt
     deactivate
     mkdir ~/.pebble-sdk/
@@ -39,4 +44,25 @@ directory for the SDK using the following.
     pebble ping --emulator aplite
 ```
 
-As the SDK is no longer available from an official source, this example uses an archived version from [this](https://github.com/aveao/PebbleArchive/) GitHub repository. URL for the pypkjs module is also used from the [backup repository](https://github.com/ltpitt/vagrant-pebble-sdk).
+## Qemu Resources
+
+Before building RebbleOS for the first time you will need to run the [Utilities/mk_resources.sh](Utilities/mk_resources.sh) script.
+
+```sh
+    cd ~/pebble-dev/RebbleOS/
+    mkdir Resources
+```
+
+At this point, you will need to visit the [Discord](http://discord.gg/aRUAYFN) and download the FPGA files and place them in the new Resources folder we just made.
+Then continue with the steps below.
+
+    
+```sh
+    cd ~/pebble-dev/RebbleOS/Utilities/
+    ./mk_resources.sh ~/.pebble-sdk/SDKs/4.3/sdk-core/pebble
+    cp Resources/* ../Resources/
+```
+
+That's it you're now ready to build! Head back to the [top](#Building-Rebble-OS)
+
+    
