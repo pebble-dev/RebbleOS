@@ -10,3 +10,6 @@
 [submodule "lib/libpebble2"]
 	path = lib/libpebble2
 	url = ../../pebble-dev/libpebble2
+[submodule "lib/jerryscript"]
+	path = lib/jerryscript
+	url = https://github.com/pebble/jerryscript.git
