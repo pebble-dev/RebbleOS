@@ -124,6 +124,7 @@ SRCS_all += rcore/protocol/protocol_app.c
 SRCS_all += rcore/protocol/protocol_blob.c
 
 SRCS_all += rcore/service/blob_db.c
+SRCS_all += rcore/service/blob_db_test.c
 SRCS_all += rcore/service/blob_db_ramfs.c
 SRCS_all += rcore/service/timeline.c
 
