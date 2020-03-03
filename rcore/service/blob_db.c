@@ -42,7 +42,13 @@ typedef struct database_t {
 static const database databases[] = {
     {
         .id = BlobDatabaseID_Test,
-        .filename = NULL,
+        .filename = "rebble/testblob",
+        .def_db_size = 16384,
+        .hdr_size = 12,
+        .key_offset = 4,
+        .key_size = 4,
+        .data_size_offset = 8,
+        .data_size_bytes = 4,
     },
     {
         .id = BlobDatabaseID_Notification,
