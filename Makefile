@@ -247,6 +247,8 @@ $(VIRTUALENV): Utilities/requirements.txt
 	$(QUIET)$(PYTHON3) -m virtualenv $@
 	$(call SAY,PIP INSTALL $@)
 	$(QUIET)$(VIRTUALENV)/bin/pip3 install -r $<
+	$(QUIET)$(VPYTHON3) libs/jerryscript/tools/srcgenerator.py --output-dir $(BUILD)/jerryscript
+
 
 clean:
 	rm -rf $(BUILD)

@@ -86,11 +86,6 @@ bool appmanager_is_app_shutting_down(void)
     return _this_thread->status == AppThreadUnloading;
 }
 
-void rocky_event_loop_with_resource(uint16_t resource_id)
-{
-    app_event_loop();
-}
-
 static void _draw(uint8_t force_draw)
 {
     /* Request a draw. This is mostly from an app invalidating something */

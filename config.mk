@@ -28,6 +28,7 @@ CFLAGS_all += -Irwatch/ui/animation
 CFLAGS_all += -Irwatch/input
 CFLAGS_all += -Irwatch/graphics
 CFLAGS_all += -Irwatch/event
+CFLAGS_all += -Irwatch/js
 CFLAGS_all += -Ihw/platform/qemu
 CFLAGS_all += -DNGFX_IS_CORE
 

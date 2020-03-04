@@ -29,6 +29,9 @@
 #Kate
 .kate-swp
 
+#Visual Studio Code
+.vscode
+
 *~
 
 build/*

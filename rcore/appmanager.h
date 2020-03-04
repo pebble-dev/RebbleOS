@@ -187,6 +187,4 @@ TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);
 App *appmanager_get_app(char *app_name);
 void appmanager_app_loader_init(void);
 
-void rocky_event_loop_with_resource(uint16_t resource_id);
-
 void timer_init(void);
