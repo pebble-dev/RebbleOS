@@ -22,7 +22,7 @@
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context);
-void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
+
 bool booted = false;
 
 static xQueueHandle _app_message_queue;
@@ -201,6 +201,10 @@ void app_event_loop(void)
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
                 appmanager_post_draw_message(0);
             }
+            else if (data.command == AppMessageLoadClickConfig)
+            {
+                window_load_click_config((Window *)data.data);
+            }
             /* Someone has requested the application close.
              * We will attempt graceful shutdown by unsubscribing timers
              * Any app timers will fire and be nulled, or get erased.
@@ -300,6 +304,12 @@ void app_select_single_click_handler(ClickRecognizerRef recognizer, void *contex
 void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
 {
     // Pop windows off
+    if (overlay_window_count() > 0)
+    {
+        overlay_window_stack_pop_window(true);
+        return;
+    }
+    
     Window *popped = window_stack_pop(true);
     LOG_DEBUG("Window Count: %d", window_count());
     

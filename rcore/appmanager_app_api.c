@@ -11,7 +11,7 @@
 #include "overlay_manager.h"
 #include "protocol.h"
 #include "protocol_music.h"
-#include "event_service.h"
+
 /*
  * Start an application by name
   * The message contains the app name
@@ -37,8 +37,13 @@ void appmanager_app_quit(void)
 
 void appmanager_post_button_message(ButtonMessage *bmessage)
 {
-    /* we post to overlay first, app thread gets it relayed */
-    overlay_window_post_button_message(bmessage);
+//     /* we post to overlay first, app thread gets it relayed */
+//     overlay_window_post_button_message(bmessage);
+    AppMessage am = (AppMessage) {
+        .command = AppMessageButton,
+        .data = (void *)bmessage
+    };
+    appmanager_post_generic_app_message(&am, 100);
 }
 
 void appmanager_post_draw_message(uint8_t force)
@@ -67,11 +72,20 @@ void appmanager_post_draw_message(uint8_t force)
  * some other request, such as IPC between worker and main threads */
 void appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyEventProc destroy_callback)
 {
-        AppMessage am = (AppMessage) {
+    AppMessage am = (AppMessage) {
         .command = AppMessageEvent,
         .subcommand = protocol_id,
         .data = message,
         .context = destroy_callback
+    };
+    appmanager_post_generic_app_message(&am, 10);
+}
+
+void appmanager_post_window_load_click_config(Window *window)
+{
+    AppMessage am = (AppMessage) {
+        .command = AppMessageLoadClickConfig,
+        .data = (void *)window,
     };
     appmanager_post_generic_app_message(&am, 10);
 }

@@ -538,17 +538,39 @@ void _window_unload_proc(Window *window)
 }
 
 void window_load_click_config(Window *window)
-{  
-    if (window->click_config_provider) {
-        void* context = window->click_config_context ? window->click_config_context : window;
+{
+    
+    void* context = window->click_config_context ? window->click_config_context : window;
+    
+    int ttype = appmanager_get_thread_type();
+    if (ttype == AppThreadOverlay)
+    {
+        /* Always install a default handler onto the overlay
+         The window will override if it has a click config provider */
+        window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
+    }
+    else
+    {
+        /* Erase click handlers if we are an app.
+         Overlays shouldn't smash app clicks */
         for (int i = 0; i < NUM_BUTTONS; i++) {
             window_single_click_subscribe(i, NULL);
             window_long_click_subscribe(i, 0, NULL, NULL);
             window_multi_click_subscribe(i, 0, 0, 0, false, NULL);
             window_raw_click_subscribe(i, NULL, NULL, context);
         }
+        
+    }
+    
+    if (window->click_config_provider)
+    {
         window->click_config_provider(context);
-    } 
+    }    
+    /* If the default click provider doesn't install a back handler, we will. */
+    if (button_short_click_is_subscribed(BUTTON_ID_BACK) == 0)
+    {
+        window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
+    }    
 }
 
 

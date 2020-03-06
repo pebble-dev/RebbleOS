@@ -16,6 +16,9 @@
 #include "node_list.h"
 #include <stdbool.h>
 #include "uuid.h"
+#include "event_service.h"
+
+struct Window;
 
 #define MAX_APP_STR_LEN 32
 
@@ -97,6 +100,7 @@ typedef enum {
     AppMessageTick,
     AppMessageDraw,
     AppMessageEvent,
+    AppMessageLoadClickConfig,
 } AppMesssageType;
 
 enum {
@@ -178,6 +182,8 @@ list_head *app_manager_get_apps_head();
 void appmanager_post_button_message(ButtonMessage *bmessage);
 void appmanager_post_draw_message(uint8_t force);
 void appmanager_post_draw_display_message(uint8_t *draw_to_display);
+void appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyEventProc destroy_callback);
+void appmanager_post_window_load_click_config(struct Window *window);
 
 void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
@@ -194,3 +200,6 @@ void appmanager_app_loader_init(void);
 void rocky_event_loop_with_resource(uint16_t resource_id);
 
 void timer_init(void);
+
+typedef void* ClickRecognizerRef;
+void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
