@@ -19,11 +19,20 @@ void spp_handler(const uint8_t *data)
 
     /* seems legit. We have a valid packet. Create a data packet and process it */
     RebblePacket newpacket = packet_create(packet.endpoint, packet.length);
-    assert(newpacket);
+    
+    if (newpacket == NULL)
+    {
+        KERN_LOG("QEMU", APP_LOG_LEVEL_ERROR, "No Packet memory! Bailing");
+        return;
+    }
+    
     uint8_t *newdata = packet_get_data(newpacket);
     memcpy(newdata, packet.data, packet.length);
     
     protocol_process_packet(newpacket);
+ 
+    /* Remove the processed packet from the buffer */
+    protocol_rx_buffer_consume(packet.length + sizeof(RebblePacketHeader) + sizeof(QemuCommChannelHeader) + sizeof(QemuCommChannelFooter));
 }
 
 const PebbleEndpoint qemu_endpoints[] =

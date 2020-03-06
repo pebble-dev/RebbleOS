@@ -115,10 +115,14 @@ void event_service_set_context(EventServiceCommand command, void *context)
     }
 }
 
-void event_service_post(EventServiceCommand command, void *data, DestroyEventProc destroy_callback)
+bool event_service_post(EventServiceCommand command, void *data, DestroyEventProc destroy_callback)
 {
     /* Step 1. post to the app thread */
-    appmanager_post_event_message(command, data, destroy_callback);
+    if (appmanager_post_event_message(command, data, destroy_callback) == false)
+    {
+        LOG_ERROR("Queue Full! Not processing");
+        destroy_callback(data);
+    }
 }
 
 void event_service_event_trigger(EventServiceCommand command, void *data, DestroyEventProc destroy_callback)
@@ -129,7 +133,7 @@ void event_service_event_trigger(EventServiceCommand command, void *data, Destro
     {
         if (conn->command == command)
         {
-            LOG_INFO("Triggering %x %x %x", data, destroy_callback, conn->callback);
+//             LOG_INFO("Triggering %x %x %x", data, destroy_callback, conn->callback);
             if (conn->thread == _this_thread && conn->callback)
                 conn->callback(command, data, conn->context);
             
