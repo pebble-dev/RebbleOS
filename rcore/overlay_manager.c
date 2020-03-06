@@ -240,6 +240,7 @@ Window *overlay_window_get_next_window_with_click_config(void)
     OverlayWindow *w;
     list_foreach(w, &_overlay_window_list_head, OverlayWindow, node)
     {
+        SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "asdasdsadsadW OFFSET: %d", w->graphics_context->offset.origin.y);
         if (w->window.click_config_provider)
         {
             return &w->window;
@@ -276,20 +277,39 @@ static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated
     app_free(overlay_window);
     
     Window *top_window = overlay_window_get_next_window_with_click_config();
+
     if (top_window == NULL)
     {
         /* we are out of overlay windows, restore click 
          * first get the top normal window. Grab it's click context
          * then restore it. Then configure it. */
-        top_window = window_stack_get_top_window();
+        /* next try and find any window */
+SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "NO TOP");
+        top_window = overlay_window_stack_get_top_window();
+        if (top_window)
+        {
+            SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "GOT TOP %x", top_window->click_config_provider);
+            window_load_click_config(top_window);
+            if (!top_window->click_config_provider)
+            {
+                top_window = NULL;
+            }
+        }
+        
+        if (top_window == NULL)
+        {
+            top_window = window_stack_get_top_window();
+            assert(top_window);
+            /* must be an app. load that (in the app thread of course) */
+            appmanager_post_window_load_click_config(top_window);
+        }
     }
-
-    if (top_window)
+    else
         window_load_click_config(top_window);
-    
+
     /* when a window dies, we ask nicely for a repaint */
     window_dirty(true);
-    SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "FREE: %d", app_heap_bytes_free());
+    SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "OV DESTROY FREE: %d", app_heap_bytes_free());
 }
 
 static void _overlay_window_draw(bool window_is_dirty)
@@ -376,21 +396,10 @@ static void _overlay_thread(void *pvParameters)
                 case AppMessageOverlayButton:
                     SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON");
                     assert(data.data && "You MUST provide a valid button message");
-                    if (overlay_window_accepts_keypress())
-                    {
-                        /* execute the button's callback */
-                        ButtonMessage *message = (ButtonMessage *)data.data;
-                        SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON ACC MCB %x", message->callback);
-                        ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
-                        appmanager_post_draw_message(1);
-                        break;
-                    }
-
-                    AppMessage am = (AppMessage) {
-                        .command = AppMessageButton,
-                        .data = (void *)data.data
-                    };
-                    appmanager_post_generic_app_message(&am, 100);
+                    ButtonMessage *message = (ButtonMessage *)data.data;
+                    SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON ACC MCB %x", message->callback);
+                    ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
+                    appmanager_post_draw_message(1);
                     break;
                 case AppMessageOverlayTimer:
                     break;

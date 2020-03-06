@@ -210,7 +210,7 @@ void notification_layer_destroy(NotificationLayer *notification_layer)
 {
     notification_layer_dtor(notification_layer);
     app_free(notification_layer);
-    fonts_resetcache();
+    //fonts_resetcache();
     LOG_DEBUG("FREE: %d", app_heap_bytes_free());
     window_dirty(true);
 }

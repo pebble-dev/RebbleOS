@@ -111,6 +111,11 @@ uint8_t appmanager_init(void)
     return 0;
 }
 
+app_running_thread *appmanager_get_threads(void)
+{
+    return _app_threads;
+}
+
 app_running_thread *_get_current_thread(void)
 {
     TaskHandle_t this_task = xTaskGetCurrentTaskHandle();

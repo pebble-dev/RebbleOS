@@ -46,8 +46,8 @@ static void _minimsg_window_load(Window *window)
     GRect bounds = layer_get_unobstructed_bounds(layer);
 
     layer_set_update_proc(layer, _draw_mini_message);
-//     notification_load_click_config(window);
-    window_set_click_config_provider_with_context(window, notification_load_click_config, window);
+    //notification_load_click_config(window);
+    window_set_click_config_provider(window, notification_load_click_config);
     layer_mark_dirty(layer);
     window_dirty(true);
 }
