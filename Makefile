@@ -193,7 +193,7 @@ $(BUILD)/$(1)/fw.qemu_spi.bin: Resources/$$(PLATFORM_ALIAS_$(1))_spi.bin $(BUILD
 	$(QUIET)dd if=/dev/zero of=$$@ bs=1 seek=$(QEMUPACKOFS_$(1)) count=$(QEMUPACKSIZE_$(1)) conv=notrunc || (rm $$@; exit 1)
 	$(QUIET)dd if=$(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.pbpack of=$$@ bs=1 seek=$(QEMUPACKOFS_$(1)) conv=notrunc || (rm $$@; exit 1)
 
-ifneq ($$(RULES_FOR_ALIAS_$$(PLATFORM_ALIAS_$(1))),)
+ifeq ($$(RULES_FOR_ALIAS_$$(PLATFORM_ALIAS_$(1))),)
 $$(eval RULES_FOR_ALIAS_$$(PLATFORM_ALIAS_$(1)) = true)
 Resources/$$(PLATFORM_ALIAS_$(1))_fpga.bin:
 	@echo "${RED}Error: platform '$(1)' needs an FPGA binary file in order to build.  Please extract or download one, and put it in $$@. ${STOP}"; exit 1
