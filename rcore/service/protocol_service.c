@@ -65,6 +65,11 @@ void rebble_protocol_init()
 void rebble_protocol_send(uint16_t endpoint, uint8_t *data, uint16_t len)
 {
     RebblePacket packet = packet_create(endpoint, len);
+    if (!packet)
+    {
+        LOG_ERROR("No memory for packet");
+        return;
+    }
     memcpy(packet->data, data, len);
     packet_send(packet);
 }

@@ -78,8 +78,10 @@ void event_service_set_context(EventServiceCommand command, void *context);
  * @param command \ref EventServiceCommand to stop watching
  * @param data \ref payload data to send as part of the event. It is expected the recipient knows what to do with it
  * @param destroy_callback a callback to the method that allows the event to destroy any data it might need to
+ * 
+ * @returns true successful post
  */
-void event_service_post(EventServiceCommand command, void *data, DestroyEventProc destroy_callback);
+bool event_service_post(EventServiceCommand command, void *data, DestroyEventProc destroy_callback);
 
 /** 
  * @brief Called from a specific thread to process the data.

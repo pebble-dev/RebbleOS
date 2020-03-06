@@ -70,7 +70,7 @@ void appmanager_post_draw_message(uint8_t force)
 
 /* Send a message to a running app. This could be an event, such as "hey data arrived" or
  * some other request, such as IPC between worker and main threads */
-void appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyEventProc destroy_callback)
+bool appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyEventProc destroy_callback)
 {
     AppMessage am = (AppMessage) {
         .command = AppMessageEvent,
@@ -78,7 +78,7 @@ void appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyE
         .data = message,
         .context = destroy_callback
     };
-    appmanager_post_generic_app_message(&am, 10);
+    return appmanager_post_generic_app_message(&am, 20);
 }
 
 void appmanager_post_window_load_click_config(Window *window)

@@ -182,7 +182,7 @@ list_head *app_manager_get_apps_head();
 void appmanager_post_button_message(ButtonMessage *bmessage);
 void appmanager_post_draw_message(uint8_t force);
 void appmanager_post_draw_display_message(uint8_t *draw_to_display);
-void appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyEventProc destroy_callback);
+bool appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyEventProc destroy_callback);
 void appmanager_post_window_load_click_config(struct Window *window);
 
 void appmanager_app_start(char *name);
@@ -190,7 +190,7 @@ void appmanager_app_quit(void);
 void appmanager_app_display_done(void);
 bool appmanager_is_app_shutting_down(void);
 
-void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
+bool appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
 void appmanager_timer_expired(app_running_thread *thread);
 TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);
 /* in appmanager_app.c */

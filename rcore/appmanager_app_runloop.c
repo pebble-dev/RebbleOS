@@ -36,12 +36,13 @@ void appmanager_app_runloop_init(void)
 /* 
  * Send a message to an app 
  */
-void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout)
+bool appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout)
 {
     app_running_thread *_thread = appmanager_get_thread(AppThreadMainApp);
     if (_thread->status == AppThreadRunloop)
-        if (!xQueueSendToBack(_app_message_queue, am, timeout))
-            ;
+        return xQueueSendToBack(_app_message_queue, am, timeout);
+    
+    return false;
 }
 
 /*
