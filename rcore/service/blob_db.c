@@ -87,7 +87,6 @@ static const database *_find_database(uint8_t id)
 static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_t file_size, uint8_t *key, uint8_t key_size)
 {
     int idx = 0;
-    char buf[UUID_STRING_BUFFER_LENGTH];
     uint8_t _tmp_key[key_size];
     size_t _data_size = 0;
     struct blobdb_hdr hdr;
@@ -97,27 +96,22 @@ static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_
         fs_seek(fd, idx, FS_SEEK_SET);
         if (fs_read(fd, &hdr, sizeof(hdr)) < sizeof(hdr))
             break;
-        
         if (hdr.key_len != key_size)
             goto next;
         if (hdr.flags & BLOBDB_FLAG_WRITTEN)
             goto next;
-        
+        fs_seek(fd, idx + sizeof(hdr), FS_SEEK_SET);
         fs_read(fd, _tmp_key, key_size);
 
         /* End of file */
         if (uuid_is_int((Uuid  *)_tmp_key, 0xFF))
             break;
 
-        if (uuid_equal((Uuid  *)key, (Uuid  *)_tmp_key))
+        if (memcmp(key, _tmp_key, key_size) == 0)
         {
-            uuid_to_string((Uuid  *)_tmp_key, buf);
-            LOG_INFO("Found: %s %d", buf, idx);
+            LOG_INFO("Found at index: %d", idx);
             return idx;
         }
-
-        uuid_to_string((Uuid  *)_tmp_key, buf);
-        LOG_DEBUG("NOTIF: %s %d", buf, idx);
 
 next:
         idx += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
@@ -134,6 +128,7 @@ static bool _compare(Blob_Operator operator, uint8_t *where_prop, uint8_t *where
     uint32_t val2 = 0;
     memcpy(&val1, where_prop, size);
     memcpy(&val2, where_val, size);
+    
     char type = '>';
     bool rval = false;
 
@@ -271,7 +266,7 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
             uint8_t where_prop[where_property_size];
             fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + where_offsetof_property, FS_SEEK_SET);
             fs_read(fd, where_prop, where_property_size);
-
+            LOG_DEBUG("ASASKEY: %s %d %d", buf, *((uint32_t *)where_prop), where_property_size);    
             comp1 = _compare(operator, where_prop, where_val, where_property_size);
         }
         if (where_property_size1 && where_offsetof_property1)
@@ -326,7 +321,7 @@ void blobdb_resultset_destroy(list_head *lh)
     app_free(lh);
 }
 
-int32_t _blob_db_flash_load_blob(const database *db, Uuid *uuid, uint8_t **data)
+int32_t _blob_db_flash_load_blob(const database *db, uint8_t *key, uint8_t key_size, uint8_t **data)
 {
     struct file file;
     struct fd fd;
@@ -338,7 +333,7 @@ int32_t _blob_db_flash_load_blob(const database *db, Uuid *uuid, uint8_t **data)
     }
     fs_open(&fd, &file);
 
-    int32_t idx = _blob_db_find_item_entry(&fd, db, file.size, (uint8_t *)uuid, sizeof(Uuid));
+    int32_t idx = _blob_db_find_item_entry(&fd, db, file.size, key, key_size);
     if (idx < 0)
         return -1;
 
@@ -361,13 +356,9 @@ int32_t _blob_db_flash_load_blob(const database *db, Uuid *uuid, uint8_t **data)
 }
 
 
-uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t **data)
+uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t key_size, uint8_t **data)
 {
     const database *db = _find_database(database_id);
-
-    char buf[UUID_STRING_BUFFER_LENGTH];
-    uuid_to_string((Uuid *)key, buf);
-    LOG_DEBUG("SELECT: %s", buf);
 
     if (!db)
     {
@@ -376,7 +367,7 @@ uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t **data)
     }
 
     /* check the key isn't already there. Check only the header */
-    int32_t idx = _blob_db_flash_load_blob(db, (Uuid *)key, data);
+    int32_t idx = _blob_db_flash_load_blob(db, key, key_size, data);
     
     if (idx < 0)
     {
@@ -389,9 +380,6 @@ uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t **data)
 
 uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size)
 {
-    LOG_INFO("KEY: %d", key[0]);
-    Uuid uuid = UuidMakeFromBEBytes(key);
-
     const database *db = _find_database(database_id);
 
     if (!db)
@@ -401,7 +389,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     }
 
     /* check the key isn't already there. Check only the header */
-    if (_blob_db_flash_load_blob(db, &uuid, NULL) >= 0)
+    if (_blob_db_flash_load_blob(db, key, key_size, NULL) >= 0)
         /* Key already exists! */
         return Blob_InvalidData;
 
@@ -433,7 +421,11 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
         }
         
         if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0xFFFF && hdr.data_len == 0xFFFF)
+        {
+            /* rewind the seek to the new empty spot */
+            fs_seek(&fd, pos, FS_SEEK_SET);
             break; /* found a spot! */
+        }
         
         pos += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
     }
