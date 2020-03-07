@@ -266,7 +266,7 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
             uint8_t where_prop[where_property_size];
             fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + where_offsetof_property, FS_SEEK_SET);
             fs_read(fd, where_prop, where_property_size);
-            LOG_DEBUG("ASASKEY: %s %d %d", buf, *((uint32_t *)where_prop), where_property_size);    
+            
             comp1 = _compare(operator, where_prop, where_val, where_property_size);
         }
         if (where_property_size1 && where_offsetof_property1)
