@@ -238,6 +238,7 @@ $(BUILD)/version.c:
 	$(QUIET)echo "    0" >> $@
 	$(QUIET)echo "};" >> $@
 	$(QUIET)$(PYTHON3) lib/jerryscript/tools/srcgenerator.py --output-dir $(BUILD)/jerryscript --jerry-libm --jerry-core
+	$(QUIET)rm build/jerryscript/jerryscript-config.h
 
 .PHONY: $(BUILD)/version.c
 

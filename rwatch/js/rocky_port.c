@@ -3,7 +3,8 @@
 
 void jerry_port_fatal(jerry_fatal_code_t code)
 {
-    SYS_LOG("rocky", APP_LOG_LEVEL_ERROR, "VM Fatal Error Code %d", code);
+    SYS_LOG("rocky", APP_LOG_LEVEL_ERROR, "VM Fatal Error Code %d. Quitting.", code);
+    appmanager_app_quit();
 }
 
 void jerry_port_log(jerry_log_level_t level, const char *fmt, ...)
@@ -42,11 +43,17 @@ void jerry_port_release_source(uint8_t *buffer_p)
 {
     free(buffer_p);
 }
+
 size_t jerry_port_normalize_path(const char *in_path_p, char *out_buf_p, size_t out_buf_size, char *base_file_p)
 {
-    return 0;
+    const char* path = "/app.js";
+    out_buf_p = path;
+    out_buf_size = sizeof(path);
+    base_file_p = path;
+    return sizeof(path);
 }
-jerry_value_t jerry_port_get_native_module(jerry_value_t name){
+jerry_value_t jerry_port_get_native_module(jerry_value_t name)
+{
     return jerry_create_undefined();
 }
 
@@ -61,7 +68,8 @@ double jerry_port_get_current_time()
 
 struct jerry_context_t *jerry_port_get_current_context()
 {
-    return NULL;
+    app_running_thread *this_thread = appmanager_get_current_thread();
+    return this_thread->js_context;
 }
 
 void jerry_port_sleep(uint32_t sleep_time)

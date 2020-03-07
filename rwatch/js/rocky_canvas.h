@@ -1,3 +1,14 @@
+#pragma once
+/* rockyjs.h
+ *
+ * Rocky.js (On-watch JavaScript) Implementation
+ * Rocky/JavaScript Canvas Library
+ * 
+ * RebbleOS
+ *
+ * Author: Davit Markarian <davit@udxs.me>
+ */
+
 #include "rebbleos.h"
 
 typedef uint8_t RockyCanvasFontSize;

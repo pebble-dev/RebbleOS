@@ -1,5 +1,4 @@
 #pragma once
-
 /* rockyjs.h
  *
  * Rocky.js (On-watch JavaScript) Implementation

@@ -11,10 +11,10 @@ SRCS_snowy += hw/platform/snowy/snowy.c
 SRCS_snowy += hw/platform/snowy/snowy_bluetooth.c
 SRCS_snowy += Resources/snowy_fpga.bin
 
-SRCS_snowy += build/jerryscript/jerryscript.c
-SRCS_snowy += build/jerryscript/jerryscript-libm.c
 
 # Note: rocky_js.c is added to all platforms.
+SRCS_snowy += build/jerryscript/jerryscript.c
+SRCS_snowy += build/jerryscript/jerryscript-libm.c
 SRCS_snowy += rwatch/js/rocky_canvas.c
 SRCS_snowy += rwatch/js/rocky_lib.c
 SRCS_snowy += rwatch/js/rocky_setjmp.c

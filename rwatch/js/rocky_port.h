@@ -1,3 +1,14 @@
+#pragma once
+/* rockyjs.h
+ *
+ * Rocky.js (On-watch JavaScript) Implementation
+ * JerryScript Port Functions
+ * 
+ * RebbleOS
+ *
+ * Author: Davit Markarian <davit@udxs.me>
+ */
+
 #include "jerryscript-port.h"
 
 void jerry_port_fatal(jerry_fatal_code_t code);
