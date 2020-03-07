@@ -153,6 +153,7 @@ SRCS_all += rwatch/ui/notifications/notification_window.c
 SRCS_all += rwatch/ui/notifications/battery_overlay.c
 SRCS_all += rwatch/ui/notifications/mini_message.c
 SRCS_all += rwatch/ui/vibes.c
+SRCS_all += rwatch/js/rocky_js.c
 
 SRCS_all += Watchfaces/simple.c
 SRCS_all += Watchfaces/nivz.c

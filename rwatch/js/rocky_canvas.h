@@ -37,37 +37,33 @@ typedef struct
 	RockyCanvasFontFamily family;
 } RockyCanvasFont;
 
-bool rocky_font_parse(char* fontStr, RockyCanvasFont* outFont);
+bool rocky_font_parse(char *fontStr, RockyCanvasFont *outFont);
 
 typedef enum
 {
-	RockyCanvasPathPartType
+	RockyCanvasPathPartType_Arc
 } RockyCanvasPathPartType;
 
 typedef struct
 {
 	RockyCanvasPathPartType type;
+	int32_t x;
+	int32_t y;
 	union {
 		struct
 		{ // Arc
-			int32_t x;
-			int32_t y;
 			int32_t radius;
 			float startAngle;
 			float endAngle;
-		},
-			struct
+		};
+		struct
 		{ // Rectangle
-			int32_t x;
-			int32_t y;
 			int32_t width;
 			int32_t height;
-		},
-			struct // Point (moveTo/lineTo)
+		};
+		struct // Point (moveTo/lineTo)
 		{
-			int32_t x;
-			int32_t y;
-		}
+		};
 	};
 } RockyCanvasPathPart;
 
@@ -88,5 +84,5 @@ typedef struct
 {
 	RockyCanvasState current;
 	uint8_t top;
-	RockyCanvasState[8] saved; // Do people even use canvas save/restore? Either way, 8 states should be enough.
+	RockyCanvasState saved[8]; // Do people even use canvas save/restore? Either way, 8 states should be enough.
 } RockyCanvasContext;

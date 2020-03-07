@@ -237,6 +237,7 @@ $(BUILD)/version.c:
 	$(QUIET)git shortlog -s | cut -c8- | sort -f | sed -e 's/\(.*\)/    "\1",/' >> $@
 	$(QUIET)echo "    0" >> $@
 	$(QUIET)echo "};" >> $@
+	$(QUIET)$(PYTHON3) lib/jerryscript/tools/srcgenerator.py --output-dir $(BUILD)/jerryscript --jerry-libm --jerry-core
 
 .PHONY: $(BUILD)/version.c
 
@@ -247,8 +248,6 @@ $(VIRTUALENV): Utilities/requirements.txt
 	$(QUIET)$(PYTHON3) -m virtualenv $@
 	$(call SAY,PIP INSTALL $@)
 	$(QUIET)$(VIRTUALENV)/bin/pip3 install -r $<
-	$(QUIET)$(VPYTHON3) libs/jerryscript/tools/srcgenerator.py --output-dir $(BUILD)/jerryscript
-
 
 clean:
 	rm -rf $(BUILD)

@@ -3,7 +3,7 @@
 #include "librebble.h"
 #include "graphics_wrapper.h"
 #include "battery_state_service.h"
-#include "rockyjs.h"
+#include "rocky_js.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
 bool persist_exists(void);

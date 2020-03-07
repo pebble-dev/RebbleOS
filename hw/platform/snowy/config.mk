@@ -11,6 +11,33 @@ SRCS_snowy += hw/platform/snowy/snowy.c
 SRCS_snowy += hw/platform/snowy/snowy_bluetooth.c
 SRCS_snowy += Resources/snowy_fpga.bin
 
+SRCS_snowy += build/jerryscript/jerryscript.c
+SRCS_snowy += build/jerryscript/jerryscript-libm.c
+
+# Note: rocky_js.c is added to all platforms.
+SRCS_snowy += rwatch/js/rocky_canvas.c
+SRCS_snowy += rwatch/js/rocky_lib.c
+SRCS_snowy += rwatch/js/rocky_setjmp.c
+SRCS_snowy += rwatch/js/rocky_port.c
+
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/api
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/include
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/debugger
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/ecma/base
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/ecma/builtin-objects
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/ecma/builtin-objects/typedarray
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/ecma/operations
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/jcontext
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/jmem
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/jrt
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/lit
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/parser/js
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/parser/regexp
+CFLAGS_snowy += -Ilib/jerryscript/jerry-core/vm
+CFLAGS_snowy += -Ilib/jerryscript/jerry-libm
+CFLAGS_snowy += -Ibuild/jerryscript
+
 LDFLAGS_snowy = $(LDFLAGS_snowy_family)
 LIBS_snowy = $(LIBS_snowy_family)
 
