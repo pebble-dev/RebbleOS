@@ -40,7 +40,7 @@ enum {
 
 const char *blobdb_filename_for_id(uint8_t id);
 uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size);
-uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t **data);
+uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t key_size, uint8_t **data);
 list_head *blobdb_select_items_all(uint8_t database_id, 
                             uint16_t select1_offsetof_property, uint16_t select1_property_size, 
                             uint16_t select2_offsetof_property, uint16_t select2_property_size);

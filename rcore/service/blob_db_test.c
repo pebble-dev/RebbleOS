@@ -26,7 +26,7 @@ TEST(blobdb_basic) {
     uint8_t uuid2[16] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0};
     
     LOG_INFO("blobdb_select(uuid1) should fail");
-    rv = blobdb_select(BlobDatabaseID_Test, uuid1, &d);
+    rv = blobdb_select(BlobDatabaseID_Test, uuid1, sizeof(uuid1), &d);
     if (rv != Blob_KeyDoesNotExist) {
         LOG_ERROR("blobdb_select(uuid1) init state returned data");
         return TEST_FAIL;
