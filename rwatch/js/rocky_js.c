@@ -60,7 +60,9 @@ void rocky_event_loop_with_resource(uint32_t resource_id)
 		return;
 	}
 
-	uint32_t *snapshot = snapBuffer + 8;
+	uint32_t *snapshot = snapBuffer + 12;
+	*(snapshot + 1) = 6u;
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "snapshot %p now %p", snapBuffer, snapshot);
 	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "JS Snapshot Resource loaded successfully.");
 
 	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Creating JavaScript Context...");
@@ -79,9 +81,13 @@ void rocky_event_loop_with_resource(uint32_t resource_id)
 	jerry_init(JERRY_INIT_EMPTY);
 
 	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Running JavaScript Snapshot...");
-	jerry_value_t error = jerry_get_error_type(jerry_exec_snapshot(snapshot, snapSize - 8, 0, 0));
-	if(error != JERRY_ERROR_NONE){
-		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "Program execution failed. JavaScript engine reported error type %d.", error);
+	jerry_value_t out = jerry_exec_snapshot(snapshot, snapSize - 12, 0, 0);
+	if(jerry_get_error_type(out) != JERRY_ERROR_NONE){
+		jerry_value_t val = jerry_get_value_from_error(out, false);
+		jerry_value_t msgV = jerry_get_property(val, jerry_create_string("message"));
+		char msg[256];
+		jerry_string_to_char_buffer(msgV, msg, 255);
+		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "Program execution failed. JavaScript engine reported error type %d. Error value %s.", jerry_get_error_type(out), msg);
 		app_free(snapBuffer);
 		app_free(this_thread->js_context);
 		return;

@@ -21,7 +21,8 @@
 //# define JERRY_VM_EXEC_STOP 1
 
 # define JERRY_ES2015 0
-# define JERRY_BUILTINS 1
+# define JERRY_BUILTINS 0
+# define JERRY_ERROR_MESSAGES 1
 
 // TODO: Evaluate the need for certain features and builtins, removing as necessary.
 // TODO: Tune heap/stack/GC limits for better performance.

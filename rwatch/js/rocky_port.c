@@ -46,11 +46,14 @@ void jerry_port_release_source(uint8_t *buffer_p)
 
 size_t jerry_port_normalize_path(const char *in_path_p, char *out_buf_p, size_t out_buf_size, char *base_file_p)
 {
-    const char* path = "/app.js";
-    out_buf_p = path;
-    out_buf_size = sizeof(path);
-    base_file_p = path;
-    return sizeof(path);
+    const size_t len = strnlen(in_path_p, out_buf_size);
+    if (len < out_buf_size)
+    {
+        strncpy(out_buf_p, in_path_p, out_buf_size);
+        return len;
+    }
+
+    return 0;
 }
 jerry_value_t jerry_port_get_native_module(jerry_value_t name)
 {
