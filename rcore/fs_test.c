@@ -127,4 +127,34 @@ TEST(fs_replace_file_basic) {
 }
 
 
+TEST(fs_sub_file) {
+    struct fd fd, *fdp;
+    struct file file, file2;
+    int rv;
+    
+    fdp = fs_creat(&fd, "hello", 5);
+    if (!fdp) { *artifact = 1; return TEST_FAIL; }
+    fs_write(fdp, "Hello", 5);
+    fs_mark_written(fdp);
+    
+    uint8_t buf[10];
+    
+    rv = fs_find_file(&file, "hello");
+    if (rv < 0) { *artifact = 2; return TEST_FAIL; }
+    fs_open(&fd, &file);
+    rv = fs_read(&fd, buf, 5);
+    if (rv != 5) { *artifact = 3; return TEST_FAIL; }
+    if (memcmp(buf, "Hello", 5)) { *artifact = 4; return TEST_FAIL; }
+    
+    fs_file_from_file(&file2, &file, 1, 3);
+    fs_open(&fd, &file2);
+    rv = fs_read(&fd, buf, 10);
+    if (rv != 3) { *artifact = 5; return TEST_FAIL; }
+    if (memcmp(buf, "ell", 3)) { *artifact = 6; return TEST_FAIL; }
+    
+    *artifact = 0;
+    return TEST_PASS;
+}
+
+
 #endif

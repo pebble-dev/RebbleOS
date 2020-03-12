@@ -115,6 +115,7 @@ void test_packet_handler(const pbl_transport_packet *packet)
             resp.name_len = strnlen(test->testname, RESPONSE_NAME_MAX_SIZE);
             strncpy(resp.name, test->testname, RESPONSE_NAME_MAX_SIZE);
             
+            KERN_LOG("test", APP_LOG_LEVEL_INFO, "replying with test %s", test->testname);
             qemu_reply_test(&resp, sizeof(resp) - RESPONSE_NAME_MAX_SIZE + resp.name_len);
         }
         

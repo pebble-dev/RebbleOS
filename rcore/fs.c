@@ -449,6 +449,7 @@ int fs_find_file(struct file *file, const char *name)
                 file->startpage = pg;
                 file->size = hdr->file_size;
                 file->startpofs = sizeof(struct fs_file_hdr) + hdr->filename_len;
+                file->flags = FILE_HAS_DIRENT;
                 return 0;
             }
         }
@@ -480,6 +481,12 @@ struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, con
     size_t fs_bytes = bytes + (name ? strlen(name) : 0) + sizeof(struct fs_file_hdr) - sizeof(struct fs_page_hdr);
     size_t bytes_in_pg = REGION_FS_PAGE_SIZE - sizeof(struct fs_page_hdr);
     size_t npgs = fs_bytes / bytes_in_pg + ((fs_bytes % bytes_in_pg) ? 1 : 0);
+    
+    if (previous && !(previous->flags & FILE_HAS_DIRENT)) {
+        KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "cannot replace file %s that ain't a real file", name);
+        assert(0);
+        return NULL;
+    }
     
     KERN_LOG("flash", APP_LOG_LEVEL_DEBUG, "preparing to create file %s with %d pages (%d bytes)", name, npgs, bytes);
     if (_fs_free_pages < npgs)
@@ -559,6 +566,7 @@ struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, con
     fd->file.startpage = startpg;
     fd->file.startpofs = (name ? strlen(name) : 0) + sizeof(struct fs_file_hdr);
     fd->file.size = bytes;
+    fd->file.flags = FILE_HAS_DIRENT;
     
     fd->curpage = fd->file.startpage;
     fd->curpofs = fd->file.startpofs;
@@ -586,6 +594,34 @@ void fs_open(struct fd *fd, const struct file *file)
     fd->curpofs = fd->file.startpofs;
     
     fd->offset  = 0;
+}
+
+void fs_file_from_file(struct file *file, struct file *from, size_t offset, size_t len)
+{
+    struct fd fd;
+    
+    fs_open(&fd, from);
+    fs_seek(&fd, offset, FS_SEEK_SET);
+    
+    *file = *from;
+    file->flags &= ~FILE_HAS_DIRENT;
+    file->startpage = fd.curpage;
+    file->startpofs = fd.curpofs;
+
+    if (file->size < offset)
+        file->size = 0;
+    else
+        file->size -= offset;
+    if (file->size > len)
+        file->size = len;
+}
+
+void fs_file_from_flash(struct file *file, size_t addr, size_t len) 
+{
+    file->flags = FILE_IS_RAW_FLASH;
+    file->startpage = 0;
+    file->startpofs = addr;
+    file->size = len;
 }
 
 void fs_mark_written(struct fd *fd)
@@ -625,6 +661,15 @@ int fs_read(struct fd *fd, void *p, size_t bytes)
     if (bytes > (fd->file.size - fd->offset))
         bytes = fd->file.size - fd->offset;
     bytesrem = bytes;
+    
+    if (fd->file.flags & FILE_IS_RAW_FLASH)
+    {
+        /* Special case. */
+        flash_read_bytes(fd->curpofs, p, bytes);
+        fd->curpofs += bytes;
+        fd->offset += bytes;
+        return bytes;
+    }
 
     while (bytesrem)
     {
@@ -657,6 +702,8 @@ int fs_write(struct fd *fd, const void *p, size_t bytes)
 {
     size_t bytesrem;
     
+    assert(!(fd->file.flags & FILE_IS_RAW_FLASH) && "cannot write to raw flash");
+    
     if (bytes > (fd->file.size - fd->offset))
         bytes = fd->file.size - fd->offset;
     bytesrem = bytes;
@@ -688,7 +735,6 @@ int fs_write(struct fd *fd, const void *p, size_t bytes)
     return bytes;
 }
 
-
 long fs_seek(struct fd *fd, long ofs, enum seek whence)
 {
     size_t newoffset;
@@ -701,6 +747,13 @@ long fs_seek(struct fd *fd, long ofs, enum seek whence)
     
     if (newoffset > fd->file.size)
         newoffset = fd->file.size;
+    
+    if (fd->file.flags & FILE_IS_RAW_FLASH)
+    {
+        fd->curpofs = fd->file.startpofs + newoffset;
+        fd->offset = newoffset;
+        return newoffset;
+    }
     
     if (newoffset < fd->offset)
     {
