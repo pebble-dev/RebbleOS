@@ -596,7 +596,7 @@ void fs_open(struct fd *fd, const struct file *file)
     fd->offset  = 0;
 }
 
-void fs_file_from_file(struct file *file, struct file *from, size_t offset, size_t len)
+void fs_file_from_file(struct file *file, const struct file *from, size_t offset, size_t len)
 {
     struct fd fd;
     

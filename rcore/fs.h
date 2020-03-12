@@ -22,7 +22,7 @@ struct fd {
     struct file replaces;
     
     uint16_t curpage;
-    uint16_t curpofs;
+    size_t curpofs;
     
     size_t offset;
 };
@@ -35,7 +35,7 @@ enum seek {
 
 void fs_init();
 int fs_find_file(struct file *file, const char *name);
-void fs_file_from_file(struct file *file, struct file *from, size_t offset, size_t len);
+void fs_file_from_file(struct file *file, const struct file *from, size_t offset, size_t len);
 void fs_file_from_flash(struct file *file, size_t addr, size_t len);
 struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, const struct file *previous /* can be NULL */);
 struct fd *fs_creat(struct fd *fd, const char *name, size_t bytes);
@@ -45,4 +45,3 @@ int fs_read(struct fd *fd, void *p, size_t n);
 int fs_write(struct fd *fd, const void *p, size_t n);
 long fs_seek(struct fd *fd, long ofs, enum seek whence);
 long fs_size(struct fd *fd);
-
