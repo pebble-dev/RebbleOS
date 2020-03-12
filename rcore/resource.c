@@ -65,17 +65,11 @@ bool _resource_is_sane(ResHandleFileHeader *res_handle)
  * 
  */
 
-/*
- * Load up a handle for the resource by ID
- */
 ResHandle resource_get_handle_system(uint16_t resource_id)
 {
     return REGION_RES_START + RES_TABLE_START + ((resource_id - 1) * sizeof(ResHandleFileHeader));
 }
 
-/*
- * Load up a handle for the resource by ID
- */
 ResHandle resource_get_handle(uint32_t resource_id)
 {
     return ((resource_id - 1) * sizeof(ResHandleFileHeader)) + 0xC;
@@ -185,39 +179,6 @@ uint8_t *resource_fully_load_file(struct file *file, size_t *loaded_size)
     
     return buf;
 }
-
-uint8_t *resource_fully_load_id_system(uint32_t resource_id)
-{
-    struct file file;
-    
-    resource_file(&file, resource_get_handle_system(resource_id));
-    return resource_fully_load_file(&file, NULL);
-}
-
-uint8_t *resource_fully_load_id_app(uint32_t resource_id)
-{
-    struct file file;
-    
-    resource_file(&file, resource_get_handle(resource_id));
-    return resource_fully_load_file(&file, NULL);
-}
-
-uint8_t *resource_fully_load_id_app_file(uint32_t resource_id, const struct file *appres, size_t *loaded_size)
-{
-    struct file file;
-    
-    resource_file_from_file_handle(&file, appres, resource_get_handle(resource_id));
-    return resource_fully_load_file(&file, loaded_size);
-}
-
-uint8_t *resource_fully_load_resource(ResHandle hnd, const struct file *appres, size_t *loaded_size)
-{
-    struct file file;
-    
-    resource_file_from_file_handle(&file, appres, hnd);
-    return resource_fully_load_file(&file, loaded_size);
-}
-
 
 /* XXX MOVE Some missing functionality */
 

@@ -96,7 +96,9 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
         app_free(cache_item->font);
     }
     
-    uint8_t *buffer = resource_fully_load_id_system(resource_id);
+    struct file file;
+    resource_file(&file, resource_get_handle_system(resource_id));
+    uint8_t *buffer = resource_fully_load_file(&file, NULL);
     
     cache_item->font = (GFont)buffer;
     cache_item->resource_id = resource_id;
@@ -107,9 +109,11 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 /*
  * Load a custom font
  */
-GFont fonts_load_custom_font(ResHandle handle, const struct file* file)
+GFont fonts_load_custom_font(ResHandle handle, const struct file* ifile)
 {
-    uint8_t *buffer = resource_fully_load_resource(handle, file, NULL);
+    struct file file;
+    resource_file_from_file_handle(&file, ifile, handle);
+    uint8_t *buffer = resource_fully_load_file(&file, NULL);
     
     return (GFont)buffer;
 }
