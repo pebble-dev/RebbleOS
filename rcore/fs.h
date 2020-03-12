@@ -10,7 +10,6 @@
 struct file {
     uint16_t startpage;
     size_t startpofs;
-    uint8_t is_ramfs;
     uint32_t size;
 };
 
@@ -39,4 +38,5 @@ void fs_mark_written(struct fd *fd);
 int fs_read(struct fd *fd, void *p, size_t n);
 int fs_write(struct fd *fd, const void *p, size_t n);
 long fs_seek(struct fd *fd, long ofs, enum seek whence);
+long fs_size(struct fd *fd);
 
