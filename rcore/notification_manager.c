@@ -212,7 +212,7 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
 
 static void _notif_timeout_cb(void *data)
 {
-    LOG_INFO("Notification window timed out %x", data);
+    LOG_INFO("Notification window timed out");
 
     _notification_quit_click(NULL, data);
 }
