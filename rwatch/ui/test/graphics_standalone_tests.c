@@ -23,23 +23,23 @@ void main(void)
 
 void test_window_layer(void)
 {
-    printf("testing Window/Layers\n");
+    SYS_LOG("graphics_test", APP_LOG_LEVEL_INFO, "testing Window/Layers");
 
     Window *window;
     window = window_create();
  
-    printf("PASS: created window\n");
+    SYS_LOG("graphics_test", APP_LOG_LEVEL_INFO, "PASS: created window");
     
     Layer * layer;
     layer = window_get_root_layer(window);
     
     if (layer == NULL)
     {
-        printf("FAIL: Root layer invalid\n");
+        SYS_LOG("graphics_test", APP_LOG_LEVEL_ERROR, "FAIL: Root layer invalid");
         exit(1);
     }
     
-    printf("PASS: Root layer is good\n");
+    SYS_LOG("graphics_test", APP_LOG_LEVEL_INFO, "PASS: Root layer is good");
     
     GRect bounds = {
         .x = 0,
@@ -50,7 +50,7 @@ void test_window_layer(void)
     
     layer = layer_create(bounds);
     
-    printf("PASS: New Layer\n");
+    SYS_LOG("graphics_test", APP_LOG_LEVEL_INFO, "PASS: New Layer");
     
     Layer *rlayer = window_get_root_layer(window);
     layer_set_update_proc(rlayer, cb_layer1);
@@ -64,12 +64,12 @@ void test_window_layer(void)
     layer_add_child(layer, layer1);
     layer_add_child(layer, layer2);
  
-    printf("...\n");
+    SYS_LOG("graphics_test", APP_LOG_LEVEL_INFO, "...");
     walk_layers(rlayer);
     
 }
 
 void cb_layer1(Layer *layer, GContext *context)
 {
-    printf("CB layer 1\n");
+    SYS_LOG("graphics_test", APP_LOG_LEVEL_INFO, "CB layer 1");
 }

@@ -51,59 +51,60 @@ static uint16_t _process_attribute(list_head *list, void *raw_data)
 
 void printattr(rebble_attribute *attr, const char *indent)
 {
-    printf("%s{\n", indent);
-    printf("%s  Id: %d,\n", indent, attr->timeline_attribute.attribute_id);
-    printf("%s  Length: %d,\n", indent, attr->timeline_attribute.length);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s{", indent);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Id: %d,", indent, attr->timeline_attribute.attribute_id);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Length: %d,", indent, attr->timeline_attribute.length);
     if (attr->timeline_attribute.length) {
         if (attr->timeline_attribute.attribute_id == TimelineAttributeType_SourceType)
-            printf("%s  Type: %d,\n", indent, (int)*(uint32_t *)attr->data);
+            SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Type: %d,", indent, (int)*(uint32_t *)attr->data);
         else
-            printf("%s  Data: %s,\n", indent, attr->data ? (char *)attr->data : "n/a");
+            SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s  Data: %s,", indent, attr->data ? (char *)attr->data : "n/a");
     }
-    printf("%s},\n", indent);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "%s},", indent);
 }
 
 void printblob(rebble_notification *notification)
 {
     char buf[UUID_STRING_BUFFER_LENGTH];
     timeline_item *ti = &notification->timeline_item;
-    printf("  Notification: {\n");
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "  Notification: {");
     uuid_to_string(&ti->uuid, buf);
-    printf("    Uuid: %s,\n", buf);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Uuid: %s,", buf);
     uuid_to_string(&ti->parent_uuid, buf);
-    printf("    Parent: %s,\n", buf);
-    printf("    TimeStamp: %d,\n", (int)ti->timestamp);
-    printf("    Duration: %d,\n", ti->duration);
-    printf("    Type: %d,\n", ti->timeline_type);
-    printf("    Flags: %x,\n", ti->flags);
-    printf("    Layout: %d,\n", ti->layout);
-    printf("    Size: %d,\n", ti->data_size);
-    printf("    Attrs: %d,\n", ti->attr_count);
-    printf("    Actions: %d,\n", ti->action_count);
-    printf("    Attributes: [\n");
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Parent: %s,", buf);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Parent: %s,", buf);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    TimeStamp: %d,", (int)ti->timestamp);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Duration: %d,", ti->duration);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Type: %d,", ti->timeline_type);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Flags: %x,", ti->flags);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Layout: %d,", ti->layout);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Size: %d,", ti->data_size);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Attrs: %d,", ti->attr_count);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Actions: %d,", ti->action_count);
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Attributes: [");
     rebble_attribute *m;
     list_foreach(m, &notification->attributes, rebble_attribute, node)
     {
         printattr(m, "      ");
     }
-    printf("    ],\n");
-    printf("    Actions: [\n");
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    ],");
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    Actions: [");
     rebble_action *a;
     list_foreach(a, &notification->actions, rebble_action, node)
     {
-        printf("      {\n");
-        printf("        Id: %d,\n", a->timeline_action.action_id);
-        printf("        Type: %d,\n", a->timeline_action.type);
-        printf("        Attrs: %d,\n", a->timeline_action.attr_count);
-        printf("        Attributes: [\n");
+        SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "      {");
+        SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "        Id: %d,", a->timeline_action.action_id);
+        SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "        Type: %d,", a->timeline_action.type);
+        SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "        Attrs: %d,", a->timeline_action.attr_count);
+        SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "        Attributes: [");
         list_foreach(m, &a->attributes, rebble_attribute, node)
         {
             printattr(m, "          ");
         }
-        printf("        ]\n");
-        printf("      }\n");
+        SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "        ]");
+        SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "      }");
     }
-    printf("    ]\n  }\n");
+    SYS_LOG("timeline", APP_LOG_LEVEL_INFO, "    ]\n  }");
 }
 
 rebble_notification *timeline_item_process(void *data)
