@@ -149,7 +149,7 @@ app_running_thread *appmanager_get_current_thread(void)
 App *appmanager_get_current_app(void)
 {
     app_running_thread *th = appmanager_get_current_thread();
-    assert(th->app && "There is no app!");
+    //assert(th->app && "There is no app!");
     
     return th->app;
 }
@@ -198,6 +198,96 @@ bool appmanager_is_thread_worker(void)
     return appmanager_get_thread_type() == AppThreadWorker;
 }
 
+static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMessage *am)
+{
+    app_running_thread *_this_thread = NULL;
+    uint32_t total_app_size = 0;
+    _this_thread = &_app_threads[thread_id];
+    ApplicationHeader header;   /* TODO change to malloc so we can free after load? */
+    
+    if (_this_thread->status == AppThreadLoading || 
+        _this_thread->status == AppThreadLoaded || 
+        _this_thread->status == AppThreadRunloop)
+    {
+        return;
+    }
+    else if (_this_thread->status == AppThreadUnloading)
+    {
+        /* it's closing down */
+        LOG_INFO("Waiting for app to close...");
+
+        return;
+    }
+    else if (_this_thread->status == AppThreadUnloaded)
+    {
+        LOG_INFO("Ready to start App");
+    
+        char buf[UUID_STRING_BUFFER_LENGTH];
+        uuid_to_string(uuid, buf);
+        LOG_INFO("Starting app %s", buf);
+        _this_thread->status = AppThreadLoading;
+            
+        /*  TODO reset clicks */
+        tick_timer_service_unsubscribe();
+        
+        if (app_manager_get_apps_head() == NULL)
+        {
+            LOG_ERROR("No Apps found!");
+            assert(!"No Apps");
+            return;
+        }
+
+        App *app = appmanager_get_app_by_uuid(uuid);
+        LOG_INFO("Starting app %s", app->name);
+        
+        if (app == NULL)
+        {
+            LOG_ERROR("App %x NOT found!", uuid);
+            assert(!"App not found!");
+            return;
+        }
+
+        /* We have an app that's at least known. push on with loading it */
+        _this_thread->app = app;
+        _this_thread->timer_head = NULL;
+        
+        /* At this point the existing task should be gone already
+            * If it isn't we kill it. Lets complain though, becuase it's
+            * broken if we are here */
+        if (_this_thread->task_handle != NULL) {
+            vTaskDelete(_this_thread->task_handle);
+            _this_thread->task_handle = NULL;
+            LOG_ERROR("The previous task was still running. FIXME");
+        }
+        
+        /* If the app is running off RAM (i.e it's a PIC loaded app...) 
+        * and not system, we need to patch it */
+        if (!app->is_internal)
+        {
+            /* Check to see if we have app and resource files */
+            if (app->app_file == NULL)
+            {
+                /* We now request the app from the host device */
+                protocol_app_fetch_request(&app->uuid);
+                // load an app that loads apps?
+                
+                return;
+            }
+        
+            appmanager_load_app(_this_thread, &header);
+            total_app_size = header.virtual_size;
+        }
+        else
+        {
+            total_app_size = 0;
+        }
+        
+        /* Execute the app we just loaded */
+        appmanager_execute_app(_this_thread, total_app_size);
+    }
+}
+
+
 /*
  * A task to run an application.
  * 
@@ -217,61 +307,36 @@ bool appmanager_is_thread_worker(void)
  */
 static void _app_management_thread(void *parms)
 {
-    ApplicationHeader header;   /* TODO change to malloc so we can free after load? */
     char *app_name;
     AppMessage am;
-    uint32_t total_app_size = 0;
     app_running_thread *_this_thread = NULL;
+    Uuid app_to_load_uuid = UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1);
     
     for( ;; )
     {
+//         app_running_thread *th = &_app_threads[AppThreadMainApp];
+        
+//         LOG_DEBUG("A %x", th->app);
+//         if (!th->app)
+//             _appmanager_thread_load_app_by_name("Simple", AppThreadMainApp);
+            
         /* Sleep waiting for work to do */
         if (xQueueReceive(_app_thread_queue, &am, pdMS_TO_TICKS(1000)))
         {
             switch(am.command)
             {
                 /* Load an app for someone. face or worker */
+                case THREAD_MANAGER_APP_LOAD_UUID:
+                    _this_thread = &_app_threads[am.thread_id];
+                    Uuid *uuid = (Uuid *)am.data;
+                    memcpy(&app_to_load_uuid, uuid, sizeof(Uuid));
+                    system_free(uuid);
+                    LOG_INFO("Quitting...");
+                    appmanager_app_quit();
+                    _this_thread->status = AppThreadUnloading;
+                    break;
                 case THREAD_MANAGER_APP_LOAD:
                     app_name = (char *)am.data;
-                    _this_thread = &_app_threads[am.thread_id];
-
-                    if (_this_thread->status == AppThreadLoading || 
-                        _this_thread->status == AppThreadLoaded || 
-                        _this_thread->status == AppThreadRunloop)
-                    {
-                        /* post an app quit to the running process
-                         * then immediately post our received message back onto 
-                         * the queue behind the quit. 
-                         * Once the app is quit, we will continue 
-                         * TODO we could go around this merry-go-round for a while
-                         * we should track that or use a better mechanism.
-                         * in reality this isn't a big issue. A concern maybe
-                         */
-                        LOG_INFO("Quitting...");
-                        appmanager_app_quit();
-                        xQueueSendToBack(_app_thread_queue, &am, (TickType_t)100);
-                        continue;
-                    }
-                    else if (_this_thread->status == AppThreadUnloading)
-                    {
-                        /* it's closing down, keep reposting the message 
-                         * until we are free to launch 
-                         * TODO: this is pretty weak 
-                         * Make this a proper state machine, wait on completion 
-                         * and launch the app
-                         */
-                        LOG_INFO("Waiting for app to close...");
-                        vTaskDelay(pdMS_TO_TICKS(10));
-                        xQueueSendToBack(_app_thread_queue, &am, (TickType_t)100);
-                        continue;
-                    }
-                    
-                    LOG_INFO("Starting app %s", app_name);
-                    _this_thread->status = AppThreadLoading;
-                        
-                    /*  TODO reset clicks */
-                    tick_timer_service_unsubscribe();
-                    
                     if (app_manager_get_apps_head() == NULL)
                     {
                         LOG_ERROR("No Apps found!");
@@ -280,41 +345,9 @@ static void _app_management_thread(void *parms)
                     }
                     
                     App *app = appmanager_get_app(app_name);
-                    
-                    if (app == NULL)
-                    {
-                        LOG_ERROR("App %s NOT found!", app_name);
-                        assert(!"App not found!");
-                        continue;
-                    }
-
-                    /* We have an app that's at least known. push on with loading it */
-                    _this_thread->app = app;
-                    _this_thread->timer_head = NULL;
-                    
-                    /* At this point the existing task should be gone already
-                     * If it isn't we kill it. Lets complain though, becuase it's
-                     * broken if we are here */
-                    if (_this_thread->task_handle != NULL) {
-                        vTaskDelete(_this_thread->task_handle);
-                        _this_thread->task_handle = NULL;
-                        LOG_ERROR("The previous task was still running. FIXME");
-                    }
-                    
-                    /* If the app is running off RAM (i.e it's a PIC loaded app...) 
-                    * and not system, we need to patch it */
-                    if (!app->is_internal)
-                    {
-                        appmanager_load_app(_this_thread, &header);
-                        total_app_size = header.virtual_size;
-                    }
-                    else
-                    {
-                        total_app_size = 0;
-                    }
-                    
-                    /* Execute the app we just loaded */
-                    appmanager_execute_app(_this_thread, total_app_size);
+                    memcpy(&app_to_load_uuid, &app->uuid, sizeof(Uuid));
+                    appmanager_app_quit();
+                    _this_thread->status = AppThreadUnloading;
                     break;
                 case THREAD_MANAGER_APP_QUIT_CLEAN:
                     _this_thread = &_app_threads[am.thread_id];
@@ -323,7 +356,7 @@ static void _app_management_thread(void *parms)
                         LOG_WARN("Unloading app while not in correct state!");
                     
                     /* We were signalled that the app has finished cleanly */
-                    LOG_DEBUG("App finished cleanly");
+                    LOG_DEBUG("App finished cleanly %x", am.thread_id);
                     
                     /* The task will die hard, but it did finish the runloop */
                     vTaskDelete(_this_thread->task_handle);
@@ -331,8 +364,11 @@ static void _app_management_thread(void *parms)
                     _this_thread->shutdown_at_tick = 0;
                     _this_thread->app = NULL;
                     _this_thread->status = AppThreadUnloaded;
+
                     break;
-            }        
+            }
+            
+            _appmanager_thread_state_update(&app_to_load_uuid, am.thread_id, &am);
         }
         else
         {

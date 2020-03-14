@@ -4,7 +4,7 @@
 #include "protocol.h"
 #include "test.h"
 
-void test_handler(const uint8_t *data)
+void other_handler(const uint8_t *data)
 {
 //     KERN_LOG("QEMU", APP_LOG_LEVEL_INFO, "I got these %d bytes from qemu:", packet_get_data_length(packet));
 //     debug_write((const unsigned char *)"\n", 1);

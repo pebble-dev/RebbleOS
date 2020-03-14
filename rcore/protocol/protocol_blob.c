@@ -46,11 +46,13 @@ void printblock(void *data, size_t len)
 uint8_t blob_process(pcol_blob_db_key *blob, void *data, uint16_t data_size)
 {
     switch(blob->blobdb.database_id) {
-        case BlobDatabaseID_Test:
-        case BlobDatabaseID_App:
         case BlobDatabaseID_AppGlance:
         case BlobDatabaseID_Pin:
         case BlobDatabaseID_Reminder:
+        case BlobDatabaseID_Test:
+            break;
+        case BlobDatabaseID_App:
+            appmanager_app_loader_init_n();
             break;
         case BlobDatabaseID_Notification:
             timeline_notification_arrived((Uuid *)blob->key);

@@ -229,7 +229,7 @@ void app_event_loop(void)
                 event_service_unsubscribe_all();
 
                 _this_thread->status = AppThreadUnloading;
-                appmanager_app_quit();
+//                 appmanager_app_quit();
 
                 LOG_INFO("App Quit");
 

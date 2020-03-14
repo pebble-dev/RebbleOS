@@ -142,9 +142,9 @@ void notification_window_dismiss()
 
 static void _notification_quit_from_button(ClickRecognizerRef ref, void *context)
 {
+    LOG_ERROR("notification ");
     notification_data *nm = (notification_data*)context;
     app_timer_cancel(nm->timer);
-
     _notification_quit_click(ref, context);
 }
 
@@ -157,11 +157,6 @@ void notification_load_click_config(Window *app_window)
     window_set_click_context(BUTTON_ID_BACK, top_ov_window->context);
 }
 
-/* XXX: this could happen on *either* the app thread *or* the overlay
- * thread, depending on how we get called.  If we come in from the click
- * recognizer, then we end up on the app thread; if we come in from the
- * timer callback, then we end up on the overlay thread.  Ick, but oh well.
- */
 static void _notification_quit_click(ClickRecognizerRef _, void *context)
 {
     notification_data *nm = (notification_data*)context;
@@ -170,10 +165,7 @@ static void _notification_quit_click(ClickRecognizerRef _, void *context)
         LOG_ERROR("notification window was already dead?");
         return;
     }
-LOG_DEBUG("DESTROY TIMER %d", nm->timer);
     
-    if (nm->destroy_callback)
-        nm->destroy_callback(nm->overlay_window, &nm->overlay_window->window);
 
     overlay_window_destroy(nm->overlay_window);
     nm->overlay_window = NULL;
@@ -202,7 +194,7 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
     /* the overlay context has the message data 
      * lets take it with us */
     window->context = overlay_window->context;
-
+    
     /* call the function that we should execute */
     if (nm->data.create_callback)
         nm->data.create_callback(overlay_window, &overlay_window->window);
@@ -220,7 +212,7 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
 
 static void _notif_timeout_cb(void *data)
 {
-    LOG_INFO("Notification window timed out");
+    LOG_INFO("Notification window timed out %x", data);
 
     _notification_quit_click(NULL, data);
 }

@@ -89,7 +89,10 @@ static void _notif_window_load(Window *window)
 
     menu_set_click_config_onto_window(s_menu, window);
 
-    list_head *lh = blobdb_select_items_all(BlobDatabaseID_Notification, 
+    list_head *lh = app_calloc(1, sizeof(list_head));
+    list_init_head(lh);
+
+    blobdb_select_items_all(BlobDatabaseID_Notification, lh,
                             offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid),
                             0,0);
 

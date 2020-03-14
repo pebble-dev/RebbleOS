@@ -50,7 +50,7 @@ void _nor_clock_release(void);
 int _flash_test(void);
 
 static void _nor_write16(uint32_t address, uint16_t data);
-static _nor_flash_command(uint16_t command);
+static void _nor_flash_command(uint16_t command);
 
 /*
  * Initialise the flash hardware. 
@@ -306,7 +306,7 @@ void _nor_enter_write_mode(uint32_t address)
 //   _nor_reset_region(address);
 }
 
-static _nor_flash_command(uint16_t command)
+static void _nor_flash_command(uint16_t command)
 {
     _nor_clock_request();
     *(__IO uint16_t *)(Bank1_NOR_ADDR + SHF(0xAAA)) = command;
@@ -355,27 +355,49 @@ int hw_flash_write_sync(uint32_t address, uint8_t *buffer, size_t length)
     assert((len_padded & 1) == 0);
     
     // assert(len_padded <= 64); /* write buffer size is only 64b */
-
-    NOR_WRITE(Bank1_NOR_ADDR + addr_aligned, FLASH_CMD_WRITE_BUFFER_LOAD);
-    NOR_WRITE(Bank1_NOR_ADDR + addr_aligned +  SHF(0x2AA), len_padded / 2);
-    
+    uint32_t rem = len_padded;
+    printf("Write\n");
     size_t bufpos = 0;
-    for(size_t i = 0; i < len_padded; i+=2)
+    while(rem > 0)
     {
-        uint8_t v[2];
+        int pg_left = 64 - (addr_aligned % 64);
+        int write_len = rem > 64 ? 64 : rem;
         
-        v[0] = (i ==                0 && start_align) ? 0xFF : buffer[bufpos++];
-        v[1] = (i == (len_padded - 2) && end_align  ) ? 0xFF : buffer[bufpos++];
-        NOR_WRITE(Bank1_NOR_ADDR + SHF((addr_aligned/2) + i/2),  *((uint16_t *)v));
+        if (pg_left - write_len > 64)
+            write_len = pg_left;        
+        
+        if (write_len > pg_left)
+            write_len = pg_left;
+//         int write_len = rem;
+        printf("Addr A %x %x (%d) %d/%d A %d %d\n", address, addr_aligned, length, write_len, len_padded, start_align, end_align);
+    
+        NOR_WRITE(Bank1_NOR_ADDR + addr_aligned, FLASH_CMD_WRITE_BUFFER_LOAD);
+        NOR_WRITE(Bank1_NOR_ADDR + addr_aligned +  SHF(0x2AA), write_len / 2);
+        
+        for(size_t i = 0; i < write_len; i+=2)
+        {
+            uint8_t v[2];
+            if ((len_padded == rem - i) && start_align)
+                printf("RI\n");
+            v[0] = ((len_padded == (rem - i)) && start_align) ? 0xFF : buffer[bufpos++];
+            v[1] = (((rem - i)        == 2) && end_align  ) ? 0xFF : buffer[bufpos++];
+            NOR_WRITE(Bank1_NOR_ADDR + SHF((addr_aligned/2) + i/2),  *((uint16_t *)v));
+            printf("%x ", *((uint16_t *)v));
+        }       
+        
+        NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(address) +SHF(0x555), FLASH_CMD_WRITE_CONFIRM);
+        /*if (*( (__IO uint16_t *) (Bank1_NOR_ADDR + ALIGN(address))) != buffer)
+        {
+            ex = -1;
+        }*/
+        // XXX Should be polling for write here!
+        addr_aligned += write_len;
+        rem -= write_len;
+//         start_align = 0;
+        printf("Rem %d %d/%d\n", rem, write_len, len_padded);
+        _nor_reset_state();
     }
     
-    
-    NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(address) +SHF(0x555), FLASH_CMD_WRITE_CONFIRM);
-    /*if (*( (__IO uint16_t *) (Bank1_NOR_ADDR + ALIGN(address))) != buffer)
-    {
-        ex = -1;
-    }*/
-    _nor_reset_state();
     _nor_clock_release();
     //flash_operation_complete(ex);
     return rv;

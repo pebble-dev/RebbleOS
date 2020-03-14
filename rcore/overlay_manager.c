@@ -299,9 +299,9 @@ SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "NO TOP");
         if (top_window == NULL)
         {
             top_window = window_stack_get_top_window();
-            assert(top_window);
-            /* must be an app. load that (in the app thread of course) */
-            appmanager_post_window_load_click_config(top_window);
+            if (top_window)
+                /* must be an app. load that (in the app thread of course) */
+                appmanager_post_window_load_click_config(top_window);
         }
     }
     else

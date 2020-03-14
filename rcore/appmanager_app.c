@@ -14,11 +14,13 @@
 #include "notification.h"
 #include "test_defs.h"
 #include "node_list.h"
+#include "blob_db.h"
 
-static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal,
+static App *_appmanager_create_app(char *name, Uuid *uuid, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
 static void _appmanager_flash_load_app_manifest();
 static void _appmanager_add_to_manifest(App *app);
+static void _appmanager_flash_load_app_manifest_n(void);
 
 /* simple doesn't have an include, so cheekily forward declare here */
 void simple_main(void);
@@ -55,21 +57,44 @@ struct appdb
     uint8_t unk_arr[32]; // always blank
 } __attribute__((__packed__));
 
+typedef struct appdb_n
+{
+    //uint32_t application_id;
+    
+    Uuid app_uuid;  // 16 bytes
+    uint32_t flags; /* pebble_process_info.h, PebbleProcessInfoFlags in the SDK */
+    uint32_t icon;
+    uint8_t app_version_major, app_version_minor;
+    uint8_t sdk_version_major, sdk_version_minor;
+    uint8_t app_face_bg_color, app_face_template_id;
+    uint8_t app_name[32];
+    uint8_t unk_arr_company[32];  // always blank
+    uint8_t unk_arr[32]; // always blank
+} appdb_n __attribute__((__packed__));
+
 static list_head _app_manifest_head = LIST_HEAD(_app_manifest_head);
+
+
+void appmanager_app_loader_init_n()
+{
+    _appmanager_flash_load_app_manifest_n();
+}
+
 /*
  * Load any pre-existing apps into the manifest, search for any new ones and then start up
  */
 void appmanager_app_loader_init()
-{
-    struct file empty = { 0, 0, 0 }; /* TODO: make files optional in `App` to avoid this */
-    
+{   
     /* add the baked in apps */
-    _appmanager_add_to_manifest(_appmanager_create_app("System", AppTypeSystem, systemapp_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("Simple", AppTypeWatchface, simple_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", AppTypeWatchface, nivz_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("Settings", AppTypeSystem, test_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("Notification", AppTypeSystem, notif_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("TestApp", AppTypeSystem, testapp_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("System", 
+                                                       &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1), 
+                                                       AppTypeSystem, systemapp_main, true, NULL, NULL));
+    _appmanager_add_to_manifest(_appmanager_create_app("Simple", &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2), 
+                                                       AppTypeWatchface, simple_main, true, NULL, NULL));
+    _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", NULL, AppTypeWatchface, nivz_main, true, NULL, NULL));
+//     _appmanager_add_to_manifest(_appmanager_create_app("Settings", AppTypeSystem, test_main, true, NULL, NULL));
+    _appmanager_add_to_manifest(_appmanager_create_app("Notification", NULL, AppTypeSystem, notif_main, true, NULL, NULL));
+    _appmanager_add_to_manifest(_appmanager_create_app("TestApp", NULL, AppTypeSystem, testapp_main, true, NULL, NULL));
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
@@ -81,7 +106,7 @@ void appmanager_app_loader_init()
  * Generate an entry in the application manifest for each found app.
  * 
  */
-static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, bool is_internal,
+static App *_appmanager_create_app(char *name, Uuid *uuid, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file)
 {
     App *app = calloc(1, sizeof(App));
@@ -97,13 +122,47 @@ static App *_appmanager_create_app(char *name, uint8_t type, void *entry_point, 
     app->main = (void*)entry_point;
     app->type = type;
     app->header = NULL;
-    app->app_file = *app_file;
-    app->resource_file = *resource_file;
+    app->app_file = app_file;
+    app->resource_file = resource_file;
     app->is_internal = is_internal;
+    memcpy(&app->uuid, uuid, sizeof(Uuid));
     
     return app;
 }
 
+static void _appmanager_flash_load_app_manifest_n(void)
+{
+    list_head *head = calloc(1, sizeof(list_head));
+    list_init_head(head);
+    
+    uint16_t count = blobdb_select_items1(BlobDatabaseID_App, head,
+                        offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), 
+                        offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), 
+                        /* where */
+                        offsetof(appdb_n, flags), FIELD_SIZEOF(appdb_n, flags),
+                        0, Blob_Less);
+    blobdb_result_set *rs;
+    
+    list_foreach(rs, head, blobdb_result_set, node)
+    {
+//         char buf[UUID_STRING_BUFFER_LENGTH];
+//         uuid_to_string(rs->select2, buf);
+//         KERN_LOG("app", APP_LOG_LEVEL_INFO, "appdb: app \"%s\" %x found, Uuid %s", rs->select1, FIELD_SIZEOF(appdb_n, app_uuid), buf);
+
+        
+        /* main gets set later */
+        _appmanager_add_to_manifest(_appmanager_create_app(rs->select1,
+                                                           rs->select2,
+                                                           //((uint16_t)rs->select2 & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
+                                                           AppTypeWatchface,
+                                                           NULL,
+                                                           false,
+                                                           NULL,
+                                                           NULL));
+    }
+    
+//     blobdb_resultset_destroy(head);
+}
 
 /*
  * Load the list of apps and faces from flash
@@ -124,8 +183,8 @@ static void _appmanager_flash_load_app_manifest(void)
     char buffer[14];
     struct appdb appdb;
     struct fd fd;
-    struct file app_file;
-    struct file res_file;
+    struct file *app_file = calloc(1, sizeof(struct file));
+    struct file *res_file = calloc(1, sizeof(struct file));
     struct fd app_fd;
     ApplicationHeader header;
 
@@ -157,14 +216,14 @@ static void _appmanager_flash_load_app_manifest(void)
         }
         
         snprintf(buffer, 14, "@%08lx/app", appdb.application_id);
-        if (fs_find_file(&app_file, buffer) < 0)
+        if (fs_find_file(app_file, buffer) < 0)
             continue;
 
         snprintf(buffer, 14, "@%08lx/res", appdb.application_id);
-        if (fs_find_file(&res_file, buffer) < 0)
+        if (fs_find_file(res_file, buffer) < 0)
             continue;
 
-        fs_open(&app_fd, &app_file);
+        fs_open(&app_fd, app_file);
 
         if (fs_read(&app_fd, &header, sizeof(ApplicationHeader)) != sizeof(ApplicationHeader))
             break;
@@ -184,12 +243,12 @@ static void _appmanager_flash_load_app_manifest(void)
         KERN_LOG("app", APP_LOG_LEVEL_INFO, "appdb: app \"%s\" found, id %08x, flags %02x, kl %d, vl %d, flags %08x, icon %08x", header.name, appdb.application_id, appdb.dbflags, appdb.key_length, appdb.value_length, appdb.flags, appdb.icon);
 
         /* main gets set later */
-        _appmanager_add_to_manifest(_appmanager_create_app(header.name,
+        _appmanager_add_to_manifest(_appmanager_create_app(header.name, &appdb.app_uuid,
                                                            (appdb.flags & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
                                                            NULL,
                                                            false,
-                                                           &app_file,
-                                                           &res_file));
+                                                           app_file,
+                                                           res_file));
     }
 }
 
@@ -233,5 +292,25 @@ App *appmanager_get_app(char *app_name)
         }
    }
    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "NO App Found %s", app_name);
+   return NULL;
+}
+
+
+/*
+ * Get an application by name. NULL if invalid
+ */
+App *appmanager_get_app_by_uuid(Uuid *uuid)
+{
+   App * app;
+   // now find the matching
+   list_foreach(app, &_app_manifest_head, App, node)
+   {
+        if (uuid_equal(&app->uuid, uuid))
+        {
+            // match!
+            return app;
+        }
+   }
+//    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "NO App Found %s", app_name);
    return NULL;
 }

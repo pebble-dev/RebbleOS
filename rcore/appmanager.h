@@ -78,9 +78,10 @@ typedef struct ApplicationHeader {
 typedef struct App {
     uint8_t type; // this will be in flags I presume <-- it is. TODO. Hook flags up
     bool is_internal; // is the app baked into flash
-    struct file app_file;
-    struct file resource_file; // the file where we are keeping the resources for this app
+    struct file *app_file;
+    struct file *resource_file; // the file where we are keeping the resources for this app
     char *name;
+    Uuid uuid;
     ApplicationHeader *header;
     AppMainHandler main; // A shortcut to main
     list_node node; 
@@ -134,7 +135,8 @@ typedef enum AppThreadType {
 
 
 #define THREAD_MANAGER_APP_LOAD       0
-#define THREAD_MANAGER_APP_QUIT_CLEAN 1
+#define THREAD_MANAGER_APP_LOAD_UUID  1
+#define THREAD_MANAGER_APP_QUIT_CLEAN 2
 
 /* This struct hold all information about the task that is executing
  * There are many runing apps, such as main app, worker or background.
@@ -203,3 +205,4 @@ void timer_init(void);
 
 typedef void* ClickRecognizerRef;
 void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
+App *appmanager_get_app_by_uuid(Uuid *uuid);

@@ -26,6 +26,24 @@ void appmanager_app_start(char *name)
     appmanager_post_generic_thread_message(&am, 100);
 }
 
+void appmanager_app_start_by_uuid(Uuid *uuid)
+{
+    /* get app by uuid */
+    App * app = appmanager_get_app_by_uuid(uuid);
+    
+    assert(app);
+
+    Uuid *nuuid = system_calloc(1, sizeof(Uuid));
+    memcpy(nuuid, uuid, sizeof(Uuid));
+    
+    AppMessage am = (AppMessage) {
+        .command = THREAD_MANAGER_APP_LOAD_UUID,
+        .thread_id = AppThreadMainApp,
+        .data = nuuid
+    };
+    appmanager_post_generic_thread_message(&am, 100);
+}
+
 void appmanager_app_quit(void)
 {
     AppMessage am = (AppMessage) {

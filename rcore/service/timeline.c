@@ -211,7 +211,10 @@ void timeline_destroy(rebble_notification *notification)
 list_head *timeline_notifications(uint32_t from_timestamp)
 {
     uint32_t val_type = TimelineItemType_Notification;
-    list_head *lh = blobdb_select_items2(BlobDatabaseID_Notification, 
+    list_head *head = app_calloc(1, sizeof(list_head));
+    list_init_head(head);
+
+    blobdb_select_items2(BlobDatabaseID_Notification, head,
                         offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), 
                         offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), 
                         /* where */
@@ -219,14 +222,14 @@ list_head *timeline_notifications(uint32_t from_timestamp)
                         (uint8_t *)&from_timestamp, Blob_Gtr,
                         offsetof(timeline_item, timeline_type), FIELD_SIZEOF(timeline_item, timeline_type),
                         (uint8_t *)&val_type, Blob_Eq);
-    return lh;
+    return head;
 }
 
 
 rebble_notification *timeline_get_notification(Uuid *uuid)
 {
     uint8_t *data;
-    if (blobdb_select(BlobDatabaseID_Notification, (uint8_t *)uuid, &data) != Blob_Success)
+    if (blobdb_select(BlobDatabaseID_Notification, (uint8_t *)uuid, sizeof(Uuid), &data) != Blob_Success)
         assert(0);
     rebble_notification *notif = timeline_item_process(data);
     printblob(notif);
