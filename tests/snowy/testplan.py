@@ -21,5 +21,6 @@ testplan = [
     Test("Filesystem: find nonexistent file", testname = b'fs_find_noent', golden = 0),
     Test("Filesystem: basic create test", testname = b'fs_creat_basic', golden = 0),
     Test("Filesystem: I/O on two files", testname = b'fs_two_files', golden = 0),
+    Test("Filesystem: basic file replacement test", testname = b'fs_replace_file_basic', golden = 0),
     Test("Blobdb: basic", testname = b'blobdb_basic', golden = 0),
 ]
