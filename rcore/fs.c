@@ -525,8 +525,6 @@ struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, con
                 filehdr.flag_2 &= ~HDR_FLAG_2_HAS_FILENAME;
             assert(strlen(name) < MAX_FILENAME_LEN);
             filehdr.filename_len = strlen(name);
-            if (!previous)
-                filehdr.st_tmp_file = 0x0;
             
             int rv = _fs_write_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
             assert(rv >= 0);

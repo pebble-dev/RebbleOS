@@ -410,6 +410,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             LOG_ERROR("nope, that did not work either, I give up");
             return Blob_DatabaseFull;
         }
+        fs_mark_written(&fd);
     }
 
     int pos = 0;

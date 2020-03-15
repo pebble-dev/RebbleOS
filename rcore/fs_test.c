@@ -50,10 +50,12 @@ TEST(fs_two_files) {
     fdp = fs_creat(&fd1, "hello", 5);
     if (!fdp) { *artifact = 1; return TEST_FAIL; }
     fs_write(&fd1, "Hello", 5);
+    fs_mark_written(fdp);
     
     fdp = fs_creat(&fd2, "world", 5);
     if (!fdp) { *artifact = 2; return TEST_FAIL; }
     fs_write(&fd2, "World", 5);
+    fs_mark_written(fdp);
     
     char buf[5];
 
@@ -89,8 +91,9 @@ TEST(fs_replace_file_basic) {
 
     //create a file with contents a
     fdp = fs_creat(&fd, "hello", 5);
-       if (!fdp) { *artifact = 1; return TEST_FAIL; }
-       fs_write(&fd, "Hello", 5);
+    if (!fdp) { *artifact = 1; return TEST_FAIL; }
+    fs_write(&fd, "Hello", 5);
+    fs_mark_written(fdp);
 
     //create a file replacing that file with contents B
     rv = fs_find_file(&file, "hello");
@@ -113,11 +116,11 @@ TEST(fs_replace_file_basic) {
 
     //open the file for read and make sure you get contents B;
     rv = fs_find_file(&file, "hello");
-        if (rv < 0) { *artifact = 5; return TEST_FAIL; }
+    if (rv < 0) { *artifact = 5; return TEST_FAIL; }
 
-        fs_open(&fd, &file);
-        rv = fs_read(&fd, buf, 5);
-        if (memcmp(buf, "World", 5)) { *artifact = 6; return TEST_FAIL; }
+    fs_open(&fd, &file);
+    rv = fs_read(&fd, buf, 5);
+    if (memcmp(buf, "World", 5)) { *artifact = 6; return TEST_FAIL; }
 
     *artifact = 0;
     return TEST_PASS;
