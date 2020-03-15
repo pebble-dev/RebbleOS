@@ -53,6 +53,15 @@ void appmanager_app_quit(void)
     appmanager_post_generic_app_message(&am, 10);
 }
 
+void appmanager_app_download_complete(void)
+{
+    AppMessage am = (AppMessage) {
+        .command = THREAD_MANAGER_APP_DOWNLOAD_COMPLETE,
+        .data = NULL
+    };
+    appmanager_post_generic_thread_message(&am, 10);
+}
+
 void appmanager_post_button_message(ButtonMessage *bmessage)
 {
 //     /* we post to overlay first, app thread gets it relayed */

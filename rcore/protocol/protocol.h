@@ -77,3 +77,5 @@ void protocol_app_fetch(const RebblePacket packet);
 void protocol_process_blobdb(const RebblePacket packet);
 void protocol_process_timeline_action_response(const RebblePacket packet);
 
+
+void protocol_process_transfer(const RebblePacket packet);

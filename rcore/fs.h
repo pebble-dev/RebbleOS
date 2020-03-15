@@ -40,3 +40,15 @@ int fs_read(struct fd *fd, void *p, size_t n);
 int fs_write(struct fd *fd, const void *p, size_t n);
 long fs_seek(struct fd *fd, long ofs, enum seek whence);
 
+
+#define BLOBDB_FLAG_WRITTEN  1
+/* XXX: add mid-write flag */
+/* XXX: add ERASED flag */
+
+typedef struct file_hdr {
+    uint32_t last_modified;  //0x58F6AExx
+    uint8_t hash;
+    uint8_t flags:6;
+    uint32_t key_len:7;
+    uint32_t data_len:11;
+} __attribute__((__packed__)) file_hdr;

@@ -48,7 +48,7 @@ THREAD_DEFINE(tx, 300, tskIDLE_PRIORITY + 4UL, _thread_protocol_tx);
 QUEUE_DEFINE(rx, rebble_packet *, 2);
 THREAD_DEFINE(rx, 300, tskIDLE_PRIORITY + 6UL, _thread_protocol_rx);
 
-#define PROTOCOL_MEM_SIZE 2000
+#define PROTOCOL_MEM_SIZE 2200
 static qarena_t *_protocol_arena;
 static uint8_t _protocol_heap[PROTOCOL_MEM_SIZE];
 

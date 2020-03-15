@@ -119,6 +119,7 @@ typedef enum AppThreadState {
     AppThreadLoaded,
     AppThreadRunloop,
     AppThreadUnloading,
+    AppThreadDownloading,
 } AppThreadState;
 
 /* We have App
@@ -137,6 +138,7 @@ typedef enum AppThreadType {
 #define THREAD_MANAGER_APP_LOAD       0
 #define THREAD_MANAGER_APP_LOAD_UUID  1
 #define THREAD_MANAGER_APP_QUIT_CLEAN 2
+#define THREAD_MANAGER_APP_DOWNLOAD_COMPLETE 3
 
 /* This struct hold all information about the task that is executing
  * There are many runing apps, such as main app, worker or background.
@@ -172,7 +174,7 @@ bool appmanager_is_thread_system(void);
 bool appmanager_is_thread_worker(void);
 bool appmanager_is_thread_app(void);
 bool appmanager_is_thread_overlay(void);
-void appmanager_load_app(app_running_thread *thread, ApplicationHeader *header);
+int appmanager_load_app(app_running_thread *thread, ApplicationHeader *header);
 void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size);
 app_running_thread *appmanager_get_thread(AppThreadType type);
 AppThreadType appmanager_get_thread_type(void);
@@ -189,6 +191,7 @@ void appmanager_post_window_load_click_config(struct Window *window);
 
 void appmanager_app_start(char *name);
 void appmanager_app_quit(void);
+void appmanager_app_download_complete(void);
 void appmanager_app_display_done(void);
 bool appmanager_is_app_shutting_down(void);
 
@@ -206,3 +209,4 @@ void timer_init(void);
 typedef void* ClickRecognizerRef;
 void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
 App *appmanager_get_app_by_uuid(Uuid *uuid);
+

@@ -20,6 +20,7 @@ enum {
     WatchProtocol_LegacyMessage    = 0x0bc2, // legacy. Yes
     WatchProtocol_BlobDbMessage    = 0xb1db,
     WatchProtocol_TimelineAction   = 11440,
+    WatchProtocol_PutBytes         = 0xBEEF,
 };
 
 

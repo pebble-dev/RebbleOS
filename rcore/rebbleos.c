@@ -81,7 +81,6 @@ static void _os_thread(void *pvParameters)
     _module_init(bluetooth_init,        "Bluetooth");
 #endif
     rebble_protocol_init();
-    _module_init(qemu_init, "QEMU");
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     SYS_LOG("OS", APP_LOG_LEVEL_INFO,   "Init: Main hardware up. Starting OS modules");

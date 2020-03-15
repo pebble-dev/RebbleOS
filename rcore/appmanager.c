@@ -38,6 +38,11 @@ static void _appmanager_thread_init(void *pvParameters);
 
 static void _running_app_loop(void);
 
+enum {
+    AppLoaded,
+    AppInvalid,
+};
+
 /* The manager thread needs only a small stack */
 #define APP_THREAD_MANAGER_STACK_SIZE 450
 static StackType_t _app_thread_manager_stack[APP_THREAD_MANAGER_STACK_SIZE];  // stack + heap for app (in words)
@@ -268,13 +273,16 @@ static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMe
             if (app->app_file == NULL)
             {
                 /* We now request the app from the host device */
-                protocol_app_fetch_request(&app->uuid);
+                // XXX TODO APPID
+                protocol_app_fetch_request(&app->uuid, 200);
                 // load an app that loads apps?
-                
+                _this_thread->status = AppThreadDownloading;
+                LOG_INFO("Requesting App from host");
                 return;
             }
         
-            appmanager_load_app(_this_thread, &header);
+            if (appmanager_load_app(_this_thread, &header) != AppLoaded)
+                return;
             total_app_size = header.virtual_size;
         }
         else
@@ -313,27 +321,25 @@ static void _app_management_thread(void *parms)
     Uuid app_to_load_uuid = UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1);
     
     for( ;; )
-    {
-//         app_running_thread *th = &_app_threads[AppThreadMainApp];
-        
-//         LOG_DEBUG("A %x", th->app);
-//         if (!th->app)
-//             _appmanager_thread_load_app_by_name("Simple", AppThreadMainApp);
-            
+    {           
         /* Sleep waiting for work to do */
         if (xQueueReceive(_app_thread_queue, &am, pdMS_TO_TICKS(1000)))
         {
+            _this_thread = &_app_threads[am.thread_id];
+            LOG_INFO("T...");
             switch(am.command)
             {
                 /* Load an app for someone. face or worker */
                 case THREAD_MANAGER_APP_LOAD_UUID:
-                    _this_thread = &_app_threads[am.thread_id];
+                    LOG_INFO("Quitting...");
                     Uuid *uuid = (Uuid *)am.data;
                     memcpy(&app_to_load_uuid, uuid, sizeof(Uuid));
                     system_free(uuid);
-                    LOG_INFO("Quitting...");
-                    appmanager_app_quit();
-                    _this_thread->status = AppThreadUnloading;
+                    if (_this_thread->status != AppThreadUnloaded)
+                    {
+                        appmanager_app_quit();
+                        _this_thread->status = AppThreadUnloading;
+                    }
                     break;
                 case THREAD_MANAGER_APP_LOAD:
                     app_name = (char *)am.data;
@@ -346,12 +352,40 @@ static void _app_management_thread(void *parms)
                     
                     App *app = appmanager_get_app(app_name);
                     memcpy(&app_to_load_uuid, &app->uuid, sizeof(Uuid));
-                    appmanager_app_quit();
-                    _this_thread->status = AppThreadUnloading;
+                    if (_this_thread->status != AppThreadUnloaded)
+                    {
+                        appmanager_app_quit();
+                        _this_thread->status = AppThreadUnloading;
+                    }
                     break;
-                case THREAD_MANAGER_APP_QUIT_CLEAN:
-                    _this_thread = &_app_threads[am.thread_id];
+                case THREAD_MANAGER_APP_DOWNLOAD_COMPLETE:
+                    LOG_INFO("Download Complete");
+                    App *capp = appmanager_get_app_by_uuid(uuid);
+                    char buffer[14];
+                    struct file *app_file = system_calloc(1, sizeof(struct file));
+                    struct file *res_file = system_calloc(1, sizeof(struct file));
+                    struct fd app_fd;
+                    struct fd res_fd;
+                    snprintf(buffer, 14, "@%08lx/app", 200);
+                    if (fs_find_file(app_file, buffer) < 0)
+                    {
+                        LOG_ERROR("App File %s not found", buffer);
+                        return;
+                    }
+                    snprintf(buffer, 14, "@%08lx/res", 200);
+                    if (fs_find_file(res_file, buffer) < 0)
+                    {
+                        LOG_ERROR("Res File %s not found", buffer);
+                        return;
+                    }
+                    LOG_INFO("Download Complete");
+                    //fs_open(&app_fd, app_file);
                     
+                    capp->app_file = app_file;
+                    capp->resource_file = res_file;
+                     _this_thread->status = AppThreadUnloaded;
+                    break;
+                case THREAD_MANAGER_APP_QUIT_CLEAN:                   
                     if (_this_thread->status != AppThreadUnloading)
                         LOG_WARN("Unloading app while not in correct state!");
                     
@@ -458,16 +492,22 @@ static void _app_management_thread(void *parms)
     * fork
         
     */
-void appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
+int appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
 {   
     struct fd fd;
     
     /* de-fluff */
     memset(thread->heap, 0, thread->heap_size);
 
-    fs_open(&fd, &thread->app->app_file);
+    fs_open(&fd, thread->app->app_file);
     fs_read(&fd, header, sizeof(ApplicationHeader));
 
+    /* sanity check the hell out of this to make sure it's a real app */
+    if (strncmp(header->header, "PBLAPP", 6))
+    {
+        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "No PBLAPP header! %x", (char)&header->header[0]);
+        return AppInvalid;
+    }
     /* load the app from flash
      *  and any reloc entries too. */
     fs_seek(&fd, 0, FS_SEEK_SET);
@@ -548,6 +588,8 @@ void appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
     LOG_DEBUG("VSize   : 0x%x",  header->virtual_size);
     LOG_DEBUG("Bss Size: %d",    bss_size);
     LOG_DEBUG("Heap    : 0x%x",  thread->heap + header->virtual_size);
+    
+    return AppLoaded;
 }
 
 /* 

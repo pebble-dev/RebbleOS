@@ -183,8 +183,8 @@ static void _appmanager_flash_load_app_manifest(void)
     char buffer[14];
     struct appdb appdb;
     struct fd fd;
-    struct file *app_file = calloc(1, sizeof(struct file));
-    struct file *res_file = calloc(1, sizeof(struct file));
+    struct file *app_file = system_calloc(1, sizeof(struct file));
+    struct file *res_file = system_calloc(1, sizeof(struct file));
     struct fd app_fd;
     ApplicationHeader header;
 
