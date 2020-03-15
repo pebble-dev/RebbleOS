@@ -28,6 +28,12 @@ typedef struct
     EndpointHandler handler;
 } PebbleEndpoint;
 
+enum {
+    ACK  = 0x1,
+    NACK = 0x2
+};
+
+
 uint8_t protocol_rx_buffer_append(uint8_t *data, size_t len);
 uint16_t protocol_get_rx_buf_size(void);
 uint8_t *protocol_rx_buffer_request(void);

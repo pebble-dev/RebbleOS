@@ -18,16 +18,22 @@
 #define MODULE_TYPE "SYS"
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
+#define BLOBDB_FLAG_WRITTEN  1
+/* XXX: add mid-write flag */
+/* XXX: add ERASED flag */
+
+typedef struct blobdb_hdr {
+    uint32_t last_modified;  //0x58F6AExx
+    uint8_t hash;
+    uint8_t flags:6;
+    uint32_t key_len:7;
+    uint32_t data_len:11;
+} __attribute__((__packed__)) blobdb_hdr;
 
 typedef struct database_t {
     uint8_t id;
     const char *filename;
     uint16_t def_db_size;
-//     uint16_t hdr_size;
-//     uint16_t key_offset;
-//     uint8_t key_size;
-//     uint16_t data_size_offset;
-//     uint16_t data_size_bytes;
 } database;
 
 static const database databases[] = {
@@ -35,31 +41,16 @@ static const database databases[] = {
         .id = BlobDatabaseID_Test,
         .filename = "rebble/testblob",
         .def_db_size = 16384,
-//         .hdr_size = 12,
-//         .key_offset = 4,
-//         .key_size = 4,
-//         .data_size_offset = 8,
-//         .data_size_bytes = 4,
     },
     {
         .id = BlobDatabaseID_Notification,
         .filename = "rebble/notifstr",
         .def_db_size = 16384,
-//         .hdr_size = sizeof(timeline_item), 
-//         .key_offset = offsetof(timeline_item, uuid),
-//         .key_size = sizeof(Uuid),
-//         .data_size_offset = offsetof(timeline_item, data_size),
-//         .data_size_bytes = FIELD_SIZEOF(timeline_item, data_size)
     },
     {
         .id = BlobDatabaseID_App,
         .filename = "rebble/appdb",
         .def_db_size = 16384,
-//         .hdr_size = sizeof(timeline_item), 
-//         .key_offset = offsetof(timeline_item, uuid),
-//         .key_size = sizeof(Uuid),
-//         .data_size_offset = offsetof(timeline_item, data_size),
-//         .data_size_bytes = FIELD_SIZEOF(timeline_item, data_size)
     },
 #define DB_COUNT 3
 };
@@ -90,7 +81,7 @@ static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_
     int idx = 0;
     uint8_t _tmp_key[key_size];
     size_t _data_size = 0;
-    struct file_hdr hdr;
+    struct blobdb_hdr hdr;
 
     while(idx < file_size)
     {
@@ -115,7 +106,7 @@ static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_
         }
 
 next:
-        idx += sizeof(struct file_hdr) + hdr.key_len + hdr.data_len;
+        idx += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
     }
 
     LOG_DEBUG("DB SIZE: %d", idx);
@@ -236,7 +227,7 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
     int idx = 0;
     char buf[UUID_STRING_BUFFER_LENGTH];
     const database *db = _find_database(database_id);
-    struct file_hdr hdr;
+    struct blobdb_hdr hdr;
 
     while(idx < fd->file.size)
     {
@@ -261,7 +252,7 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
         if (where_property_size && where_offsetof_property)
         {
             uint8_t where_prop[where_property_size];
-            fs_seek(fd, idx + sizeof(struct file_hdr) + hdr.key_len + where_offsetof_property, FS_SEEK_SET);
+            fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + where_offsetof_property, FS_SEEK_SET);
             fs_read(fd, where_prop, where_property_size);
 
             comp1 = _compare(operator, where_prop, where_val, where_property_size);
@@ -269,7 +260,7 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
         if (where_property_size1 && where_offsetof_property1)
         {
             uint8_t where_prop1[where_property_size1];
-            fs_seek(fd, idx + sizeof(struct file_hdr) + hdr.key_len + where_offsetof_property1, FS_SEEK_SET);
+            fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + where_offsetof_property1, FS_SEEK_SET);
             fs_read(fd, where_prop1, where_property_size1);
 
             comp2 = _compare(operator1, where_prop1, where_val1, where_property_size1);
@@ -282,20 +273,20 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
             list_init_node(&set->node);
 
             set->select1 = calloc(1, select1_property_size);
-            fs_seek(fd, idx + sizeof(struct file_hdr) + hdr.key_len + select1_offsetof_property, FS_SEEK_SET);
+            fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + select1_offsetof_property, FS_SEEK_SET);
             fs_read(fd, set->select1, select1_property_size);
 
             if (select2_property_size)
             {
                 set->select2 = calloc(1, select2_property_size);
-                fs_seek(fd, idx + sizeof(struct file_hdr) + hdr.key_len + select2_offsetof_property, FS_SEEK_SET);
+                fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + select2_offsetof_property, FS_SEEK_SET);
                 fs_read(fd, set->select2, select2_property_size);
             }
 
             list_insert_tail(head, &set->node);
         }
 
-        idx += sizeof(struct file_hdr) + hdr.key_len + hdr.data_len;
+        idx += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
     }
 
 //     return head;
@@ -337,7 +328,7 @@ int32_t _blob_db_flash_load_blob(const database *db, uint8_t *key, uint8_t key_s
     if (!data)
         return idx;
 
-    struct file_hdr hdr;
+    struct blobdb_hdr hdr;
     fs_seek(&fd, idx, FS_SEEK_SET);
     if (fs_read(&fd, &hdr, sizeof(hdr)) != sizeof(hdr))
         return -1;
@@ -397,7 +388,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     /* in this case we are going to append the message to a fake fs. yay? */
     struct file file;
     struct fd fd;
-    struct file_hdr hdr;
+    struct blobdb_hdr hdr;
     
     if (fs_find_file(&file, db->filename) >= 0)
         fs_open(&fd, &file);
@@ -408,9 +399,6 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             return Blob_DatabaseFull;
         }
     }
-    
-    if (fs_find_file(&file, db->filename) < 0)
-        assert(0);
 
     int pos = 0;
     while (pos < fd.file.size) {
@@ -426,10 +414,10 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             break; /* found a spot! */
         }
         
-        pos += sizeof(struct file_hdr) + hdr.key_len + hdr.data_len;
+        pos += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
     }
     
-    if (pos + sizeof(struct file_hdr) + key_size + data_size > fd.file.size) {
+    if (pos + sizeof(struct blobdb_hdr) + key_size + data_size > fd.file.size) {
         /* XXX: try gc'ing the blob */
         LOG_ERROR("not enough space for new entry %d %d %d", fd.file.size, data_size, pos);
         return Blob_DatabaseFull;
