@@ -31,7 +31,7 @@ endif
 
 # Do not override this here!  Override this in localconfig.mk.
 ifeq ($(shell uname -s),Darwin)
-PEBBLE_TOOLCHAIN_PATH ?= /usr/local/Cellar/pebble-toolchain/2.0/arm-cs-tools/bin
+PEBBLE_TOOLCHAIN_PATH ?= /usr/local/bin
 else
 PEBBLE_TOOLCHAIN_PATH ?= /usr/bin
 endif
@@ -56,7 +56,6 @@ VIRTUALENV = $(BUILD)/python_env
 VPYTHON3 = $(VIRTUALENV)/bin/python3
 
 all: $(PLATFORMS)
-
 #########################################
 # Turn platforms into testable platforms.
 #
@@ -227,7 +226,10 @@ endif
 	$(call SAY,OBJCOPY $@)
 	$(QUIET)$(PFX)objcopy $< -O binary $@
 
+# Check to make sure user has the compiler installed, and if it's the correct version if so.
 $(BUILD)/version.c:
+	@if ! [ -f $(CC) ]; then echo "${RED}Error: It does not appear that you have the gcc-arm-none-eabi compiler installed in '$(PEBBLE_TOOLCHAIN_PATH)'.${STOP}"; exit 1; fi
+
 	$(call SAY,VERSION $@)
 	$(QUIET)mkdir -p $(dir $@)
 	$(QUIET)rm -f $@
