@@ -29,7 +29,7 @@ CFLAGS_all += -Irwatch/input
 CFLAGS_all += -Irwatch/graphics
 CFLAGS_all += -Irwatch/event
 CFLAGS_all += -Ihw/platform/qemu
-CFLAGS_all += -DNGFX_IS_CORE
+CFLAGS_all += -DNGFX_IS_CORE -DREBBLEOS
 
 # XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
@@ -67,7 +67,8 @@ SRCS_all += lib/musl/time/__month_to_secs.c
 SRCS_all += lib/neographics/src/common.c
 SRCS_all += lib/neographics/src/context.c
 SRCS_all += lib/neographics/src/draw_command/draw_command.c
-SRCS_all += lib/neographics/src/fonts/fonts.c
+SRCS_all += rwatch/graphics/font_file.c
+#SRCS_all += lib/neographics/src/fonts/fonts.c
 SRCS_all += lib/neographics/src/gbitmap/gbitmap.c
 SRCS_all += lib/neographics/src/gbitmap/blit_bw.c
 SRCS_all += lib/neographics/src/gbitmap/blit_color.c

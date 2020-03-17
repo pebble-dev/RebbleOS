@@ -10,8 +10,6 @@
 #include "platform_res.h"
 
 
-
-
 /* totally hacky, but at least vaguely thread safe
  * We now have a cache size of 1 for each thread
  */
@@ -70,40 +68,32 @@ GFont fonts_get_system_font(const char *font_key)
 GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 {
     GFontCache *cache_item;
-    AppThreadType thread_type = appmanager_get_thread_type();  
+    AppThreadType thread_type = appmanager_get_thread_type();
     
-    if (thread_type == AppThreadMainApp)
+    /* XXX: The cache is dead, long live the cache!
+     *
+     * XXX: We currently simply leak the font, rather than reusing it on
+     * multiple calls.
+     */
+    
+    switch (thread_type)
     {
-        cache_item = &_app_font_cache;
-    }
-    else if (thread_type == AppThreadOverlay)
-    {
-        cache_item = &_ovl_font_cache;
-    }
-    else
-    {
+    case AppThreadMainApp: cache_item = &_app_font_cache; break;
+    case AppThreadOverlay: cache_item = &_ovl_font_cache; break;
+    default:
         KERN_LOG("font", APP_LOG_LEVEL_ERROR, "Why you need fonts?");
+        return NULL;
     }
+    
+    /* XXX: Use the cache. */
+    GFont font = malloc(sizeof(struct file));
+    if (!font) {
+        KERN_LOG("font", APP_LOG_LEVEL_ERROR, "font malloc failed");
+        return NULL;
+    }
+    resource_file(font, resource_get_handle_system(resource_id));
 
-    if (cache_item->resource_id == resource_id)
-    {
-        return cache_item->font;
-    }
-    
-    /* not cached, load */   
-    if (cache_item->resource_id > 0 && cache_item->font)
-    {
-        app_free(cache_item->font);
-    }
-    
-    struct file file;
-    resource_file(&file, resource_get_handle_system(resource_id));
-    uint8_t *buffer = resource_fully_load_file(&file, NULL);
-    
-    cache_item->font = (GFont)buffer;
-    cache_item->resource_id = resource_id;
-
-    return cache_item->font;
+    return font;
 }
 
 /*
@@ -111,11 +101,14 @@ GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
  */
 GFont fonts_load_custom_font(ResHandle handle, const struct file* ifile)
 {
-    struct file file;
-    resource_file_from_file_handle(&file, ifile, handle);
-    uint8_t *buffer = resource_fully_load_file(&file, NULL);
+    GFont font = malloc(sizeof(struct file));
+    if (!font) {
+        KERN_LOG("font", APP_LOG_LEVEL_ERROR, "font malloc failed");
+        return NULL;
+    }
+    resource_file_from_file_handle(font, ifile, handle);
     
-    return (GFont)buffer;
+    return font;
 }
 
 GFont fonts_load_custom_font_proxy(ResHandle handle)
