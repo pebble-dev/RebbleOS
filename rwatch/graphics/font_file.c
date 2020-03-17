@@ -1,4 +1,5 @@
 #include "fonts.h"
+#include "font_loader.h"
 #include "fs.h"
 
 uint8_t n_graphics_font_get_line_height(struct file *font) {
@@ -15,6 +16,11 @@ n_GGlyphInfo * n_graphics_font_get_glyph_info(struct file *font, uint32_t codepo
     struct fd fd;
     n_GFontInfo info;
     n_GGlyphInfo pglyph;
+    
+    n_GGlyphInfo *cglyph = fonts_glyphcache_get(font, codepoint);
+    if (cglyph) {
+        return cglyph;
+    }
     
     /* XXX: cache this */
     fs_open(&fd, font);
@@ -100,6 +106,8 @@ readglyph:
     n_GGlyphInfo *glyph = malloc(sizeof(pglyph) + gbytes);
     memcpy(glyph, &pglyph, sizeof(pglyph));
     fs_read(&fd, glyph + 1, gbytes);
+    
+    fonts_glyphcache_put(font, codepoint, glyph);
 
     return glyph;
 }

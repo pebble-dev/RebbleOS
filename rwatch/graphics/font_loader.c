@@ -9,6 +9,7 @@
 #include "librebble.h"
 #include "platform_res.h"
 
+// #define FONTS_DEBUG
 
 /* totally hacky, but at least vaguely thread safe
  * We now have a cache size of 1 for each thread
@@ -17,38 +18,40 @@
 typedef struct GFontCache
 {
     uint32_t resource_id;
-    GFont font;
+    struct file font;
+    struct GFontCache *next;
 } GFontCache;
+
+static void _fonts_glyphcache_purge(GFont font);
+static void _fonts_glyphcache_reset();
 
 uint16_t _fonts_get_resource_id_for_key(const char *key);
 GFont fonts_get_system_font_by_resource_id(uint32_t resource_id);
 
-static GFontCache _app_font_cache;
-static GFontCache _ovl_font_cache;
+static GFontCache *_app_font_cache = NULL;
+static GFontCache *_ovl_font_cache = NULL;
 
 void fonts_resetcache()
 {
-    AppThreadType thread_type = appmanager_get_thread_type();
+    struct GFontCache **cachep;
     
     KERN_LOG("font", APP_LOG_LEVEL_DEBUG, "Purging fonts");
-    /* This is pretty terrible. We assume that the app is removing the memory 
-     * for the font before we kill the cache entry */
-    if (thread_type == AppThreadMainApp)
+    switch (appmanager_get_thread_type())
     {
-        /* reset it to available. */
-        _app_font_cache.resource_id = 0;
-        _app_font_cache.font = NULL;
-    }
-    else if (thread_type == AppThreadOverlay)
-    {
-        /* reset it to available. */
-        _ovl_font_cache.resource_id = 0;
-        app_free(_ovl_font_cache.font);
-        _ovl_font_cache.font = NULL;
-    }
-    else
-    {
+    case AppThreadMainApp: cachep = &_app_font_cache; break;
+    case AppThreadOverlay: cachep = &_ovl_font_cache; break;
+    default:
         KERN_LOG("font", APP_LOG_LEVEL_ERROR, "Why you need fonts?");
+        return;
+    }
+    
+    struct GFontCache *ent = *cachep;
+    *cachep = NULL;
+    
+    while (ent) {
+        struct GFontCache *next = ent->next;
+        free(ent);
+        ent = next;
     }
 }
 
@@ -67,33 +70,36 @@ GFont fonts_get_system_font(const char *font_key)
  */
 GFont fonts_get_system_font_by_resource_id(uint32_t resource_id)
 {
-    GFontCache *cache_item;
+    GFontCache **cachep, *ent;
     AppThreadType thread_type = appmanager_get_thread_type();
-    
-    /* XXX: The cache is dead, long live the cache!
-     *
-     * XXX: We currently simply leak the font, rather than reusing it on
-     * multiple calls.
-     */
     
     switch (thread_type)
     {
-    case AppThreadMainApp: cache_item = &_app_font_cache; break;
-    case AppThreadOverlay: cache_item = &_ovl_font_cache; break;
+    case AppThreadMainApp: cachep = &_app_font_cache; break;
+    case AppThreadOverlay: cachep = &_ovl_font_cache; break;
     default:
         KERN_LOG("font", APP_LOG_LEVEL_ERROR, "Why you need fonts?");
         return NULL;
     }
     
-    /* XXX: Use the cache. */
-    GFont font = malloc(sizeof(struct file));
-    if (!font) {
+    ent = *cachep;
+    while (ent) {
+        if (ent->resource_id == resource_id)
+            return &(ent->font);
+        ent = ent->next;
+    }
+    
+    ent = malloc(sizeof(*ent));
+    if (!ent) {
         KERN_LOG("font", APP_LOG_LEVEL_ERROR, "font malloc failed");
         return NULL;
     }
-    resource_file(font, resource_get_handle_system(resource_id));
+    ent->resource_id = resource_id;
+    resource_file(&ent->font, resource_get_handle_system(resource_id));
+    ent->next = *cachep;
+    *cachep = ent;
 
-    return font;
+    return &ent->font;
 }
 
 /*
@@ -122,6 +128,7 @@ GFont fonts_load_custom_font_proxy(ResHandle handle)
  */
 void fonts_unload_custom_font(GFont font)
 {
+    _fonts_glyphcache_purge(font);
     app_free(font);
 }
 
@@ -173,4 +180,118 @@ uint16_t _fonts_get_resource_id_for_key(const char *key)
     else if EQ_FONT(FONT_FALLBACK)
                                                                                                                                 
     return RESOURCE_ID_FONT_FALLBACK;
+}
+
+struct glyph_cache_ent
+{
+    uint32_t generation;
+    GFont font;
+    uint32_t codepoint;
+    n_GGlyphInfo *glyph;
+    struct glyph_cache_ent *next;
+};
+
+#define GLYPH_CACHE_MAXSIZ 128
+
+static struct glyph_cache_ent *_app_glyph_cache = NULL;
+static struct glyph_cache_ent *_ovl_glyph_cache = NULL;
+static uint32_t _glyph_generation = 0; /* races on this are OK; just a hint */
+
+static struct glyph_cache_ent **_thread_glyphcache() {
+    switch (appmanager_get_thread_type())
+    {
+    case AppThreadMainApp: return &_app_glyph_cache;
+    case AppThreadOverlay: return &_ovl_glyph_cache;
+    default:
+        assert(!"font glyph cache called from invalid thread");
+        return NULL;
+    }
+}
+
+n_GGlyphInfo *fonts_glyphcache_get(GFont font, uint32_t codepoint) {
+    struct glyph_cache_ent *cache;
+    
+    for (cache = *_thread_glyphcache(); cache; cache = cache->next)
+        if (cache->font == font && cache->codepoint == codepoint) {
+            cache->generation = _glyph_generation++;
+            return cache->glyph;
+        }
+    
+    return NULL;
+}
+
+void fonts_glyphcache_put(GFont font, uint32_t codepoint, n_GGlyphInfo *glyph) {
+    struct glyph_cache_ent *cache;
+    struct glyph_cache_ent *oldest = NULL;
+    uint32_t oldest_gen = 0;
+    int oldestidx = 0;
+    int cachelen = 0;
+    
+    /* We assume it's not already in the cache, so we simultaneously compute
+     * how large the cache is and find the least recently used object, in
+     * case we need to kick something out.
+     */
+    for (cache = *_thread_glyphcache(); cache; cache = cache->next) {
+        assert(cache->font != font || cache->codepoint != codepoint);
+        if (cache->font == NULL) {
+            /* already purged -- overwrite this entry */
+            oldest = cache;
+            break;
+        }
+        if ((_glyph_generation - cache->generation) >= oldest_gen) {
+            oldest = cache;
+            oldest_gen = _glyph_generation - cache->generation;
+            oldestidx = cachelen;
+        }
+        cachelen++;
+    }
+    
+    if ((cachelen == GLYPH_CACHE_MAXSIZ) || (oldest && !oldest->glyph)) {
+        /* Someone's getting evicted. */
+#ifdef FONTS_DEBUG
+        printf("evicting font %p codepoint %x idx %d clen %d\n", font, codepoint, oldestidx, cachelen);
+#endif
+        oldest->font = font;
+        oldest->codepoint = codepoint;
+        if (oldest->glyph);
+        free(oldest->glyph);
+        oldest->glyph = glyph;
+        oldest->generation = _glyph_generation++;
+    } else {
+#ifdef FONTS_DEBUG
+        printf("allocating new %p %lx, clen %d, ttype %d\n", font, codepoint, cachelen,appmanager_get_thread_type());
+#endif
+        /* Allocate something new. */
+        cache = malloc(sizeof(*oldest));
+        if (cache)
+            cache->next = *_thread_glyphcache();
+        else { /* out of memory? */
+            cache = *_thread_glyphcache();
+            free(cache->glyph);
+        }
+        if (!cache) /* seriously out of memory? */ {
+            KERN_LOG("font", APP_LOG_LEVEL_ERROR, "cache malloc failed");
+            return; /* leaks the glyph!! */
+        }
+        cache->generation = _glyph_generation++;
+        cache->font = font;
+        cache->codepoint = codepoint;
+        cache->glyph = glyph;
+        *_thread_glyphcache() = cache;
+    }
+}
+
+static void _fonts_glyphcache_purge(GFont font) {
+    struct glyph_cache_ent *cache;
+    
+    for (cache = *_thread_glyphcache(); cache; cache = cache->next)
+        if (cache->font == font) {
+            cache->font = NULL;
+            free(cache->glyph);
+            cache->glyph = NULL;
+        }
+}
+
+static void _fonts_glyphcache_reset() {
+    *_thread_glyphcache() = NULL;
 }
