@@ -22,5 +22,6 @@ testplan = [
     Test("Filesystem: I/O on two files", testname = b'fs_two_files', golden = 0),
     Test("Filesystem: basic file replacement test", testname = b'fs_replace_file_basic', golden = 0),
     Test("Filesystem: file as smaller file", testname = b'fs_sub_file', golden = 0),
+    Test("Filesystem: big files", testname = b'fs_bigfiles', golden = 0),
     Test("Blobdb: basic", testname = b'blobdb_basic', golden = 0),
 ]
