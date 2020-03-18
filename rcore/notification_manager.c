@@ -216,3 +216,25 @@ static void _notif_timeout_cb(void *data)
 
     _notification_quit_click(NULL, data);
 }
+
+void notification_show_progress(EventServiceCommand command, void *data, void *context)
+{
+    if (progress_window_visible())
+    {
+        progress_window_update_arrived((void *)data);
+        appmanager_post_draw_message(1);
+        return;
+    }
+    notification_progress *np = (notification_progress *)data;
+    notification_progress *nmsg = app_calloc(1, sizeof(notification_progress));    
+    
+    nmsg->data.create_callback = &progress_window_overlay_display;
+    nmsg->data.destroy_callback = &progress_window_overlay_destroy;
+    nmsg->data.timeout_ms = 30000;
+    nmsg->progress_bytes = np->progress_bytes;
+    nmsg->total_bytes = np->total_bytes;
+    
+    /* get an overlay */
+    overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
+}
+

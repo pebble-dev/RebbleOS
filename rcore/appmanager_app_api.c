@@ -73,26 +73,33 @@ void appmanager_post_button_message(ButtonMessage *bmessage)
     appmanager_post_generic_app_message(&am, 100);
 }
 
-void appmanager_post_draw_message(uint8_t force)
+
+void appmanager_post_draw_update(uint8_t status)
 {
     app_running_thread *_thread = appmanager_get_thread(AppThreadMainApp);
-    if (_thread->status != AppThreadRunloop)
-        return;
 
+    AppMessage am = (AppMessage) {
+        .command = THREAD_MANAGER_APP_DRAW,
+        .data = (void*)(uint32_t)status
+    };
+
+    appmanager_post_generic_thread_message(&am, 0);
+}
+
+void appmanager_post_draw_message(uint8_t force)
+{
+    appmanager_post_draw_update(0);
+}
+
+void appmanager_post_draw_app_message(uint8_t force)
+{
+    app_running_thread *_thread = appmanager_get_thread(AppThreadMainApp);
+        
     AppMessage am = (AppMessage) {
         .command = AppMessageDraw,
         .data = (void*)(uint32_t)force
     };
-
-    Window *wind = window_stack_get_top_window();
-    Window *owind = overlay_window_stack_get_top_window();
-
-    if (force || 
-            ((wind && wind->is_render_scheduled) ||
-             (owind && owind->is_render_scheduled)))
-    {
-        appmanager_post_generic_app_message(&am, 0);
-    }
+    appmanager_post_generic_app_message(&am, 0);
 }
 
 /* Send a message to a running app. This could be an event, such as "hey data arrived" or
@@ -105,6 +112,14 @@ bool appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyE
         .data = message,
         .context = destroy_callback
     };
+    app_running_thread *_thread = appmanager_get_thread(AppThreadMainApp);
+    
+    /* No runloop? defer to the next app */
+    if (_thread->status != AppThreadRunloop)
+    {
+        overlay_window_post_event(protocol_id, message, destroy_callback);
+        return true;
+    }
     return appmanager_post_generic_app_message(&am, 20);
 }
 

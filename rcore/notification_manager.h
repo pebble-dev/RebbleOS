@@ -40,7 +40,7 @@ void notification_show_battery(uint32_t timeout_ms);
 void notification_show_incoming_call(EventServiceCommand command, void *data, void *context);
 void notification_show_small_message(EventServiceCommand command, void *data, void *context);
 void notification_show_alarm(uint8_t alarm_id);
-
+void notification_show_progress(EventServiceCommand command, void *data, void *context);
 void notification_window_dismiss();
 
 /**
@@ -59,6 +59,8 @@ void mini_message_overlay_destroy(OverlayWindow *overlay, Window *window);
 void notification_reschedule_timer(Window *window, uint32_t timeout_ms);
 void call_window_overlay_display(OverlayWindow *overlay, Window *window);
 void call_window_overlay_destroy(OverlayWindow *overlay, Window *window);
+void progress_window_overlay_display(OverlayWindow *overlay, Window *window);
+void progress_window_overlay_destroy(OverlayWindow *overlay, Window *window);
 
 
 typedef struct notification_data_t {
@@ -91,3 +93,9 @@ typedef struct notification_call_t {
     rebble_phone_message *phone_call;
     GRect frame;
 } notification_call;
+
+typedef struct notification_progress_t {
+    notification_data data;
+    uint32_t progress_bytes;
+    uint32_t total_bytes;
+} notification_progress;

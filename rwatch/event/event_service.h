@@ -14,6 +14,7 @@ typedef enum EventServiceCommand {
     EventServiceCommandMusic,
     EventServiceCommandNotification,
     EventServiceCommandAlert,
+    EventServiceCommandProgress,
 } EventServiceCommand;
 
 

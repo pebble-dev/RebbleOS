@@ -16,6 +16,7 @@
 #include "notification.h"
 #include "api_func_symbols.h"
 #include "qalloc.h"
+#include "notification_manager.h"
 
 /* Configure Logging */
 #define MODULE_NAME "appman"
@@ -35,7 +36,7 @@ static TaskHandle_t _app_thread_manager_task_handle;
 static xQueueHandle _app_thread_queue;
 static StaticTask_t _app_thread_manager_task;
 static void _appmanager_thread_init(void *pvParameters);
-
+static void _appmanager_update_progress_bar(uint32_t progress, uint32_t total, uint8_t type);
 static void _running_app_loop(void);
 
 enum {
@@ -203,6 +204,35 @@ bool appmanager_is_thread_worker(void)
     return appmanager_get_thread_type() == AppThreadWorker;
 }
 
+static void _draw(uint8_t state)
+{
+    switch (state)
+    {
+        case 0:
+            /* Request a draw. This is mostly from an app invalidating something */
+            if (display_buffer_lock_take(0))
+            {
+                if (appmanager_is_app_running())
+                    appmanager_post_draw_app_message(1);
+                else
+                    overlay_window_draw(true);
+            }
+            else
+                return;
+            break;
+        case 1:            
+            if (overlay_window_count() > 0)
+                overlay_window_draw(true);
+            else
+                _draw(2);
+            break;
+        case 2:
+            display_draw();
+            display_buffer_lock_give();
+            break;
+    }
+}
+
 static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMessage *am)
 {
     app_running_thread *_this_thread = NULL;
@@ -275,9 +305,12 @@ static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMe
                 /* We now request the app from the host device */
                 // XXX TODO APPID
                 protocol_app_fetch_request(&app->uuid, 200);
-                // load an app that loads apps?
                 _this_thread->status = AppThreadDownloading;
-                LOG_INFO("Requesting App from host");
+                
+                notification_progress *prog = system_calloc(1, sizeof(notification_progress));
+                event_service_post(EventServiceCommandProgress, prog, system_free);
+                
+                LOG_INFO("Requesting App from host %x", app);
                 return;
             }
         
@@ -294,7 +327,6 @@ static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMe
         appmanager_execute_app(_this_thread, total_app_size);
     }
 }
-
 
 /*
  * A task to run an application.
@@ -321,12 +353,11 @@ static void _app_management_thread(void *parms)
     Uuid app_to_load_uuid = UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1);
     
     for( ;; )
-    {           
+    {
         /* Sleep waiting for work to do */
         if (xQueueReceive(_app_thread_queue, &am, pdMS_TO_TICKS(1000)))
         {
             _this_thread = &_app_threads[am.thread_id];
-            LOG_INFO("T...");
             switch(am.command)
             {
                 /* Load an app for someone. face or worker */
@@ -359,8 +390,9 @@ static void _app_management_thread(void *parms)
                     }
                     break;
                 case THREAD_MANAGER_APP_DOWNLOAD_COMPLETE:
-                    LOG_INFO("Download Complete");
-                    App *capp = appmanager_get_app_by_uuid(uuid);
+                    LOG_INFO("Download Complete %x", app_to_load_uuid);
+                    App *capp = appmanager_get_app_by_uuid(&app_to_load_uuid);
+                    assert(capp);
                     char buffer[14];
                     struct file *app_file = system_calloc(1, sizeof(struct file));
                     struct file *res_file = system_calloc(1, sizeof(struct file));
@@ -378,14 +410,14 @@ static void _app_management_thread(void *parms)
                         LOG_ERROR("Res File %s not found", buffer);
                         return;
                     }
-                    LOG_INFO("Download Complete");
-                    //fs_open(&app_fd, app_file);
                     
                     capp->app_file = app_file;
                     capp->resource_file = res_file;
+                    LOG_INFO("Download Complete %x", capp);
+
                      _this_thread->status = AppThreadUnloaded;
                     break;
-                case THREAD_MANAGER_APP_QUIT_CLEAN:                   
+                case THREAD_MANAGER_APP_QUIT_CLEAN:
                     if (_this_thread->status != AppThreadUnloading)
                         LOG_WARN("Unloading app while not in correct state!");
                     
@@ -399,6 +431,9 @@ static void _app_management_thread(void *parms)
                     _this_thread->app = NULL;
                     _this_thread->status = AppThreadUnloaded;
 
+                    break;
+                case THREAD_MANAGER_APP_DRAW:
+                    _draw((uint32_t)am.data);
                     break;
             }
             
@@ -577,7 +612,7 @@ int appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
                                                             header->app_version.minor);
     LOG_DEBUG("App Size: 0x%x",  header->app_size);
     LOG_DEBUG("App Main: 0x%x",  header->offset);
-    LOG_DEBUG("CRC     : %d",    header->crc);
+    LOG_DEBUG("CRC     : 0x%x",  header->crc);
     LOG_DEBUG("Name    : %s",    header->name);
     LOG_DEBUG("Company : %s",    header->company);
     LOG_DEBUG("Icon    : %d",    header->icon_resource_id);

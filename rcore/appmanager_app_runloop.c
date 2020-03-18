@@ -84,8 +84,14 @@ void appmanager_app_main_entry(void)
 
 bool appmanager_is_app_shutting_down(void)
 {
-    app_running_thread *_this_thread = appmanager_get_current_thread();
+    app_running_thread *_this_thread = appmanager_get_thread(AppThreadMainApp);
     return _this_thread->status == AppThreadUnloading;
+}
+
+bool appmanager_is_app_running(void)
+{
+    app_running_thread *_this_thread = appmanager_get_thread(AppThreadMainApp);
+    return _this_thread->status == AppThreadRunloop;
 }
 
 void rocky_event_loop_with_resource(uint16_t resource_id)
@@ -95,26 +101,9 @@ void rocky_event_loop_with_resource(uint16_t resource_id)
 
 static void _draw(uint8_t force_draw)
 {
-    /* Request a draw. This is mostly from an app invalidating something */
-    if (display_buffer_lock_take(0))
-    {
-        if (force_draw)
-            window_dirty(true);
-        
-        bool force = window_draw();
-        
-        if (overlay_window_count() > 0)
-        {
-            overlay_window_draw(true);
-            force = true;
-        }
-        
-        if (force)
-        {
-            display_draw();
-        }
-        display_buffer_lock_give();
-    }
+    window_draw();
+    
+    appmanager_post_draw_update(1);
 }
 
 /*

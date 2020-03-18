@@ -139,6 +139,8 @@ typedef enum AppThreadType {
 #define THREAD_MANAGER_APP_LOAD_UUID  1
 #define THREAD_MANAGER_APP_QUIT_CLEAN 2
 #define THREAD_MANAGER_APP_DOWNLOAD_COMPLETE 3
+#define THREAD_MANAGER_APP_DOWNLOAD_PROGRESS 4
+#define THREAD_MANAGER_APP_DRAW              5
 
 /* This struct hold all information about the task that is executing
  * There are many runing apps, such as main app, worker or background.
@@ -185,7 +187,7 @@ void appmanager_app_main_entry(void);
 list_head *app_manager_get_apps_head();
 void appmanager_post_button_message(ButtonMessage *bmessage);
 void appmanager_post_draw_message(uint8_t force);
-void appmanager_post_draw_display_message(uint8_t *draw_to_display);
+void appmanager_post_draw_update(uint8_t status);
 bool appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyEventProc destroy_callback);
 void appmanager_post_window_load_click_config(struct Window *window);
 
@@ -194,6 +196,7 @@ void appmanager_app_quit(void);
 void appmanager_app_download_complete(void);
 void appmanager_app_display_done(void);
 bool appmanager_is_app_shutting_down(void);
+bool appmanager_is_app_running(void);
 
 bool appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
 void appmanager_timer_expired(app_running_thread *thread);

@@ -19,6 +19,7 @@
 #include "protocol_system.h"
 #include "pebble_protocol.h"
 #include "protocol_service.h"
+#include "notification_manager.h"
 
 /* Configure Logging */
 #define MODULE_NAME "pcolxfr"
@@ -146,12 +147,21 @@ void protocol_process_transfer(const RebblePacket packet)
                 snprintf(sel, 4, "fle"); //??
             
             snprintf(buf, 14, "@%08x/%s", ntohl(hdr->app_id), sel);
+            
+            struct file file;
+            if (fs_find_file(&file, buf) >= 0)
+            {
+                /* XXX delete it? */
+                LOG_ERROR("File %s already exists. Fail!", buf);
+                goto error;
+            }
+                        
             if (fs_creat(&_fd, buf, _total_size) == NULL) {
                 LOG_ERROR("Couldn't create %s!", buf);
                 goto error;
             }
             
-            _send_ack(0);            
+            _send_ack(0);
             break;
             
         case PutBytesTransfer:
@@ -173,31 +183,53 @@ void protocol_process_transfer(const RebblePacket packet)
             _cookie = nhdr->cookie;
             _bytes_transferred += data_size;
             
-            _send_ack(nhdr->cookie);            
+            notification_progress *prog = system_calloc(1, sizeof(notification_progress));
+            prog->progress_bytes = _bytes_transferred;
+            prog->total_bytes = _total_size;
+            
+            event_service_post(EventServiceCommandProgress, prog, system_free);
+            vTaskDelay(0);
+            _send_ack(nhdr->cookie);
             break;
             
         case PutBytesCommit:
             LOG_DEBUG("Commit %d Bytes", _total_size);
+            _transfer_put_commit_header *chdr = (_transfer_put_commit_header *)data;
+            _cookie = nhdr->cookie;
+            
             if (_bytes_transferred != _total_size)
             {
                 LOG_ERROR("Not enough data arrived %d/%d", _bytes_transferred, _total_size);
                 goto error;
             }
             
-            _send_ack(_cookie);            
+            /* CRC the file */
+            uint32_t crc = fs_file_crc32(&_fd, _bytes_transferred);
+            
+            if (htonl(chdr->crc) != crc)
+            {
+                LOG_ERROR("Bad CRC: %x expected %x", crc, htonl(chdr->crc));
+//                 goto error;
+            }
+
+            LOG_DEBUG("CRC %x valid", crc);
+            
+            _send_ack(_cookie);
             break;
         
         case PutBytesInstall:
             LOG_INFO("Install App");
+            _transfer_put_install_header *ihdr = (_transfer_put_install_header *)data;           
+            _cookie = nhdr->cookie;
+            _transfer_state = 0;
+            _send_ack(_cookie);
+            _bytes_transferred = 0;
+            _cookie = 0;
             
             /* Once we have the resource, tell app manager we are good to load */
             if (_transfer_type == TransferType_AppResource)
                 appmanager_app_download_complete();
             
-            _transfer_state = 0;
-            _send_ack(_cookie);
-            _bytes_transferred = 0;
-            _cookie = 0;            
             break;
             
         case PutBytesAbort:

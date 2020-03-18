@@ -91,7 +91,7 @@ void overlay_window_create_with_context(OverlayCreateCallback creation_callback,
         .data = (void *)creation_callback,
         .context = context
     };
-    xQueueSendToBack(_overlay_queue, &om, 0);
+    xQueueSendToBack(_overlay_queue, &om, 1000);
 }
 
 void overlay_window_draw(bool window_is_dirty)
@@ -102,7 +102,7 @@ void overlay_window_draw(bool window_is_dirty)
     };    
     xQueueSendToBack(_overlay_queue, &om, 0);
     
-    xSemaphoreTake(_ovl_done_sem, portMAX_DELAY);
+//     xSemaphoreTake(_ovl_done_sem, portMAX_DELAY);
 }
 
 
@@ -240,7 +240,6 @@ Window *overlay_window_get_next_window_with_click_config(void)
     OverlayWindow *w;
     list_foreach(w, &_overlay_window_list_head, OverlayWindow, node)
     {
-        SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "asdasdsadsadW OFFSET: %d", w->graphics_context->offset.origin.y);
         if (w->window.click_config_provider)
         {
             return &w->window;
@@ -284,7 +283,6 @@ static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated
          * first get the top normal window. Grab it's click context
          * then restore it. Then configure it. */
         /* next try and find any window */
-SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "NO TOP");
         top_window = overlay_window_stack_get_top_window();
         if (top_window)
         {
@@ -341,8 +339,8 @@ static void _overlay_window_draw(bool window_is_dirty)
             w->is_render_scheduled = false;
         }
     }
-    
-    xSemaphoreGive(_ovl_done_sem);
+    appmanager_post_draw_update(2);
+//     xSemaphoreGive(_ovl_done_sem);
 }
 
 static void _overlay_thread(void *pvParameters)
@@ -358,6 +356,7 @@ static void _overlay_thread(void *pvParameters)
     event_service_subscribe(EventServiceCommandCall, notification_show_incoming_call);
     event_service_subscribe(EventServiceCommandAlert, notification_show_small_message);
     event_service_subscribe(EventServiceCommandNotification, notification_arrived);
+    event_service_subscribe(EventServiceCommandProgress, notification_show_progress);
     
     while(1)
     {
@@ -394,10 +393,8 @@ static void _overlay_thread(void *pvParameters)
                     appmanager_post_draw_message(1);
                     break;
                 case AppMessageOverlayButton:
-                    SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON");
                     assert(data.data && "You MUST provide a valid button message");
                     ButtonMessage *message = (ButtonMessage *)data.data;
-                    SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "BUTTON ACC MCB %x", message->callback);
                     ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
                     appmanager_post_draw_message(1);
                     break;
@@ -405,8 +402,7 @@ static void _overlay_thread(void *pvParameters)
                     break;
                     /* We have an event that the app might want. Lets check */
                 case AppMessageOverlayEvent:
-                    if (appmanager_is_app_shutting_down())
-                        continue;
+                    SYS_LOG("ov", APP_LOG_LEVEL_ERROR, "EV");
 
                     event_service_event_trigger(data.subcommand, data.data, data.context);
                     break;

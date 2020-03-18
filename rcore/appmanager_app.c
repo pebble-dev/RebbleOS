@@ -145,11 +145,6 @@ static void _appmanager_flash_load_app_manifest_n(void)
     
     list_foreach(rs, head, blobdb_result_set, node)
     {
-//         char buf[UUID_STRING_BUFFER_LENGTH];
-//         uuid_to_string(rs->select2, buf);
-//         KERN_LOG("app", APP_LOG_LEVEL_INFO, "appdb: app \"%s\" %x found, Uuid %s", rs->select1, FIELD_SIZEOF(appdb_n, app_uuid), buf);
-
-        
         /* main gets set later */
         _appmanager_add_to_manifest(_appmanager_create_app(rs->select1,
                                                            rs->select2,
