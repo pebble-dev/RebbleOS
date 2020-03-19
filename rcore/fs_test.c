@@ -50,10 +50,12 @@ TEST(fs_two_files) {
     fdp = fs_creat(&fd1, "hello", 5);
     if (!fdp) { *artifact = 1; return TEST_FAIL; }
     fs_write(&fd1, "Hello", 5);
+    fs_mark_written(fdp);
     
     fdp = fs_creat(&fd2, "world", 5);
     if (!fdp) { *artifact = 2; return TEST_FAIL; }
     fs_write(&fd2, "World", 5);
+    fs_mark_written(fdp);
     
     char buf[5];
 
@@ -74,5 +76,55 @@ TEST(fs_two_files) {
     *artifact = 0;
     return TEST_PASS;
 }
+/*
+Tests the file_replacing logic,
+in all of its forms (create a file with contents A; create a file replacing that file with contents B;
+open the file for read and make sure you get contents A; do the 'finish replacing' operation;
+open the file for read and make sure you get contents B;
+*/
+TEST(fs_replace_file_basic) {
+    struct fd fd, *fdp;
+    struct file file;
+    int rv = TEST_PASS;
+
+    *artifact = 0;
+
+    //create a file with contents a
+    fdp = fs_creat(&fd, "hello", 5);
+    if (!fdp) { *artifact = 1; return TEST_FAIL; }
+    fs_write(&fd, "Hello", 5);
+    fs_mark_written(fdp);
+
+    //create a file replacing that file with contents B
+    rv = fs_find_file(&file, "hello");
+    if (rv < 0) { *artifact = 2; return TEST_FAIL; }
+    fdp = fs_creat_replacing(&fd, "hello", 5, &file);
+    fs_write(&fd, "World", 5);
+
+    //open the file for read and make sure you get contents A;
+    char buf[5];
+
+    rv = fs_find_file(&file, "hello");
+    if (rv < 0) { *artifact = 3; return TEST_FAIL; }
+
+    fs_open(&fd, &file);
+    rv = fs_read(&fd, buf, 5);
+    if (memcmp(buf, "Hello", 5)) { *artifact = 4; return TEST_FAIL; }
+
+    //do the 'finish replacing' operation;
+    fs_mark_written(fdp);
+
+    //open the file for read and make sure you get contents B;
+    rv = fs_find_file(&file, "hello");
+    if (rv < 0) { *artifact = 5; return TEST_FAIL; }
+
+    fs_open(&fd, &file);
+    rv = fs_read(&fd, buf, 5);
+    if (memcmp(buf, "World", 5)) { *artifact = 6; return TEST_FAIL; }
+
+    *artifact = 0;
+    return TEST_PASS;
+}
+
 
 #endif
