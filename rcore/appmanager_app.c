@@ -84,23 +84,25 @@ void appmanager_app_loader_init_n()
  * Load any pre-existing apps into the manifest, search for any new ones and then start up
  */
 void appmanager_app_loader_init()
-{   
+{
+    struct file empty = { 0, 0, 0 }; /* TODO: make files optional in `App` to avoid this */
+    
     /* add the baked in apps */
     _appmanager_add_to_manifest(_appmanager_create_app("System", 
                                                        &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1), 
-                                                       AppTypeSystem, systemapp_main, true, NULL, NULL));
+                                                       AppTypeSystem, systemapp_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Simple", 
                                                        &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2), 
-                                                       AppTypeWatchface, simple_main, true, NULL, NULL));
+                                                       AppTypeWatchface, simple_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", 
-                                                       &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3), AppTypeWatchface, nivz_main, true, NULL, NULL));
-//     _appmanager_add_to_manifest(_appmanager_create_app("Settings", AppTypeSystem, test_main, true, NULL, NULL));
+                                                       &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3), AppTypeWatchface, nivz_main, true, &empty, &empty));
+//     _appmanager_add_to_manifest(_appmanager_create_app("Settings", AppTypeSystem, test_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Notification", 
                                                        &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4), 
-                                                       AppTypeSystem, notif_main, true, NULL, NULL));
+                                                       AppTypeSystem, notif_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("TestApp", 
                                                        &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5), 
-                                                       AppTypeSystem, testapp_main, true, NULL, NULL));
+                                                       AppTypeSystem, testapp_main, true, &empty, &empty));
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
@@ -128,9 +130,9 @@ static App *_appmanager_create_app(char *name, Uuid *uuid, uint8_t type, void *e
     app->main = (void*)entry_point;
     app->type = type;
     app->header = NULL;
-    app->app_file = app_file;
-    app->resource_file = resource_file;
-    app->is_internal = is_internal;
+    memcpy(&app->app_file, app_file, sizeof(struct file));
+    memcpy(&app->resource_file, resource_file, sizeof(struct file));
+    appmanager_app_set_flag(app, ExecuteFromInternalFlash, is_internal);
     memcpy(&app->uuid, uuid, sizeof(Uuid));
     
     return app;

@@ -174,6 +174,7 @@ static bool _qemu_handle_packet(void)
         LOG_ERROR("Invalid header signature: %x", header.signature);
         return false;
     }
+    
     if (header.len > QEMU_MAX_DATA_LEN)
     {
         LOG_ERROR("Invalid packet size: %d", header.len);
@@ -204,7 +205,9 @@ static bool _qemu_handle_packet(void)
     }
 
     void *data = buf + sizeof(QemuCommChannelHeader);   
-    handler(data);
+    RebblePacket p = packet_create_with_data(0, data, header.len);
+    handler(p);
+    protocol_free(p);
 
     if (protocol_get_rx_buf_size() > 0)
         return true; /* more work to do */

@@ -76,15 +76,17 @@ static void _progress_window_unload(Window *window)
 static void _progress_window_draw(Layer *layer, GContext *ctx)
 {
     GRect wrect = layer->window->frame;
-    
     notification_progress *prog = (notification_progress *)layer->window->context;
-
+    
+    if (!_visible)
+        return;
+    
     graphics_context_set_fill_color(ctx, GColorBlack);
     graphics_fill_rect(ctx, wrect, 0, GCornerNone);
     ctx->text_color = GColorWhite;
     GRect r = GRect(wrect.origin.x, wrect.origin.y + 20, wrect.size.w, wrect.size.h);
-    
     char buf[100];
+    
     if (_progress_bytes < _total_bytes)
     {
         snprintf(buf, 100, "Downloaded: %d/%d", _progress_bytes, _total_bytes);
@@ -94,7 +96,8 @@ static void _progress_window_draw(Layer *layer, GContext *ctx)
     {
         snprintf(buf, 100, "Done", _progress_bytes, _total_bytes);
         graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_18), wrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
-        notification_reschedule_timer(layer->window, 800);
-    }        
+        notification_reschedule_timer(layer->window, 500);
+        _visible = false;
+    }
 }
 

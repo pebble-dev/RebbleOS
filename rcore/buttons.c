@@ -28,9 +28,10 @@ typedef struct ButtonHolder {
     uint8_t click_thread_affinity_bitfield; /* track which handler is on which thread. Not super ideal but memory efficient. */
 } ButtonHolder;
 
-
-#define STACK_SIZE_BUTTON_THREAD    configMINIMAL_STACK_SIZE + 210
-#define STACK_SIZE_BUTTON_DEBOUNCE  configMINIMAL_STACK_SIZE + 210
+/* These are tuned with the assumption logging is on/present
+ * Stack can be chopped with no logging enabled */
+#define STACK_SIZE_BUTTON_THREAD    configMINIMAL_STACK_SIZE - 30 /* this is tuned for 16 bytes available  */
+#define STACK_SIZE_BUTTON_DEBOUNCE  configMINIMAL_STACK_SIZE - 28 /* ~30-80 bytes free */
 
 static TaskHandle_t _button_debounce_task;
 static StaticTask_t _button_debounce_task_buf;
@@ -302,6 +303,7 @@ static void _button_message_thread(void *pvParameters)
             time_increment = portMAX_DELAY;
         else
             time_increment = pdMS_TO_TICKS(10);
+        
     }
 }
 
@@ -325,6 +327,7 @@ static void _button_debounce_thread(void *pvParameters)
         
         // one last cleardown of our notification just to be sure
         ulTaskNotifyTake(pdTRUE, 0);
+
     }
 }
 

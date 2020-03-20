@@ -204,21 +204,52 @@ bool appmanager_is_thread_worker(void)
     return appmanager_get_thread_type() == AppThreadWorker;
 }
 
+static inline bool _app_executes_from_internal_rom(App *app) {
+    return app->flags & 1 << ExecuteFromInternalFlash;
+}
+
+static inline bool _app_file_present(App *app)
+{
+    return app->flags & 1 << AppFilePresent;
+}
+
+static inline bool _app_resource_file_present(App *app)
+{
+    return app->flags & 1 << ResourceFilePresent;
+}
+
+void appmanager_app_set_flag(App *app, uint8_t flag, bool value)
+{
+    app->flags = (app->flags & ~(1 << flag)) | ((value == true ? 1 : 0) << flag);
+}
+
 static void _draw(uint8_t state)
 {
+    static TickType_t _last_complete_draw = 0;
+    
+    if (_last_complete_draw + pdMS_TO_TICKS(200) < xTaskGetTickCount())
+    {
+        LOG_INFO("We lost a draw packet!");
+        display_buffer_lock_give();
+    }
+    
     switch (state)
     {
         case 0:
             /* Request a draw. This is mostly from an app invalidating something */
             if (display_buffer_lock_take(0))
             {
+                _last_complete_draw = xTaskGetTickCount();
                 if (appmanager_is_app_running())
                     appmanager_post_draw_app_message(1);
                 else
-                    overlay_window_draw(true);
+                    _draw(1);
             }
             else
+            {
+                LOG_INFO("MISS");
                 return;
+            }
             break;
         case 1:            
             if (overlay_window_count() > 0)
@@ -229,6 +260,7 @@ static void _draw(uint8_t state)
         case 2:
             display_draw();
             display_buffer_lock_give();
+            LOG_INFO("Render Time %dms", xTaskGetTickCount() - _last_complete_draw);
             break;
     }
 }
@@ -297,10 +329,10 @@ static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMe
         
         /* If the app is running off RAM (i.e it's a PIC loaded app...) 
         * and not system, we need to patch it */
-        if (!app->is_internal)
+        if (!_app_executes_from_internal_rom(app))
         {
             /* Check to see if we have app and resource files */
-            if (app->app_file == NULL)
+            if (!_app_file_present(app))
             {
                 /* We now request the app from the host device */
                 // XXX TODO APPID
@@ -394,25 +426,22 @@ static void _app_management_thread(void *parms)
                     App *capp = appmanager_get_app_by_uuid(&app_to_load_uuid);
                     assert(capp);
                     char buffer[14];
-                    struct file *app_file = system_calloc(1, sizeof(struct file));
-                    struct file *res_file = system_calloc(1, sizeof(struct file));
-                    struct fd app_fd;
-                    struct fd res_fd;
+
                     snprintf(buffer, 14, "@%08lx/app", 200);
-                    if (fs_find_file(app_file, buffer) < 0)
+                    if (fs_find_file(&capp->app_file, buffer) < 0)
                     {
                         LOG_ERROR("App File %s not found", buffer);
                         return;
                     }
                     snprintf(buffer, 14, "@%08lx/res", 200);
-                    if (fs_find_file(res_file, buffer) < 0)
+                    if (fs_find_file(&capp->resource_file, buffer) < 0)
                     {
                         LOG_ERROR("Res File %s not found", buffer);
                         return;
                     }
+                    appmanager_app_set_flag(capp, AppFilePresent, true);
+                    appmanager_app_set_flag(capp, ResourceFilePresent, true);
                     
-                    capp->app_file = app_file;
-                    capp->resource_file = res_file;
                     LOG_INFO("Download Complete %x", capp);
 
                      _this_thread->status = AppThreadUnloaded;
@@ -534,7 +563,7 @@ int appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
     /* de-fluff */
     memset(thread->heap, 0, thread->heap_size);
 
-    fs_open(&fd, thread->app->app_file);
+    fs_open(&fd, &thread->app->app_file);
     fs_read(&fd, header, sizeof(ApplicationHeader));
 
     /* sanity check the hell out of this to make sure it's a real app */

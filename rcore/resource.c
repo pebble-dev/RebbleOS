@@ -50,7 +50,7 @@ ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
     {
         App *app = appmanager_get_current_app();
         assert(app && "No App?");
-        fs_open(&fd, app->resource_file);
+        fs_open(&fd, &app->resource_file);
         fs_seek(&fd, res_handle, FS_SEEK_SET);
         /* get the resource from the flash.
          * each resource is in a big array in the flash, so we get the offsets for the resouce
@@ -161,7 +161,7 @@ uint8_t *resource_fully_load_id_app(uint32_t resource_id)
 {
     ResHandle res_handle = resource_get_handle(resource_id);
     App *app = appmanager_get_current_app();
-    uint8_t *buffer = resource_fully_load_resource(res_handle, app->resource_file, NULL);
+    uint8_t *buffer = resource_fully_load_resource(res_handle, &app->resource_file, NULL);
 
     return buffer;
 }
@@ -201,7 +201,7 @@ void resource_load(ResHandle resource_handle, uint8_t *buffer, size_t max_length
     App *app = appmanager_get_current_app();
     ResHandleFileHeader _handle = _resource_get_res_handle_header(resource_handle);
 
-    _resource_load_file(_handle, buffer, max_length, app->resource_file);
+    _resource_load_file(_handle, buffer, max_length, &app->resource_file);
 }
 
 size_t resource_load_byte_range(ResHandle res_handle, uint32_t start_offset, uint8_t *buffer, size_t num_bytes)
@@ -222,7 +222,7 @@ size_t resource_load_byte_range(ResHandle res_handle, uint32_t start_offset, uin
     App *app = appmanager_get_current_app();
 
     struct fd fd;
-    fs_open(&fd, app->resource_file);
+    fs_open(&fd, &app->resource_file);
     fs_seek(&fd, APP_RES_START + _handle.offset + 0xC + start_offset, FS_SEEK_SET);
     fs_read(&fd, buffer, num_bytes);
 
@@ -253,6 +253,6 @@ uintptr_t vApplicationStartSyscall(uint16_t syscall_index)
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id)
 {
     App *app = appmanager_get_current_app();
-    return gbitmap_create_with_resource_app(resource_id, app->resource_file);
+    return gbitmap_create_with_resource_app(resource_id, &app->resource_file);
 }
 

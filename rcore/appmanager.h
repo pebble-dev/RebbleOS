@@ -73,11 +73,17 @@ typedef struct ApplicationHeader {
     uint16_t virtual_size;            // The total amount of memory used by the process (.text + .data + .bss)
 } __attribute__((__packed__)) ApplicationHeader;
 
+typedef enum {
+    ExecuteFromInternalFlash,
+    AppFilePresent,
+    ResourceFilePresent,
+} AppFlags;
+
 typedef struct App {
     uint8_t type; // this will be in flags I presume <-- it is. TODO. Hook flags up
-    bool is_internal; // is the app baked into flash
-    struct file *app_file;
-    struct file *resource_file; // the file where we are keeping the resources for this app
+    uint8_t flags;
+    struct file app_file;
+    struct file resource_file; // the file where we are keeping the resources for this app
     char *name;
     Uuid uuid;
     ApplicationHeader *header;

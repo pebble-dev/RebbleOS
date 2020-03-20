@@ -124,6 +124,7 @@ SRCS_all += rcore/protocol/protocol_app.c
 SRCS_all += rcore/protocol/protocol_blob.c
 SRCS_all += rcore/protocol/protocol_call.c
 SRCS_all += rcore/protocol/protocol_music.c
+SRCS_all += rcore/protocol/protocol_transfer.c
 
 SRCS_all += rcore/service/blob_db.c
 SRCS_all += rcore/service/blob_db_test.c
@@ -159,6 +160,7 @@ SRCS_all += rwatch/ui/notifications/notification_window.c
 SRCS_all += rwatch/ui/notifications/battery_overlay.c
 SRCS_all += rwatch/ui/notifications/mini_message.c
 SRCS_all += rwatch/ui/notifications/call_window.c
+SRCS_all += rwatch/ui/notifications/progress_window.c
 SRCS_all += rwatch/ui/vibes.c
 
 SRCS_all += Watchfaces/simple.c
