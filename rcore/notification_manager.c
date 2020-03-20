@@ -12,7 +12,9 @@
 #include "platform_res.h"
 #include "notification_message.h"
 #include "blob_db.h"
+#include "protocol_service.h"
 #include "event_service.h"
+#include "protocol_call.h"
 
 /* Configure Logging */
 #define MODULE_NAME "notym"
@@ -26,6 +28,10 @@ static void _notification_quit_click(ClickRecognizerRef _, void *context);
 extern bool battery_overlay_visible(void);
 extern bool notification_window_overlay_visible(void);
 extern NotificationLayer *notification_window_get_layer(void);
+extern bool call_window_visible(void);
+extern bool progress_window_visible(void);
+extern void progress_window_update_arrived(notification_progress *progress);
+extern void call_window_message_arrived(rebble_phone_message *call);
 
 /*
  * 

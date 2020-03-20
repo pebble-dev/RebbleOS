@@ -3,18 +3,20 @@
 #include "log.h"
 #include "protocol.h"
 #include "test.h"
+#include "protocol_service.h"
+#include "rebble_memory.h"
 
-void other_handler(const uint8_t *data)
+void other_handler(const RebblePacket incoming_packet)
 {
-//     KERN_LOG("QEMU", APP_LOG_LEVEL_INFO, "I got these %d bytes from qemu:", packet_get_data_length(packet));
+//     KERN_LOG("QEMU", APP_LOG_LEVEL_INFO, "I got these %d bytes from qemu:", packet_get_data_length(incoming_packet));
 //     debug_write((const unsigned char *)"\n", 1);
 }
 
-void spp_handler(const uint8_t *data)
+void spp_handler(const RebblePacket incoming_packet)
 {
     RebblePacketDataHeader packet;
     
-    if (!protocol_parse_packet(data, &packet, qemu_send_data))
+    if (!protocol_parse_packet(packet_get_data(incoming_packet), &packet, qemu_send_data))
         return; // we are done, no point looking as we have no data left
 
     /* seems legit. We have a valid packet. Create a data packet and process it */

@@ -300,13 +300,13 @@ void blobdb_resultset_destroy(list_head *lh)
         list_remove(lh, n);
 
         blobdb_result_set *set = list_elem(n, blobdb_result_set, node);
-        app_free(set->select1);
-        app_free(set->select2);
-        app_free(set);
+        free(set->select1);
+        free(set->select2);
+        free(set);
 
         n = list_get_head(lh);
     }
-    app_free(lh);
+    free(lh);
 }
 
 int32_t _blob_db_flash_load_blob(const database *db, uint8_t *key, uint8_t key_size, uint8_t **data)

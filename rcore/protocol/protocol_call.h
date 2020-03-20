@@ -27,3 +27,11 @@ enum {
 
 
 void protocol_phone_message_process(const RebblePacket packet);
+rebble_phone_message *protocol_phone_create(uint8_t *data, uint16_t length);
+void protocol_phone_destroy(rebble_phone_message *msg);
+
+/* Client API */
+void protocol_phone_answer();
+void protocol_phone_hangup();
+void protocol_phone_get_state();
+void protocol_phone_message_send(uint8_t command_id, uint32_t cookie, bool needs_ack);

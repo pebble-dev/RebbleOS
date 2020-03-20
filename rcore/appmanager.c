@@ -308,7 +308,7 @@ static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMe
                 _this_thread->status = AppThreadDownloading;
                 
                 notification_progress *prog = system_calloc(1, sizeof(notification_progress));
-                event_service_post(EventServiceCommandProgress, prog, system_free);
+                event_service_post(EventServiceCommandProgress, prog, (void *)system_free);
                 
                 LOG_INFO("Requesting App from host %x", app);
                 return;
@@ -540,7 +540,7 @@ int appmanager_load_app(app_running_thread *thread, ApplicationHeader *header)
     /* sanity check the hell out of this to make sure it's a real app */
     if (strncmp(header->header, "PBLAPP", 6))
     {
-        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "No PBLAPP header! %x", (char)&header->header[0]);
+        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "No PBLAPP header!");
         return AppInvalid;
     }
     /* load the app from flash

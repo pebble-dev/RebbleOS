@@ -7,6 +7,7 @@
 #include "rebbleos.h"
 #include "protocol.h"
 #include "pebble_protocol.h"
+#include "overlay_manager.h"
 #include "event_service.h"
 
 /* Configure Logging */
@@ -122,33 +123,39 @@ bool event_service_post(EventServiceCommand command, void *data, DestroyEventPro
     {
         LOG_ERROR("Queue Full! Not processing");
         destroy_callback(data);
+        return false;
     }
+    
+    return true;
 }
 
 void event_service_event_trigger(EventServiceCommand command, void *data, DestroyEventProc destroy_callback)
 {
+    DestroyEventProc destroy = destroy_callback;
+    
+    if (destroy_callback)
+        destroy = MK_THUMB_CB(destroy_callback);
+    
     app_running_thread *_this_thread = appmanager_get_current_thread();
     event_service_subscriber *conn;
     list_foreach(conn, &_subscriber_list_head, event_service_subscriber, node)
     {
         if (conn->command == command)
         {
-//             LOG_INFO("Triggering %x %x %x", data, destroy_callback, conn->callback);
+//             LOG_INFO("Triggering %x %x %x", data, destroy, conn->callback);
             if (conn->thread == _this_thread && conn->callback)
                 conn->callback(command, data, conn->context);
             
             /* Step 2. App processing done, post it to overlay thread */
             if (_this_thread->thread_type == AppThreadMainApp)
-                overlay_window_post_event(command, data, destroy_callback);
+                overlay_window_post_event(command, data, destroy);
                 
             /* Step 3. if we are the overlay thread, then destroy this packet */
             else if (_this_thread->thread_type == AppThreadOverlay)
             {
-                if (destroy_callback)
-                {
-                    destroy_callback = MK_THUMB_CB(destroy_callback);
-                    destroy_callback(data);
-                }
+                if (destroy)
+                    destroy(data);
+                    
                 appmanager_post_draw_message(1);
             }
         }

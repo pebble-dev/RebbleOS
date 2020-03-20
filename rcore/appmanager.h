@@ -73,8 +73,6 @@ typedef struct ApplicationHeader {
     uint16_t virtual_size;            // The total amount of memory used by the process (.text + .data + .bss)
 } __attribute__((__packed__)) ApplicationHeader;
 
-
-
 typedef struct App {
     uint8_t type; // this will be in flags I presume <-- it is. TODO. Hook flags up
     bool is_internal; // is the app baked into flash
@@ -201,6 +199,7 @@ bool appmanager_is_app_running(void);
 bool appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
 void appmanager_timer_expired(app_running_thread *thread);
 TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);
+
 /* in appmanager_app.c */
 App *appmanager_get_app(char *app_name);
 void appmanager_app_loader_init(void);
@@ -213,3 +212,4 @@ typedef void* ClickRecognizerRef;
 void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
 App *appmanager_get_app_by_uuid(Uuid *uuid);
 
+void appmanager_post_draw_app_message(uint8_t force);

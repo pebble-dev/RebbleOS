@@ -70,7 +70,7 @@ typedef struct appdb_n
     uint8_t app_name[32];
     uint8_t unk_arr_company[32];  // always blank
     uint8_t unk_arr[32]; // always blank
-} appdb_n __attribute__((__packed__));
+} __attribute__((__packed__)) appdb_n ;
 
 static list_head _app_manifest_head = LIST_HEAD(_app_manifest_head);
 
@@ -89,12 +89,18 @@ void appmanager_app_loader_init()
     _appmanager_add_to_manifest(_appmanager_create_app("System", 
                                                        &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1), 
                                                        AppTypeSystem, systemapp_main, true, NULL, NULL));
-    _appmanager_add_to_manifest(_appmanager_create_app("Simple", &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2), 
+    _appmanager_add_to_manifest(_appmanager_create_app("Simple", 
+                                                       &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2), 
                                                        AppTypeWatchface, simple_main, true, NULL, NULL));
-    _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", NULL, AppTypeWatchface, nivz_main, true, NULL, NULL));
+    _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", 
+                                                       &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,3), AppTypeWatchface, nivz_main, true, NULL, NULL));
 //     _appmanager_add_to_manifest(_appmanager_create_app("Settings", AppTypeSystem, test_main, true, NULL, NULL));
-    _appmanager_add_to_manifest(_appmanager_create_app("Notification", NULL, AppTypeSystem, notif_main, true, NULL, NULL));
-    _appmanager_add_to_manifest(_appmanager_create_app("TestApp", NULL, AppTypeSystem, testapp_main, true, NULL, NULL));
+    _appmanager_add_to_manifest(_appmanager_create_app("Notification", 
+                                                       &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,4), 
+                                                       AppTypeSystem, notif_main, true, NULL, NULL));
+    _appmanager_add_to_manifest(_appmanager_create_app("TestApp", 
+                                                       &UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,5), 
+                                                       AppTypeSystem, testapp_main, true, NULL, NULL));
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
@@ -146,8 +152,8 @@ static void _appmanager_flash_load_app_manifest_n(void)
     list_foreach(rs, head, blobdb_result_set, node)
     {
         /* main gets set later */
-        _appmanager_add_to_manifest(_appmanager_create_app(rs->select1,
-                                                           rs->select2,
+        _appmanager_add_to_manifest(_appmanager_create_app((char *)rs->select1,
+                                                           (Uuid *)rs->select2,
                                                            //((uint16_t)rs->select2 & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
                                                            AppTypeWatchface,
                                                            NULL,
@@ -156,7 +162,7 @@ static void _appmanager_flash_load_app_manifest_n(void)
                                                            NULL));
     }
     
-//     blobdb_resultset_destroy(head);
+    blobdb_resultset_destroy(head);
 }
 
 /*

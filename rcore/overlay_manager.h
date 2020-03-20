@@ -168,7 +168,7 @@ bool overlay_window_stack_remove(OverlayWindow *overlay_window, bool animated);
  */ 
 Window *overlay_window_get_next_window_with_click_config(void);
 
-
+void overlay_window_post_event(uint8_t command, void *data, DestroyEventProc destroy_callback);
 
 
 void overlay_await_draw_complete(void);

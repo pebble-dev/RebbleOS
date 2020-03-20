@@ -2,6 +2,7 @@
 
 #include <stddef.h>
 #include <stdbool.h>
+#include "uuid.h"
 
 typedef void (*ProtocolTransportSender)(uint16_t endpoint, uint8_t *data, uint16_t len);
 
@@ -76,12 +77,7 @@ typedef enum  {
 
 void protocol_app_run_state(const RebblePacket packet);
 void protocol_app_fetch(const RebblePacket packet);
-
-
-
-
 void protocol_process_blobdb(const RebblePacket packet);
 void protocol_process_timeline_action_response(const RebblePacket packet);
-
-
 void protocol_process_transfer(const RebblePacket packet);
+void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id);

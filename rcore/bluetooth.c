@@ -38,6 +38,7 @@
 #include "stdarg.h"
 #include "connection_service.h"
 #include "protocol.h"
+#include "protocol_service.h"
 
 /* Stack sizes of the threads */
 #define STACK_SZ_CMD configMINIMAL_STACK_SIZE + 600
