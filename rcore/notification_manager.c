@@ -5,7 +5,7 @@
  * 
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
-#include "rebbleos.h"
+#include "main.h"
 #include "protocol_notification.h"
 #include "notification_manager.h"
 #include "overlay_manager.h"

@@ -4,8 +4,7 @@
  *
  * Author: Joshua Wise <joshua@joshuawise.com>
  */
-
-#include "rebbleos.h"
+#include "main.h"
 #include "strftime.h"
 #include "prefs.h"
 

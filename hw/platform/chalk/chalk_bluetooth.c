@@ -1,4 +1,5 @@
-#include "rebbleos.h"
+#include "rbl_bluetooth.h"
+#include "init.h"
 
 /*
  * NOT IMPLEMENTED

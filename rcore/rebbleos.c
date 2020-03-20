@@ -4,11 +4,13 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
+#include "main.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "stdio.h"
-#include "rebbleos.h"
+#include "rbl_bluetooth.h"
+#include "settings.h"
+#include "init.h"
 #include "watchdog.h"
 #include "ngfxwrap.h"
 #include "overlay_manager.h"
@@ -19,6 +21,7 @@
 #include "rtoswrap.h"
 #include "test.h"
 #include "service.h"
+#include "flash.h"
 
 typedef uint8_t (*mod_callback)(void);
 // static TaskHandle_t _os_task;

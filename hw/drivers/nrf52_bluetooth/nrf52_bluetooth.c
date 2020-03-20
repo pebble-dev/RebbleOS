@@ -6,8 +6,10 @@
  */
 
 #include <debug.h>
-#include "rebbleos.h"
+#include <stdint.h>
+#include "log.h"
 #include "service.h"
+#include "rbl_bluetooth.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_ble_gatt.h"

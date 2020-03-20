@@ -5,8 +5,7 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
-#include "rebbleos.h"
+#include "display.h"
 #include "menu.h"
 #include "status_bar_layer.h"
 #include "test_defs.h"
@@ -14,7 +13,7 @@
 
 static Window *s_main_window;
 static Menu *s_menu;
-StatusBarLayer *status_bar;
+static StatusBarLayer *status_bar;
 
 static void testapp_exec_window_unload(Window *window);
 static void _reset_menu_items(void);

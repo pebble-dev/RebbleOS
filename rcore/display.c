@@ -15,10 +15,10 @@
  *   This must be run in the scheduler, not before.
  *  
  */
- 
-#include "rebbleos.h"
+#include "display.h"
+#include "init.h"
 #include "appmanager.h"
-
+#include "semphr.h"
 /* Semaphore to start drawing */
 static SemaphoreHandle_t _display_start_sem;
 static StaticSemaphore_t _display_start_sem_buf;

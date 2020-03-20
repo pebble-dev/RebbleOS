@@ -5,8 +5,10 @@
  * Author: Joshua Wise <joshua@joshuawise.com>
  */
 
+#include "FreeRTOSConfig.h"
+#include "log.h"
+#include "platform.h"
 #include <debug.h>
-#include "rebbleos.h"
 #include "nrfx_qspi.h"
 
 /* Asterix has 128Mbit (16MB) of QSPI flash -- a W25Q128JV. */

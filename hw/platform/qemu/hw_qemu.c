@@ -3,7 +3,6 @@
 #include "hw_qemu.h"
 #include "stm32_usart.h"
 #include "stm32_power.h"
-#include "rebbleos.h"
 
 void _hw_qemu_rx(void);
 

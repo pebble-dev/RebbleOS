@@ -1,4 +1,4 @@
-#include "rebbleos.h"
+#include "main.h"
 #include "protocol_notification.h"
 #include "notification_manager.h"
 #include "platform_res.h"

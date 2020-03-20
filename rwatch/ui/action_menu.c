@@ -7,8 +7,7 @@
  * Author: Carson Katri <me@carsonkatri.com>.
  * Author: Hermann Noll <hermann.noll@hotmail.com>
  */
-
-#include "rebbleos.h"
+#include "display.h"
 #include "action_menu.h"
 #include "menu_layer.h"
 #include "pebble_defines.h"

@@ -8,7 +8,6 @@
 #include <stdbool.h>
 #include "vibes.h"
 #include "vibrate.h"
-#include "rebbleos.h"
 
 const static VibratePattern_t short_pattern = {
     .length = 1,

@@ -4,5 +4,4 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
-#include "rebbleos.h"
+#include "display.h"

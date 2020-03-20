@@ -4,8 +4,8 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
+#include "main.h"
 #include <stdlib.h>
-#include "rebbleos.h"
 #include "appmanager.h"
 #include "test.h"
 #include "protocol.h"

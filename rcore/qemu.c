@@ -9,11 +9,13 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "log.h"
-#include "rebbleos.h"
+#include "init.h"
 #include "endpoint.h"
 #include "protocol.h"
 #include "protocol_service.h"
+#include "rebble_memory.h"
 
+#include "semphr.h"
 /* Configure Logging */
 #define MODULE_NAME "qemu"
 #define MODULE_TYPE "SYS"

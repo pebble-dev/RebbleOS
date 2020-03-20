@@ -4,8 +4,7 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
-#include "rebbleos.h"
+#include "main.h"
 #include "platform.h"
 #include "flash.h"
 

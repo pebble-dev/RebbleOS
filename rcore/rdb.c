@@ -1,15 +1,21 @@
-/* rdb.c
+ /* rdb.c
  * {rebble, record, [un]reliable} database: a key-value record store in flash
  * libRebbleOS
  *
  * Authors: Barry Carter <barry.carter@gmail.com>
  *          Joshua Wise <joshua@joshuawise.com>
  */
-#include "rebbleos.h"
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
+#include "FreeRTOS.h"
+#include "task.h"
+#include "log.h"
 #include "protocol_system.h"
 #include "pebble_protocol.h"
 #include "node_list.h"
 #include "timeline.h"
+#include "rebble_memory.h"
 #include "rdb.h"
 
 /* Configure Logging */

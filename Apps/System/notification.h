@@ -6,7 +6,6 @@
  * Author: Carson Katri <me@carsonkatri.com>.
  */
 
-#include "rebbleos.h"
 #include "librebble.h"
 #include "display.h"
 #include "backlight.h"

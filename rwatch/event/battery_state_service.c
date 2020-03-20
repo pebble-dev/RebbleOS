@@ -4,7 +4,7 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  *
  */
-
+#include "main.h"
 #include "librebble.h"
 #include "ngfxwrap.h"
 #include "battery_state_service.h"

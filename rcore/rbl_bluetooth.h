@@ -1,6 +1,7 @@
 #pragma once
 #include "stdbool.h"
 #include "platform.h"
+#include <stddef.h>
 
 #define TX_TIMEOUT_MS 10
 
@@ -81,3 +82,8 @@ extern void ble_ppogatt_set_callback_rx(ble_ppogatt_callback_rx_t cbk);
 extern void ble_ppogatt_set_callback_disconnected(ble_ppogatt_callback_disconnected_t cbk);
 
 #endif
+
+#define INIT_RESP_OK            0
+#define INIT_RESP_ASYNC_WAIT    1
+#define INIT_RESP_NOT_SUPPORTED 2
+#define INIT_RESP_ERROR         3

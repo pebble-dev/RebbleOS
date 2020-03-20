@@ -6,7 +6,8 @@
  */
 
 #include <debug.h>
-#include "rebbleos.h"
+#include "FreeRTOSConfig.h"
+#include "rebble_time.h"
 #include "nrf_delay.h"
 #include "nrfx_uart.h"
 #include "nrfx_twi.h"

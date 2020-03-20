@@ -6,8 +6,11 @@
  * Author: Joshua Wise <joshua@joshuawise.com>
  */
 
+#include <stdint.h>
+#include <stdio.h>
 #include "debug.h"
-#include "rebbleos.h"
+
+typedef uint32_t ret_code_t;
 
 struct {
     uint32_t r4, r5, r6, r7, r8, r9, r10, r11, r13;

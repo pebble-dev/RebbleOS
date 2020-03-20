@@ -5,7 +5,6 @@
  * Author: Joshua Wise <joshua@joshuawise.com>
  */
 
-#include "rebbleos.h"
 #include "menu.h"
 #include "status_bar_layer.h"
 #include "action_bar_layer.h"

@@ -6,9 +6,11 @@
  * 
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
-
+#include "rebble_memory.h"
 #include <stdlib.h>
 #include "appmanager_thread.h"
+#include "display.h"
+#include "librebble.h"
 #include "appmanager.h"
 
 #include "systemapp.h"

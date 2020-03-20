@@ -6,13 +6,15 @@
  */
 
 #include <stdlib.h>
-#include "rebbleos.h"
+#include "display.h"
 #include "appmanager.h"
+#include "main.h"
 #include "overlay_manager.h"
 #include "notification_manager.h"
 #include "timers.h"
 #include "ngfxwrap.h"
 #include "event_service.h"
+
 
 /* Configure Logging */
 #define MODULE_NAME "apploop"

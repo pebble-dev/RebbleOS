@@ -5,8 +5,7 @@
  * Author: Carson Katri <me@carsonkatri.com>
  *         Barry Carter <barry.carter@gmail.com>
  */
-
-#include "rebbleos.h"
+#include "display.h"
 #include "notification.h"
 #include "single_notification_layer.h"
 #include "librebble.h"

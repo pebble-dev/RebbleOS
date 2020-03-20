@@ -5,7 +5,9 @@
  * Author: Joshua Wise <joshua@joshuawise.com>
  */
 
-#include "rebbleos.h"
+#include <assert.h>
+#include "FreeRTOSConfig.h"
+#include "log.h"
 #include "nrfx_spim.h"
 #include "nrf_gpio.h"
 #include "board_config.h"

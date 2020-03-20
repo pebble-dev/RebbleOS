@@ -4,8 +4,8 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
+#include "main.h"
 
-#include "rebbleos.h"
 #include "minilib.h"
 #include "rtoswrap.h"
 
@@ -23,6 +23,7 @@ static void _log_entry(void *arg) {
     }
 }
 THREAD_DEFINE(log, 300, tskIDLE_PRIORITY + 10UL, _log_entry);
+extern int vsfmt(char *buf, unsigned int len, const char *ifmt, va_list ap);
 
 void log_onpanic_dump() {
     log_clock_enable();

@@ -2,13 +2,15 @@
  * tests for rdb database
  * RebbleOS
  */
-#include "rebbleos.h"
+#include <stdint.h>
+#include "rebble_memory.h"
 #include "protocol_system.h"
 #include "pebble_protocol.h"
 #include "node_list.h"
 #include "timeline.h"
 #include "rdb.h"
 #include "test.h"
+#include "log.h"
 #include "debug.h"
 
 #define MODULE_NAME "rdb"

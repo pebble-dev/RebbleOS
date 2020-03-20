@@ -4,8 +4,7 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
-#include "rebbleos.h"
+#include "display.h"
 #include "librebble.h"
 #include "platform_res.h"
 

@@ -19,8 +19,9 @@
  * Each request requires an (N)ACK
  */
 #include <stdlib.h>
-#include "rebbleos.h"
-#include "protocol_system.h"
+#include <stdint.h>
+#include "main.h"
+#include "notification_manager.h"
 #include "pebble_protocol.h"
 #include "protocol_service.h"
 #include "notification_manager.h"

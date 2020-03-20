@@ -39,6 +39,7 @@
 #include "appmanager.h"
 #include "FreeRTOS.h"
 #include "animation.h"
+#include "rebble_util.h"
 
 /* Configure Logging */
 #define MODULE_NAME "anim"

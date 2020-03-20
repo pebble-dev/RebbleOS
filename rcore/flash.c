@@ -4,10 +4,12 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
-#include "rebbleos.h"
+#include "FreeRTOS.h"
+#include "display.h"
 #include "platform.h"
+#include "semphr.h"
 #include "flash.h"
+#include <string.h>
 #include "fs.h"
 
 extern void hw_flash_init(void);
