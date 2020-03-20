@@ -32,14 +32,11 @@ void appmanager_app_start_by_uuid(Uuid *uuid)
     App * app = appmanager_get_app_by_uuid(uuid);
     
     assert(app);
-
-    Uuid *nuuid = system_calloc(1, sizeof(Uuid));
-    memcpy(nuuid, uuid, sizeof(Uuid));
     
     AppMessage am = (AppMessage) {
-        .command = THREAD_MANAGER_APP_LOAD_UUID,
+        .command = THREAD_MANAGER_APP_LOAD_ID,
         .thread_id = AppThreadMainApp,
-        .data = nuuid
+        .data = (void *)(uint32_t)app->id
     };
     appmanager_post_generic_thread_message(&am, 100);
 }

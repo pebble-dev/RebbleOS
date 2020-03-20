@@ -60,6 +60,8 @@ uint16_t blobdb_select_items2(uint8_t database_id,  list_head *head,
                             uint8_t *where_val1, Blob_Operator operator1);
 
 typedef struct blobdb_result_set_t {
+    uint8_t *key;
+    uint16_t key_size;
     uint8_t *select1;
     uint16_t select1_size;
     uint8_t *select2;

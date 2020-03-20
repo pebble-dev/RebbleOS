@@ -68,9 +68,18 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     void *val_sz_start = (void *)blob + sizeof(pcol_blob_db_key) + blob->key_size;
     uint8_t val_sz = *((uint8_t *)val_sz_start);
 
-    printf("  ValueSize: %d,\n", val_sz);
+    printf("  ValueSize: %d, %d\n", val_sz, blob->key_size);
     void *val_start = val_sz_start + sizeof(iblob->value_size);
 
+    /* Pre-process */
+    if (blob->blobdb.database_id == BlobDatabaseID_App)
+    {
+        /* Apps keys are the app id. Get one and monkey with the key */
+        uint32_t newappid = 100; //appmanager_get_next_appid();
+        memcpy(blob->key, &newappid, 4);
+        blob->key_size = 4;
+    }
+        
     /* insert to database */
     blobdb_insert(blob->blobdb.database_id, blob->key, blob->key_size, val_start, val_sz);
 

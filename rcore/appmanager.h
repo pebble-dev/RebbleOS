@@ -85,6 +85,7 @@ typedef struct App {
     struct file app_file;
     struct file resource_file; // the file where we are keeping the resources for this app
     char *name;
+    uint32_t id;
     Uuid uuid;
     ApplicationHeader *header;
     AppMainHandler main; // A shortcut to main
@@ -139,12 +140,11 @@ typedef enum AppThreadType {
 } AppThreadType;
 
 
-#define THREAD_MANAGER_APP_LOAD       0
-#define THREAD_MANAGER_APP_LOAD_UUID  1
-#define THREAD_MANAGER_APP_QUIT_CLEAN 2
-#define THREAD_MANAGER_APP_DOWNLOAD_COMPLETE 3
-#define THREAD_MANAGER_APP_DOWNLOAD_PROGRESS 4
-#define THREAD_MANAGER_APP_DRAW              5
+#define THREAD_MANAGER_APP_LOAD_ID           0
+#define THREAD_MANAGER_APP_QUIT_CLEAN        1
+#define THREAD_MANAGER_APP_DOWNLOAD_COMPLETE 2
+#define THREAD_MANAGER_APP_DOWNLOAD_PROGRESS 3
+#define THREAD_MANAGER_APP_DRAW              4
 
 /* This struct hold all information about the task that is executing
  * There are many runing apps, such as main app, worker or background.
@@ -216,6 +216,6 @@ void timer_init(void);
 
 typedef void* ClickRecognizerRef;
 void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
-App *appmanager_get_app_by_uuid(Uuid *uuid);
+App *appmanager_get_app_by_id(uint32_t id);
 
 void appmanager_post_draw_app_message(uint8_t force);

@@ -225,7 +225,6 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
                             uint8_t *where_val1, Blob_Operator operator1)
 {
     int idx = 0;
-    char buf[UUID_STRING_BUFFER_LENGTH];
     const database *db = _find_database(database_id);
     struct blobdb_hdr hdr;
 
@@ -282,6 +281,11 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
                 fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + select2_offsetof_property, FS_SEEK_SET);
                 fs_read(fd, set->select2, select2_property_size);
             }
+            
+            set->key_size = hdr.key_len;
+            set->key = calloc(1, hdr.key_len);
+            fs_seek(fd, idx + sizeof(struct blobdb_hdr), FS_SEEK_SET);
+            fs_read(fd, set->key, hdr.key_len);
 
             list_insert_tail(head, &set->node);
         }
@@ -302,6 +306,7 @@ void blobdb_resultset_destroy(list_head *lh)
         blobdb_result_set *set = list_elem(n, blobdb_result_set, node);
         free(set->select1);
         free(set->select2);
+        free(set->key);
         free(set);
 
         n = list_get_head(lh);

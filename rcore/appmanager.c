@@ -229,7 +229,7 @@ static void _draw(uint8_t state)
     
     if (_last_complete_draw + pdMS_TO_TICKS(200) < xTaskGetTickCount())
     {
-        LOG_INFO("We lost a draw packet!");
+        LOG_ERROR("We lost a draw packet!");
         display_buffer_lock_give();
     }
     
@@ -247,7 +247,7 @@ static void _draw(uint8_t state)
             }
             else
             {
-                LOG_INFO("MISS");
+                LOG_DEBUG("Lock Not Acquired");
                 return;
             }
             break;
@@ -265,7 +265,7 @@ static void _draw(uint8_t state)
     }
 }
 
-static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMessage *am)
+static void _appmanager_thread_state_update(uint32_t app_id, uint8_t thread_id, AppMessage *am)
 {
     app_running_thread *_this_thread = NULL;
     uint32_t total_app_size = 0;
@@ -287,11 +287,7 @@ static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMe
     }
     else if (_this_thread->status == AppThreadUnloaded)
     {
-        LOG_INFO("Ready to start App");
-    
-        char buf[UUID_STRING_BUFFER_LENGTH];
-        uuid_to_string(uuid, buf);
-        LOG_INFO("Starting app %s", buf);
+        LOG_INFO("Starting app %d", app_id);
         _this_thread->status = AppThreadLoading;
             
         /*  TODO reset clicks */
@@ -304,12 +300,12 @@ static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMe
             return;
         }
 
-        App *app = appmanager_get_app_by_uuid(uuid);
+        App *app = appmanager_get_app_by_id(app_id);
         LOG_INFO("Starting app %s", app->name);
         
         if (app == NULL)
         {
-            LOG_ERROR("App %x NOT found!", uuid);
+            LOG_ERROR("App %d NOT found!", app_id);
             assert(!"App not found!");
             return;
         }
@@ -335,8 +331,7 @@ static void _appmanager_thread_state_update(Uuid *uuid, uint8_t thread_id, AppMe
             if (!_app_file_present(app))
             {
                 /* We now request the app from the host device */
-                // XXX TODO APPID
-                protocol_app_fetch_request(&app->uuid, 200);
+                protocol_app_fetch_request(&app->uuid, app->id);
                 _this_thread->status = AppThreadDownloading;
                 
                 notification_progress *prog = system_calloc(1, sizeof(notification_progress));
@@ -382,7 +377,7 @@ static void _app_management_thread(void *parms)
     char *app_name;
     AppMessage am;
     app_running_thread *_this_thread = NULL;
-    Uuid app_to_load_uuid = UuidMake(0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1);
+    uint32_t _app_to_load_id = 1;
     
     for( ;; )
     {
@@ -393,28 +388,11 @@ static void _app_management_thread(void *parms)
             switch(am.command)
             {
                 /* Load an app for someone. face or worker */
-                case THREAD_MANAGER_APP_LOAD_UUID:
-                    LOG_INFO("Quitting...");
-                    Uuid *uuid = (Uuid *)am.data;
-                    memcpy(&app_to_load_uuid, uuid, sizeof(Uuid));
-                    system_free(uuid);
-                    if (_this_thread->status != AppThreadUnloaded)
-                    {
-                        appmanager_app_quit();
-                        _this_thread->status = AppThreadUnloading;
-                    }
-                    break;
-                case THREAD_MANAGER_APP_LOAD:
-                    app_name = (char *)am.data;
-                    if (app_manager_get_apps_head() == NULL)
-                    {
-                        LOG_ERROR("No Apps found!");
-                        assert(!"No Apps");
-                        return;
-                    }
-                    
-                    App *app = appmanager_get_app(app_name);
-                    memcpy(&app_to_load_uuid, &app->uuid, sizeof(Uuid));
+                case THREAD_MANAGER_APP_LOAD_ID:
+                    LOG_INFO("Quitting... %d", *(uint32_t *)am.data);
+                    uint32_t id = am.data;
+                    assert(id == 100);
+                    _app_to_load_id = id;
                     if (_this_thread->status != AppThreadUnloaded)
                     {
                         appmanager_app_quit();
@@ -422,21 +400,23 @@ static void _app_management_thread(void *parms)
                     }
                     break;
                 case THREAD_MANAGER_APP_DOWNLOAD_COMPLETE:
-                    LOG_INFO("Download Complete %x", app_to_load_uuid);
-                    App *capp = appmanager_get_app_by_uuid(&app_to_load_uuid);
+                    LOG_INFO("Download Complete %d", id);
+                    App *capp = appmanager_get_app_by_id(_app_to_load_id);
                     assert(capp);
                     char buffer[14];
 
-                    snprintf(buffer, 14, "@%08lx/app", 200);
+                    snprintf(buffer, 14, "@%08lx/app", capp->id);
                     if (fs_find_file(&capp->app_file, buffer) < 0)
                     {
                         LOG_ERROR("App File %s not found", buffer);
+                        appmanager_app_set_flag(capp, AppFilePresent, false);
                         return;
                     }
-                    snprintf(buffer, 14, "@%08lx/res", 200);
+                    snprintf(buffer, 14, "@%08lx/res", capp->id);
                     if (fs_find_file(&capp->resource_file, buffer) < 0)
                     {
                         LOG_ERROR("Res File %s not found", buffer);
+                        appmanager_app_set_flag(capp, ResourceFilePresent, false);
                         return;
                     }
                     appmanager_app_set_flag(capp, AppFilePresent, true);
@@ -466,7 +446,7 @@ static void _app_management_thread(void *parms)
                     break;
             }
             
-            _appmanager_thread_state_update(&app_to_load_uuid, am.thread_id, &am);
+            _appmanager_thread_state_update(_app_to_load_id, am.thread_id, &am);
         }
         else
         {
