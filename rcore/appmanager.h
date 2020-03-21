@@ -213,6 +213,7 @@ App *appmanager_get_app_by_name(char *app_name);
 App *appmanager_get_app_by_id(uint32_t id);
 App *appmanager_get_app_by_uuid(Uuid *uuid);
 void appmanager_app_loader_init(void);
+uint32_t appmanager_get_next_appid(void);
 
 void rocky_event_loop_with_resource(uint16_t resource_id);
 

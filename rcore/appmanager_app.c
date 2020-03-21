@@ -298,19 +298,14 @@ list_head *app_manager_get_apps_head()
  */
 App *appmanager_get_app_by_name(char *app_name)
 {
-   // find the app
-   App * app;
-   // now find the matching
-   list_foreach(app, &_app_manifest_head, App, node)
-   {
+    App * app;
+    list_foreach(app, &_app_manifest_head, App, node)
+    {
         if (!strncmp(app->name, (char *)app_name, strlen(app->name)))
-        {
-            // match!
             return app;
-        }
-   }
-   KERN_LOG("app", APP_LOG_LEVEL_ERROR, "NO App Found %s", app_name);
-   return NULL;
+    }
+    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "NO App Found %s", app_name);
+    return NULL;
 }
 
 
@@ -319,26 +314,37 @@ App *appmanager_get_app_by_name(char *app_name)
  */
 App *appmanager_get_app_by_id(uint32_t id)
 {
-   App * app;
-   // now find the matching
-   list_foreach(app, &_app_manifest_head, App, node)
-   {
+    App * app;
+    list_foreach(app, &_app_manifest_head, App, node)
+    {
         if (app->id == id)
             return app;
-   }
+    }
 
-   return NULL;
+    return NULL;
 }
 
 App *appmanager_get_app_by_uuid(Uuid *uuid)
 {
-   App * app;
-
-   list_foreach(app, &_app_manifest_head, App, node)
-   {
+    App * app;
+    list_foreach(app, &_app_manifest_head, App, node)
+    {
         if (uuid_equal(&app->uuid, uuid))
             return app;
-   }
+    }
 
-   return NULL;
+    return NULL;
+}
+
+uint32_t appmanager_get_next_appid(void)
+{
+    App * app;
+    uint32_t max = 0;
+    list_foreach(app, &_app_manifest_head, App, node)
+    {
+        if (app->id > max && app->id < 9000)
+            max = app->id;
+    }
+    KERN_LOG("app", APP_LOG_LEVEL_INFO, "Max app id found %d", max + 1);
+    return max + 1;
 }

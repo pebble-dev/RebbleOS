@@ -76,7 +76,7 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     if (blob->blobdb.database_id == BlobDatabaseID_App)
     {
         /* Apps keys are the app id. Get one and monkey with the key */
-        uint32_t newappid = 100; //appmanager_get_next_appid();
+        uint32_t newappid = appmanager_get_next_appid();
         memcpy(blob->key, &newappid, 4);
         blob->key_size = 4;
     }
