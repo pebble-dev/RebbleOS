@@ -34,43 +34,6 @@ uint8_t resource_init()
     return 0;
 }
 
-/* We pass around a pointer to the block of flash or memory where the resource lives */
-ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
-{
-    ResHandleFileHeader new_header;
-    struct fd fd;
-    uint8_t is_system = res_handle > REGION_RES_START + RES_TABLE_START &&
-                        res_handle < REGION_RES_START + RES_TABLE_START + ((254) * sizeof(ResHandleFileHeader));
-
-    if (is_system)
-    {
-        flash_read_bytes(res_handle, (uint8_t *)&new_header, sizeof(ResHandleFileHeader));
-    }
-    else
-    {
-        App *app = appmanager_get_current_app();
-        assert(app && "No App?");
-        fs_open(&fd, &app->resource_file);
-        fs_seek(&fd, res_handle, FS_SEEK_SET);
-        /* get the resource from the flash.
-         * each resource is in a big array in the flash, so we get the offsets for the resouce
-         * by multiplying out by the size of each resource */
-        fs_read(&fd, &new_header, sizeof(ResHandleFileHeader));
-    }
-
-//    LOG_DEBUG("Resource sys:%d idx:%d adr:0x%x sz:%d", is_system, new_header.index, new_header.offset, new_header.size);
-
-    // sanity check the resource
-    if (!_resource_is_sane(&new_header))
-    {
-        LOG_ERROR("Res: Resource is not sane, size of  %d", new_header.size);
-		return;
-    }
-
-    return new_header;
-}
-
-
 bool _resource_is_sane(ResHandleFileHeader *res_handle)
 {
     size_t sz = res_handle->size;
@@ -95,84 +58,6 @@ bool _resource_is_sane(ResHandleFileHeader *res_handle)
     return true;
 }
 
-void _resource_load_file(ResHandleFileHeader resource_header, uint8_t *buffer, size_t max_length, const struct file *file)
-{
-//    LOG_DEBUG("Loading Start adr:0x%x", resource_header.offset);
-
-    if(!buffer)
-    {
-        LOG_ERROR("Invalid Buffer");
-        return;
-    }
-
-    if (!file)
-    {
-        flash_read_bytes(REGION_RES_START + RES_START + resource_header.offset, buffer, resource_header.size);
-        return;
-    }
-
-    struct fd fd;
-    fs_open(&fd, file);
-    fs_seek(&fd, APP_RES_START + resource_header.offset + 0xC, FS_SEEK_SET);
-    fs_read(&fd, buffer, max_length ? max_length : resource_header.size);
-    return;
-}
-
-/*
- * Load a resource fully into a returned buffer
- * By resource handle
- * 
- */
-uint8_t *resource_fully_load_resource(ResHandle res_handle, const struct file *file, size_t *loaded_size)
-{
-    ResHandleFileHeader _handle;
-    _handle = _resource_get_res_handle_header(res_handle);
-
-    if (!_resource_is_sane(&_handle))
-        return NULL;
-
-    size_t sz = _handle.size;
-
-    uint8_t *buffer = app_calloc(1, sz);
-    if (loaded_size)
-        *loaded_size = sz;
-
-    if (buffer == NULL)
-    {
-        LOG_ERROR("Resource alloc of %d bytes for res %d failed", sz, _handle.index);
-        return NULL;
-    }
-
-    _resource_load_file(_handle, buffer, 0, file);
-
-    return buffer;
-}
-
-uint8_t *resource_fully_load_id_system(uint32_t resource_id)
-{
-    ResHandle res_handle = resource_get_handle_system(resource_id);
-    ResHandleFileHeader _handle = _resource_get_res_handle_header(res_handle);
-    uint8_t *buffer = resource_fully_load_resource(res_handle, NULL, NULL);
-
-    return buffer;
-}
-
-uint8_t *resource_fully_load_id_app(uint32_t resource_id)
-{
-    ResHandle res_handle = resource_get_handle(resource_id);
-    App *app = appmanager_get_current_app();
-    uint8_t *buffer = resource_fully_load_resource(res_handle, &app->resource_file, NULL);
-
-    return buffer;
-}
-
-uint8_t *resource_fully_load_id_app_file(uint32_t resource_id, const struct file *file, size_t *loaded_size)
-{
-    ResHandle res_handle = resource_get_handle(resource_id);
-    uint8_t *buffer = resource_fully_load_resource(res_handle, file, loaded_size);
-
-    return buffer;
-}
 
 
 /*
@@ -180,62 +65,119 @@ uint8_t *resource_fully_load_id_app_file(uint32_t resource_id, const struct file
  * 
  */
 
-/*
- * Load up a handle for the resource by ID
- */
 ResHandle resource_get_handle_system(uint16_t resource_id)
 {
     return REGION_RES_START + RES_TABLE_START + ((resource_id - 1) * sizeof(ResHandleFileHeader));
 }
 
-/*
- * Load up a handle for the resource by ID
- */
 ResHandle resource_get_handle(uint32_t resource_id)
 {
     return ((resource_id - 1) * sizeof(ResHandleFileHeader)) + 0xC;
 }
 
-void resource_load(ResHandle resource_handle, uint8_t *buffer, size_t max_length)
+void resource_file_from_file_handle(struct file *file, const struct file *appres, ResHandle hnd)
 {
-    App *app = appmanager_get_current_app();
-    ResHandleFileHeader _handle = _resource_get_res_handle_header(resource_handle);
-
-    _resource_load_file(_handle, buffer, max_length, &app->resource_file);
-}
-
-size_t resource_load_byte_range(ResHandle res_handle, uint32_t start_offset, uint8_t *buffer, size_t num_bytes)
-{
-    ResHandleFileHeader _handle = _resource_get_res_handle_header(res_handle);
-
-    if (buffer == NULL)
-    {
-        LOG_ERROR("Invalid buffer");
-        return 0;
-    }
-
-    if (!_resource_is_sane(&_handle))
-        return 0;
-
-    size_t sz = _handle.size;
-
-    App *app = appmanager_get_current_app();
-
+    assert(hnd < REGION_RES_START);
+    
     struct fd fd;
-    fs_open(&fd, &app->resource_file);
-    fs_seek(&fd, APP_RES_START + _handle.offset + 0xC + start_offset, FS_SEEK_SET);
-    fs_read(&fd, buffer, num_bytes);
-
-    return num_bytes;
+    ResHandleFileHeader hdr;
+    
+    fs_open(&fd, appres);
+    fs_seek(&fd, hnd, FS_SEEK_SET); /* XXX: error check if we're out of bounds */
+    fs_read(&fd, &hdr, sizeof(hdr));
+    
+    if (!_resource_is_sane(&hdr)) {
+        LOG_ERROR("resource_file_from_file_handle: resource is not sane (sz %d); returning nothing", hdr.size);
+        memset(file, 0, sizeof(*file));
+        return;
+    }
+    
+    fs_file_from_file(file, appres, APP_RES_START + hdr.offset + 0xC, hdr.size);
 }
 
-/*
- * return the size of a resource
- */
-size_t resource_size(ResHandle handle)
+void resource_file(struct file *file, ResHandle hnd) 
 {
-    ResHandleFileHeader _handle = _resource_get_res_handle_header(handle);
-    return _handle.size;
+    if (hnd < REGION_RES_START)
+    {
+        App *app = appmanager_get_current_app();
+        assert(app && "resource_to_file on app resource without running app");
+        
+        resource_file_from_file_handle(file, &app->resource_file, hnd);
+    } else {
+        ResHandleFileHeader hdr;
+        
+        flash_read_bytes(hnd, &hdr, sizeof(hdr));
+        
+        if (!_resource_is_sane(&hdr)) {
+            LOG_ERROR("resource_file: system resource is not sane (!!; sz %d); returning nothing", hdr.size);
+            memset(file, 0, sizeof(*file));
+            return;
+        }
+        
+        fs_file_from_flash(file, REGION_RES_START + RES_START + hdr.offset, hdr.size);
+    }
+}
+
+void resource_load(ResHandle hnd, uint8_t *buffer, size_t max_length)
+{
+    struct file file;
+    struct fd fd;
+    
+    resource_file(&file, hnd);
+    fs_open(&fd, &file);
+    fs_read(&fd, buffer, max_length);
+}
+
+size_t resource_load_byte_range(ResHandle hnd, uint32_t start_offset, uint8_t *buffer, size_t num_bytes)
+{
+    struct file file;
+    struct fd fd;
+
+    resource_file(&file, hnd);
+    fs_open(&fd, &file);
+    fs_seek(&fd, start_offset, FS_SEEK_SET);
+    return fs_read(&fd, buffer, num_bytes);
+}
+
+size_t resource_size(ResHandle hnd)
+{
+    struct file file;
+    struct fd fd;
+
+    resource_file(&file, hnd);
+    fs_open(&fd, &file);
+    return fs_size(&fd);
+}
+
+uint8_t *resource_fully_load_file(struct file *file, size_t *loaded_size)
+{
+    struct fd fd;
+    
+    fs_open(&fd, file);
+    size_t sz = fs_size(&fd);
+    
+    if (sz == 0) {
+        LOG_ERROR("cowardly refusing to load a zero-byte resource", sz);
+        if (loaded_size)
+            *loaded_size = 0;
+        return NULL;
+    }
+    
+    void *buf = app_calloc(1, sz);
+    if (!buf) {
+        LOG_ERROR("resource alloc of %d bytes failed", sz);
+        if (loaded_size)
+            *loaded_size = 0;
+        return NULL;
+    }
+    
+    size_t rsz = fs_read(&fd, buf, sz);
+    assert(rsz == sz);
+    
+    if (loaded_size)
+        *loaded_size = sz;
+    
+    return buf;
 }
 
 /* XXX MOVE Some missing functionality */

@@ -11,7 +11,6 @@
 #include "node_list.h"
 #include "timeline.h"
 #include "blob_db.h"
-#include "blob_db_ramfs.h"
 
 
 /* Configure Logging */
@@ -20,6 +19,7 @@
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 #define BLOBDB_FLAG_WRITTEN  1
+/* XXX: add mid-write flag */
 /* XXX: add ERASED flag */
 
 typedef struct blobdb_hdr {
@@ -31,6 +31,7 @@ typedef struct blobdb_hdr {
 typedef struct database_t {
     uint8_t id;
     const char *filename;
+    uint16_t def_db_size;
     uint16_t hdr_size;
     uint16_t key_offset;
     uint8_t key_size;
@@ -41,11 +42,18 @@ typedef struct database_t {
 static const database databases[] = {
     {
         .id = BlobDatabaseID_Test,
-        .filename = NULL,
+        .filename = "rebble/testblob",
+        .def_db_size = 16384,
+        .hdr_size = 12,
+        .key_offset = 4,
+        .key_size = 4,
+        .data_size_offset = 8,
+        .data_size_bytes = 4,
     },
     {
         .id = BlobDatabaseID_Notification,
-        .filename = "notifstr",
+        .filename = "rebble/notifstr",
+        .def_db_size = 16384,
         .hdr_size = sizeof(timeline_item), 
         .key_offset = offsetof(timeline_item, uuid),
         .key_size = sizeof(Uuid),
@@ -79,7 +87,6 @@ static const database *_find_database(uint8_t id)
 static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_t file_size, uint8_t *key, uint8_t key_size)
 {
     int idx = 0;
-    char buf[UUID_STRING_BUFFER_LENGTH];
     uint8_t _tmp_key[key_size];
     size_t _data_size = 0;
     struct blobdb_hdr hdr;
@@ -89,27 +96,22 @@ static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_
         fs_seek(fd, idx, FS_SEEK_SET);
         if (fs_read(fd, &hdr, sizeof(hdr)) < sizeof(hdr))
             break;
-        
         if (hdr.key_len != key_size)
             goto next;
-        if (!(hdr.flags & BLOBDB_FLAG_WRITTEN))
+        if (hdr.flags & BLOBDB_FLAG_WRITTEN)
             goto next;
-        
+        fs_seek(fd, idx + sizeof(hdr), FS_SEEK_SET);
         fs_read(fd, _tmp_key, key_size);
 
         /* End of file */
         if (uuid_is_int((Uuid  *)_tmp_key, 0xFF))
             break;
 
-        if (uuid_equal((Uuid  *)key, (Uuid  *)_tmp_key))
+        if (memcmp(key, _tmp_key, key_size) == 0)
         {
-            uuid_to_string((Uuid  *)_tmp_key, buf);
-            LOG_INFO("Found: %s %d", buf, idx);
+            LOG_INFO("Found at index: %d", idx);
             return idx;
         }
-
-        uuid_to_string((Uuid  *)_tmp_key, buf);
-        LOG_DEBUG("NOTIF: %s %d", buf, idx);
 
 next:
         idx += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
@@ -126,6 +128,7 @@ static bool _compare(Blob_Operator operator, uint8_t *where_prop, uint8_t *where
     uint32_t val2 = 0;
     memcpy(&val1, where_prop, size);
     memcpy(&val2, where_val, size);
+    
     char type = '>';
     bool rval = false;
 
@@ -201,34 +204,22 @@ list_head *blobdb_select_items2(uint8_t database_id,
 {
     struct fd fd;
     struct file file;
-    fs_open(&fd, &file);
     list_head *head = app_calloc(1, sizeof(list_head));
     list_init_head(head);
     const database *db = _find_database(database_id);
-    if (fs_find_file(&file, db->filename) >= 0)
-    {
-        _blobdb_select_items2(head, &fd, database_id, 
-                            select1_offsetof_property, select1_property_size, 
-                            select2_offsetof_property, select2_property_size, 
-                            where_offsetof_property, where_property_size, 
-                            where_val, operator,
-                            where_offsetof_property1, where_property_size1, 
-                            where_val1, operator1);
+    if (fs_find_file(&file, db->filename) < 0) {
+        LOG_ERROR("file not found for db %d", database_id);
+        return head;
     }
-    else
-    {
-        LOG_ERROR("Not in flash. Checking RAMFS");
-//         return head;
-    }
-
-    ramfs_open(&fd, &file, database_id);
+    
+    fs_open(&fd, &file);
     _blobdb_select_items2(head, &fd, database_id, 
-                            select1_offsetof_property, select1_property_size, 
-                            select2_offsetof_property, select2_property_size, 
-                            where_offsetof_property, where_property_size, 
-                            where_val, operator,
-                            where_offsetof_property1, where_property_size1, 
-                            where_val1, operator1);
+                          select1_offsetof_property, select1_property_size, 
+                          select2_offsetof_property, select2_property_size, 
+                          where_offsetof_property, where_property_size, 
+                          where_val, operator,
+                          where_offsetof_property1, where_property_size1, 
+                          where_val1, operator1);
 
     return head;
 
@@ -275,7 +266,7 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
             uint8_t where_prop[where_property_size];
             fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + where_offsetof_property, FS_SEEK_SET);
             fs_read(fd, where_prop, where_property_size);
-
+            
             comp1 = _compare(operator, where_prop, where_val, where_property_size);
         }
         if (where_property_size1 && where_offsetof_property1)
@@ -330,7 +321,7 @@ void blobdb_resultset_destroy(list_head *lh)
     app_free(lh);
 }
 
-int32_t _blob_db_flash_load_blob(const database *db, Uuid *uuid, uint8_t **data)
+int32_t _blob_db_flash_load_blob(const database *db, uint8_t *key, uint8_t key_size, uint8_t **data)
 {
     struct file file;
     struct fd fd;
@@ -338,16 +329,11 @@ int32_t _blob_db_flash_load_blob(const database *db, Uuid *uuid, uint8_t **data)
     if (fs_find_file(&file, db->filename) < 0)
     {
         LOG_ERROR("file not found");
-//         return -1;
-        /* try ramfs */
-        ramfs_open(&fd, &file, db->id);
+        return -1;
     }
-    else
-    {
-        fs_open(&fd, &file);
-    }
+    fs_open(&fd, &file);
 
-    int32_t idx = _blob_db_find_item_entry(&fd, db, file.size, (uint8_t *)uuid, sizeof(Uuid));
+    int32_t idx = _blob_db_find_item_entry(&fd, db, file.size, key, key_size);
     if (idx < 0)
         return -1;
 
@@ -370,13 +356,9 @@ int32_t _blob_db_flash_load_blob(const database *db, Uuid *uuid, uint8_t **data)
 }
 
 
-uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t **data)
+uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t key_size, uint8_t **data)
 {
     const database *db = _find_database(database_id);
-
-    char buf[UUID_STRING_BUFFER_LENGTH];
-    uuid_to_string((Uuid *)key, buf);
-    LOG_DEBUG("SELECT: %s", buf);
 
     if (!db)
     {
@@ -385,7 +367,7 @@ uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t **data)
     }
 
     /* check the key isn't already there. Check only the header */
-    int32_t idx = _blob_db_flash_load_blob(db, (Uuid *)key, data);
+    int32_t idx = _blob_db_flash_load_blob(db, key, key_size, data);
     
     if (idx < 0)
     {
@@ -398,9 +380,6 @@ uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t **data)
 
 uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size)
 {
-    LOG_INFO("KEY: %d", key[0]);
-    Uuid uuid = UuidMakeFromBEBytes(key);
-
     const database *db = _find_database(database_id);
 
     if (!db)
@@ -410,7 +389,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     }
 
     /* check the key isn't already there. Check only the header */
-    if (_blob_db_flash_load_blob(db, &uuid, NULL) >= 0)
+    if (_blob_db_flash_load_blob(db, key, key_size, NULL) >= 0)
         /* Key already exists! */
         return Blob_InvalidData;
 
@@ -422,17 +401,65 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     struct file file;
     struct fd fd;
     struct blobdb_hdr hdr;
-
-    ramfs_open(&fd, &file, database_id);
     
-    /* XXX: update after the fact when on flash */
-    hdr.flags = BLOBDB_FLAG_WRITTEN;
+    if (fs_find_file(&file, db->filename) >= 0)
+        fs_open(&fd, &file);
+    else {
+        LOG_ERROR("blobdb database %d (%s) does not exist, so I'm going to go create it, wish me luck", database_id, db->filename);
+        if (fs_creat(&fd, db->filename, db->def_db_size) == NULL) {
+            LOG_ERROR("nope, that did not work either, I give up");
+            return Blob_DatabaseFull;
+        }
+        fs_mark_written(&fd);
+    }
+
+    int pos = 0;
+    while (pos < fd.file.size) {
+        fs_seek(&fd, pos, FS_SEEK_SET);
+        if (fs_read(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+            LOG_ERROR("short read on blobdb");
+            return Blob_DatabaseFull;
+        }
+        
+        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0xFFFF && hdr.data_len == 0xFFFF)
+        {
+            /* rewind the seek to the new empty spot */
+            fs_seek(&fd, pos, FS_SEEK_SET);
+            break; /* found a spot! */
+        }
+        
+        pos += sizeof(struct blobdb_hdr) + hdr.key_len + hdr.data_len;
+    }
+    
+    if (pos + sizeof(struct blobdb_hdr) + key_size + data_size > fd.file.size) {
+        /* XXX: try gc'ing the blob */
+        LOG_ERROR("not enough space for new entry");
+        return Blob_DatabaseFull;
+    }
+
+    /* XXX: check if we're mid-write */
+    hdr.flags = 0xFF;
     hdr.key_len = key_size;
     hdr.data_len = data_size;
-    ramfs_write(&fd, &hdr, sizeof(hdr));
+    if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+        LOG_ERROR("failed to write header");
+        return Blob_GeneralFailure;
+    }
+    if (fs_write(&fd, key, key_size) < key_size) {
+        LOG_ERROR("failed to write key");
+        return Blob_GeneralFailure;
+    }
+    if (fs_write(&fd, data, data_size) < data_size) {
+        LOG_ERROR("failed to write data");
+        return Blob_GeneralFailure;
+    }
     
-    ramfs_write(&fd, key, key_size);
-    ramfs_write(&fd, data, data_size);
+    fs_seek(&fd, pos, FS_SEEK_SET);
+    hdr.flags &= ~BLOBDB_FLAG_WRITTEN;
+    if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+        LOG_ERROR("failed to update header");
+        return Blob_GeneralFailure;
+    }
 
     return Blob_Success;
 }

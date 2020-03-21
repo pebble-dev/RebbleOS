@@ -226,6 +226,14 @@ void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
     stm32_power_release(STM32_POWER_AHB1, RCC_AHB1Periph_GPIOA);
 }
 
+int hw_flash_write_sync(uint32_t addr, uint8_t *buf, size_t len) {
+    assert(0 && "hw_flash_write_sync not implemented on tintin");
+}
+
+int hw_flash_erase_sync(uint32_t addr, uint32_t data) {
+    assert(0 && "hw_flash_erase_sync not implemented on tintin");
+}
+
 static void _spi_flash_tx_done(void) 
 {
     stm32_power_release(STM32_POWER_APB2, RCC_APB2Periph_SPI1);

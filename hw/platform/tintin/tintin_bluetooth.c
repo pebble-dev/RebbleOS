@@ -37,6 +37,7 @@ static const stm32_usart_config_t _usart1_config = {
     .gpio_clock           = RCC_AHB1Periph_GPIOA,
     .usart_clock          = RCC_APB2Periph_USART1,
     .af                   = GPIO_AF_USART1,
+    .is_binary            = 1,
 };
 
 /* dma tx: dma stream 7 chan 4, rx: stream 2 chan 4. 

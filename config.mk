@@ -30,7 +30,7 @@ CFLAGS_all += -Irwatch/graphics
 CFLAGS_all += -Irwatch/event
 CFLAGS_all += -Irwatch/js
 CFLAGS_all += -Ihw/platform/qemu
-CFLAGS_all += -DNGFX_IS_CORE
+CFLAGS_all += -DNGFX_IS_CORE -DREBBLEOS
 
 # XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
@@ -68,7 +68,8 @@ SRCS_all += lib/musl/time/__month_to_secs.c
 SRCS_all += lib/neographics/src/common.c
 SRCS_all += lib/neographics/src/context.c
 SRCS_all += lib/neographics/src/draw_command/draw_command.c
-SRCS_all += lib/neographics/src/fonts/fonts.c
+SRCS_all += rwatch/graphics/font_file.c
+#SRCS_all += lib/neographics/src/fonts/fonts.c
 SRCS_all += lib/neographics/src/gbitmap/gbitmap.c
 SRCS_all += lib/neographics/src/gbitmap/blit_bw.c
 SRCS_all += lib/neographics/src/gbitmap/blit_color.c
@@ -108,6 +109,8 @@ SRCS_all += rcore/rebble_memory.c
 SRCS_all += rcore/vibrate.c
 SRCS_all += rcore/flash.c
 SRCS_all += rcore/fs.c
+SRCS_all += rcore/fs_crc.c
+SRCS_all += rcore/fs_test.c
 SRCS_all += rcore/log.c
 SRCS_all += rcore/resource.c
 SRCS_all += rcore/watchdog.c
@@ -123,7 +126,7 @@ SRCS_all += rcore/protocol/protocol_app.c
 SRCS_all += rcore/protocol/protocol_blob.c
 
 SRCS_all += rcore/service/blob_db.c
-SRCS_all += rcore/service/blob_db_ramfs.c
+SRCS_all += rcore/service/blob_db_test.c
 SRCS_all += rcore/service/timeline.c
 
 SRCS_all += rwatch/librebble.c

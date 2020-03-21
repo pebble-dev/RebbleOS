@@ -11,17 +11,20 @@ from libpebble2.communication.transports.qemu.protocol import *
 from libpebble2.communication.transports.qemu import QemuTransport, MessageTargetQemu
 
 class Emulator:
-    def __init__(self, qemu, image):
-        # XXX: It would be good to have a "VERBOSE" mode in the environment
-        # that did not redirect stderr/stdout, and printed out qemu commands
-        # before we fire them up, and that allowed us to attach gdb, and
-        # that turned off -display none, and ...
+    def __init__(self, qemu, image, debug = False):
+        self.debug = debug
         
         nargs = shlex.split(qemu)
         nargs += [image.name]
-        nargs += ["-display", "none"]
+        if not debug:
+            nargs += ["-display", "none"]
+        else:
+            nargs += ["-S"]
         
-        self.qemu = subprocess.Popen(nargs, stderr = subprocess.STDOUT, stdout = subprocess.PIPE)
+        if not debug:
+            self.qemu = subprocess.Popen(nargs, stderr = subprocess.STDOUT, stdout = subprocess.PIPE)
+        else:
+            self.qemu = subprocess.Popen(nargs)
         # Wait for the emulator to launch.
         launched = False
         for _ in range(50):
@@ -51,6 +54,8 @@ class Emulator:
         if self.qemu is not None:
             self.qemu.send_signal(signal.SIGINT)
             self.logs = self.qemu.communicate()[0]
+            if self.debug:
+                self.logs = b""
         self.qemu = None
 
     def __enter__(self):
@@ -75,6 +80,7 @@ class Platform:
         self.fsofs = fsofs
         self.fssize = fssize
         self.qemu = qemu
+        self.debug = False
         self.testmap = {}
 
     @property
@@ -105,7 +111,7 @@ class Platform:
     
     def launch(self, image = None):
         with self.make_image(image) as im:
-            return Emulator(image = im, qemu = self.qemu)
+            return Emulator(image = im, qemu = self.qemu, debug = self.debug)
     
     def load_tests(self):
         self.testmap = {}
@@ -120,6 +126,11 @@ class Platform:
                 if data.payload.is_last_test == 1:
                     break
 
+class TestConfigurationException(Exception):
+    pass
+
+class TestFailureException(Exception):
+    pass
 
 class Test:
     def __init__(self, name, testname = None, image = 'blank', golden = None):
@@ -130,16 +141,17 @@ class Test:
     
     def run(self, platform):
         if self.testname not in platform.testmap:
-            return f"{self.testname} does not exist in running system!"
+            raise TestConfigurationException(f"{self.testname} does not exist in running system!")
         
         data = None
         with platform.launch(platform.image_path(self.image)) as e:
             e.send(QemuRebbleTestRunRequest(id = platform.testmap[self.testname]))
             target,data = e.recv()
 
-        if data.payload.passed == 0:
-            return f"Test reported failure with artifact {data.payload.artifact}"
-        if self.golden and data.payload.artifact != self.golden:
-            return f"Test reported pass, but artifact {data.payload.artifact} differs from golden {self.golden}"
+            if data.payload.passed == 0:
+                raise TestFailureException(f"Test reported failure with artifact {data.payload.artifact}")
+            if self.golden and data.payload.artifact != self.golden:
+                raise TestFailureException(f"Test reported pass, but artifact {data.payload.artifact} differs from golden {self.golden}")
         
-        return None
+        return data.payload.artifact
+

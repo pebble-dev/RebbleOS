@@ -212,7 +212,7 @@ list_head *timeline_notifications(uint32_t from_timestamp)
 rebble_notification *timeline_get_notification(Uuid *uuid)
 {
     uint8_t *data;
-    if (blobdb_select(BlobDatabaseID_Notification, (uint8_t *)uuid, &data) != Blob_Success)
+    if (blobdb_select(BlobDatabaseID_Notification, (uint8_t *)uuid, sizeof(Uuid), &data) != Blob_Success)
         assert(0);
     rebble_notification *notif = timeline_item_process(data);
     printblob(notif);

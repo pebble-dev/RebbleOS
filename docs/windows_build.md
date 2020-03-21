@@ -5,30 +5,15 @@ So unfortunately there is no known way (yet), to fully work on Windows while wor
 ## Setting up a virtual machine 
 
 - Install [VirtualBox](http://www.virtualbox.org/)
-- Download Linux ISO file (Ubuntu 16.04.3 LTS) from [their website](https://www.ubuntu.com/download/desktop)
+- Download the Ubuntu's ISO from [their website](https://www.ubuntu.com/download/desktop)
 - Inside virtualbox install Ubuntu
 - You propably want to install the guest additions from VirtualBox
 - Once inside the booted Ubuntu, open a terminal for further install steps
 
 ### Install pebble SDK
 
-For installing the pebble sdk, please see the instructions in the [debian build documentation](https://github.com/ginge/FreeRTOS-Pebble/blob/master/docs/debian_build.md)
+For installing the pebble sdk and building on debian/ubuntu, please see the instructions in the [debian build documentation](https://github.com/pebble-dev/RebbleOS/blob/master/docs/debian_build.md)
 
-### Setting up rebble development environment on Ubuntu
-
-```sh
-cd ~/pebble-dev/
-git clone https://github.com/pebble-dev/RebbleOS.git
-cd FreeRTOS-Pebble
-./Utilities/mk_resources.sh ~/.pebble-sdk/SDKs/current/sdk-core/pebble/
-cd Resources
-wget # find the URLs of the fpga files in the `#firmware` channel in the Rebble Discord
-cd ..
-make
-make snowy_qemu
-```
-
-That is all you need to develop for the Rebble firmware. You can use `make snowy_gdb` in a second terminal to attach GDB to your running emulator.
 
 ## Setting up a development environment on Windows
 
