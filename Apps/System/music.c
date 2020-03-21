@@ -58,9 +58,7 @@
 #define ARM_OFFSET_Y 77
 #define ARM_OFFSET GPoint(ARM_OFFSET_X, ARM_OFFSET_Y)
 #define ARM_OFFSET_ANGLE -31
-#define ARM_HOME_ANGLE 0
-#define ARM_START_ANGLE 18
-#define ARM_END_ANGLE 46
+#define ARM_HOME_ANGLE 30
 #define ARM_SKIP_SPEED 200
 #define ARM_QUICK_SPEED 100
 #define SKIP_DIRECTION_PREV -1
@@ -158,9 +156,9 @@ static void _music_tick(struct tm *tick_time, TimeUnits tick_units) {
         } else {
             s_progress++;
             s_progress_pixels = s_progress * (PROGRESS_PIXELS_MAX - 1) / s_length;
-            int32_t new_arm_angle = ARM_START_ANGLE + s_progress * (ARM_END_ANGLE - ARM_START_ANGLE) / s_length;
-            if (new_arm_angle != s_arm_angle) {
-                _setup_music_animation_arm(new_arm_angle, ARM_SKIP_SPEED);
+
+            if (s_arm_angle != ARM_HOME_ANGLE) {
+                _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
             } else {
                 layer_mark_dirty(s_music_main_layer);
             }
@@ -224,7 +222,7 @@ static void _implementation_record_teardown(Animation *animation) {
         if (!s_was_paused) {
             s_is_paused = false;
             s_animating_arm_change = true;
-            _setup_music_animation_arm(ARM_START_ANGLE, ARM_QUICK_SPEED);
+            _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_QUICK_SPEED);
         }
     }
 }
@@ -290,7 +288,8 @@ static void _skip_track(int32_t direction) {
     s_is_paused = true;
     s_progress_pixels = 0;
     if (s_skip_value == 0 && !s_animating_disk_change && !s_animating_arm_change) {
-        _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
+
+      _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     }
     s_skip_value += direction;
     // TODO REMOVE DEMO
@@ -331,7 +330,7 @@ static void _select_click_handler(ClickRecognizerRef recognizer, void *context) 
         _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     } else {
         tick_timer_service_subscribe(SECOND_UNIT, _music_tick);
-        _setup_music_animation_arm(ARM_START_ANGLE + s_progress * (ARM_END_ANGLE - ARM_START_ANGLE) / s_length, ARM_SKIP_SPEED);
+        _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     }
 }
 
