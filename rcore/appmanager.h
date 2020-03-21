@@ -183,6 +183,7 @@ bool appmanager_is_thread_overlay(void);
 int appmanager_load_app(app_running_thread *thread, ApplicationHeader *header);
 void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size);
 app_running_thread *appmanager_get_thread(AppThreadType type);
+app_running_thread *appmanager_get_threads(void);
 AppThreadType appmanager_get_thread_type(void);
 
 /* in appmanager_app_runloop.c */
@@ -196,6 +197,7 @@ bool appmanager_post_event_message(uint16_t protocol_id, void *message, DestroyE
 void appmanager_post_window_load_click_config(struct Window *window);
 
 void appmanager_app_start(char *name);
+void appmanager_app_start_by_uuid(Uuid *uuid);
 void appmanager_app_quit(void);
 void appmanager_app_download_complete(void);
 void appmanager_app_display_done(void);
@@ -207,7 +209,9 @@ void appmanager_timer_expired(app_running_thread *thread);
 TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);
 
 /* in appmanager_app.c */
-App *appmanager_get_app(char *app_name);
+App *appmanager_get_app_by_name(char *app_name);
+App *appmanager_get_app_by_id(uint32_t id);
+App *appmanager_get_app_by_uuid(Uuid *uuid);
 void appmanager_app_loader_init(void);
 
 void rocky_event_loop_with_resource(uint16_t resource_id);
@@ -216,6 +220,6 @@ void timer_init(void);
 
 typedef void* ClickRecognizerRef;
 void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
-App *appmanager_get_app_by_id(uint32_t id);
 
 void appmanager_post_draw_app_message(uint8_t force);
+void appmanager_app_set_flag(App *app, uint8_t flag, bool value);

@@ -12,6 +12,7 @@
 #include "rebbleos.h"
 #include "endpoint.h"
 #include "protocol.h"
+#include "protocol_service.h"
 
 /* Configure Logging */
 #define MODULE_NAME "qemu"

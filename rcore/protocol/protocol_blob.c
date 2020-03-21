@@ -7,6 +7,7 @@
 #include "rebbleos.h"
 #include "protocol_system.h"
 #include "pebble_protocol.h"
+#include "protocol_service.h"
 #include "blob_db.h"
 #include "timeline.h"
 
@@ -121,6 +122,6 @@ void protocol_process_blobdb(const RebblePacket packet)
     SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "Done: Send Response: token %d, %d\n", response.token, response.response);
 
     /* Reply back with the cookie */
-    rebble_protocol_send(packet_get_endpoint(packet), &response, sizeof(pcol_blob_db_response));
+    rebble_protocol_send(packet_get_endpoint(packet), (void *)&response, sizeof(pcol_blob_db_response));
     packet_destroy(packet);
 }

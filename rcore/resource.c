@@ -64,7 +64,7 @@ ResHandleFileHeader _resource_get_res_handle_header(ResHandle res_handle)
     if (!_resource_is_sane(&new_header))
     {
         LOG_ERROR("Res: Resource is not sane, size of  %d", new_header.size);
-		return;
+		return new_header;
     }
 
     return new_header;

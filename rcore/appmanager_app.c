@@ -88,20 +88,20 @@ void appmanager_app_loader_init()
     
     /* add the baked in apps */
     _appmanager_add_to_manifest(_appmanager_create_app("System", 
-                                                       NULL, 1, 
+                                                       NULL, 9991, 
                                                        AppTypeSystem, systemapp_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Simple", 
-                                                       NULL, 2, 
+                                                       NULL, 9992, 
                                                        AppTypeWatchface, simple_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("NiVZ", 
-                                                       NULL, 3, 
+                                                       NULL, 9993, 
                                                        AppTypeWatchface, nivz_main, true, &empty, &empty));
 //     _appmanager_add_to_manifest(_appmanager_create_app("Settings", AppTypeSystem, test_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("Notification", 
-                                                       NULL, 4, 
+                                                       NULL, 9994, 
                                                        AppTypeSystem, notif_main, true, &empty, &empty));
     _appmanager_add_to_manifest(_appmanager_create_app("TestApp", 
-                                                       NULL, 5, 
+                                                       NULL, 9995, 
                                                        AppTypeSystem, testapp_main, true, &empty, &empty));
     
     /* now load the ones on flash */
@@ -134,13 +134,12 @@ static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint
     memcpy(&app->resource_file, resource_file, sizeof(struct file));
     appmanager_app_set_flag(app, ExecuteFromInternalFlash, is_internal);
     app->id = app_id;
-    
-    if (uuid_null(uuid))
+
+    if (!uuid)
     {
         uint8_t uuidb[16];
-        memset(uuidb, 0, sizeof(uuidb));
-        uint32_t *udb = (uint32_t *)uuidb;
-        *udb = app_id;
+        memset(uuidb, 0xFF, sizeof(uuidb));
+        memcpy(uuidb, &app_id, 4);
         memcpy(&app->uuid, uuidb, sizeof(Uuid));
     }
     else
@@ -297,7 +296,7 @@ list_head *app_manager_get_apps_head()
 /*
  * Get an application by name. NULL if invalid
  */
-App *appmanager_get_app(char *app_name)
+App *appmanager_get_app_by_name(char *app_name)
 {
    // find the app
    App * app;
@@ -324,7 +323,6 @@ App *appmanager_get_app_by_id(uint32_t id)
    // now find the matching
    list_foreach(app, &_app_manifest_head, App, node)
    {
-       KERN_LOG("app", APP_LOG_LEVEL_ERROR, "APPID %d %d", app->id, id);
         if (app->id == id)
             return app;
    }

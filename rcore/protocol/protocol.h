@@ -81,3 +81,6 @@ void protocol_process_blobdb(const RebblePacket packet);
 void protocol_process_timeline_action_response(const RebblePacket packet);
 void protocol_process_transfer(const RebblePacket packet);
 void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id);
+
+uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf);
+uint8_t pascal_strlen(char *str);

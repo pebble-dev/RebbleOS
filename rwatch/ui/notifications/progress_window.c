@@ -89,13 +89,12 @@ static void _progress_window_draw(Layer *layer, GContext *ctx)
     
     if (_progress_bytes < _total_bytes)
     {
-        snprintf(buf, 100, "Downloaded: %d/%d", _progress_bytes, _total_bytes);
+        snprintf(buf, 100, "Downloaded: %d/%d", (int)_progress_bytes, (int)_total_bytes);
         graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_18), wrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
     }
     else
     {
-        snprintf(buf, 100, "Done", _progress_bytes, _total_bytes);
-        graphics_draw_text(ctx, buf, fonts_get_system_font(FONT_KEY_GOTHIC_18), wrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
+        graphics_draw_text(ctx, "Done", fonts_get_system_font(FONT_KEY_GOTHIC_18), wrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
         notification_reschedule_timer(layer->window, 500);
         _visible = false;
     }

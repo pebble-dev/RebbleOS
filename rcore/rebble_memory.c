@@ -35,7 +35,7 @@ void *system_malloc(size_t size)
     return pvPortMalloc(size);
 }
 
-void *system_free(void *mem)
+void system_free(void *mem)
 {
     if (appmanager_is_thread_system())
         LOG_ERROR("XXX System Free. Check who did this");
@@ -94,3 +94,4 @@ uint32_t app_heap_bytes_used(void)
 
     return qusedbytes(thread->arena);
 }
+

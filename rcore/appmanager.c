@@ -389,9 +389,9 @@ static void _app_management_thread(void *parms)
             {
                 /* Load an app for someone. face or worker */
                 case THREAD_MANAGER_APP_LOAD_ID:
-                    LOG_INFO("Quitting... %d", *(uint32_t *)am.data);
-                    uint32_t id = am.data;
-                    assert(id == 100);
+                    LOG_INFO("Quitting... %d", (uint32_t)am.data);
+                    uint32_t id = (uint32_t)am.data;
+
                     _app_to_load_id = id;
                     if (_this_thread->status != AppThreadUnloaded)
                     {

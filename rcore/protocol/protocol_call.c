@@ -16,24 +16,6 @@
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_NONE
 
 
-uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf)
-{
-    uint8_t len = (uint8_t)source_buf[0];
-    /* Byte by byte copy the src to the dest */
-    for(int i = 0; i < len; i++)
-        result_buf[i] = source_buf[i+1];
-    
-    /* and null term it */
-    result_buf[len] = 0;
-    
-    return len + 1;
-}
-
-uint8_t pascal_strlen(char *str)
-{
-    return (uint8_t)str[0];
-}
-
 static void _protocol_phone_event_destroy(RebblePacket packet)
 {
     packet_destroy(packet);
@@ -41,7 +23,7 @@ static void _protocol_phone_event_destroy(RebblePacket packet)
 
 void protocol_phone_message_process(const RebblePacket packet)
 {   
-    event_service_post(EventServiceCommandCall, (void *)packet, _protocol_phone_event_destroy);
+    event_service_post(EventServiceCommandCall, (void *)packet, (void *)_protocol_phone_event_destroy);
 }
 
 rebble_phone_message *protocol_phone_create(uint8_t *data, uint16_t length)
@@ -112,7 +94,7 @@ void protocol_phone_message_send(uint8_t command_id, uint32_t cookie, bool needs
     /* Send a phone action */
     Uuid uuid;
     memcpy(&uuid, &cookie, 4);
-    RebblePacket packet = packet_create_with_data(WatchProtocol_PhoneMessage, &pm, sizeof(phone_message));
+    RebblePacket packet = packet_create_with_data(WatchProtocol_PhoneMessage, (void *)&pm, sizeof(phone_message));
     if (needs_ack)
     {
         packet_set_ack_required(packet, &uuid);

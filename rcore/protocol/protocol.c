@@ -11,6 +11,7 @@
 #include "pebble_protocol.h"
 #include "protocol_notification.h"
 #include "protocol_system.h"
+#include "protocol_service.h"
 #include "qemu.h"
 
 /* Configure Logging */
@@ -201,4 +202,24 @@ void protocol_send_packet(const RebblePacket packet)
     LOG_DEBUG("TX protocol: e:%d l %d", endpoint, len);
 
     packet_send_to_transport(packet, endpoint, packet_get_data(packet), len);
+}
+
+
+
+uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf)
+{
+    uint8_t len = (uint8_t)source_buf[0];
+    /* Byte by byte copy the src to the dest */
+    for(int i = 0; i < len; i++)
+        result_buf[i] = source_buf[i+1];
+    
+    /* and null term it */
+    result_buf[len] = 0;
+    
+    return len + 1;
+}
+
+uint8_t pascal_strlen(char *str)
+{
+    return (uint8_t)str[0];
 }

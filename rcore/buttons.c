@@ -18,6 +18,7 @@
 #include "task.h"
 #include "queue.h"
 #include "buttons.h"
+#include "overlay_manager.h"
 
 typedef struct ButtonHolder {
     uint8_t button_id;
@@ -453,7 +454,7 @@ void button_set_click_context(ButtonId button_id, void *context)
 uint8_t button_short_click_is_subscribed(ButtonId button_id)
 {
     if (button_id >= NUM_BUTTONS)
-        return;
+        return NULL;
     
     ButtonHolder *holder = _button_holders[button_id];
     

@@ -314,11 +314,11 @@ void timeline_action_send(uint8_t timeline_action, Uuid *uuid, const char *reply
     
     if (reply_text)
         pkt_len += _timeline_attribute_create_to_buf(TimelineActionAttribute_ReplyText, 
-                                              reply_text, r_len - 1, action->attributes);
+                                              (uint8_t *)reply_text, r_len - 1, action->attributes);
 
     if (reply_to)
         pkt_len += _timeline_attribute_create_to_buf(TimelineActionAttribute_ReplyTo, 
-                                              reply_to, t_len - 1, action->attributes + pkt_len);
+                                              (uint8_t *)reply_to, t_len - 1, action->attributes + pkt_len);
 
     packet_set_ack_required(packet, uuid);
     packet_set_retries(packet, 3);

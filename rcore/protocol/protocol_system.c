@@ -8,6 +8,7 @@
 #include "protocol.h"
 #include "protocol_system.h"
 #include "pebble_protocol.h"
+#include "protocol_service.h"
 
 typedef struct firmware_version_t {
     uint32_t timestamp;
@@ -76,7 +77,7 @@ void protocol_watch_version(const RebblePacket packet)
         };
 
     packet_destroy(packet);
-    rebble_protocol_send(WatchProtocol_FirmwareVersion, &response, sizeof(firmware_version_response));
+    rebble_protocol_send(WatchProtocol_FirmwareVersion, (void *)&response, sizeof(firmware_version_response));
     
 }
 
@@ -84,7 +85,7 @@ void protocol_watch_model(const RebblePacket packet)
 {
     packet_destroy(packet);
     uint8_t resp[6] = { 1, 4, 0, 0, 0, SnowyBlack };
-    rebble_protocol_send(WatchProtocol_WatchModel, &resp, 6);    
+    rebble_protocol_send(WatchProtocol_WatchModel, (void *)&resp, 6);    
 }
 
 void protocol_ping_pong(const RebblePacket packet)
@@ -92,7 +93,7 @@ void protocol_ping_pong(const RebblePacket packet)
     uint8_t *data = packet_get_data(packet);
     uint8_t resp[5] = { 1, data[1], data[2], data[3], data[4] };
     packet_destroy(packet);
-    rebble_protocol_send(WatchProtocol_PingPong, &resp, 5);
+    rebble_protocol_send(WatchProtocol_PingPong, (void *)&resp, 5);
 }
 
 void protocol_watch_reset(const RebblePacket packet)
@@ -127,7 +128,7 @@ void protocol_app_version(const RebblePacket packet)
         .protocol_caps = 0,
     };
 
-    rebble_protocol_send(WatchProtocol_AppVersion, &appv, sizeof(app_version_response));
+    rebble_protocol_send(WatchProtocol_AppVersion, (void *)&appv, sizeof(app_version_response));
 }
 
 /* Time Command functions */

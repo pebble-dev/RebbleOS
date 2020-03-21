@@ -41,7 +41,7 @@ static void _app_send_state(const RebblePacket packet)
         memcpy(&resp[1], &app->header->uuid, sizeof(Uuid));
     }
 
-    rebble_protocol_send(WatchProtocol_AppRunState, &resp, sizeof(Uuid) + 1);
+    rebble_protocol_send(WatchProtocol_AppRunState, (void *)&resp, sizeof(Uuid) + 1);
 }
 
 
@@ -107,7 +107,7 @@ void protocol_app_fetch(const RebblePacket packet)
         .response = AppFetchStatusStart,
     };
 
-    rebble_protocol_send(WatchProtocol_AppFetch, &resp, sizeof(_app_fetch_response));
+    rebble_protocol_send(WatchProtocol_AppFetch, (void *)&resp, sizeof(_app_fetch_response));
     packet_destroy(packet);
 }
 
@@ -119,5 +119,5 @@ void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id)
     };
     memcpy(&req.uuid, uuid, sizeof(Uuid));
 
-    rebble_protocol_send(WatchProtocol_AppFetch, &req, sizeof(_app_fetch));    
+    rebble_protocol_send(WatchProtocol_AppFetch, (void *)&req, sizeof(_app_fetch));    
 }

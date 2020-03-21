@@ -74,3 +74,4 @@ uint8_t fs_pbfs_crc8(void *p, size_t len);
 uint32_t fs_pagehdr_crc(struct fs_page_hdr *hdr);
 uint32_t fs_filehdr_crc(struct fs_file_hdr *hdr);
 uint8_t  fs_next_page_crc(uint16_t next_page);
+uint32_t fs_file_crc32(struct fd *fd, size_t len);

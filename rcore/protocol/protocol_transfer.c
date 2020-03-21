@@ -106,7 +106,7 @@ static void _send_xack(uint8_t ack, uint32_t cookie)
         .cookie = cookie
     };
     
-    rebble_protocol_send(WatchProtocol_PutBytes, &resp, sizeof(_transfer_put_response));
+    rebble_protocol_send(WatchProtocol_PutBytes, (void *)&resp, sizeof(_transfer_put_response));
 }
 
 static inline void _send_ack(uint32_t cookie)
@@ -146,7 +146,7 @@ void protocol_process_transfer(const RebblePacket packet)
             else
                 snprintf(sel, 4, "fle"); //??
             
-            snprintf(buf, 14, "@%08x/%s", ntohl(hdr->app_id), sel);
+            snprintf(buf, 16, "@%08x/%s", ntohl(hdr->app_id), sel);
             
             struct file file;
             if (fs_find_file(&file, buf) >= 0)
@@ -195,7 +195,7 @@ void protocol_process_transfer(const RebblePacket packet)
         case PutBytesCommit:
             LOG_DEBUG("Commit %d Bytes", _total_size);
             _transfer_put_commit_header *chdr = (_transfer_put_commit_header *)data;
-            _cookie = nhdr->cookie;
+            _cookie = chdr->cookie;
             
             if (_bytes_transferred != _total_size)
             {
@@ -220,7 +220,7 @@ void protocol_process_transfer(const RebblePacket packet)
         case PutBytesInstall:
             LOG_INFO("Install App");
             _transfer_put_install_header *ihdr = (_transfer_put_install_header *)data;           
-            _cookie = nhdr->cookie;
+            _cookie = ihdr->cookie;
             _transfer_state = 0;
             _send_ack(_cookie);
             _bytes_transferred = 0;

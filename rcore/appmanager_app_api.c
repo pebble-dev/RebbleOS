@@ -18,21 +18,16 @@
  */
 void appmanager_app_start(char *name)
 {
-    AppMessage am = (AppMessage) {
-        .command = THREAD_MANAGER_APP_LOAD,
-        .thread_id = AppThreadMainApp,
-        .data = name
-    };
-    appmanager_post_generic_thread_message(&am, 100);
+    App * app = appmanager_get_app_by_name(name);
+    assert(app);
+    appmanager_app_start_by_uuid(&app->uuid);
 }
 
 void appmanager_app_start_by_uuid(Uuid *uuid)
 {
     /* get app by uuid */
-    App * app = appmanager_get_app_by_uuid(uuid);
-    
+    App * app = appmanager_get_app_by_uuid(uuid);   
     assert(app);
-    
     AppMessage am = (AppMessage) {
         .command = THREAD_MANAGER_APP_LOAD_ID,
         .thread_id = AppThreadMainApp,

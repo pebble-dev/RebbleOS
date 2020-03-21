@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include "rebbleos.h"
 #include "appmanager.h"
-#include "systemapp.h"
 #include "test.h"
+#include "protocol.h"
+#include "protocol_service.h"
 #include "protocol_notification.h"
 #include "notification_manager.h"
 

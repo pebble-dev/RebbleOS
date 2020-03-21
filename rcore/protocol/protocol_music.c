@@ -7,6 +7,7 @@
 #include "rebbleos.h"
 #include "protocol.h"
 #include "pebble_protocol.h"
+#include "protocol_service.h"
 #include "event_service.h"
 
 /* Configure Logging */
@@ -76,11 +77,11 @@ void protocol_music_message_process(const RebblePacket packet)
     {
         case MusicMessage_UpdateCurrentTrack:
             LOG_INFO("Track");
-            event_service_post(EventServiceCommandMusic, (void *)packet, protocol_music_destroy);
+            event_service_post(EventServiceCommandMusic, (void *)packet, (void *)protocol_music_destroy);
             break;
         case MusicMessage_UpdatePlayStateInfo:
             LOG_INFO("Play State");
-            rebble_play_state *ps = (rebble_play_state *)msg;
+            rebble_play_state *ps = (rebble_play_state *)msg->data;
             LOG_INFO("Play State S %x, P %d R %d Sh %x Rp %x", ps->state, ps->track_pos, ps->play_rate, ps->shuffle, ps->repeat);
             break;
         case MusicMessage_UpdateVolumeInfo:
@@ -109,16 +110,16 @@ MusicTrackInfo *protocol_music_decode(RebblePacket packet)
 
     music->command_id = msg->command_id;
     
-    len = pascal_strlen(msg->data);
+    len = pascal_strlen((char *)msg->data);
     music->artist = app_calloc(1, len + 1);
     tlen = pascal_string_to_string(music->artist, msg->data);
     
-    len = pascal_strlen(msg->data + tlen);
+    len = pascal_strlen((char *)(msg->data + tlen));
     music->album = app_calloc(1, len + 1);
     len = pascal_string_to_string(music->album, msg->data + tlen);
     tlen += len;
     
-    len = pascal_strlen(msg->data + tlen);
+    len = pascal_strlen((char *)(msg->data + tlen));
     music->title = app_calloc(1, len + 1);
     len = pascal_string_to_string(music->title, msg->data + tlen);
     
@@ -172,8 +173,8 @@ void protocol_music_get_current_track()
 
 void protocol_music_message_send(uint8_t command_id)
 {
-    RebblePacket *packet = packet_create(WatchProtocol_MusicControl, sizeof(music_message));
-    music_message * mm = packet_get_data(packet);
+    RebblePacket packet = packet_create(WatchProtocol_MusicControl, sizeof(music_message));
+    music_message *mm = (music_message *)packet_get_data(packet);
     mm->command_id = command_id;
 
     /* Send a phone action */
