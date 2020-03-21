@@ -126,6 +126,28 @@ static void _setup_music_animation_arm(int32_t angle, uint32_t duration_ms);
 static void _setup_music_animation_record();
 static void _music_deinit(void);
 
+uint32_t one_at_a_time_hash(const uint8_t* key, size_t length) {
+  size_t i = 0;
+  uint32_t hash = 0;
+  while (i != length) {
+    hash += key[i++];
+    hash += hash << 10;
+    hash ^= hash >> 6;
+  }
+  hash += hash << 3;
+  hash ^= hash >> 11;
+  hash += hash << 15;
+  return hash;
+}
+
+n_GColor8 songColor(unsigned char *str)
+{
+	uint32_t hash = one_at_a_time_hash(str,strlen(str));
+	    APP_LOG("music", APP_LOG_LEVEL_DEBUG, "song hash:%lu",hash);
+
+	return GColorFromRGB(hash, hash >> 8, hash >> 16);
+}
+
 static void _get_new_track() {
     s_trackcounter++;
     if (s_trackcounter >= 3) {
@@ -182,7 +204,7 @@ static void _implementation_record_setup(Animation *animation) {
     // TODO set next_disk_color based on title + artist,
     // to let each track have the same color between sessions
     // Avoid color black and white (Changing the stroke color would be an alternative)
-    s_next_disk_color =  (GColor8) { .argb = ((rand() % 0b00111110) + 0b11000001) };
+    s_next_disk_color =  songColor(s_track) ;
 
     // Set the initial positions for our two animated records
     if (s_skip_value > 0) {
@@ -479,8 +501,6 @@ static void _music_window_load(Window *window) {
     Layer *window_layer = window_get_root_layer(s_music_main_window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
 
-    s_curr_disk_color = GColorWindsorTan;
-    s_curr_disk_pos = RECORD_CENTER;
     s_progress_pixels = 25;
     s_trackcounter = 2;
     _get_new_track();
@@ -490,6 +510,8 @@ static void _music_window_load(Window *window) {
     s_skip_value = 0;
     s_music_main_layer = layer_create(bounds);
     s_is_paused = false;
+    s_curr_disk_color = songColor(s_track);
+        s_curr_disk_pos = RECORD_CENTER;
     layer_add_child(window_layer, s_music_main_layer);
     s_animating_arm_change = false;
     s_animating_disk_change = false;
