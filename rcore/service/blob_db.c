@@ -253,7 +253,7 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
             uint8_t where_prop[where_property_size];
             fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + where_offsetof_property, FS_SEEK_SET);
             fs_read(fd, where_prop, where_property_size);
-
+            
             comp1 = _compare(operator, where_prop, where_val, where_property_size);
         }
         if (where_property_size1 && where_offsetof_property1)
@@ -403,6 +403,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             LOG_ERROR("nope, that did not work either, I give up");
             return Blob_DatabaseFull;
         }
+        fs_mark_written(&fd);
     }
 
     int pos = 0;
@@ -412,7 +413,8 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             LOG_ERROR("short read on blobdb");
             return Blob_DatabaseFull;
         }
-        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0x7F && hdr.data_len == 0x07FF)
+        
+        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0xFFFF && hdr.data_len == 0xFFFF)
         {
             /* rewind the seek to the new empty spot */
             fs_seek(&fd, pos, FS_SEEK_SET);
@@ -424,12 +426,12 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     
     if (pos + sizeof(struct blobdb_hdr) + key_size + data_size > fd.file.size) {
         /* XXX: try gc'ing the blob */
-        LOG_ERROR("not enough space for new entry %d %d %d", fd.file.size, data_size, pos);
+        LOG_ERROR("not enough space for new entry");
         return Blob_DatabaseFull;
     }
 
     /* XXX: check if we're mid-write */
-    hdr.flags = 0x3F;
+    hdr.flags = 0xFF;
     hdr.key_len = key_size;
     hdr.data_len = data_size;
     if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {

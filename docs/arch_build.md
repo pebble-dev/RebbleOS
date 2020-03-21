@@ -1,8 +1,11 @@
 # Building on Arch Linux and It's Derivatives
 
-The following builds RebbleOS on Arch Linux and Parabola once the Pebble SDK is installed:
+## Prerequisites
 
-Note: You will need to aquire the FPGA blobs from the [discord](discord.gg/aRUAYFN) before building.
+Before building RebbleOS you will need the [Pebble SDK](#PebbleSDK) and if you wish to run the firmware in `qemu`, you'll need to make the [resources](#Qemu-Resources)
+
+
+## Building Rebble OS
 
 ```sh
     git clone https://github.com/pebble-dev/RebbleOS.git
@@ -24,7 +27,7 @@ directory for the SDK using the following.
 ```sh
     mkdir ~/pebble-dev/
     cd ~/pebble-dev/
-    wget https://s3.amazonaws.com/assets.getpebble.com/pebble-tool/pebble-sdk-4.5-linux64.tar.bz2
+    wget https://developer.rebble.io/s3.amazonaws.com/assets.getpebble.com/pebble-tool/pebble-sdk-4.5-linux64.tar.bz2
     tar -jxf pebble-sdk-4.5-linux64.tar.bz2
     echo 'export PATH=~/pebble-dev/pebble-sdk-4.5-linux64/bin:$PATH' >> ~/.bash_profile
     . ~/.bash_profile
@@ -35,7 +38,6 @@ directory for the SDK using the following.
     cd ~/pebble-dev/pebble-sdk-4.5-linux64
     virtualenv .env
     source .env/bin/activate
-    sed -i 's/https:\/\/s3-us-west-2.amazonaws.com\/pebble-sdk-homebrew\/pypkjs-1.0.6.tar.gz/https:\/\/github.com\/ltpitt\/vagrant-pebble-sdk\/blob\/master\/pypkjs-1.0.6.tar.gz?raw=true/g' requirements.txt
     pip2 install -r requirements.txt
     deactivate
     mkdir ~/.pebble-sdk/
@@ -44,4 +46,25 @@ directory for the SDK using the following.
     pebble ping --emulator aplite
 ```
 
-As the SDK is no longer available from an official source, this example uses an archived version from [this](https://github.com/aveao/PebbleArchive/) GitHub repository
+## Qemu Resources
+
+Before building RebbleOS for the first time you will need to run the [Utilities/mk_resources.sh](Utilities/mk_resources.sh) script.
+
+```sh
+    cd ~/pebble-dev/RebbleOS/
+    mkdir Resources
+```
+
+At this point, you will need to visit the [Discord](http://discord.gg/aRUAYFN) and download the FPGA files and place them in the new Resources folder we just made.
+Then continue with the steps below.
+
+    
+```sh
+    cd ~/pebble-dev/RebbleOS/Utilities/
+    ./mk_resources.sh ~/.pebble-sdk/SDKs/4.3/sdk-core/pebble
+    cp Resources/* ../Resources/
+```
+
+That's it you're now ready to build! Head back to the [top](#Building-Rebble-OS)
+
+    
