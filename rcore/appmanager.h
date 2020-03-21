@@ -16,7 +16,7 @@
 #include "node_list.h"
 #include <stdbool.h>
 #include "uuid.h"
-#include "jerryscript.h"
+#include "rocky_js.h"
 
 // TODO     Make this dynamic. hacky 
 #define NUM_APPS 3
@@ -149,7 +149,7 @@ typedef struct app_running_thread_t {
     struct CoreTimer *timer_head;
     qarena_t *arena;
     struct n_GContext *graphics_context;
-    jerry_context_t *js_context;
+    rocky_thread_state rocky_state;
 } app_running_thread;
 
 /* in appmanager.c */

@@ -1,81 +1,72 @@
+#include "jerry-api.h"
+#include "jerry-port.h"
 #include "rebbleos.h"
-#include "rocky_port.h"
+#include <stdarg.h>
+#include <string.h>
 
 void jerry_port_fatal(jerry_fatal_code_t code)
 {
     SYS_LOG("rocky", APP_LOG_LEVEL_ERROR, "VM Fatal Error Code %d. Quitting.", code);
+    appmanager_get_current_thread()->rocky_state.fataled = true;
     appmanager_app_quit();
 }
 
+const char *logLevelString[] = {
+    [JERRY_LOG_LEVEL_ERROR] = "error",
+    [JERRY_LOG_LEVEL_WARNING] = "warning",
+    [JERRY_LOG_LEVEL_DEBUG] = "debug",
+    [JERRY_LOG_LEVEL_TRACE] = "trace",
+};
+
+extern int vsfmt(char *buf, unsigned int len, const char *ifmt, va_list ap);
+
 void jerry_port_log(jerry_log_level_t level, const char *fmt, ...)
 {
-    LogLevel rLevel;
+    LogLevel appLevel;
     switch (level)
     {
     case JERRY_LOG_LEVEL_ERROR:
-        rLevel = APP_LOG_LEVEL_ERROR;
+        appLevel = APP_LOG_LEVEL_ERROR;
         break;
     case JERRY_LOG_LEVEL_WARNING:
-        rLevel = APP_LOG_LEVEL_WARNING;
+        appLevel = APP_LOG_LEVEL_WARNING;
         break;
     case JERRY_LOG_LEVEL_DEBUG:
-        rLevel = APP_LOG_LEVEL_DEBUG;
+        appLevel = APP_LOG_LEVEL_DEBUG;
         break;
     case JERRY_LOG_LEVEL_TRACE:
-        rLevel = APP_LOG_LEVEL_DEBUG_VERBOSE;
+        appLevel = APP_LOG_LEVEL_DEBUG_VERBOSE;
         break;
     default:
-        rLevel = APP_LOG_LEVEL_INFO;
+        appLevel = APP_LOG_LEVEL_INFO;
     }
 
-    SYS_LOG("rocky", rLevel, "JerryScript log with level %d. NOTE: Logging unavailable", level);
-}
-void jerry_port_print_char(char c)
-{
-    SYS_LOG("rocky", APP_LOG_LEVEL_INFO, "JerryScript char: %c", c);
-}
-
-uint8_t *jerry_port_read_source(const char *file_name_p, size_t *out_size_p)
-{
-    return NULL;
-}
-void jerry_port_release_source(uint8_t *buffer_p)
-{
-    free(buffer_p);
+    va_list parts;
+    va_start(parts, fmt);
+    char outBuffer[256];
+    vsfmt(outBuffer, 256, fmt, parts);
+    SYS_LOG("rocky", appLevel, "js:%s> %s", logLevelString[level], outBuffer);
+    va_end(parts);
 }
 
-size_t jerry_port_normalize_path(const char *in_path_p, char *out_buf_p, size_t out_buf_size, char *base_file_p)
+void jerry_port_console(const char *fmt, ...)
 {
-    const size_t len = strnlen(in_path_p, out_buf_size);
-    if (len < out_buf_size)
-    {
-        strncpy(out_buf_p, in_path_p, out_buf_size);
-        return len;
-    }
-
-    return 0;
-}
-jerry_value_t jerry_port_get_native_module(jerry_value_t name)
-{
-    return jerry_create_undefined();
+    va_list parts;
+    va_start(parts, fmt);
+    char outBuffer[256];
+    vsfmt(outBuffer, 256, fmt, parts);
+    SYS_LOG("rocky", APP_LOG_LEVEL_INFO, "js> %s", outBuffer);
+    va_end(parts);
 }
 
-double jerry_port_get_local_time_zone_adjustment(double unix_ms, bool is_utc)
+bool jerry_port_get_time_zone(jerry_time_zone_t *tz)
 {
-    return 0;
+    tz->offset = 0;
+    tz->daylight_saving_time = rebble_time_get_tm()->tm_isdst;
+    return true;
 }
+
 double jerry_port_get_current_time()
 {
-    return 0;
-}
-
-struct jerry_context_t *jerry_port_get_current_context()
-{
-    app_running_thread *this_thread = appmanager_get_current_thread();
-    return this_thread->js_context;
-}
-
-void jerry_port_sleep(uint32_t sleep_time)
-{
-    APP_LOG("rocky", APP_LOG_LEVEL_WARNING, "Sleep not available");
+    return (double)rcore_get_time();
 }

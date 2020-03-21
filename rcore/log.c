@@ -34,7 +34,7 @@ void log_printf_to_ar(const char *layer, const char *module, uint8_t level, cons
 
 // NOTE Probably shouldn't use from an ISR or it'll likely lock
 
-#define PRBUFSIZ 160
+#define PRBUFSIZ 256
 void log_printf(const char *layer, const char *module, uint8_t level, const char *filename, uint32_t line_no, const char *fmt, va_list ar)
 {
     uint8_t interrupt_set = 0;

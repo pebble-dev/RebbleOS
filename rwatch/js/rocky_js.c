@@ -1,13 +1,25 @@
 #include "rebbleos.h"
 #include "rocky_js.h"
 
-#if defined(REBBLE_PLATFORM_SNOWY) || defined(REBBLE_PLATFORM_SNOWY)
+// TODO: Change the other 'defined' to match chalk, diorite
+#if defined(REBBLE_PLATFORM_SNOWY) || defined(REBBLE_PLATFORM_SNOWY) || defined(REBBLE_PLATFORM_SNOWY)
 
-#include "jerryscript.h"
+#include "jerry-api.h"
+#include "jcontext.h"
+#include "jmem-allocator.h"
 
-void *rocky_jerry_ctx_alloc(size_t size, void *userdata)
+#include "rocky_lib.h"
+
+
+void rocky_loop()
 {
-	return app_malloc(size);
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Starting graphics...");
+	Window *wnd = window_create();
+	window_stack_push(wnd, true);
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Starting app loop...");
+	app_event_loop();
+	window_destroy(wnd);
+	appmanager_app_quit();
 }
 
 void rocky_event_loop_with_resource(uint32_t resource_id)
@@ -36,6 +48,7 @@ void rocky_event_loop_with_resource(uint32_t resource_id)
 	}
 
 	resource_load(snapHandle, snapBuffer, snapSize);
+	// TODO: Fix resource_load signature
 	/*
     if (resource_load(snapHandle, snapBuffer, snapSize) != snapSize)
     {
@@ -60,40 +73,100 @@ void rocky_event_loop_with_resource(uint32_t resource_id)
 		return;
 	}
 
-	uint32_t *snapshot = snapBuffer + 12;
-	*(snapshot + 1) = 6u;
-	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "snapshot %p now %p", snapBuffer, snapshot);
-	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "JS Snapshot Resource loaded successfully.");
+	// Skip ahead to actual JerryScript snapshot(format v6).
+	uint32_t *snapshot = (uint32_t *)(snapBuffer + 8);
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "JS Snapshot Resource loaded successfully.", *snapshot);
 
-	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Creating JavaScript Context...");
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Creating JerryScript Context...");
+	jerry_global_context = app_calloc(1, sizeof(jerry_context_t));
 
-	app_running_thread *this_thread = appmanager_get_current_thread();
-
-	this_thread->js_context = jerry_create_context(64 * 1024, rocky_jerry_ctx_alloc, NULL);
-	if (this_thread->js_context == NULL)
+	if (jerry_global_context == NULL)
 	{
 		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "JavaScript Context creation failed.");
 		app_free(snapBuffer);
 		return;
 	}
 
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Allocating JerryScript Heap...");
+	uint8_t *heap_loc = app_calloc(1, sizeof(jmem_heap_t) + JMEM_ALIGNMENT); // Extra space needed in case of alignment
+	if (heap_loc == NULL)
+	{
+		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "Heap allocation failed.");
+		app_free(snapBuffer);
+		app_free(jerry_global_context);
+		return;
+	}
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Aligning JerryScript Heap to %d bytes from 0x%p...", JMEM_ALIGNMENT, heap_loc);
+	uint8_t *aligned_loc = heap_loc;
+	while ((uint32_t)aligned_loc % JMEM_ALIGNMENT != 0)
+		aligned_loc += 1;
+	jerry_global_heap = (jmem_heap_t *)aligned_loc;
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Aligned by %d bytes to 0x%p.", aligned_loc - heap_loc, aligned_loc);
+
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Allocating JerryScript Hash Table...");
+	jerry_global_hash_table = app_calloc(1, sizeof(jerry_hash_table_t));
+	if (jerry_global_hash_table == NULL)
+	{
+		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "Global hash table allocation failed.");
+		app_free(snapBuffer);
+		app_free(jerry_global_context);
+		app_free(heap_loc);
+		return;
+	}
+
 	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Starting JavaScript...");
 	jerry_init(JERRY_INIT_EMPTY);
 
-	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Running JavaScript Snapshot...");
-	jerry_value_t out = jerry_exec_snapshot(snapshot, snapSize - 12, 0, 0);
-	if(jerry_get_error_type(out) != JERRY_ERROR_NONE){
-		jerry_value_t val = jerry_get_value_from_error(out, false);
-		jerry_value_t msgV = jerry_get_property(val, jerry_create_string("message"));
-		char msg[256];
-		jerry_string_to_char_buffer(msgV, msg, 255);
-		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "Program execution failed. JavaScript engine reported error type %d. Error value %s.", jerry_get_error_type(out), msg);
+	rocky_lib_build();
+
+	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Running JavaScript Snapshot:");
+	jerry_value_t out = jerry_exec_snapshot(snapshot, snapSize - 8, false);
+	if (jerry_value_has_error_flag(out))
+	{
+		char error[128];
+		if (jerry_value_is_undefined(out))
+		{
+			APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "UNDEF", error);
+		}
+		jerry_value_t msg = jerry_get_property(out, jerry_create_string("message"));
+		jerry_string_to_char_buffer(msg, error, 256);
+		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "JavaScript program errored out: %s", error);
+
+		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "Cleaning up...");
+		jerry_cleanup();
 		app_free(snapBuffer);
-		app_free(this_thread->js_context);
+		app_free(jerry_global_context);
+		app_free(heap_loc);
+		app_free(jerry_global_hash_table);
+		appmanager_app_quit();
 		return;
 	}
+	char snapOut[128];
+	jerry_string_to_char_buffer(jerry_value_to_string(out), snapOut, 256);
+	APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "JavaScript program result: %s", snapOut);
+
+	if (appmanager_get_current_thread()->rocky_state.fataled)
+	{
+		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "JavaScript Engine fatal error.");
+
+		APP_LOG("rocky", APP_LOG_LEVEL_ERROR, "Cleaning up...");
+		jerry_cleanup();
+		app_free(snapBuffer);
+		app_free(jerry_global_context);
+		app_free(heap_loc);
+		app_free(jerry_global_hash_table);
+		appmanager_app_quit();
+		return;
+	}
+
 	APP_LOG("rocky", APP_LOG_LEVEL_INFO, "Snapshot execution successful.");
 
+	rocky_loop();
+
+	app_free(snapBuffer);
+	app_free(jerry_global_context);
+	app_free(heap_loc);
+	app_free(jerry_global_hash_table);
 }
 #else
 void rocky_event_loop_with_resource(uint32_t resource_id)

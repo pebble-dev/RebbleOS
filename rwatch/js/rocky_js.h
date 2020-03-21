@@ -10,4 +10,9 @@
 
 #include <stdint.h>
 
+typedef struct {
+    int fataled;
+} rocky_thread_state;
+
+
 void rocky_event_loop_with_resource(uint32_t resource_id);
