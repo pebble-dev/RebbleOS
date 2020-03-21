@@ -320,9 +320,7 @@ void timeline_action_send(uint8_t timeline_action, Uuid *uuid, const char *reply
         pkt_len += _timeline_attribute_create_to_buf(TimelineActionAttribute_ReplyTo, 
                                               (uint8_t *)reply_to, t_len - 1, action->attributes + pkt_len);
 
-    packet_set_ack_required(packet, uuid);
-    packet_set_retries(packet, 3);
-    packet_set_timeout(packet, 1000);
+    packet_send(packet);
 }
 
 enum {

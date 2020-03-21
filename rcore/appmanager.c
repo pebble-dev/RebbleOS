@@ -21,7 +21,7 @@
 /* Configure Logging */
 #define MODULE_NAME "appman"
 #define MODULE_TYPE "KERN"
-#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
+#define LOG_LEVEL RBL_LOG_LEVEL_ERROR //RBL_LOG_LEVEL_ERROR
 
 /*
  * Module TODO
@@ -260,7 +260,7 @@ static void _draw(uint8_t state)
         case 2:
             display_draw();
             display_buffer_lock_give();
-            LOG_INFO("Render Time %dms", xTaskGetTickCount() - _last_complete_draw);
+            LOG_DEBUG("Render Time %dms", xTaskGetTickCount() - _last_complete_draw);
             break;
     }
 }

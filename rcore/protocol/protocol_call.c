@@ -95,15 +95,7 @@ void protocol_phone_message_send(uint8_t command_id, uint32_t cookie, bool needs
     Uuid uuid;
     memcpy(&uuid, &cookie, 4);
     RebblePacket packet = packet_create_with_data(WatchProtocol_PhoneMessage, (void *)&pm, sizeof(phone_message));
-    if (needs_ack)
-    {
-        packet_set_ack_required(packet, &uuid);
-        packet_set_retries(packet, 3);
-        packet_set_timeout(packet, 1500);
-    }
-    else
-    {
-        packet_send(packet);
-    }
+    
+    packet_send(packet);
 }
 
