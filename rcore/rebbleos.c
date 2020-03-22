@@ -15,11 +15,12 @@
 #include "notification_manager.h"
 #include "power.h"
 #include "qemu.h"
+#include "protocol_service.h"
 #include "rtoswrap.h"
 #include "test.h"
 
 typedef uint8_t (*mod_callback)(void);
-static TaskHandle_t _os_task;
+// static TaskHandle_t _os_task;
 static SemaphoreHandle_t _os_init_sem;
 
 static void _os_thread(void *pvParameters);
@@ -50,7 +51,7 @@ void rebbleos_init(void)
     THREAD_CREATE(os);
 }
 
-char buf[100];
+// char buf[100];
 static void _os_thread(void *pvParameters)
 {
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Starting Init...");
@@ -78,6 +79,7 @@ static void _os_thread(void *pvParameters)
 #else
     _module_init(bluetooth_init,        "Bluetooth");
 #endif
+    rebble_protocol_init();
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     SYS_LOG("OS", APP_LOG_LEVEL_INFO,   "Init: Main hardware up. Starting OS modules");
@@ -92,7 +94,7 @@ static void _os_thread(void *pvParameters)
 #endif
 
     /* This is a runloop for all generic OS related stuff. */
-    
+
     os_msg msg;
     uint8_t count = 0;
     while(1)

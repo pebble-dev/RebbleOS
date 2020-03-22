@@ -8,6 +8,12 @@
 #include "rebbleos.h"
 #include "protocol_system.h"
 #include "pebble_protocol.h"
+#include "protocol_service.h"
+
+/* Configure Logging */
+#define MODULE_NAME "pcolapp"
+#define MODULE_TYPE "SYS"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 enum {
     AppRunStateStart = 1,
@@ -15,42 +21,50 @@ enum {
     AppRunStateRequest = 3,
 };
 
+typedef struct app_start_t {
+    uint8_t cmd;
+    Uuid uuid;
+    // and appid?
+    uint32_t app_id;
+} app_start;
 
-static void _app_send_state(const pbl_transport_packet *packet)
+
+static void _app_send_state(const RebblePacket packet)
 {
     uint8_t resp[sizeof(Uuid) + 1];
     resp[0] = AppRunStateStart;
-    SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "App State");
+    LOG_INFO("App State");
     App *app = appmanager_get_current_app();
-    SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "App State %x %x", app, app->header->uuid);
+    LOG_INFO("App State %x %x", app, app->header->uuid);
     if (app)
     {
         memcpy(&resp[1], &app->header->uuid, sizeof(Uuid));
     }
-    pbl_transport_packet pkt = {
-        .length = sizeof(Uuid) + 1,
-        .endpoint = WatchProtocol_AppRunState,
-        .data = (uint8_t *)resp,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+
+    rebble_protocol_send(WatchProtocol_AppRunState, (void *)&resp, sizeof(Uuid) + 1);
 }
 
 
-static void _app_start_app(const pbl_transport_packet *packet)
+static void _app_start_app(const RebblePacket packet)
+{
+    char buf[UUID_STRING_BUFFER_LENGTH];
+    app_start *d = (app_start *)packet_get_data(packet);
+    uuid_to_string(&d->uuid, buf);
+    
+    LOG_INFO("App Start %s", buf);
+    appmanager_app_start_by_uuid(&d->uuid);
+}
+
+static void _app_stop_app(const RebblePacket packet)
 {
     
 }
 
-static void _app_stop_app(const pbl_transport_packet *packet)
-{
-    
-}
 
-
-void protocol_app_run_state(const pbl_transport_packet *packet)
+void protocol_app_run_state(const RebblePacket packet)
 {
-    switch (packet->data[0]) {
+    uint8_t *data = packet_get_data(packet);
+    switch (data[0]) {
         case AppRunStateRequest:
             _app_send_state(packet);
             break;
@@ -63,7 +77,7 @@ void protocol_app_run_state(const pbl_transport_packet *packet)
         default:
             assert(!"IMPLEMENT ME");
     }
-    
+    packet_destroy(packet);
 }
 
 typedef struct _app_fetch_t {
@@ -84,18 +98,26 @@ enum {
     AppFetchStatusNoData = 0x04,
 };
 
-void protocol_app_fetch(const pbl_transport_packet *packet)
+void protocol_app_fetch(const RebblePacket packet)
 {
-    _app_fetch *app = (_app_fetch *)packet->data;
+    uint8_t *data = packet_get_data(packet);
+    _app_fetch *app = (_app_fetch *)data;
     _app_fetch_response resp = {
         .command = 1,
         .response = AppFetchStatusStart,
     };
-    pbl_transport_packet pkt = {
-        .length = sizeof(_app_fetch_response),
-        .endpoint = WatchProtocol_AppFetch,
-        .data = (uint8_t *)&resp,
-        .transport_sender = packet->transport_sender
+
+    rebble_protocol_send(WatchProtocol_AppFetch, (void *)&resp, sizeof(_app_fetch_response));
+    packet_destroy(packet);
+}
+
+void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id)
+{
+    _app_fetch req = {
+        .command = AppFetchStatusStart,
+        .app_id = app_id,
     };
-    protocol_send_packet(&pkt);
+    memcpy(&req.uuid, uuid, sizeof(Uuid));
+
+    rebble_protocol_send(WatchProtocol_AppFetch, (void *)&req, sizeof(_app_fetch));    
 }

@@ -32,6 +32,7 @@ enum {
     TimelineAttributeType_Subject = 2,
     TimelineAttributeType_Message = 3,
     TimelineAttributeType_SourceType = 4,
+    TimelineAttributeType_Icon = 6,
 };
 
 enum {
