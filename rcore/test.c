@@ -1,6 +1,7 @@
 #include "test.h"
 #include "rebbleos.h"
 #include "protocol.h"
+#include "protocol_service.h"
 #include "rtoswrap.h"
 
 #ifndef REBBLEOS_TESTING
@@ -96,11 +97,11 @@ static void _test_thread(void *par) {
     }
 }
 
-void test_packet_handler(const pbl_transport_packet *packet)
+void test_packet_handler(const RebblePacket packet)
 {
-    union qemu_test_packet *qpkt = (union qemu_test_packet *)packet->data;
+    union qemu_test_packet *qpkt = (union qemu_test_packet *)packet_get_data(packet);
     
-    KERN_LOG("test", APP_LOG_LEVEL_INFO, "test protocol packet from qemu, %d bytes, opcode %d", packet->length, qpkt->opcode);
+    KERN_LOG("test", APP_LOG_LEVEL_INFO, "test protocol packet from qemu, %d bytes, opcode %d", packet_get_data_length(packet), qpkt->opcode);
     
     switch (ntohs(qpkt->opcode)) {
     case QEMU_TEST_LIST_REQUEST: {
