@@ -272,6 +272,10 @@ size_t stm32_usart_write(stm32_usart_t *usart, const uint8_t *buf, size_t len)
     int i;
     for (i = 0; i < len; i++)
     {
+        if (buf[i] == '\n' && !usart->config->is_binary) {
+            while (!(usart->config->usart->SR & USART_SR_TC));
+            usart->config->usart->DR = '\r';
+        }
         //while (!(usart->config->usart->SR & USART_SR_TC));
         if (_timeout(usart->config->usart->SR & USART_SR_TC, 10))
             break;

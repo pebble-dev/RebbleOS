@@ -59,7 +59,7 @@ struct appdb
 
 typedef struct appdb_n
 {
-//     uint32_t application_id;    
+//     uint32_t application_id; this is the blobdb key
     Uuid app_uuid;  // 16 bytes
     uint32_t flags; /* pebble_process_info.h, PebbleProcessInfoFlags in the SDK */
     uint32_t icon;
@@ -127,13 +127,23 @@ static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint
         return NULL;
     
     strcpy(app->name, name);
+    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Creating App %s", app->name);
     app->main = (void*)entry_point;
     app->type = type;
     app->header = NULL;
-    memcpy(&app->app_file, app_file, sizeof(struct file));
-    memcpy(&app->resource_file, resource_file, sizeof(struct file));
+    
+    appmanager_app_set_flag(app, AppFilePresent, app_file == NULL ? false : true);
+    appmanager_app_set_flag(app, ResourceFilePresent, resource_file == NULL ? false : true);
+    
+    if (app_file)
+        memcpy(&app->app_file, app_file, sizeof(struct file));
+    if (resource_file)
+        memcpy(&app->resource_file, resource_file, sizeof(struct file));
+    
     appmanager_app_set_flag(app, ExecuteFromInternalFlash, is_internal);
     app->id = app_id;
+    
+    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Created App %s", app->name);
 
     if (!uuid)
     {
@@ -162,9 +172,10 @@ static void _appmanager_flash_load_app_manifest_n(void)
                         offsetof(appdb_n, flags), FIELD_SIZEOF(appdb_n, flags),
                         0, Blob_Less);
     blobdb_result_set *rs;
-    
+    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d", count);
     list_foreach(rs, head, blobdb_result_set, node)
     {
+        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d", count);
         /* main gets set later */
         _appmanager_add_to_manifest(_appmanager_create_app((char *)rs->select1,
                                                            (Uuid *)rs->select2,
@@ -199,8 +210,8 @@ static void _appmanager_flash_load_app_manifest(void)
     char buffer[14];
     struct appdb appdb;
     struct fd fd;
-    struct file *app_file = system_calloc(1, sizeof(struct file));
-    struct file *res_file = system_calloc(1, sizeof(struct file));
+    struct file app_file;
+    struct file res_file;
     struct fd app_fd;
     ApplicationHeader header;
 
@@ -232,14 +243,14 @@ static void _appmanager_flash_load_app_manifest(void)
         }
         
         snprintf(buffer, 14, "@%08lx/app", appdb.application_id);
-        if (fs_find_file(app_file, buffer) < 0)
+        if (fs_find_file(&app_file, buffer) < 0)
             continue;
 
         snprintf(buffer, 14, "@%08lx/res", appdb.application_id);
-        if (fs_find_file(res_file, buffer) < 0)
+        if (fs_find_file(&res_file, buffer) < 0)
             continue;
 
-        fs_open(&app_fd, app_file);
+        fs_open(&app_fd, &app_file);
 
         if (fs_read(&app_fd, &header, sizeof(ApplicationHeader)) != sizeof(ApplicationHeader))
             break;
@@ -265,8 +276,8 @@ static void _appmanager_flash_load_app_manifest(void)
                                                            (appdb.flags & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
                                                            NULL,
                                                            false,
-                                                           app_file,
-                                                           res_file));
+                                                           &app_file,
+                                                           &res_file));
     }
 }
 

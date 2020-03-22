@@ -354,9 +354,7 @@ int hw_flash_write_sync(uint32_t address, uint8_t *buffer, size_t length)
     uint32_t len_padded = length + start_align + end_align;
     assert((len_padded & 1) == 0);
     
-    // assert(len_padded <= 64); /* write buffer size is only 64b */
     uint32_t rem = len_padded;
-    printf("Write\n");
     size_t bufpos = 0;
     while(rem > 0)
     {
@@ -368,25 +366,23 @@ int hw_flash_write_sync(uint32_t address, uint8_t *buffer, size_t length)
         
         if (write_len > pg_left)
             write_len = pg_left;
-   
+    
         NOR_WRITE(Bank1_NOR_ADDR + addr_aligned, FLASH_CMD_WRITE_BUFFER_LOAD);
-        NOR_WRITE(Bank1_NOR_ADDR + addr_aligned +  SHF(0x2AA), write_len / 2);
+        NOR_WRITE(Bank1_NOR_ADDR + addr_aligned +  SHF(0x2AA), write_len / 2 - 1);
         
         for(size_t i = 0; i < write_len; i+=2)
         {
             uint8_t v[2];
-
             v[0] = ((len_padded == (rem - i)) && start_align) ? 0xFF : buffer[bufpos++];
             v[1] = (((rem - i)        == 2) && end_align  ) ? 0xFF : buffer[bufpos++];
             NOR_WRITE(Bank1_NOR_ADDR + SHF((addr_aligned/2) + i/2),  *((uint16_t *)v));
         }       
         
-        NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(address) +SHF(0x555), FLASH_CMD_WRITE_CONFIRM);
-        /*if (*( (__IO uint16_t *) (Bank1_NOR_ADDR + ALIGN(address))) != buffer)
-        {
-            ex = -1;
-        }*/
-        // XXX Should be polling for write here!
+        NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(addr_aligned) + SHF(0x555), FLASH_CMD_WRITE_CONFIRM);
+        
+        // We automatically wait for completion using the WAIT signal.
+        (void)*(volatile uint16_t *)(Bank1_NOR_ADDR + SECTOR_START(addr_aligned));
+
         addr_aligned += write_len;
         rem -= write_len;
         _nor_reset_state();

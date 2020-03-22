@@ -208,7 +208,7 @@ static bool _qemu_handle_packet(void)
     void *data = buf + sizeof(QemuCommChannelHeader);   
     RebblePacket p = packet_create_with_data(0, data, header.len);
     handler(p);
-    protocol_free(p);
+    packet_destroy(p);
 
     if (protocol_get_rx_buf_size() > 0)
         return true; /* more work to do */

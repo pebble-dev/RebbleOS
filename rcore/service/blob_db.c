@@ -234,14 +234,21 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
         if (fs_read(fd, &hdr, sizeof(hdr)) < sizeof(hdr))
             break;
         
-        uint8_t _tmp_key[hdr.key_len];
-        if (fs_read(fd, &_tmp_key, hdr.key_len) < hdr.key_len)
+        if (hdr.key_len >= 0x7F)
             break;
 
-        uint8_t done = 0;
+        uint8_t _tmp_key[hdr.key_len];
+        if (fs_read(fd, _tmp_key, hdr.key_len) < hdr.key_len)
+            break;
 
         /* End of file */
-        if (uuid_is_int((Uuid *)_tmp_key, 0xFF))
+        int i = 0;
+        for (i = 0; i < hdr.key_len; i++)
+        {
+            if (_tmp_key[i] != 0xFF)
+                break;                
+        }
+        if (i == hdr.key_len - 1)
             break;
 
         bool comp1 = true;
@@ -364,6 +371,7 @@ uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t key_size, uint
     
     if (idx < 0)
     {
+        LOG_ERROR("Invalid Key: %d database id: %d", key, database_id);
         /* Key Does NOT exist! */
         return Blob_KeyDoesNotExist;
     }
@@ -403,7 +411,6 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             LOG_ERROR("nope, that did not work either, I give up");
             return Blob_DatabaseFull;
         }
-        fs_mark_written(&fd);
     }
 
     int pos = 0;
@@ -414,7 +421,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             return Blob_DatabaseFull;
         }
         
-        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0xFFFF && hdr.data_len == 0xFFFF)
+        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0x7F && hdr.data_len == 0x7FF)
         {
             /* rewind the seek to the new empty spot */
             fs_seek(&fd, pos, FS_SEEK_SET);
@@ -426,12 +433,12 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     
     if (pos + sizeof(struct blobdb_hdr) + key_size + data_size > fd.file.size) {
         /* XXX: try gc'ing the blob */
-        LOG_ERROR("not enough space for new entry");
+        LOG_ERROR("not enough space %d %d for new entry", fd.file.size, pos); //+ sizeof(struct blobdb_hdr) + key_size + data_size);
         return Blob_DatabaseFull;
     }
 
     /* XXX: check if we're mid-write */
-    hdr.flags = 0xFF;
+    hdr.flags = 0x3F;
     hdr.key_len = key_size;
     hdr.data_len = data_size;
     if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
@@ -454,6 +461,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
         return Blob_GeneralFailure;
     }
 
+    fs_mark_written(&fd);
     return Blob_Success;
 }
 

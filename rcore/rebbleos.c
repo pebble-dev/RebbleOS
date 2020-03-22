@@ -15,7 +15,6 @@
 #include "notification_manager.h"
 #include "power.h"
 #include "qemu.h"
-#include "blob_db_ramfs.h"
 #include "protocol_service.h"
 #include "rtoswrap.h"
 #include "test.h"
@@ -85,7 +84,6 @@ static void _os_thread(void *pvParameters)
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     SYS_LOG("OS", APP_LOG_LEVEL_INFO,   "Init: Main hardware up. Starting OS modules");
     _module_init(resource_init,         "Resources");
-    ramfs_init();
     
 #ifndef REBBLEOS_TESTING
     _module_init(notification_init,     "Notifications");

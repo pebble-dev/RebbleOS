@@ -20,7 +20,7 @@ void spp_handler(const RebblePacket incoming_packet)
         return; // we are done, no point looking as we have no data left
 
     /* seems legit. We have a valid packet. Create a data packet and process it */
-    RebblePacket newpacket = packet_create(packet.endpoint, packet.length);
+    RebblePacket newpacket = packet_create_with_data(packet.endpoint, packet.data, packet.length);
     
     if (newpacket == NULL)
     {
@@ -28,8 +28,8 @@ void spp_handler(const RebblePacket incoming_packet)
         return;
     }
     
-    uint8_t *newdata = packet_get_data(newpacket);
-    memcpy(newdata, packet.data, packet.length);
+//     uint8_t *newdata = packet_get_data(newpacket);
+//     memcpy(newdata, packet.data, packet.length);
     
     protocol_process_packet(newpacket);
  

@@ -160,7 +160,7 @@ void protocol_process_transfer(const RebblePacket packet)
                 LOG_ERROR("Couldn't create %s!", buf);
                 goto error;
             }
-            
+            fs_mark_written(&_fd);
             _send_ack(0);
             break;
             
@@ -209,7 +209,7 @@ void protocol_process_transfer(const RebblePacket packet)
             if (htonl(chdr->crc) != crc)
             {
                 LOG_ERROR("Bad CRC: %x expected %x", crc, htonl(chdr->crc));
-//                 goto error;
+                goto error;
             }
 
             LOG_DEBUG("CRC %x valid", crc);
