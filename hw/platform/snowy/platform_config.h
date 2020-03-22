@@ -29,5 +29,5 @@ extern unsigned char _binary_Resources_snowy_fpga_bin_start;
 #define MEM_REGION_DISPLAY  MEM_REGION_CCRAM
 #define MEM_REGION_RAMFS    MEM_REGION_CCRAM
 #define MEM_REGION_HEAP_OVL MEM_REGION_CCRAM
-#define MEM_REGION_HEAP_WRK MEM_REGION_CCRAM
+#define MEM_REGION_HEAP_WRK 
 #define MEM_REGION_PANIC    MEM_REGION_CCRAM

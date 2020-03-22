@@ -1,7 +1,14 @@
+/* protocol_system.c
+ * R/Pebble Protocol System requests.
+ * libRebbleOS
+ *
+ * Author: Barry Carter <barry.carter@gmail.com>
+ */
 #include "rebbleos.h"
 #include "protocol.h"
 #include "protocol_system.h"
 #include "pebble_protocol.h"
+#include "protocol_service.h"
 
 typedef struct firmware_version_t {
     uint32_t timestamp;
@@ -29,16 +36,15 @@ typedef struct firmware_version_response_t {
 }  __attribute__((__packed__)) firmware_version_response;
 
 // firmware version processing
-void protocol_watch_version(const pbl_transport_packet *packet)
+void protocol_watch_version(const RebblePacket packet)
 {
-    if (((uint8_t *)packet->data)[0] != 0)
-    {
+    uint8_t *data = packet_get_data(packet);
+    if (data[0] != 0) {
         SYS_LOG("FWPKT", APP_LOG_LEVEL_ERROR, "Not a request");
         return;
     }
 
     SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "Get Version");
-    uint16_t tx_len = strlen(FW_VERSION);
 
     const firmware_version_response response = (firmware_version_response) {
             .command = 1,
@@ -70,45 +76,30 @@ void protocol_watch_version(const pbl_transport_packet *packet)
             .is_unfaithful = 1, // = Optional(Boolean())
         };
 
-    /* Reply back with our firmware version */
-    pbl_transport_packet pkt = {
-            .length = sizeof(firmware_version_response),
-            .endpoint = WatchProtocol_FirmwareVersion,
-            .data = (uint8_t *)&response,
-            .transport_sender = packet->transport_sender
-        };
-
-
-    protocol_send_packet(&pkt);
+    packet_destroy(packet);
+    rebble_protocol_send(WatchProtocol_FirmwareVersion, (void *)&response, sizeof(firmware_version_response));
+    
 }
 
-void protocol_watch_model(const pbl_transport_packet *packet)
+void protocol_watch_model(const RebblePacket packet)
 {
+    packet_destroy(packet);
     uint8_t resp[6] = { 1, 4, 0, 0, 0, SnowyBlack };
-    pbl_transport_packet pkt = {
-        .length = 6,
-        .endpoint = WatchProtocol_WatchModel,
-        .data = (uint8_t *)resp,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+    rebble_protocol_send(WatchProtocol_WatchModel, (void *)&resp, 6);    
 }
 
-void protocol_ping_pong(const pbl_transport_packet *packet)
+void protocol_ping_pong(const RebblePacket packet)
 {
-    uint8_t resp[5] = { 1, packet->data[1], packet->data[2], packet->data[3], packet->data[4] };
-    pbl_transport_packet pkt = {
-        .length = 5,
-        .endpoint = WatchProtocol_PingPong,
-        .data = (uint8_t *)resp,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+    uint8_t *data = packet_get_data(packet);
+    uint8_t resp[5] = { 1, data[1], data[2], data[3], data[4] };
+    packet_destroy(packet);
+    rebble_protocol_send(WatchProtocol_PingPong, (void *)&resp, 5);
 }
 
-void protocol_watch_reset(const pbl_transport_packet *packet)
+void protocol_watch_reset(const RebblePacket packet)
 {
-   assert(0);
+    packet_destroy(packet);
+    assert(0);
 }
 
 typedef struct app_version_response_t {
@@ -123,7 +114,7 @@ typedef struct app_version_response_t {
     uint64_t protocol_caps;
 } __attribute__((__packed__)) app_version_response;
 
-void protocol_app_version(const pbl_transport_packet *packet)
+void protocol_app_version(const RebblePacket packet)
 {
     app_version_response appv = {
         .command = 1,
@@ -137,13 +128,7 @@ void protocol_app_version(const pbl_transport_packet *packet)
         .protocol_caps = 0,
     };
 
-    pbl_transport_packet pkt = {
-        .length = sizeof(app_version_response),
-        .endpoint = WatchProtocol_PingPong,
-        .data = (uint8_t *)&appv,
-        .transport_sender = packet->transport_sender
-    };
-    protocol_send_packet(&pkt);
+    rebble_protocol_send(WatchProtocol_AppVersion, (void *)&appv, sizeof(app_version_response));
 }
 
 /* Time Command functions */
@@ -163,64 +148,36 @@ typedef struct cmd_set_time_utc_t {
 } __attribute__((__packed__)) cmd_set_time_utc;
 
 extern struct tm *boot_time_tm;
-void protocol_time(const pbl_transport_packet *packet)
+void protocol_time(const RebblePacket packet)
 {
+    uint8_t *data = packet_get_data(packet);
     uint8_t buf[5];
-    pbl_transport_packet pkt = {
-            .length = 5,
-            .endpoint = WatchProtocol_Time,
-            .data = buf,
-            .transport_sender = packet->transport_sender
-        };
-
-    if (packet->data[0] == GetTimeRequest)
+    
+    
+    if (data[0] == GetTimeRequest)
     {
         buf[0] = GetTimeResponse;
         uint32_t t = ntohl(rcore_get_time()); //pbl_time_t_deprecated(NULL);
         memcpy(&buf[1], &t, 4);
-        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX Time %d", htonl(t));
-        protocol_send_packet(&pkt);
+        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX Time %x", htonl(t));
+        rebble_protocol_send(WatchProtocol_Time, buf, 5);
     }
-    else if (packet->data[0] == SetLocalTime)
+    else if (data[0] == SetLocalTime)
     {
         uint32_t nt;
-        memcpy(&nt, &packet->data[1], 4);
-        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX aTime %d %d", nt, ntohl(nt));
+        memcpy(&nt, &data[1], 4);
+        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX aTime %x %x", nt, ntohl(nt));
         rcore_set_time(ntohl(nt));
     }
-    else if (packet->data[0] == SetUTC)
+    else if (data[0] == SetUTC)
     {
-        cmd_set_time_utc *utc = (cmd_set_time_utc *)packet->data;
+        cmd_set_time_utc *utc = (cmd_set_time_utc *)&data[1];
         rcore_set_time(ntohl(utc->unix_time));
         rcore_set_utc_offset(utc->utc_offset);
         rcore_set_tz_name(utc->tz_name, utc->pstr_len);
     }
     else
         assert(!"Invalid time request!");
+    
+    packet_destroy(packet);
 }
-/*
-
-typedef struct notif_db_entry_t {
-    uint8_t key[32];
-    uint8_t data[];
-} blob_db_entry;
-
-enum TimelineItemType {
-    TimelineItemType_Notification = 1,
-    TimelineItemType_Pin = 2,
-    TimelineItemType_Reminder = 3
-};
-
-typedef struct timeline_item_t {
-    Uuid uuid;
-    Uuid parent_uuid;
-    uint32_t timestamp;
-    uint16_t duration;
-    uint8_t timeline_type;
-    uint16_t flags;
-    uint8_t layout;
-    uint16_t data_size;
-    uint8_t attr_count;
-    uint8_t action_count;
-    uint8_t data[];
-} timeline_item;*/
