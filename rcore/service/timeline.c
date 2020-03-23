@@ -208,32 +208,51 @@ void timeline_destroy(rebble_notification *notification)
 }
 
 
-list_head *timeline_notifications(uint32_t from_timestamp)
+blobdb_select_result_list *timeline_notifications(uint32_t from_timestamp)
 {
     uint32_t val_type = TimelineItemType_Notification;
-    list_head *head = app_calloc(1, sizeof(list_head));
+    blobdb_select_result_list *head = app_calloc(1, sizeof(blobdb_select_result_list));
     list_init_head(head);
+    
+    struct blobdb_iter it;
+    if (blobdb_iter_start(blobdb_open(BlobDatabaseID_Notification), &it) == 0)
+        return head;
+    
+    struct blobdb_selector selectors[] = {
+        { offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), Blob_Gtr, &from_timestamp },
+        { offsetof(timeline_item, timeline_type), FIELD_SIZEOF(timeline_item, timeline_type), Blob_Eq, &val_type },
+        { offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), Blob_Result },
+        { offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), Blob_Result },
+        { }
+    };
+    
+    blobdb_select(&it, head, selectors);
 
-    blobdb_select_items2(BlobDatabaseID_Notification, head,
-                        offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), 
-                        offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), 
-                        /* where */
-                        offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp),
-                        (uint8_t *)&from_timestamp, Blob_Gtr,
-                        offsetof(timeline_item, timeline_type), FIELD_SIZEOF(timeline_item, timeline_type),
-                        (uint8_t *)&val_type, Blob_Eq);
     return head;
 }
 
-
 rebble_notification *timeline_get_notification(Uuid *uuid)
 {
-    uint8_t *data;
-    if (blobdb_select(BlobDatabaseID_Notification, (uint8_t *)uuid, sizeof(Uuid), &data) != Blob_Success)
-        assert(0);
-    rebble_notification *notif = timeline_item_process(data);
+    blobdb_select_result_list head;
+    list_init_head(&head);
+    
+    struct blobdb_iter it;
+    if (blobdb_iter_start(blobdb_open(BlobDatabaseID_Notification), &it) == 0)
+        assert(!"blobdb open on notif db failed");
+
+    struct blobdb_selector selectors[] = {
+        { BLOBDB_SELECTOR_OFFSET_KEY, sizeof(Uuid), Blob_Eq, uuid },
+        { 0, 0, Blob_Result_FullyLoad },
+        { }
+    };
+    
+    if (blobdb_select(&it, &head, selectors) != 1)
+        assert(!"get_notification on nonexistant notif uuid");
+    
+    struct blobdb_select_result *res = blobdb_select_result_head(&head);
+    rebble_notification *notif = timeline_item_process(res->result[0]);
     printblob(notif);
-    app_free(data);
+    blobdb_select_free_all(&head);
 
     return notif;
 }

@@ -12,7 +12,6 @@
 #include "timeline.h"
 #include "blob_db.h"
 
-
 /* Configure Logging */
 #define MODULE_NAME "blobdb"
 #define MODULE_TYPE "SYS"
@@ -48,13 +47,13 @@ typedef struct blobdb_hdr {
     uint16_t data_len;
 } __attribute__((__packed__)) blobdb_hdr;
 
-typedef struct database_t {
+struct blobdb_database {
     uint8_t id;
     const char *filename;
     uint16_t def_db_size;
-} database;
+};
 
-static const database databases[] = {
+static const struct blobdb_database databases[] = {
     {
         .id = BlobDatabaseID_Test,
         .filename = "rebble/testblob",
@@ -70,23 +69,12 @@ static const database databases[] = {
         .filename = "rebble/appdb",
         .def_db_size = 16384,
     },
-#define DB_COUNT 3
 };
 
-void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id, 
-                            uint16_t select1_offsetof_property, uint16_t select1_property_size, 
-                            uint16_t select2_offsetof_property, uint16_t select2_property_size, 
-                            uint16_t where_offsetof_property, uint8_t where_property_size, 
-                            uint8_t *where_val, Blob_Operator operator,
-                            uint16_t where_offsetof_property1, uint8_t where_property_size1, 
-                            uint8_t *where_val1, Blob_Operator operator1);
-
-
-static const database *_find_database(uint8_t id)
-{
-    for (uint8_t i = 0; i < DB_COUNT; i++)
+const struct blobdb_database *blobdb_open(uint16_t database_id) {
+    for (int i = 0; i < sizeof(databases) / sizeof(databases[0]); i++)
     {
-        if (databases[i].id == id)
+        if (databases[i].id == database_id)
             return &databases[i];
     }
 
@@ -144,31 +132,68 @@ static int _blobdb_seek_valid(struct fd *fdp, struct blobdb_hdr *hdrp, int next)
     return 0;
 }
 
-static int _blobdb_seek_first(struct fd *fdp, struct blobdb_hdr *hdrp) {
-    return _blobdb_seek_valid(fdp, hdrp, 0);
+static int _blobdb_iter_start_from_fd(struct fd *fd, struct blobdb_iter *it) {
+    it->fd = *fd;
+    
+    it->key_len = it->data_len = 0;
+    
+    struct blobdb_hdr hdr;
+    if (!_blobdb_seek_valid(&it->fd, &hdr, 0))
+        return 0;
+    
+    it->key_len = hdr.key_len;
+    it->data_len = hdr.data_len;
+    
+    return 1;
+}
+    
+int blobdb_iter_start(const struct blobdb_database *db, struct blobdb_iter *it) {
+    struct file file;
+    struct fd fd;
+    struct blobdb_hdr hdr;
+    
+    if (fs_find_file(&file, db->filename) < 0) {
+        LOG_ERROR("file not found for db %s", db->filename);
+        return 0;
+    }
+    fs_open(&fd, &file);
+    
+    return _blobdb_iter_start_from_fd(&fd, it);
+} 
+
+int blobdb_iter_next(struct blobdb_iter *it) {
+    it->key_len = it->data_len = 0;
+
+    struct blobdb_hdr hdr;
+    if (!_blobdb_seek_valid(&it->fd, &hdr, 1))
+        return 0;
+    
+    it->key_len = hdr.key_len;
+    it->data_len = hdr.data_len;
+    
+    return 1;
 }
 
-static int _blobdb_seek_next(struct fd *fdp, struct blobdb_hdr *hdrp) {
-    return _blobdb_seek_valid(fdp, hdrp, 1);
+int blobdb_iter_read_key(struct blobdb_iter *it, void *key) {
+    struct fd fd = it->fd;
+    
+    fs_seek(&fd, sizeof(struct blobdb_hdr), FS_SEEK_CUR);
+    return fs_read(&fd, key, it->key_len);
+}
+
+int blobdb_iter_read_data(struct blobdb_iter *it, int ofs, void *data, int len) {
+    struct fd fd = it->fd;
+    
+    if (it->data_len <= ofs)
+        return 0;
+    
+    len = (it->data_len > (ofs + len)) ? len : (it->data_len - ofs);
+    
+    fs_seek(&fd, sizeof(struct blobdb_hdr) + it->key_len + ofs, FS_SEEK_CUR);
+    return fs_read(&fd, data, len);
 }
 
 #if 0
-/* XXX: in the morning */
-struct blobdb_select_entry {
-    uint16_t offsetof;
-    uint16_t size;
-    Blob_Operator operator; /* new operator: Blob_Result, which turns this into a result */
-    void *val;
-}
-struct blobdb_select_result /* inserted into list_head */ {
-    struct fd fd; /* pointer to data */
-    void *key;
-    uint8_t key_len;
-    list_node node;
-    void *result[];
-}
-int blobdb_select(list_head *head, struct fd *fd, struct blobdb_select_entry *entries);
-void blobdb_free_results(list_head *head);
 /* use like: */
 {
     struct blobdb_select_entry selects[] = {
@@ -184,50 +209,16 @@ void blobdb_free_results(list_head *head);
 }
 #endif
 
-static int32_t _blob_db_find_item_entry(struct fd *fd, const database *db, size_t file_size, uint8_t *key, uint8_t key_size)
-{
-    uint8_t _tmp_key[key_size];
-    size_t _data_size = 0;
-    struct blobdb_hdr hdr;
-    int valid;
-
-    valid = _blobdb_seek_first(fd, &hdr);
-    while (valid) {
-        if (hdr.key_len != key_size) {
-            valid = _blobdb_seek_next(fd, &hdr);
-            continue;
-        }
-        
-        int idx = fs_seek(fd, 0, FS_SEEK_CUR);
-
-        fs_seek(fd, sizeof(hdr), FS_SEEK_CUR);
-        if (fs_read(fd, _tmp_key, key_size) < key_size)
-            break;
-
-        /* End of file */
-        if (uuid_is_int((Uuid  *)_tmp_key, 0xFF))
-            break;
-
-        if (memcmp(key, _tmp_key, key_size) == 0)
-        {
-            LOG_INFO("Found at index: %d", idx);
-            return idx;
-        }
-
-        fs_seek(fd, hdr.data_len, FS_SEEK_CUR);
-        valid = _blobdb_seek_first(fd, &hdr); /* we already seeked */
-    }
-
-    return -1;
-}
-
-static bool _compare(Blob_Operator operator, uint8_t *where_prop, uint8_t *where_val, size_t size)
+static bool _compare(blobdb_operator_t operator, uint8_t *where_prop, uint8_t *where_val, size_t size)
 {
     uint16_t i = 0;
     uint32_t val1 = 0;
     uint32_t val2 = 0;
-    memcpy(&val1, where_prop, size);
-    memcpy(&val2, where_val, size);
+    
+    if (size <= 4) {
+        memcpy(&val1, where_prop, size);
+        memcpy(&val2, where_val, size);
+    }
     
     char type = '>';
     bool rval = false;
@@ -260,310 +251,210 @@ static bool _compare(Blob_Operator operator, uint8_t *where_prop, uint8_t *where
             if (i == size)
                 rval = true;
             break;
+        default:
+            assert(!"bad operator for _compare");
     }
 
     LOG_DEBUG("COMP: %d %c %d := %s", val1, type, val2, rval ? "true" : "false");
     return rval;
 }
 
-uint16_t blobdb_select_items_all(uint8_t database_id, list_head *head,
-                            uint16_t select1_offsetof_property, uint16_t select1_property_size, 
-                            uint16_t select2_offsetof_property, uint16_t select2_property_size)
-{
-    return blobdb_select_items2(database_id, head,
-                                 select1_offsetof_property, select1_property_size,
-                                 select2_offsetof_property, select2_property_size,
-                                 0, 0,
-                                 NULL, 0,
-                                 0, 0,
-                                 NULL, 0);
-}
-
-uint16_t blobdb_select_items1(uint8_t database_id, list_head *head,
-                            uint16_t select1_offsetof_property, uint16_t select1_property_size, 
-                            uint16_t select2_offsetof_property, uint16_t select2_property_size, 
-                            uint16_t where_offsetof_property, uint8_t where_property_size, 
-                            uint8_t *where_val, Blob_Operator operator)
-{
-    return blobdb_select_items2(database_id, head,
-                                 select1_offsetof_property, select1_property_size,
-                                 select2_offsetof_property, select2_property_size,
-                                 where_offsetof_property, where_property_size,
-                                 where_val, operator,
-                                 0, 0,
-                                 NULL, 0);
-}
-
-uint16_t blobdb_select_items2(uint8_t database_id, list_head *head,
-                            uint16_t select1_offsetof_property, uint16_t select1_property_size, 
-                            uint16_t select2_offsetof_property, uint16_t select2_property_size, 
-                            uint16_t where_offsetof_property, uint8_t where_property_size, 
-                            uint8_t *where_val, Blob_Operator operator,
-                            uint16_t where_offsetof_property1, uint8_t where_property_size1, 
-                            uint8_t *where_val1, Blob_Operator operator1)
-{
-    struct fd fd;
-    struct file file;
-
-    const database *db = _find_database(database_id);
-    if (fs_find_file(&file, db->filename) < 0) {
-        LOG_ERROR("file not found for db %d", database_id);
-        return 0;
-    }
+int blobdb_select(struct blobdb_iter *it, list_head/*<blobdb_select_result>*/ *head, struct blobdb_selector *selectors) {
+    int n = 0;
     
-    fs_open(&fd, &file);
-    _blobdb_select_items2(head, &fd, database_id, 
-                          select1_offsetof_property, select1_property_size, 
-                          select2_offsetof_property, select2_property_size, 
-                          where_offsetof_property, where_property_size, 
-                          where_val, operator,
-                          where_offsetof_property1, where_property_size1, 
-                          where_val1, operator1);
-
-    return 0;
-
-}
-
-void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id, 
-                            uint16_t select1_offsetof_property, uint16_t select1_property_size, 
-                            uint16_t select2_offsetof_property, uint16_t select2_property_size, 
-                            uint16_t where_offsetof_property, uint8_t where_property_size, 
-                            uint8_t *where_val, Blob_Operator operator,
-                            uint16_t where_offsetof_property1, uint8_t where_property_size1, 
-                            uint8_t *where_val1, Blob_Operator operator1)
-{
-    int idx = 0;
-    const database *db = _find_database(database_id);
-    struct blobdb_hdr hdr;
-    int valid;
-    
-    valid = _blobdb_seek_first(fd, &hdr);
-    while (valid) {
-        fs_seek(fd, sizeof(hdr), FS_SEEK_CUR);
-        
-        struct fd kfd = *fd;
-        fs_seek(fd, hdr.key_len, FS_SEEK_CUR);
-        
-        struct fd dfd = *fd; /* data pointer */
-        fs_seek(fd, hdr.data_len, FS_SEEK_CUR);
-        
+    int valid = 1;
+    for (; valid; valid = blobdb_iter_next(it)) {
         bool comp = true;
+        struct blobdb_selector *selp;
+        int nrv = 0;
         
-        /* XXX: check property sizes vs data_size */
-        if (where_property_size && where_offsetof_property)
-        {
-            struct fd pfd = dfd;
-            
-            if ((where_property_size + where_offsetof_property) > hdr.data_len)
-                comp = false;
-            else {
-                uint8_t where_prop[where_property_size];
-                fs_seek(&pfd, where_offsetof_property, FS_SEEK_CUR);
-                fs_read(&pfd, where_prop, where_property_size);
-            
-                comp = comp && _compare(operator, where_prop, where_val, where_property_size);
+        /* Do comparisons first. */
+        for (selp = selectors; selp->operator; selp++) {
+            if (selp->operator >= Blob_Result) {
+                nrv++;
+                continue;
             }
-        }
-        if (where_property_size1 && where_offsetof_property1)
-        {
-            struct fd pfd = dfd;
             
-            if ((where_property_size1 + where_offsetof_property1) > hdr.data_len)
+            uint8_t prop[selp->size];
+            if (selp->offsetof == BLOBDB_SELECTOR_OFFSET_KEY) {
+                if (it->key_len != selp->size) {
+                    comp = false;
+                    break;
+                }
+                if (blobdb_iter_read_key(it, prop) != selp->size) {
+                    comp = false;
+                    break;
+                }
+            } else {
+                if (blobdb_iter_read_data(it, selp->offsetof, prop, selp->size) != selp->size) {
+                    comp = false;
+                    break;
+                }
+            }
+            
+            if (!_compare(selp->operator, prop, selp->val, selp->size)) {
                 comp = false;
-            else {
-                uint8_t where_prop1[where_property_size1];
-                fs_seek(&pfd, where_offsetof_property, FS_SEEK_CUR);
-                fs_read(&pfd, where_prop1, where_property_size1);
-
-                comp = comp && _compare(operator1, where_prop1, where_val1, where_property_size1);
+                break;
             }
         }
         
-        if (comp)
-        {
-            /* we have a match */
-            blobdb_result_set *set = calloc(1, sizeof(blobdb_result_set));
-            list_init_node(&set->node);
-
-            struct fd pfd = dfd;
-            set->select1 = calloc(1, select1_property_size);
-            fs_seek(&pfd, select1_offsetof_property, FS_SEEK_CUR);
-            fs_read(&pfd, set->select1, select1_property_size);
-
-            if (select2_property_size)
-            {
-                pfd = dfd;
-                
-                set->select2 = calloc(1, select2_property_size);
-                fs_seek(&pfd, select2_offsetof_property, FS_SEEK_CUR);
-                fs_read(&pfd, set->select2, select2_property_size);
+        if (!comp)
+            continue;
+        
+        /* Now construct and add a result. */
+        struct blobdb_select_result *res = app_calloc(1, sizeof(struct blobdb_select_result) + nrv * sizeof(void *));
+        if (!res)
+            return n;
+        
+        res->it = *it;
+        res->key = app_calloc(1, it->key_len);
+        if (!res->key) {
+            app_free(res);
+            return n;
+        }
+        
+        /* Construct result values. */
+        int crv = 0;
+        for (selp = selectors; selp->operator; selp++) {	
+            void *r;
+            
+            if (selp->operator < Blob_Result)
+                continue;
+            
+            if (selp->operator == Blob_Result) {
+                r = app_calloc(1, selp->size);
+                if (!r)
+                    break;
+                if (blobdb_iter_read_data(it, selp->offsetof, r, selp->size) != selp->size) {
+                    app_free(r);
+                    break;
+                }
+            } else if (selp->operator == Blob_Result_FullyLoad) {
+                r = app_calloc(1, it->data_len);
+                if (!r)
+                    break;
+                if (blobdb_iter_read_data(it, 0, r, it->data_len) != it->data_len) {
+                    app_free(r);
+                    break;
+                }
             }
             
-            set->key_size = hdr.key_len;
-            set->key = calloc(1, hdr.key_len);
-            fs_read(&kfd, set->key, hdr.key_len);
-
-            list_insert_tail(head, &set->node);
+            res->result[crv] = r;
+            crv++;
         }
-
-        valid = _blobdb_seek_first(fd, &hdr);
+        
+        /* if one fails, clean it all up */
+        if (crv != nrv) {
+            for (int i = 0; i < crv; i++)
+                app_free(res->result[i]);
+            app_free(res);
+            return n;
+        }
+        
+        res->nres = nrv;
+        list_insert_tail(head, &res->node);
+        
+        n++;
     }
+    
+    return n;
 }
 
-void blobdb_resultset_destroy(list_head *lh)
+void blobdb_select_free_result(struct blobdb_select_result *res) {
+    for (int i = 0; i < res->nres; i++)
+        app_free(res->result[i]);
+    app_free(res->key);
+    app_free(res);
+}
+
+void blobdb_select_free_all(list_head *head)
 {
-    list_node *n = list_get_head(lh);
-    while(n)
+    list_node *n;
+    while((n = list_get_head(head)))
     {
-        list_remove(lh, n);
+        list_remove(head, n);
 
-        blobdb_result_set *set = list_elem(n, blobdb_result_set, node);
-        free(set->select1);
-        free(set->select2);
-        free(set->key);
-        free(set);
-
-        n = list_get_head(lh);
+        struct blobdb_select_result *res = list_elem(n, struct blobdb_select_result, node);
+        blobdb_select_free_result(res);
     }
-    free(lh);
 }
 
-int32_t _blob_db_flash_load_blob(const database *db, uint8_t *key, uint8_t key_size, uint8_t **data)
+uint8_t blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size)
 {
+    struct blobdb_iter it;
+
+    /* Create the db if it doesn't already exist. */
     struct file file;
-    struct fd fd;
-
-    if (fs_find_file(&file, db->filename) < 0)
-    {
-        LOG_ERROR("file not found");
-        return -1;
-    }
-    fs_open(&fd, &file);
-
-    int32_t idx = _blob_db_find_item_entry(&fd, db, file.size, key, key_size);
-    if (idx < 0)
-        return -1;
-
-    if (!data)
-        return idx;
-
-    struct blobdb_hdr hdr;
-    fs_seek(&fd, idx, FS_SEEK_SET);
-    if (fs_read(&fd, &hdr, sizeof(hdr)) != sizeof(hdr))
-        return -1;
-
-    LOG_DEBUG("Data Size %d", hdr.data_len);
-    *data = app_calloc(hdr.data_len, 1);
-    
-    fs_seek(&fd, idx + sizeof(hdr) + hdr.key_len, FS_SEEK_SET);
-    if (fs_read(&fd, *data, hdr.data_len) != hdr.data_len)
-        return -1;
-
-    return idx;
-}
-
-
-uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t key_size, uint8_t **data)
-{
-    const database *db = _find_database(database_id);
-
-    if (!db)
-    {
-        LOG_ERROR("Invalid database id selected: %d", database_id);
-        return Blob_InvalidDatabaseID;
-    }
-
-    /* check the key isn't already there. Check only the header */
-    int32_t idx = _blob_db_flash_load_blob(db, key, key_size, data);
-    
-    if (idx < 0)
-    {
-        LOG_ERROR("Invalid Key: %d database id: %d", key, database_id);
-        /* Key Does NOT exist! */
-        return Blob_KeyDoesNotExist;
-    }
-
-    return Blob_Success;
-}
-
-uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size)
-{
-    const database *db = _find_database(database_id);
-
-    if (!db)
-    {
-        LOG_ERROR("Invalid database id selected: %d", database_id);
-        return Blob_InvalidDatabaseID;
-    }
-
-    /* check the key isn't already there. Check only the header */
-    if (_blob_db_flash_load_blob(db, key, key_size, NULL) >= 0)
-        /* Key already exists! */
-        return Blob_InvalidData;
-
-    /* XXX TODO some more checks */
-
-    /* fs_write_to_database_file_danger_danger(void *danger, int zone) */
-    
-    /* in this case we are going to append the message to a fake fs. yay? */
-    struct file file;
-    struct fd fd;
-    struct blobdb_hdr hdr;
-    
-    if (fs_find_file(&file, db->filename) >= 0)
-        fs_open(&fd, &file);
-    else {
-        LOG_ERROR("blobdb database %d (%s) does not exist, so I'm going to go create it, wish me luck", database_id, db->filename);
+    if (fs_find_file(&file, db->filename) < 0) {
+        struct fd fd;
+        LOG_ERROR("blobdb %s does not exist, so I'm going to go create it, wish me luck", db->filename);
         if (fs_creat(&fd, db->filename, db->def_db_size) == NULL) {
             LOG_ERROR("nope, that did not work either, I give up");
             return Blob_DatabaseFull;
         }
         fs_mark_written(&fd);
     }
-
-    int valid = _blobdb_seek_first(&fd, NULL);
-    while (valid)
-        valid = _blobdb_seek_next(&fd, NULL);
     
-    int pos = fs_seek(&fd, 0, FS_SEEK_CUR);
-    struct fd hfd = fd;
-    if (pos + sizeof(struct blobdb_hdr) + key_size + data_size > fd.file.size) {
+    /* Iterate looking for dup keys, then position us at eof. */
+    int valid;
+    for (valid = blobdb_iter_start(db, &it); valid; valid = blobdb_iter_next(&it)) {
+        if (it.key_len != key_size)
+            continue;
+        
+        uint8_t rdkey[key_size];
+        if (blobdb_iter_read_key(&it, rdkey) < key_size)
+            return Blob_GeneralFailure;
+        
+        /* XXX: Overwrite the dup key, rather than failing.  Do this by
+         * writing a new one at the end, then marking this one as deleted. 
+         * Special care needed if there are multiple interrupted overwrites.
+         */
+        if (memcmp(key, rdkey, key_size) == 0) {
+            return Blob_InvalidData;
+        }
+    }
+
+    int pos = fs_seek(&it.fd, 0, FS_SEEK_CUR);
+    struct fd hfd = it.fd;
+    if (pos + sizeof(struct blobdb_hdr) + key_size + data_size > it.fd.file.size) {
         /* XXX: try gc'ing the blob */
-        LOG_ERROR("not enough space %d %d for new entry", fd.file.size, pos); //+ sizeof(struct blobdb_hdr) + key_size + data_size);
+        LOG_ERROR("not enough space %d %d for new entry", it.fd.file.size, pos); //+ sizeof(struct blobdb_hdr) + key_size + data_size);
         return Blob_DatabaseFull;
     }
 
     /* Carefully start by writing a header. */
+    struct blobdb_hdr hdr;
+    
     hdr.flags = 0xFF;
     hdr.key_len = key_size;
     hdr.data_len = data_size;
-    if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+    if (fs_write(&it.fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
         LOG_ERROR("failed to write header");
         return Blob_GeneralFailure;
     }
     
     /* Mark the header as completely written. */
     hdr.flags &= ~BLOBDB_FLAG_HEADER_WRITTEN;
-    fd = hfd;
-    if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+    it.fd = hfd;
+    if (fs_write(&it.fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
         LOG_ERROR("failed to write header");
         return Blob_GeneralFailure;
     }
     
     /* Write the data. */
-    if (fs_write(&fd, key, key_size) < key_size) {
+    if (fs_write(&it.fd, key, key_size) < key_size) {
         LOG_ERROR("failed to write key");
         return Blob_GeneralFailure;
     }
-    if (fs_write(&fd, data, data_size) < data_size) {
+    if (fs_write(&it.fd, data, data_size) < data_size) {
         LOG_ERROR("failed to write data");
         return Blob_GeneralFailure;
     }
     
     /* Mark the data as written. */
-    fd = hfd;
+    it.fd = hfd;
     hdr.flags &= ~BLOBDB_FLAG_WRITTEN;
-    if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+    if (fs_write(&it.fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
         LOG_ERROR("failed to update header");
         return Blob_GeneralFailure;
     }
@@ -571,45 +462,8 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     return Blob_Success;
 }
 
-
-
-uint8_t *blobdb_delete(uint8_t *key, uint16_t keylen)
+void blobdb_delete(struct blobdb_iter *it)
 {
     /* hah, good one */
-    return NULL;
-}
-
-
-
-/* API Utility */
-ResultSetItem blobdb_first_result(ResultSetList list_head)
-{
-    return list_elem(list_get_head(list_head), blobdb_result_set, node);
-}
-
-ResultSetItem blobdb_next_result(ResultSetList list_head, ResultSetItem item)
-{
-    return list_elem(list_get_next(list_head, &item->node), blobdb_result_set, node);
-}
-
-ResultSetItem blobdb_prev_result(ResultSetList list_head, ResultSetItem item)
-{
-    return list_elem(list_get_prev(list_head, &item->node), blobdb_result_set, node);
-}
-
-/* Fakey fake becuase we can't write fs */
-void blobdb_add_result_set_item(ResultSetList list_head, Uuid *uuid, uint32_t timestamp)
-{
-    blobdb_result_set *set = calloc(1, sizeof(blobdb_result_set));
-    list_init_node(&set->node);
-
-    set->select1 = calloc(1, sizeof(Uuid));
-    set->select2 = calloc(1, sizeof(uint32_t));
-    set->select1_size = sizeof(Uuid);
-    set->select2_size = sizeof(uint32_t);
-
-    memcpy(set->select1, uuid, sizeof(Uuid));
-    memcpy(set->select2, &timestamp, sizeof(uint32_t));
-
-    list_insert_head(list_head, &set->node);
+    return;
 }

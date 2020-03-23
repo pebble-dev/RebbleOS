@@ -19,40 +19,77 @@
 
 #ifdef REBBLEOS_TESTING
 
+static int _insert(int key, int dsize) {
+    const struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
+    
+    uint8_t *val = app_calloc(1, dsize);
+    for (int i = 0; i < dsize; i++)
+        val[i] = (key & 0xFF) ^ i;
+    
+    int rv = blobdb_insert(db, (void *)&key, 4, val, dsize);
+    
+    app_free(val);
+    
+    return rv != Blob_Success;
+}
+
+static int _retrieve(int key, int dsize) {
+    const struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
+    struct blobdb_iter it;
+    blobdb_select_result_list head;
+    
+    list_init_head(&head);
+    
+    int rv = blobdb_iter_start(db, &it);
+    if (!rv)
+        return 1;
+    
+    struct blobdb_selector selectors[] = {
+        { BLOBDB_SELECTOR_OFFSET_KEY, 4, Blob_Eq, &key },
+        { 0, 0, Blob_Result_FullyLoad },
+        { }
+    };
+    int n = blobdb_select(&it, &head, selectors);
+    if (n != 1)
+        return 2;
+    
+    struct blobdb_select_result *res = blobdb_select_result_head(&head);
+    for (int i = 0; i < dsize; i++) {
+        uint8_t exp = (key & 0xFF) ^ i;
+        uint8_t rd = ((uint8_t *)res->result[0])[i];
+        if (exp != rd) {
+            LOG_ERROR("blobdb_select incorrect readback key %d size %d ofs %d, should be %02x is %02x", key, dsize, i, exp, rd);
+            return 3;
+        }
+    }
+    
+    blobdb_select_free_all(&head);
+    
+    return 0; /* xxx check data */
+}
+
 TEST(blobdb_basic) {
-    uint8_t *d;
-    int rv;
-    uint8_t uuid1[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-    uint8_t uuid2[16] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,0};
-    
-    LOG_INFO("blobdb_select(uuid1) should fail");
-    rv = blobdb_select(BlobDatabaseID_Test, uuid1, sizeof(uuid1), &d);
-    if (rv != Blob_KeyDoesNotExist) {
-        LOG_ERROR("blobdb_select(uuid1) init state returned data");
+    LOG_INFO("blobdb_select(1) should fail");
+    if (_retrieve(1, 16) == 0) {
+        LOG_ERROR("blobdb_select(1) init state returned data");
         return TEST_FAIL;
     }
     
-    uint8_t hdr[24] = {0xAA, 0x55};
-    uint8_t data[4] = {1, 2, 3, 4};
-    memcpy(hdr + 4, uuid1, 16);
-    hdr[4 + 16] = 4;
-    LOG_INFO("blobdb_insert(uuid1) should succeed");
-    rv = blobdb_insert(BlobDatabaseID_Test, hdr, sizeof(hdr), data, sizeof(data));
-    if (rv != Blob_Success) {
-        LOG_ERROR("blobdb_insert(uuid1) failed");
-        *artifact = rv;
+    if (_insert(1, 16) != 0) {
+        LOG_ERROR("blobdb_insert(1) failed");
         return TEST_FAIL;
     }
     
-    LOG_INFO("blobdb_insert(uuid1) should fail");
-    rv = blobdb_insert(BlobDatabaseID_Test, hdr, sizeof(hdr), data, sizeof(data));
-    if (rv == Blob_Success) {
-        LOG_ERROR("blobdb_insert(uuid1) double insert succeeded");
-        *artifact = rv;
+    if (_insert(1, 16) == 0) {
+        LOG_ERROR("double blobdb_insert(1) succeeded");
         return TEST_FAIL;
     }
-    
-    
+
+    if (_retrieve(1, 16) != 0) {
+        LOG_ERROR("blobdb_retrieve(1) failed");
+        return TEST_FAIL;
+    }
+
     *artifact = 0;
     return TEST_PASS;
 }

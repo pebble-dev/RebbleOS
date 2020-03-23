@@ -82,7 +82,13 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     }
         
     /* insert to database */
-    blobdb_insert(blob->blobdb.database_id, blob->key, blob->key_size, val_start, val_sz);
+    const struct blobdb_database *db = blobdb_open(blob->blobdb.database_id);
+    if (!db)
+        return Blob_InvalidDatabaseID;
+    
+    int rv = blobdb_insert(db, blob->key, blob->key_size, val_start, val_sz);
+    if (rv != Blob_Success)
+        return rv;
 
     return blob_process((pcol_blob_db_key *)&blob->blobdb, val_start, val_sz);
 }

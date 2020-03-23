@@ -39,8 +39,8 @@ typedef struct NotificationLayer
 
     rebble_notification *notification;
 
-    ResultSetList all_notifications;
-    ResultSetItem selected_result_item;
+    blobdb_select_result_list *all_notifications;
+    struct blobdb_select_result *selected_result_item;
 
     /* some display properties */
     GColor type_color;
