@@ -1,3 +1,9 @@
+/* mini_message.c
+ * Allows a small message to be displayed at the bottom of the screen
+ * RebbleOS
+ * 
+ * Author: Barry Carter <barry.carter@gmail.com>.
+ */
 #include "rebbleos.h"
 #include "protocol_notification.h"
 #include "notification_manager.h"
@@ -33,14 +39,11 @@ void mini_message_overlay_destroy(OverlayWindow *overlay, Window *window)
 static void _minimsg_window_load(Window *window)
 {
     notification_mini_msg *message = (notification_mini_msg*)window->context;
-    
     _minimsg_animation_configure(window, false);
-        
-    Layer *layer = window_get_root_layer(window);    
+    Layer *layer = window_get_root_layer(window);
     GRect bounds = layer_get_unobstructed_bounds(layer);
-
     layer_set_update_proc(layer, _draw_mini_message);
-    notification_load_click_config(window);
+    window_set_click_config_provider(window, (void *)notification_load_click_config);
     layer_mark_dirty(layer);
     window_dirty(true);
 }

@@ -46,6 +46,7 @@ static const stm32_usart_config_t _u3_config = {
     .gpio_clock           = RCC_AHB1Periph_GPIOC,
     .usart_clock          = RCC_APB1Periph_USART3,
     .af                   = GPIO_AF_USART3,
+    .is_binary            = 0,
 };
 
 static stm32_usart_t _usart3 = {

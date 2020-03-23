@@ -80,8 +80,7 @@ static uint32_t _update_crc32_fast_word(uint32_t crc, uint32_t data) {
     return crc;
 }
 
-uint32_t fs_pbfs_crc32(void *p, size_t len) {
-    uint32_t crc = 0xffffffff;
+uint32_t fs_pbfs_crc32_accum(uint32_t crc, void *p, size_t len) {
     uint32_t *bufp = (uint32_t *)p;
     while (len >= 4) {
         crc = _update_crc32_fast_word(crc, *bufp);
@@ -104,6 +103,11 @@ uint32_t fs_pbfs_crc32(void *p, size_t len) {
     }
     
     return crc;
+}
+
+uint32_t fs_pbfs_crc32(void *p, size_t len) {
+    uint32_t crc = 0xffffffff;
+    return fs_pbfs_crc32_accum(crc, p, len);
 }
 
 #define POLY_CRC8 0x2F
@@ -154,4 +158,29 @@ uint8_t fs_next_page_crc(uint16_t next_page) {
     if (next_page == 0xFFFF)
         return 0xFF;
     return fs_pbfs_crc8((uint8_t *)&next_page, 2);
+}
+
+uint32_t fs_file_crc32(struct fd *fd, size_t len)
+{
+    fs_seek(fd, 0, FS_SEEK_SET);
+    char vbuf[32];
+
+    uint32_t crc = 0xffffffff;
+    
+    while(len)
+    {
+        uint32_t *bufp = (uint32_t *)vbuf;
+
+        uint32_t bt = len < 32 ? len : 32;
+        
+        if (fs_read(fd, vbuf, bt) < bt)
+        {
+            return 0;
+        }
+        crc = fs_pbfs_crc32_accum(crc, bufp, bt);
+
+        len -= bt;
+    }
+        
+    return crc;
 }

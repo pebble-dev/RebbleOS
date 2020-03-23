@@ -548,7 +548,7 @@ if (codetree_buffer == NULL) {
         while (done == 0) {
                 uint16_t code = huffman_decode_symbol(upng, in, bp, &codetree, inlength);
                 if (upng->error != UPNG_EOK) {
-                        return;
+                        goto bailout;
                 }
 
                 if (code == 256) {
@@ -558,7 +558,7 @@ if (codetree_buffer == NULL) {
                         /* literal symbol */
                         if ((*pos) >= outsize) {
                                 SET_ERROR(upng, UPNG_EMALFORMED);
-                                return;
+                                goto bailout;
                         }
 
                         /* store output */
@@ -575,20 +575,20 @@ if (codetree_buffer == NULL) {
                         /* error, bit pointer will jump past memory */
                         if (((*bp) >> 3) >= inlength) {
                                 SET_ERROR(upng, UPNG_EMALFORMED);
-                                return;
+                                goto bailout;
                         }
                         length += read_bits(bp, in, numextrabits);
 
                         /*part 3: get distance code */
                         codeD = huffman_decode_symbol(upng, in, bp, &codetreeD, inlength);
                         if (upng->error != UPNG_EOK) {
-                                return;
+                                goto bailout;
                         }
 
                         /* invalid distance code (30-31 are never used) */
                         if (codeD > 29) {
                                 SET_ERROR(upng, UPNG_EMALFORMED);
-                                return;
+                                goto bailout;
                         }
 
                         distance = DISTANCE_BASE[codeD];
@@ -599,7 +599,7 @@ if (codetree_buffer == NULL) {
                         /* error, bit pointer will jump past memory */
                         if (((*bp) >> 3) >= inlength) {
                                 SET_ERROR(upng, UPNG_EMALFORMED);
-                                return;
+                                goto bailout;
                         }
 
                         distance += read_bits(bp, in, numextrabitsD);
@@ -610,7 +610,7 @@ if (codetree_buffer == NULL) {
 
                         if ((*pos) + length > outsize) {
                                 SET_ERROR(upng, UPNG_EMALFORMED);
-                                return;
+                                goto bailout;
                         }
 
                         for (forward = 0; forward < length; forward++) {
@@ -624,6 +624,7 @@ if (codetree_buffer == NULL) {
                 }
         }
 
+bailout:
 app_free(codetree_buffer);
 //free(codetreeD_buffer);
 return;

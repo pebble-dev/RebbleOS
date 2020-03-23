@@ -23,20 +23,17 @@
 /* XXX: add ERASED flag */
 
 typedef struct blobdb_hdr {
-    uint32_t flags;
-    uint16_t key_len;
-    uint16_t data_len;
-} blobdb_hdr;
+    uint32_t last_modified;  //0x58F6AExx
+    uint8_t hash;
+    uint8_t flags:6;
+    uint32_t key_len:7;
+    uint32_t data_len:11;
+} __attribute__((__packed__)) blobdb_hdr;
 
 typedef struct database_t {
     uint8_t id;
     const char *filename;
     uint16_t def_db_size;
-    uint16_t hdr_size;
-    uint16_t key_offset;
-    uint8_t key_size;
-    uint16_t data_size_offset;
-    uint16_t data_size_bytes;
 } database;
 
 static const database databases[] = {
@@ -44,23 +41,18 @@ static const database databases[] = {
         .id = BlobDatabaseID_Test,
         .filename = "rebble/testblob",
         .def_db_size = 16384,
-        .hdr_size = 12,
-        .key_offset = 4,
-        .key_size = 4,
-        .data_size_offset = 8,
-        .data_size_bytes = 4,
     },
     {
         .id = BlobDatabaseID_Notification,
         .filename = "rebble/notifstr",
         .def_db_size = 16384,
-        .hdr_size = sizeof(timeline_item), 
-        .key_offset = offsetof(timeline_item, uuid),
-        .key_size = sizeof(Uuid),
-        .data_size_offset = offsetof(timeline_item, data_size),
-        .data_size_bytes = FIELD_SIZEOF(timeline_item, data_size)
     },
-#define DB_COUNT 2
+    {
+        .id = BlobDatabaseID_App,
+        .filename = "rebble/appdb",
+        .def_db_size = 16384,
+    },
+#define DB_COUNT 3
 };
 
 
@@ -166,11 +158,11 @@ static bool _compare(Blob_Operator operator, uint8_t *where_prop, uint8_t *where
     return rval;
 }
 
-list_head *blobdb_select_items_all(uint8_t database_id, 
+uint16_t blobdb_select_items_all(uint8_t database_id, list_head *head,
                             uint16_t select1_offsetof_property, uint16_t select1_property_size, 
                             uint16_t select2_offsetof_property, uint16_t select2_property_size)
 {
-    return blobdb_select_items2(database_id, 
+    return blobdb_select_items2(database_id, head,
                                  select1_offsetof_property, select1_property_size,
                                  select2_offsetof_property, select2_property_size,
                                  0, 0,
@@ -179,13 +171,13 @@ list_head *blobdb_select_items_all(uint8_t database_id,
                                  NULL, 0);
 }
 
-list_head *blobdb_select_items1(uint8_t database_id, 
+uint16_t blobdb_select_items1(uint8_t database_id, list_head *head,
                             uint16_t select1_offsetof_property, uint16_t select1_property_size, 
                             uint16_t select2_offsetof_property, uint16_t select2_property_size, 
                             uint16_t where_offsetof_property, uint8_t where_property_size, 
                             uint8_t *where_val, Blob_Operator operator)
 {
-    return blobdb_select_items2(database_id, 
+    return blobdb_select_items2(database_id, head,
                                  select1_offsetof_property, select1_property_size,
                                  select2_offsetof_property, select2_property_size,
                                  where_offsetof_property, where_property_size,
@@ -194,7 +186,7 @@ list_head *blobdb_select_items1(uint8_t database_id,
                                  NULL, 0);
 }
 
-list_head *blobdb_select_items2(uint8_t database_id, 
+uint16_t blobdb_select_items2(uint8_t database_id, list_head *head,
                             uint16_t select1_offsetof_property, uint16_t select1_property_size, 
                             uint16_t select2_offsetof_property, uint16_t select2_property_size, 
                             uint16_t where_offsetof_property, uint8_t where_property_size, 
@@ -204,8 +196,7 @@ list_head *blobdb_select_items2(uint8_t database_id,
 {
     struct fd fd;
     struct file file;
-    list_head *head = app_calloc(1, sizeof(list_head));
-    list_init_head(head);
+
     const database *db = _find_database(database_id);
     if (fs_find_file(&file, db->filename) < 0) {
         LOG_ERROR("file not found for db %d", database_id);
@@ -221,7 +212,7 @@ list_head *blobdb_select_items2(uint8_t database_id,
                           where_offsetof_property1, where_property_size1, 
                           where_val1, operator1);
 
-    return head;
+    return 0;
 
 }
 
@@ -234,7 +225,6 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
                             uint8_t *where_val1, Blob_Operator operator1)
 {
     int idx = 0;
-    char buf[UUID_STRING_BUFFER_LENGTH];
     const database *db = _find_database(database_id);
     struct blobdb_hdr hdr;
 
@@ -244,18 +234,22 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
         if (fs_read(fd, &hdr, sizeof(hdr)) < sizeof(hdr))
             break;
         
-        uint8_t _tmp_key[hdr.key_len];
-        if (fs_read(fd, &_tmp_key, hdr.key_len) < hdr.key_len)
+        if (hdr.key_len >= 0x7F)
             break;
 
-        uint8_t done = 0;
+        uint8_t _tmp_key[hdr.key_len];
+        if (fs_read(fd, _tmp_key, hdr.key_len) < hdr.key_len)
+            break;
 
         /* End of file */
-        if (uuid_is_int((Uuid *)_tmp_key, 0xFF))
+        int i = 0;
+        for (i = 0; i < hdr.key_len; i++)
+        {
+            if (_tmp_key[i] != 0xFF)
+                break;                
+        }
+        if (i == hdr.key_len - 1)
             break;
-
-        uuid_to_string((Uuid  *)_tmp_key, buf);
-        LOG_DEBUG("KEY: %s %d %d", buf, idx, operator);
 
         bool comp1 = true;
         bool comp2 = true;
@@ -281,19 +275,24 @@ void _blobdb_select_items2(list_head *head, struct fd *fd, uint8_t database_id,
         if (comp1 && comp2)
         {
             /* we have a match */
-            blobdb_result_set *set = app_calloc(1, sizeof(blobdb_result_set));
+            blobdb_result_set *set = calloc(1, sizeof(blobdb_result_set));
             list_init_node(&set->node);
 
-            set->select1 = app_calloc(1, select1_property_size);
+            set->select1 = calloc(1, select1_property_size);
             fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + select1_offsetof_property, FS_SEEK_SET);
             fs_read(fd, set->select1, select1_property_size);
 
             if (select2_property_size)
             {
-                set->select2 = app_calloc(1, select2_property_size);
+                set->select2 = calloc(1, select2_property_size);
                 fs_seek(fd, idx + sizeof(struct blobdb_hdr) + hdr.key_len + select2_offsetof_property, FS_SEEK_SET);
                 fs_read(fd, set->select2, select2_property_size);
             }
+            
+            set->key_size = hdr.key_len;
+            set->key = calloc(1, hdr.key_len);
+            fs_seek(fd, idx + sizeof(struct blobdb_hdr), FS_SEEK_SET);
+            fs_read(fd, set->key, hdr.key_len);
 
             list_insert_tail(head, &set->node);
         }
@@ -312,13 +311,14 @@ void blobdb_resultset_destroy(list_head *lh)
         list_remove(lh, n);
 
         blobdb_result_set *set = list_elem(n, blobdb_result_set, node);
-        app_free(set->select1);
-        app_free(set->select2);
-        app_free(set);
+        free(set->select1);
+        free(set->select2);
+        free(set->key);
+        free(set);
 
         n = list_get_head(lh);
     }
-    app_free(lh);
+    free(lh);
 }
 
 int32_t _blob_db_flash_load_blob(const database *db, uint8_t *key, uint8_t key_size, uint8_t **data)
@@ -371,6 +371,7 @@ uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t key_size, uint
     
     if (idx < 0)
     {
+        LOG_ERROR("Invalid Key: %d database id: %d", key, database_id);
         /* Key Does NOT exist! */
         return Blob_KeyDoesNotExist;
     }
@@ -410,7 +411,6 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             LOG_ERROR("nope, that did not work either, I give up");
             return Blob_DatabaseFull;
         }
-        fs_mark_written(&fd);
     }
 
     int pos = 0;
@@ -421,7 +421,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
             return Blob_DatabaseFull;
         }
         
-        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0xFFFF && hdr.data_len == 0xFFFF)
+        if ((hdr.flags & BLOBDB_FLAG_WRITTEN) == 1 && hdr.key_len == 0x7F && hdr.data_len == 0x7FF)
         {
             /* rewind the seek to the new empty spot */
             fs_seek(&fd, pos, FS_SEEK_SET);
@@ -433,12 +433,12 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
     
     if (pos + sizeof(struct blobdb_hdr) + key_size + data_size > fd.file.size) {
         /* XXX: try gc'ing the blob */
-        LOG_ERROR("not enough space for new entry");
+        LOG_ERROR("not enough space %d %d for new entry", fd.file.size, pos); //+ sizeof(struct blobdb_hdr) + key_size + data_size);
         return Blob_DatabaseFull;
     }
 
     /* XXX: check if we're mid-write */
-    hdr.flags = 0xFF;
+    hdr.flags = 0x3F;
     hdr.key_len = key_size;
     hdr.data_len = data_size;
     if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
@@ -461,6 +461,7 @@ uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uin
         return Blob_GeneralFailure;
     }
 
+    fs_mark_written(&fd);
     return Blob_Success;
 }
 
@@ -493,11 +494,11 @@ ResultSetItem blobdb_prev_result(ResultSetList list_head, ResultSetItem item)
 /* Fakey fake becuase we can't write fs */
 void blobdb_add_result_set_item(ResultSetList list_head, Uuid *uuid, uint32_t timestamp)
 {
-    blobdb_result_set *set = app_calloc(1, sizeof(blobdb_result_set));
+    blobdb_result_set *set = calloc(1, sizeof(blobdb_result_set));
     list_init_node(&set->node);
 
-    set->select1 = app_calloc(1, sizeof(Uuid));
-    set->select2 = app_calloc(1, sizeof(uint32_t));
+    set->select1 = calloc(1, sizeof(Uuid));
+    set->select2 = calloc(1, sizeof(uint32_t));
     set->select1_size = sizeof(Uuid);
     set->select2_size = sizeof(uint32_t);
 

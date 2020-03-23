@@ -108,8 +108,11 @@ static void _push_animation_teardown(Animation *animation) {
  */
 list_head *window_thread_get_head(Window *window)
 {
-    if (appmanager_get_thread_type() == AppThreadMainApp)
+    int ttype = appmanager_get_thread_type();
+    if (ttype == AppThreadMainApp)
         return &_window_list_head;
+    else if (ttype == AppThreadOverlay)
+        return overlay_window_get_list_head();
     
     assert(!"I don't know how to deal with a window in this thread!");
     return NULL;
@@ -144,7 +147,7 @@ void window_stack_push_configure(Window *window, bool animated)
          * If we are an app => face, then we go left
          * Face to app => right
          */
-        if (app->type == APP_TYPE_FACE)
+        if (app->type == AppTypeWatchface)
             _animation_setup(true);
         else 
             _animation_setup(false);
@@ -238,7 +241,8 @@ uint16_t window_count(void)
     uint16_t count = 0;
     Window *w;
     
-    assert(!appmanager_is_thread_overlay() && "Please use overlay_window_count");
+    if (appmanager_is_thread_overlay())
+        return overlay_window_count();
         
     if (list_get_head(&_window_list_head) == NULL)
         return 0;
@@ -535,25 +539,38 @@ void _window_unload_proc(Window *window)
 
 void window_load_click_config(Window *window)
 {
-    /* A window is being configured. If it is a normal window and we are
-     * in an overlay thread, ignore */
-    /* Commented out for now to give the overlays and notifications
-     * opportunity to override clicks instead of exclusively owning them
-    if (appmanager_is_thread_app() && overlay_window_accepts_keypress())
+    
+    void* context = window->click_config_context ? window->click_config_context : window;
+    
+    int ttype = appmanager_get_thread_type();
+    if (ttype == AppThreadOverlay)
     {
-        return;
-    }*/
-   
-    if (window->click_config_provider) {
-        void* context = window->click_config_context ? window->click_config_context : window;
+        /* Always install a default handler onto the overlay
+         The window will override if it has a click config provider */
+        window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
+    }
+    else
+    {
+        /* Erase click handlers if we are an app.
+         Overlays shouldn't smash app clicks */
         for (int i = 0; i < NUM_BUTTONS; i++) {
             window_single_click_subscribe(i, NULL);
             window_long_click_subscribe(i, 0, NULL, NULL);
             window_multi_click_subscribe(i, 0, 0, 0, false, NULL);
             window_raw_click_subscribe(i, NULL, NULL, context);
         }
+        
+    }
+    
+    if (window->click_config_provider)
+    {
         window->click_config_provider(context);
-    } 
+    }    
+    /* If the default click provider doesn't install a back handler, we will. */
+    if (button_short_click_is_subscribed(BUTTON_ID_BACK) == 0)
+    {
+        window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
+    }    
 }
 
 

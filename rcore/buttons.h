@@ -7,7 +7,6 @@
  */
 
 #include "FreeRTOS.h"
-// not ideal. TODO reorg
 #include "rebbleos.h"
 #include "librebble.h"
 
@@ -20,14 +19,6 @@
 #define BUTTON_STATE_MULTI      4
 #define BUTTON_STATE_MULTI_DONE 5
 
-typedef struct ButtonHolder {
-    uint8_t button_id;
-    ClickConfig click_config;
-    TickType_t repeat_time;
-    TickType_t press_time;
-    uint8_t state;
-} ButtonHolder;
-
 uint8_t rcore_buttons_init(void);
 
 void button_single_click_subscribe(ButtonId button_id, ClickHandler handler);
@@ -37,6 +28,11 @@ void button_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHan
 void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, ClickHandler up_handler, void * context);
 void button_unsubscribe_all(void);
 
-ButtonHolder *button_add_click_config(ButtonId button_id, ClickConfig click_config);
+
 
 void button_set_click_context(ButtonId button_id, void *context);
+
+/**
+ * Check if a button is subscribed to any short click click handlers
+ */
+uint8_t button_short_click_is_subscribed(ButtonId button_id);

@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include "rebbleos.h"
 #include "appmanager.h"
-#include "systemapp.h"
 #include "test.h"
+#include "protocol.h"
+#include "protocol_service.h"
 #include "protocol_notification.h"
 #include "notification_manager.h"
 
@@ -65,8 +66,9 @@ static void _copy_and_null_term_string(uint8_t **dest, uint8_t *src, uint16_t le
 
 /* notification processing */
 
-void protocol_process_legacy2_notification(const pbl_transport_packet *packet)
+void protocol_process_legacy2_notification(const RebblePacket packet)
 {
+    packet_destroy(packet);
 //     full_msg_t *msg;
 //     notification_packet_push(data, &msg);
 //     notification_show_message(msg, 5000);

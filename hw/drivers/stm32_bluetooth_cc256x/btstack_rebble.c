@@ -35,7 +35,6 @@ static hci_con_handle_t att_con_handle;
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 static uint16_t att_read_callback(hci_con_handle_t con_handle, uint16_t att_handle, uint16_t offset, uint8_t * buffer, uint16_t buffer_size);
 static int att_write_callback(hci_con_handle_t con_handle, uint16_t att_handle, uint16_t transaction_mode, uint16_t offset, uint8_t *buffer, uint16_t buffer_size);
-static uint8_t _bt_enabled = 0;
 static btstack_packet_callback_registration_t hci_event_callback_registration;
 
 /* TX outboung buffer pointer.  */
@@ -177,9 +176,9 @@ void bt_device_request_tx(uint8_t *data, uint16_t len)
     if (len > HCI_ACL_PAYLOAD_SIZE)
     {
         SYS_LOG("BTSPP", APP_LOG_LEVEL_ERROR, "Data size %d > buffer size %d", len, HCI_ACL_PAYLOAD_SIZE);
-        return;
+//         return;
     }
-
+SYS_LOG("BTSPP", APP_LOG_LEVEL_ERROR, "rtx %d", rfcomm_channel_id);
     _tx_buf = data;
     _tx_buf_len = len;
     
@@ -296,7 +295,7 @@ void bluetooth_power_cycle(void)
 void bt_stack_tx_done()
 {
     (*tx_done_handler)();
-    bluetooth_tx_complete_from_isr();
+//     bluetooth_tx_complete_from_isr();
 }
 
 /*
@@ -374,7 +373,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
     if (packet_type == HCI_EVENT_PACKET)
         event = hci_event_packet_get_type(packet);
     
-    if (!_bt_enabled)
+    if (!bluetooth_is_enabled())
     {
         switch (event)
         {
@@ -385,7 +384,7 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
                         return;
                 }
                 SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "BTstack up and running.");
-                _bt_enabled = 1;
+                bluetooth_enable();
                 bluetooth_init_complete(INIT_RESP_OK);
                 break;
         }
@@ -448,7 +447,11 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
 
                 case RFCOMM_EVENT_CAN_SEND_NOW:
                     /* We have been instructed to send data safely. We;re ready */
+                    SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RFCOMM Can Send %d %d", _tx_buf, _tx_buf_len);
                     rfcomm_send(rfcomm_channel_id, _tx_buf, _tx_buf_len);
+                    /* data is sent and the we can notify of tx completion. We don't do this is tx isr as the
+                     * data can be broken into multiple writes. */
+                    bluetooth_tx_complete_from_isr();
                     break;
 
                 case RFCOMM_EVENT_CHANNEL_CLOSED:
@@ -463,11 +466,11 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             break;
                 
         case RFCOMM_DATA_PACKET:
-            SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RCV: '");
-            for (i = 0; i < size; i++)
-            {
-                SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "0x%x", packet[i]);
-            }
+            //SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "RCV: '");
+//             for (i = 0; i < size; i++)
+//             {
+//                 SYS_LOG("BTSPP", APP_LOG_LEVEL_INFO, "0x%x", packet[i]);
+//             }
             
             /* pack the packet onto the bluetooth generic handler */
             bluetooth_data_rx(packet, size);

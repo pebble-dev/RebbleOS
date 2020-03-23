@@ -19,6 +19,7 @@ static const stm32_usart_config_t _usart2_config = {
     .gpio_clock           = RCC_AHB1Periph_GPIOA,
     .usart_clock          = RCC_APB1Periph_USART2,
     .af                   = GPIO_AF_USART2,
+    .is_binary            = 1,
 };
 
 extern void qemu_rx_started_isr(void);

@@ -29,7 +29,7 @@ CFLAGS_all += -Irwatch/input
 CFLAGS_all += -Irwatch/graphics
 CFLAGS_all += -Irwatch/event
 CFLAGS_all += -Ihw/platform/qemu
-CFLAGS_all += -DNGFX_IS_CORE
+CFLAGS_all += -DNGFX_IS_CORE -DREBBLEOS
 
 # XXX: nostdinc
 CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlittle-endian -finline-functions -std=gnu99 -falign-functions=16
@@ -67,7 +67,8 @@ SRCS_all += lib/musl/time/__month_to_secs.c
 SRCS_all += lib/neographics/src/common.c
 SRCS_all += lib/neographics/src/context.c
 SRCS_all += lib/neographics/src/draw_command/draw_command.c
-SRCS_all += lib/neographics/src/fonts/fonts.c
+SRCS_all += rwatch/graphics/font_file.c
+#SRCS_all += lib/neographics/src/fonts/fonts.c
 SRCS_all += lib/neographics/src/gbitmap/gbitmap.c
 SRCS_all += lib/neographics/src/gbitmap/blit_bw.c
 SRCS_all += lib/neographics/src/gbitmap/blit_color.c
@@ -122,10 +123,13 @@ SRCS_all += rcore/protocol/protocol_system.c
 SRCS_all += rcore/protocol/protocol.c
 SRCS_all += rcore/protocol/protocol_app.c
 SRCS_all += rcore/protocol/protocol_blob.c
+SRCS_all += rcore/protocol/protocol_call.c
+SRCS_all += rcore/protocol/protocol_music.c
+SRCS_all += rcore/protocol/protocol_transfer.c
 
 SRCS_all += rcore/service/blob_db.c
 SRCS_all += rcore/service/blob_db_test.c
-SRCS_all += rcore/service/blob_db_ramfs.c
+SRCS_all += rcore/service/protocol_service.c
 SRCS_all += rcore/service/timeline.c
 
 SRCS_all += rwatch/librebble.c
@@ -148,12 +152,15 @@ SRCS_all += rwatch/event/tick_timer_service.c
 SRCS_all += rwatch/event/app_timer.c
 SRCS_all += rwatch/event/battery_state_service.c
 SRCS_all += rwatch/event/connection_service.c
+SRCS_all += rwatch/event/event_service.c
 SRCS_all += rwatch/ui/layer/status_bar_layer.c
 SRCS_all += rwatch/ui/animation/animation.c
 SRCS_all += rwatch/ui/animation/property_animation.c
 SRCS_all += rwatch/ui/notifications/notification_window.c
 SRCS_all += rwatch/ui/notifications/battery_overlay.c
 SRCS_all += rwatch/ui/notifications/mini_message.c
+SRCS_all += rwatch/ui/notifications/call_window.c
+SRCS_all += rwatch/ui/notifications/progress_window.c
 SRCS_all += rwatch/ui/vibes.c
 
 SRCS_all += Watchfaces/simple.c

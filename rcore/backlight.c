@@ -16,7 +16,7 @@
 #include "rtoswrap.h"
 
 static void _backlight_thread(void *pvParameters);
-THREAD_DEFINE(backlight, configMINIMAL_STACK_SIZE + 190, tskIDLE_PRIORITY + 2UL, _backlight_thread);
+THREAD_DEFINE(backlight, configMINIMAL_STACK_SIZE - 22, tskIDLE_PRIORITY + 2UL, _backlight_thread);
 
 typedef struct backlight_message
 {
@@ -156,7 +156,7 @@ static void _backlight_thread(void *pvParameters)
         else
         {
             // We are idle so we can sleep for a bit
-            wait = 1000;
+            wait = portMAX_DELAY;
         }
         
         if (xQueueReceive(_backlight_queue, &message, pdMS_TO_TICKS(wait)))

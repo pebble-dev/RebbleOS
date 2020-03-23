@@ -10,31 +10,37 @@
 #include "flash.h"
 #include "png.h"
 #include "ngfxwrap.h"
+#include "fs.h"
 
 /*
  * Load a resource into the GBitmap by resource id
  */
 GBitmap *gbitmap_create_with_resource(uint32_t resource_id)
 {
-    uint8_t *png_data = resource_fully_load_id_system(resource_id);
-    ResHandle res_handle = resource_get_handle_system(resource_id);
-    size_t png_data_size = resource_size(res_handle);
-
+    struct file file;
+    void *png_data;
+    size_t png_data_size;
+    
+    resource_file(&file, resource_get_handle_system(resource_id));
+    png_data = resource_fully_load_file(&file, &png_data_size);
     if (!png_data)
         return NULL;
 
     return gbitmap_create_from_png_data(png_data, png_data_size);
 }
 
-GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, const struct file *file)
+GBitmap *gbitmap_create_with_resource_app(uint32_t resource_id, const struct file *ifile)
 {
-    size_t png_size;
-    uint8_t *png_data = (uint8_t*)resource_fully_load_id_app_file(resource_id, file, &png_size);
-
+    struct file file;
+    void *png_data;
+    size_t png_data_size;
+    
+    resource_file_from_file_handle(&file, ifile, resource_get_handle(resource_id));
+    png_data = resource_fully_load_file(&file, &png_data_size);
     if (!png_data)
         return NULL;
 
-    return gbitmap_create_from_png_data(png_data, png_size);
+    return gbitmap_create_from_png_data(png_data, png_data_size);
 }
 
 /*

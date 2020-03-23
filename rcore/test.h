@@ -12,7 +12,7 @@
 #include "protocol.h"
 
 uint8_t test_init(void);
-void test_packet_handler(const pbl_transport_packet *packet);
+void test_packet_handler(const RebblePacket packet);
 
 typedef int (*testfn_t)(uint32_t *artifact);
 #define TESTNAME_LEN 32
