@@ -192,22 +192,6 @@ int blobdb_iter_read_data(struct blobdb_iter *it, int ofs, void *data, int len) 
     return fs_read(&fd, data, len);
 }
 
-#if 0
-/* use like: */
-{
-    struct blobdb_select_entry selects[] = {
-        { offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), Blob_Gtr, &from_timestamp },
-        { offsetof(timeline_item, timeline_type), FIELD_SIZEOF(timeline_item, timeline_type), Blob_Eq, &val_type },
-        { offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), Blob_Result },
-        { offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), Blob_Result },
-        { 0 }
-    };
-    int ntimeline = blobdb_select(head, timeline_fd, selects);
-    [... process head ...]
-    blobdb_free_results(head);
-}
-#endif
-
 static bool _compare(blobdb_operator_t operator, uint8_t *where_prop, uint8_t *where_val, size_t size)
 {
     uint16_t i = 0;
