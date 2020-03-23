@@ -112,14 +112,13 @@ static int _blobdb_seek_valid(struct fd *fdp, struct blobdb_hdr *hdrp, int next)
         if (((hdr.key_len != 0xFF) || (hdr.data_len != 0xFF)) &&
             !(FLAG_SET(hdr.flags, BLOBDB_FLAG_HEADER_WRITTEN) ||
               FLAG_SET(hdr.flags, BLOBDB_FLAG_WRITTEN) /* compatibility */)) {
-            fs_seek(&fd, sizeof(hdr), FS_SEEK_CUR);
             continue;
         }
         
         /* Erased -- or skipping the first? */
         if (FLAG_SET(hdr.flags, BLOBDB_FLAG_ERASED) || next) {
             next = 0;
-            fs_seek(&fd, sizeof(hdr) + hdr.key_len + hdr.data_len, FS_SEEK_CUR);
+            fs_seek(&fd, hdr.key_len + hdr.data_len, FS_SEEK_CUR);
             continue;
         }
         
