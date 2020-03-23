@@ -159,7 +159,27 @@ TEST(blobdb_fill) {
     
     LOG_INFO("verified %d records", nents);
     
+    if (_delete(0) != 0) {
+        LOG_ERROR("blobdb_delete(0) failed");
+        return TEST_FAIL;
+    }
     
+    if (_insert(nents, 128) != 0) {
+        LOG_ERROR("blobdb_insert(nents) failed");
+        return TEST_FAIL;
+    }
+
+    LOG_INFO("inserted to replace");
+    
+    for (i = 1; i <= nents; i++)  {
+        if (_retrieve(i, 128) != 0) {
+            LOG_ERROR("failure on retrieve(%d)", i);
+            break;
+        }
+    }
+
+    LOG_INFO("verified %d records", nents);
+
     *artifact = 0;
     return TEST_PASS;
 }

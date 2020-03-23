@@ -378,6 +378,55 @@ void blobdb_select_free_all(list_head *head)
     }
 }
 
+int _blobdb_gc_for_bytes(const struct blobdb_database *db, struct fd *fd, int bytes) {
+    fs_seek(fd, 0, FS_SEEK_SET);
+    
+    /* Count up how many bytes we stand to liberate. */
+    struct blobdb_iter it;
+    int valid;
+    int used = 0;
+    for (valid = _blobdb_iter_start_from_fd(fd, &it); valid; valid = blobdb_iter_next(&it))
+        used += sizeof(struct blobdb_hdr) + it.key_len + it.data_len;
+    int tlen = fs_seek(&it.fd, 0, FS_SEEK_CUR);
+    int fsz = fs_size(fd);
+    LOG_INFO("gc: blobdb %s will have %d/%d bytes used after, has %d/%d bytes used", db->filename, used, fsz, tlen, fsz);
+    
+    if (bytes >= (fsz - used)) {
+        LOG_ERROR("gc: which is not enough space for a %d byte entry, sadly");
+        return 0;
+    }
+    
+    /* Ok, here we go. */
+    valid = _blobdb_iter_start_from_fd(fd, &it);
+    struct file oldfile = fd->file;
+    if (fs_creat_replacing(fd, db->filename, db->def_db_size, &oldfile) == NULL) {
+        LOG_ERROR("gc: failed to create new file");
+        return 0;
+    }
+    for (; valid; valid = blobdb_iter_next(&it)) {
+        int nbytes = sizeof(struct blobdb_hdr) + it.key_len + it.data_len;
+        struct fd from = it.fd;
+        while (nbytes) {
+            uint8_t buf[16];
+            size_t ibytes = nbytes < 16 ? nbytes : 16;
+            
+            if (fs_read(&from, buf, ibytes) != ibytes) {
+                LOG_ERROR("gc: failed to read");
+                return 0;
+            }
+            if (fs_write(fd, buf, ibytes) != ibytes) {
+                LOG_ERROR("gc: failed to write");
+                return 0;
+            }
+            
+            nbytes -= ibytes;
+        }
+    }
+    fs_mark_written(fd); /* oldfile is now dead */
+    
+    return 1;
+}
+
 int blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size)
 {
     struct blobdb_iter it;
@@ -414,50 +463,51 @@ int blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_s
     }
 
     int pos = fs_seek(&it.fd, 0, FS_SEEK_CUR);
-    struct fd hfd = it.fd;
     if (pos + sizeof(struct blobdb_hdr) + key_size + data_size > it.fd.file.size) {
-        /* XXX: try gc'ing the blob */
-        LOG_ERROR("not enough space %d %d for new entry", it.fd.file.size, pos); //+ sizeof(struct blobdb_hdr) + key_size + data_size);
-        return Blob_DatabaseFull;
+        if (!_blobdb_gc_for_bytes(db, &it.fd, sizeof(struct blobdb_hdr) + key_size + data_size)) {
+            LOG_ERROR("not enough space %d %d for new entry", it.fd.file.size, pos); //+ sizeof(struct blobdb_hdr) + key_size + data_size);
+            return Blob_DatabaseFull;
+        }
     }
 
     /* Carefully start by writing a header. */
     struct blobdb_hdr hdr;
+    struct fd hfd = it.fd;
     
     hdr.flags = 0xFF;
     hdr.key_len = key_size;
     hdr.data_len = data_size;
-    if (fs_write(&it.fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+    if (fs_write(&hfd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
         LOG_ERROR("failed to write header");
         return Blob_GeneralFailure;
     }
     
     /* Mark the header as completely written. */
     hdr.flags &= ~BLOBDB_FLAG_HEADER_WRITTEN;
-    it.fd = hfd;
-    if (fs_write(&it.fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+    hfd = it.fd;
+    if (fs_write(&hfd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
         LOG_ERROR("failed to write header");
         return Blob_GeneralFailure;
     }
     
     /* Write the data. */
-    if (fs_write(&it.fd, key, key_size) < key_size) {
+    if (fs_write(&hfd, key, key_size) < key_size) {
         LOG_ERROR("failed to write key");
         return Blob_GeneralFailure;
     }
-    if (fs_write(&it.fd, data, data_size) < data_size) {
+    if (fs_write(&hfd, data, data_size) < data_size) {
         LOG_ERROR("failed to write data");
         return Blob_GeneralFailure;
     }
     
     /* Mark the data as written. */
-    it.fd = hfd;
+    hfd = it.fd;
     hdr.flags &= ~BLOBDB_FLAG_WRITTEN;
-    if (fs_write(&it.fd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
+    if (fs_write(&hfd, &hdr, sizeof(hdr)) < sizeof(hdr)) {
         LOG_ERROR("failed to update header");
         return Blob_GeneralFailure;
     }
-
+    
     return Blob_Success;
 }
 
