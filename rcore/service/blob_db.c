@@ -57,7 +57,7 @@ static const struct blobdb_database databases[] = {
     {
         .id = BlobDatabaseID_Test,
         .filename = "rebble/testblob",
-        .def_db_size = 16384,
+        .def_db_size = 1024,
     },
     {
         .id = BlobDatabaseID_Notification,
@@ -379,7 +379,7 @@ void blobdb_select_free_all(list_head *head)
     }
 }
 
-uint8_t blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size)
+int blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size)
 {
     struct blobdb_iter it;
 
@@ -462,8 +462,18 @@ uint8_t blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t k
     return Blob_Success;
 }
 
-void blobdb_delete(struct blobdb_iter *it)
+int blobdb_delete(struct blobdb_iter *it)
 {
-    /* hah, good one */
-    return;
+    struct fd fd = it->fd;
+    struct blobdb_hdr hdr;
+    
+    if (fs_read(&fd, &hdr, sizeof(hdr)) < sizeof(hdr))
+        return Blob_GeneralFailure;
+    hdr.flags &= ~BLOBDB_FLAG_ERASED;
+    
+    fd = it->fd;
+    if (fs_write(&fd, &hdr, sizeof(hdr)) < sizeof(hdr))
+        return Blob_GeneralFailure;
+
+    return Blob_Success;
 }

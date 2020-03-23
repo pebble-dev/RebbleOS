@@ -69,7 +69,8 @@ struct blobdb_select_result {
 typedef list_head blobdb_select_result_list;
 
 const struct blobdb_database *blobdb_open(uint16_t database_id);
-uint8_t blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size);
+int blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size);
+int blobdb_delete(struct blobdb_iter *it);
 
 /* Each returns true if the iterator points to a valid header. */
 int blobdb_iter_start(const struct blobdb_database *db, struct blobdb_iter *it);
