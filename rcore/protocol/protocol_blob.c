@@ -8,7 +8,7 @@
 #include "protocol_system.h"
 #include "pebble_protocol.h"
 #include "protocol_service.h"
-#include "blob_db.h"
+#include "blobdb.h"
 #include "timeline.h"
 
 typedef struct blob_db_t {

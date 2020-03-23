@@ -16,7 +16,7 @@
 #include "menu.h"
 #include "timeline.h"
 #include "notification_manager.h"
-#include "blob_db.h"
+#include "blobdb.h"
 
 static NotificationLayer* _notif_layer;
 static Window* _notif_window;

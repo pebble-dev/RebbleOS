@@ -1,4 +1,4 @@
-/* blob_db_test.c
+/* blobdb_test.c
  * tests for blob database
  * RebbleOS
  */
@@ -7,7 +7,7 @@
 #include "pebble_protocol.h"
 #include "node_list.h"
 #include "timeline.h"
-#include "blob_db.h"
+#include "blobdb.h"
 #include "test.h"
 #include "debug.h"
 

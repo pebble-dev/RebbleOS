@@ -11,7 +11,7 @@
 #include "status_bar_layer.h"
 #include "property_animation.h"
 #include "timeline.h"
-#include "blob_db.h"
+#include "blobdb.h"
 
 typedef struct NotificationLayer
 {

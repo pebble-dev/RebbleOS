@@ -12,7 +12,7 @@
 #include "property_animation.h"
 #include "librebble.h"
 #include "ngfxwrap.h"
-#include "blob_db.h"
+#include "blobdb.h"
 #include "timeline.h"
 #include "notification_manager.h"
 #include "platform_res.h"

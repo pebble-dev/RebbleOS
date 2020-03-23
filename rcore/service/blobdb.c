@@ -1,16 +1,17 @@
-/* blob_db.c
+/* blobdb.c
  * blob database is a simple flat file store in flash/ram
  * This provides functions to query this data
  * libRebbleOS
  *
- * Author: Barry Carter <barry.carter@gmail.com>
+ * Authors: Barry Carter <barry.carter@gmail.com>
+ *          Joshua Wise <joshua@joshuawise.com>
  */
 #include "rebbleos.h"
 #include "protocol_system.h"
 #include "pebble_protocol.h"
 #include "node_list.h"
 #include "timeline.h"
-#include "blob_db.h"
+#include "blobdb.h"
 
 /* Configure Logging */
 #define MODULE_NAME "blobdb"

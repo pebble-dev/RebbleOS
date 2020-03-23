@@ -10,7 +10,7 @@
 #include "protocol_service.h"
 #include "pebble_protocol.h"
 #include "timeline.h"
-#include "blob_db.h"
+#include "blobdb.h"
 #include "notification_manager.h"
 #include "event_service.h"
 

@@ -14,7 +14,7 @@
 #include "notification.h"
 #include "test_defs.h"
 #include "node_list.h"
-#include "blob_db.h"
+#include "blobdb.h"
 
 static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
