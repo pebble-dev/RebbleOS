@@ -83,7 +83,7 @@ uint16_t rcore_time_ms(time_t *tutc, uint16_t *ms)
     if (ms)
         *ms = new_ms;
 
-    LOG_DEBUG("TUTC %d %d %d %d", _boot_ticks, new_ms, *tutc, _boot_time_t + ticks_since_boot / configTICK_RATE_HZ);
+//     LOG_DEBUG("TUTC %d %d %d %d", _boot_ticks, new_ms, *tutc, _boot_time_t + ticks_since_boot / configTICK_RATE_HZ);
     return new_ms;
 }
 

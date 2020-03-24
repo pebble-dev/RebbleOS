@@ -11,6 +11,8 @@
 #include "pebble_protocol.h"
 #include "protocol_notification.h"
 #include "protocol_system.h"
+#include "protocol_service.h"
+#include "qemu.h"
 
 /* Configure Logging */
 #define MODULE_NAME "pcol"
@@ -28,8 +30,12 @@ const PebbleEndpoint pebble_endpoints[] =
     { .endpoint = WatchProtocol_AppRunState,        .handler  = protocol_app_run_state  },
     { .endpoint = WatchProtocol_AppFetch,           .handler  = protocol_app_fetch      },
     { .endpoint = WatchProtocol_Reset,              .handler  = protocol_watch_reset    },
-    { .endpoint = WatchProtocol_PhoneMessage,       .handler  = protocol_process_legacy2_notification },
+    { .endpoint = WatchProtocol_LegacyMessage,      .handler  = protocol_process_legacy2_notification },
     { .endpoint = WatchProtocol_BlobDbMessage,      .handler  = protocol_process_blobdb },
+    { .endpoint = WatchProtocol_PhoneMessage,       .handler  = protocol_phone_message_process },
+    { .endpoint = WatchProtocol_MusicControl,       .handler  = protocol_music_message_process },
+    { .endpoint = WatchProtocol_TimelineAction,     .handler  = protocol_process_timeline_action_response },
+    { .endpoint = WatchProtocol_PutBytes,           .handler  = protocol_process_transfer },
     { .handler = NULL }
 };
 
@@ -52,6 +58,11 @@ EndpointHandler protocol_find_endpoint_handler(uint16_t protocol, const PebbleEn
     return NULL;
 }
 
+inline PebbleEndpoint *protocol_get_pebble_endpoints(void)
+{
+    return pebble_endpoints;
+}
+
 
 /*
  * Packet processing
@@ -60,6 +71,7 @@ EndpointHandler protocol_find_endpoint_handler(uint16_t protocol, const PebbleEn
 static uint8_t _rx_buffer[RX_BUFFER_SIZE];
 static uint16_t _buf_ptr = 0;
 static TickType_t _last_rx;
+static ProtocolTransportSender _last_transport_used;
 
 uint8_t *protocol_get_rx_buffer(void)
 {
@@ -120,17 +132,24 @@ void protocol_rx_buffer_consume(uint16_t len)
     _buf_ptr -= len;
 }
 
+ProtocolTransportSender protocol_get_current_transport_sender()
+{
+    return _last_transport_used ? _last_transport_used : qemu_send_data;
+}
+
 /*
  * Parse a packet in the buffer. Will fill the given pbl_transport with
  * the parsed data
  * 
  * Returns false when done or on completion errors
  */
-bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender transport)
+bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport)
 {
-    uint16_t pkt_length = (pkt->data[0] << 8) | (pkt->data[1] & 0xff);
-    uint16_t pkt_endpoint = (pkt->data[2] << 8) | (pkt->data[3] & 0xff);
-
+    uint16_t pkt_length = (data[0] << 8) | (data[1] & 0xff);
+    uint16_t pkt_endpoint = (data[2] << 8) | (data[3] & 0xff);
+    
+    _last_transport_used = transport;
+    
     LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
     
     if (_buf_ptr < 4) /* not enough data to parse a header */
@@ -153,13 +172,13 @@ bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender tr
         return false;
     }
 
-    LOG_INFO("RX: packet is complete");
+    LOG_INFO("RX: packet is complete %x", transport);
 
     /* it's a valid packet. fill out passed packet and finish up */
-    pkt->length = pkt_length;
-    pkt->endpoint = pkt_endpoint;
-    pkt->data = pkt->data + 4;
-    pkt->transport_sender = transport;
+    packet->length = pkt_length;
+    packet->endpoint = pkt_endpoint;
+    packet->data = data + 4;
+    packet->transport_sender = transport;
 
     return true;
 }
@@ -167,34 +186,40 @@ bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender tr
 /* 
  * Given a packet, process it and call the relevant function
  */
-void protocol_process_packet(const pbl_transport_packet *pkt)
+void protocol_process_packet(const RebblePacket packet)
 {
-    /*
-     * We should be fast in this function!
-     * Work out which message needs to be processed, and escape from here fast
-     * This will likely be holding up RX otherwise.
-     */
-    LOG_INFO("BT Got Data L:%d", pkt->length);
-
-    EndpointHandler handler = protocol_find_endpoint_handler(pkt->endpoint, pebble_endpoints);
-    if (handler == NULL)
-    {
-        LOG_ERROR("Unknown protocol: %d", pkt->endpoint);
-        return;
-    }
-
-    handler(pkt);
+    protocol_service_rx_data(packet);
 }
 
 /*
  * Send a Pebble packet right now
  */
-void protocol_send_packet(const pbl_transport_packet *pkt)
+void protocol_send_packet(const RebblePacket packet)
 {
-    uint16_t len = pkt->length;
-    uint16_t endpoint = pkt->endpoint;
+    uint16_t len = packet_get_data_length(packet);
+    uint16_t endpoint = packet_get_endpoint(packet);
 
-    LOG_DEBUG("TX protocol: e:%d");
+    LOG_DEBUG("TX protocol: e:%d l %d", endpoint, len);
 
-    pkt->transport_sender(endpoint, pkt->data, len);
+    packet_send_to_transport(packet, endpoint, packet_get_data(packet), len);
+}
+
+
+
+uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf)
+{
+    uint8_t len = (uint8_t)source_buf[0];
+    /* Byte by byte copy the src to the dest */
+    for(int i = 0; i < len; i++)
+        result_buf[i] = source_buf[i+1];
+    
+    /* and null term it */
+    result_buf[len] = 0;
+    
+    return len + 1;
+}
+
+uint8_t pascal_strlen(char *str)
+{
+    return (uint8_t)str[0];
 }

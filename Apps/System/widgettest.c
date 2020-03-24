@@ -88,7 +88,7 @@ static void test_window_unload(Window *window)
     action_bar_layer_destroy(action_bar);
 }
 
-void test_init(void)
+static void _test_init(void)
 {
     APP_LOG("test",APP_LOG_LEVEL_DEBUG,"init");
     s_main_window = window_create();
@@ -101,16 +101,16 @@ void test_init(void)
     window_stack_push(s_main_window, true);
 }
 
-void test_deinit(void)
+static void _test_deinit(void)
 {
     window_destroy(s_main_window);
 }
 
-void test_main(void)
+void widgettest_main(void)
 {
-    test_init();
+    _test_init();
     app_event_loop();
-    test_deinit();
+    _test_deinit();
 }
 
 void test_tick(void)

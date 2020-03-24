@@ -12,6 +12,7 @@
 #include "notification_manager.h"
 #include "timers.h"
 #include "ngfxwrap.h"
+#include "event_service.h"
 
 /* Configure Logging */
 #define MODULE_NAME "apploop"
@@ -21,7 +22,7 @@
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context);
-void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
+
 bool booted = false;
 
 static xQueueHandle _app_message_queue;
@@ -35,12 +36,13 @@ void appmanager_app_runloop_init(void)
 /* 
  * Send a message to an app 
  */
-void appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout)
+bool appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout)
 {
     app_running_thread *_thread = appmanager_get_thread(AppThreadMainApp);
     if (_thread->status == AppThreadRunloop)
-        if (!xQueueSendToBack(_app_message_queue, am, timeout))
-            ;
+        return xQueueSendToBack(_app_message_queue, am, timeout);
+    
+    return false;
 }
 
 /*
@@ -82,8 +84,14 @@ void appmanager_app_main_entry(void)
 
 bool appmanager_is_app_shutting_down(void)
 {
-    app_running_thread *_this_thread = appmanager_get_current_thread();
+    app_running_thread *_this_thread = appmanager_get_thread(AppThreadMainApp);
     return _this_thread->status == AppThreadUnloading;
+}
+
+bool appmanager_is_app_running(void)
+{
+    app_running_thread *_this_thread = appmanager_get_thread(AppThreadMainApp);
+    return _this_thread->status == AppThreadRunloop;
 }
 
 void rocky_event_loop_with_resource(uint16_t resource_id)
@@ -93,26 +101,9 @@ void rocky_event_loop_with_resource(uint16_t resource_id)
 
 static void _draw(uint8_t force_draw)
 {
-    /* Request a draw. This is mostly from an app invalidating something */
-    if (display_buffer_lock_take(0))
-    {
-        if (force_draw)
-            window_dirty(true);
-        
-        bool force = window_draw();
-        
-        if (overlay_window_count() > 0)
-        {
-            overlay_window_draw(true);
-            force = true;
-        }
-        
-        if (force)
-        {
-            display_draw();
-        }
-        display_buffer_lock_give();
-    }
+    window_draw();
+    
+    appmanager_post_draw_update(1);
 }
 
 /*
@@ -136,7 +127,7 @@ void app_event_loop(void)
     LOG_INFO("App entered mainloop");
     
     /* Do this before window load, that way they have a chance to override */
-    if (_running_app->type != APP_TYPE_FACE &&
+    if (_running_app->type != AppTypeWatchface &&
         overlay_window_count() == 0)
     {
         /* Enables default closing of windows, and through that, apps */
@@ -145,31 +136,31 @@ void app_event_loop(void)
     
     window_configure(window_stack_get_top_window());
     
-    if (_running_app->type == APP_TYPE_FACE)
+    if (_running_app->type == AppTypeWatchface)
     {
         window_single_click_subscribe(BUTTON_ID_SELECT, app_select_single_click_handler);
     }
     
-    if (_running_app->type == APP_TYPE_APP)
+    if (_running_app->type == AppTypeApp)
     {
         window_long_click_subscribe(BUTTON_ID_BACK, 1100, back_long_click_handler, back_long_click_release_handler);
     }
     
+    TickType_t next_timer;
     
     /* clear the queue of any work from the previous app
     * ... such as an errant quit */
     xQueueReset(_app_message_queue);
+    
+    _this_thread->status = AppThreadRunloop;
 
     if (!booted)
     {
-        GRect frame = GRect(0, DISPLAY_ROWS - 20, DISPLAY_COLS, 20);
-        notification_show_small_message("Welcome to RebbleOS", frame);
+        event_service_post(EventServiceCommandAlert, "Welcome to RebbleOS", NULL);
 
         booted = true;
     }
 
-    TickType_t next_timer;
-    _this_thread->status = AppThreadRunloop;
 
     next_timer = portMAX_DELAY;
     /* App is now fully initialised and inside the runloop. */
@@ -189,29 +180,27 @@ void app_event_loop(void)
         /* we are inside the apps main loop event handler now */
         if (xQueueReceive(_app_message_queue, &data, next_timer))
         {
-
             /* We woke up for some kind of event that someone posted.  But what? */
-            if (data.command == APP_BUTTON)
+            if (data.command == AppMessageButton)
             {
                 if (appmanager_is_app_shutting_down())
                     continue;
 
-                if (overlay_window_accepts_keypress())
-                {
-                    overlay_window_post_button_message(data.data);
-                    continue;
-                }
                 /* execute the button's callback */
                 ButtonMessage *message = (ButtonMessage *)data.data;
                 ((ClickHandler)(message->callback))((ClickRecognizerRef)(message->clickref), message->context);
                 appmanager_post_draw_message(0);
+            }
+            else if (data.command == AppMessageLoadClickConfig)
+            {
+                window_load_click_config((Window *)data.data);
             }
             /* Someone has requested the application close.
              * We will attempt graceful shutdown by unsubscribing timers
              * Any app timers will fire and be nulled, or get erased.
              * XXX could do with a timer mutex to wait on
              */
-            else if (data.command == APP_QUIT)
+            else if (data.command == AppMessageQuit)
             {
                 /* Set the shutdown time for this app. We will kill it then */
                 if (!appmanager_is_app_shutting_down())
@@ -226,9 +215,10 @@ void app_event_loop(void)
                 /* remove the ticktimer service handler and stop it */
                 tick_timer_service_unsubscribe();
                 connection_service_unsubscribe();
+                event_service_unsubscribe_all();
 
                 _this_thread->status = AppThreadUnloading;
-                appmanager_app_quit();
+//                 appmanager_app_quit();
 
                 LOG_INFO("App Quit");
 
@@ -239,12 +229,21 @@ void app_event_loop(void)
             /* A draw is requested. Get a lock and then draw. if we can't lock we..
              * try, try, try again
              */
-            else if (data.command == APP_DRAW)
+            else if (data.command == AppMessageDraw)
             {
                 if (appmanager_is_app_shutting_down())
                     continue;
 
                 _draw((uint32_t)data.data);
+            }
+            /* We have an event that the app might want. Lets check */
+            else if (data.command == AppMessageEvent)
+            {
+                if (appmanager_is_app_shutting_down())
+                    continue;
+
+                LOG_INFO("Got Event %x %x", data.data, data.context);
+                event_service_event_trigger(data.subcommand, data.data, data.context);
             }
         } else {
             if (appmanager_is_app_shutting_down())
@@ -265,11 +264,11 @@ void back_long_click_handler(ClickRecognizerRef recognizer, void *context)
     app_running_thread *_this_thread = appmanager_get_current_thread();
     switch(_this_thread->app->type)
     {
-        case APP_TYPE_FACE:
+        case AppTypeWatchface:
             LOG_DEBUG("TODO: Quiet time");
             break;
-        case APP_TYPE_SYSTEM:
-        case APP_TYPE_APP:
+        case AppTypeSystem:
+        case AppTypeApp:
             // quit the app
             appmanager_app_start("Simple");
             break;
@@ -286,7 +285,7 @@ void app_select_single_click_handler(ClickRecognizerRef recognizer, void *contex
     app_running_thread *_this_thread = appmanager_get_current_thread();
     switch(_this_thread->app->type)
     {
-        case APP_TYPE_FACE:
+        case AppTypeWatchface:
             appmanager_app_start("System");
             break;
     }
@@ -295,6 +294,12 @@ void app_select_single_click_handler(ClickRecognizerRef recognizer, void *contex
 void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
 {
     // Pop windows off
+    if (overlay_window_count() > 0)
+    {
+        overlay_window_stack_pop_window(true);
+        return;
+    }
+    
     Window *popped = window_stack_pop(true);
     LOG_DEBUG("Window Count: %d", window_count());
     

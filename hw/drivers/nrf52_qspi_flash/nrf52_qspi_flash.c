@@ -96,7 +96,20 @@ void hw_flash_erase_64k_sync(uint32_t addr) {
         ;
 }
 
-void hw_flash_write_sync(uint32_t addr, uint8_t *buf, size_t len) {
+int hw_flash_erase_sync(uint32_t addr, uint32_t len) {
+    assert((addr & (64*1024 - 1)) == 0);
+    assert((len & (64*1024 - 1)) == 0);
+    
+    while (len) {
+        hw_flash_erase_64k_sync(addr);
+        addr += 64*1024;
+        len -= 64*1024;
+    }
+    
+    return 0;
+}
+
+int hw_flash_write_sync(uint32_t addr, uint8_t *buf, size_t len) {
     nrfx_err_t err;
     
     _flash_sync = 1;
@@ -108,6 +121,8 @@ void hw_flash_write_sync(uint32_t addr, uint8_t *buf, size_t len) {
     
     while (nrfx_qspi_mem_busy_check() != NRFX_SUCCESS)
         ;
+    
+    return 0;
 }
 
 __asm__(

@@ -15,11 +15,12 @@
 #include "notification_manager.h"
 #include "power.h"
 #include "qemu.h"
-#include "blob_db_ramfs.h"
+#include "protocol_service.h"
 #include "rtoswrap.h"
+#include "test.h"
 
 typedef uint8_t (*mod_callback)(void);
-static TaskHandle_t _os_task;
+// static TaskHandle_t _os_task;
 static SemaphoreHandle_t _os_init_sem;
 
 static void _os_thread(void *pvParameters);
@@ -50,7 +51,7 @@ void rebbleos_init(void)
     THREAD_CREATE(os);
 }
 
-char buf[100];
+// char buf[100];
 static void _os_thread(void *pvParameters)
 {
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Starting Init...");
@@ -71,18 +72,29 @@ static void _os_thread(void *pvParameters)
     platform_init_late();
     rcore_watchdog_init_late();
     KERN_LOG("OS", APP_LOG_LEVEL_INFO,  "Watchdog is ticking");
+#ifdef REBBLEOS_TESTING
+    /* No bluetooth in test mode -- the hardware isn't there, and we use the
+     * USART to talk to the test driver. */
+    _module_init(qemu_init,             "QEMU");
+#else
     _module_init(bluetooth_init,        "Bluetooth");
+#endif
+    rebble_protocol_init();
     power_init();
     KERN_LOG("init", APP_LOG_LEVEL_INFO, "Power Init");
     SYS_LOG("OS", APP_LOG_LEVEL_INFO,   "Init: Main hardware up. Starting OS modules");
     _module_init(resource_init,         "Resources");
-    ramfs_init();
+    
+#ifndef REBBLEOS_TESTING
     _module_init(notification_init,     "Notifications");
     _module_init(overlay_window_init,   "Overlay");
     _module_init(appmanager_init,       "Main App");
+#else
+    _module_init(test_init,             "Test driver");
+#endif
 
     /* This is a runloop for all generic OS related stuff. */
-    
+
     os_msg msg;
     uint8_t count = 0;
     while(1)

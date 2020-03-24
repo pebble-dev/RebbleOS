@@ -45,7 +45,7 @@ static void _notif_man_window_load(Window *window)
     notification_layer_message_arrived(notif_layer, (Uuid *)msg->uuid);
 
     notification_layer_configure_click_config(notif_layer, window, _nl_back_click_handler);
-    notification_load_click_config(window);
+
     layer_mark_dirty(layer);
     window_dirty(true);
     _visible = true;
@@ -53,6 +53,7 @@ static void _notif_man_window_load(Window *window)
 
 static void _notif_man_window_unload(Window *window)
 {
+    SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "O Unload %x", window);
     notification_message *nm = (notification_message *)window->context;
     notification_layer_destroy(nm->notification_layer);
     app_free(nm);
@@ -67,7 +68,7 @@ static void _nl_back_click_handler(ClickRecognizerRef _, void *context)
     Window *w = layer_get_window(&nl->content_layer);
     SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "EBC %x", nl);
     notification_message *nm = (notification_message *)w->context;
-    app_timer_reschedule(nm->data.timer, 1);
+    app_timer_reschedule(nm->data.timer, 10);
     SYS_LOG("NOTYM", APP_LOG_LEVEL_INFO, "EBC %x", nl);
 //     app_timer_reschedule(nm->data.timer, 1);
 //     overlay_window_destroy(nm->data.overlay_window);

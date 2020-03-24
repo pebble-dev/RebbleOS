@@ -40,18 +40,18 @@ enum {
 
 const char *blobdb_filename_for_id(uint8_t id);
 uint8_t blobdb_insert(uint16_t database_id, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size);
-uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t **data);
-list_head *blobdb_select_items_all(uint8_t database_id, 
+uint8_t blobdb_select(uint16_t database_id, uint8_t *key, uint8_t key_size, uint8_t **data);
+uint16_t blobdb_select_items_all(uint8_t database_id, list_head *head,
                             uint16_t select1_offsetof_property, uint16_t select1_property_size, 
                             uint16_t select2_offsetof_property, uint16_t select2_property_size);
 
-list_head *blobdb_select_items1(uint8_t database_id, 
+uint16_t blobdb_select_items1(uint8_t database_id, list_head *head,
                             uint16_t select1_offsetof_property, uint16_t select1_property_size, 
                             uint16_t select2_offsetof_property, uint16_t select2_property_size, 
                             uint16_t where_offsetof_property, uint8_t where_property_size, 
                             uint8_t *where_val, Blob_Operator operator);
 
-list_head *blobdb_select_items2(uint8_t database_id, 
+uint16_t blobdb_select_items2(uint8_t database_id,  list_head *head,
                             uint16_t select1_offsetof_property, uint16_t select1_property_size, 
                             uint16_t select2_offsetof_property, uint16_t select2_property_size, 
                             uint16_t where_offsetof_property, uint8_t where_property_size, 
@@ -60,6 +60,8 @@ list_head *blobdb_select_items2(uint8_t database_id,
                             uint8_t *where_val1, Blob_Operator operator1);
 
 typedef struct blobdb_result_set_t {
+    uint8_t *key;
+    uint16_t key_size;
     uint8_t *select1;
     uint16_t select1_size;
     uint8_t *select2;
