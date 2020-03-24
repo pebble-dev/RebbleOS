@@ -34,3 +34,8 @@
 #define BLUETOOTH_MODULE_GAP_NAME    "Pebble RblOs"
 
 #define BLUETOOTH_IS_BLE 1
+
+#define MEM_REGION_DISPLAY
+#define MEM_REGION_HEAP_OVL
+#define MEM_REGION_HEAP_WRK 
+#define MEM_REGION_PANIC

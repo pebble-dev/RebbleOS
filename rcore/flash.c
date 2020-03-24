@@ -44,7 +44,25 @@ uint8_t flash_init()
  */
 void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
 {
+    int unaligned = ((uint32_t)buffer) & (PLATFORM_FLASH_ALIGNMENT - 1);
+    if (unaligned) {
+        int nfix = PLATFORM_FLASH_ALIGNMENT - unaligned;
+        if (nfix > num_bytes)
+            nfix = num_bytes;
+
+        uint8_t extra[PLATFORM_FLASH_ALIGNMENT];
+        flash_read_bytes(address, extra, PLATFORM_FLASH_ALIGNMENT);
+        memcpy(buffer, extra, nfix);
+        buffer += nfix;
+        address += nfix;
+        num_bytes -= nfix;
+    }
+    
+    if (!num_bytes)
+        return;
+
     xSemaphoreTake(_flash_mutex, portMAX_DELAY);
+    
     hw_flash_read_bytes(address, buffer, num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1));
     
     /* sit the caller being this wait lock semaphore */
@@ -65,10 +83,28 @@ void flash_read_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
 
 int flash_write_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
 {
-    int rv;
+    int rv = 0;
     
+    int unaligned = ((uint32_t)buffer) & (PLATFORM_FLASH_ALIGNMENT - 1);
+    if (unaligned) {
+        int nfix = PLATFORM_FLASH_ALIGNMENT - unaligned;
+        if (nfix > num_bytes)
+            nfix = num_bytes;
+
+        assert(PLATFORM_FLASH_ALIGNMENT <= 4);
+        uint8_t extra[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+        memcpy(extra, buffer, nfix);
+        rv |= flash_write_bytes(address, extra, PLATFORM_FLASH_ALIGNMENT);
+        buffer += nfix;
+        address += nfix;
+        num_bytes -= nfix;
+    }
+    
+    if (!num_bytes)
+        return rv;
+
     xSemaphoreTake(_flash_mutex, portMAX_DELAY);
-    rv = hw_flash_write_sync(address, buffer, num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1));
+    rv |= hw_flash_write_sync(address, buffer, num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1));
     
     /* writes currently are synchronous */
     

@@ -69,6 +69,8 @@
 
 #define WATCHDOG_RESET_MS 500
 
+#define HCI_ACL_PAYLOAD_SIZE 52 /* XXX: glue this to PPoGATT MTU */
+
 static inline uint8_t is_interrupt_set(void)
 {
     return ((volatile int)(SCB->ICSR & SCB_ICSR_VECTACTIVE_Msk)) != 0 ;
