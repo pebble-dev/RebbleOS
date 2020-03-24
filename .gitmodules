@@ -7,3 +7,6 @@
 [submodule "lib/btstack/btstack"]
 	path=lib/btstack/btstack
 	url = https://github.com/ginge/btstack.git
+[submodule "lib/libpebble2"]
+	path = lib/libpebble2
+	url = ../../pebble-dev/libpebble2

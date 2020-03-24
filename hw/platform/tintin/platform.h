@@ -58,7 +58,12 @@
 /* XXX: issue pebble-dev/RebbleOS#43 */
 #define RES_START           0x200C
 
-#define CCRAM
+#define MEM_REGION_DISPLAY
+#define MEM_REGION_RAMFS
+#define MEM_REGION_HEAP_OVL
+#define MEM_REGION_HEAP_WRK
+#define MEM_REGION_PANIC
+
 
 static inline uint8_t is_interrupt_set(void)
 {

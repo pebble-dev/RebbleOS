@@ -19,6 +19,7 @@
 void *system_calloc(size_t count, size_t size);
 void rblos_memory_init(void);
 void *system_malloc(size_t size);
+void system_free(void *mem);
 
 void *app_malloc(size_t size);
 void *app_calloc(size_t count, size_t size);

@@ -1,18 +1,27 @@
 #pragma once
 
 #include <stddef.h>
+#include <stdbool.h>
+#include "uuid.h"
 
 typedef void (*ProtocolTransportSender)(uint16_t endpoint, uint8_t *data, uint16_t len);
 
+typedef struct rebble_packet * RebblePacket;
 
-typedef struct pbl_transport_packet_t {
+typedef struct rebble_packet_header_t {
     uint16_t length;
     uint16_t endpoint;
-    ProtocolTransportSender transport_sender;
-    uint8_t  *data;
-} __attribute__((__packed__)) pbl_transport_packet;
+    uint8_t  data[];
+} __attribute__((__packed__)) RebblePacketHeader;
 
-typedef void (*EndpointHandler)(const pbl_transport_packet *packet);
+typedef struct rebble_packet_data_header_t {
+    uint16_t length;
+    uint16_t endpoint;
+    uint8_t  *data;
+    ProtocolTransportSender transport_sender;
+} __attribute__((__packed__)) RebblePacketDataHeader;
+
+typedef void (*EndpointHandler)(const RebblePacket packet);
 
 typedef struct
 {
@@ -20,20 +29,27 @@ typedef struct
     EndpointHandler handler;
 } PebbleEndpoint;
 
+enum {
+    ACK  = 0x1,
+    NACK = 0x2
+};
+
+
 uint8_t protocol_rx_buffer_append(uint8_t *data, size_t len);
 uint16_t protocol_get_rx_buf_size(void);
 uint8_t *protocol_rx_buffer_request(void);
 void protocol_rx_buffer_release(uint16_t len);
 void protocol_rx_buffer_consume(uint16_t len);
 EndpointHandler protocol_find_endpoint_handler(uint16_t protocol, const PebbleEndpoint *endpoint);
+PebbleEndpoint *protocol_get_pebble_endpoints(void);
 uint8_t *protocol_get_rx_buffer(void);
 
 /* API */
 
-void protocol_send_packet(const pbl_transport_packet *pkt);
-bool protocol_parse_packet(pbl_transport_packet *pkt, ProtocolTransportSender transport);
-void protocol_process_packet(const pbl_transport_packet *pkt);
-
+void protocol_send_packet(const RebblePacket packet);
+bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport);
+void protocol_process_packet(const RebblePacket packet);
+ProtocolTransportSender protocol_get_current_transport_sender();
 
 typedef enum  {
     Unknown = 0,
@@ -59,12 +75,12 @@ typedef enum  {
 
 
 
-void protocol_app_run_state(const pbl_transport_packet *packet);
-void protocol_app_fetch(const pbl_transport_packet *packet);
+void protocol_app_run_state(const RebblePacket packet);
+void protocol_app_fetch(const RebblePacket packet);
+void protocol_process_blobdb(const RebblePacket packet);
+void protocol_process_timeline_action_response(const RebblePacket packet);
+void protocol_process_transfer(const RebblePacket packet);
+void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id);
 
-
-
-
-void protocol_process_blobdb(const pbl_transport_packet *packet);
-
-
+uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf);
+uint8_t pascal_strlen(char *str);

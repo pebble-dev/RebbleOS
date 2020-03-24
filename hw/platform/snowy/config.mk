@@ -19,7 +19,12 @@ QEMUSPITYPE_snowy = pflash
 QEMUPACKSIZE_snowy = 512000
 QEMUPACKOFS_snowy = 3670016
 QEMUSPINAME_snowy = basalt/3.0
+QEMUSPISIZE_snowy = 16777216
+QEMUFSOFS_snowy = 4194304
+QEMUFSSIZE_snowy = 12582912
 
 HWREV_snowy = snowy_dvt
+
+TESTABLE_snowy = true
 
 PLATFORMS += snowy

@@ -30,6 +30,13 @@
 
 #define VERSION "v0.0.0.2"
 
+//Let's make sure the user is using an 'up to date' version of the compiler
+
+#if __GNUC__ < 8
+    #error It appears you are using a version of arm-none-eabi-gcc that is incompatible with with the RebbleOS project. \
+    Please find an updated version by using your respective package manager or going to the developer.arm.com download page.
+#endif
+
 // Public API functions as exposed through the various layers
 
 // Reset the watchdog timer manually

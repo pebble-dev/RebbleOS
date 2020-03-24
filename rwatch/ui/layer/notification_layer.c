@@ -75,9 +75,9 @@ static void notification_layer_ctor(NotificationLayer *notification_layer, GRect
 
 void _load_notification(NotificationLayer *notification_layer, Uuid *uuid)
 {
-    LOG_DEBUG("FREE: %d", app_heap_bytes_free());
+    LOG_DEBUG("FREE 1: %d", app_heap_bytes_free());
     fonts_resetcache();
-    LOG_DEBUG("FREE: %d", app_heap_bytes_free());
+    LOG_DEBUG("FREE 2: %d", app_heap_bytes_free());
 
     if (notification_layer->notification)
         timeline_destroy(notification_layer->notification);
@@ -89,6 +89,8 @@ void _load_notification(NotificationLayer *notification_layer, Uuid *uuid)
     }
 
     rebble_notification *notif = timeline_get_notification(uuid);
+    
+    LOG_DEBUG("FREE 3: %d", app_heap_bytes_free());
 
     if (!notif)
     {
@@ -136,7 +138,8 @@ void _load_notification(NotificationLayer *notification_layer, Uuid *uuid)
         }
     }
     
-    LOG_DEBUG("FREE: %d", app_heap_bytes_free());
+    
+    LOG_DEBUG("FREE 4: %d", app_heap_bytes_free());
     window_dirty(true);
     scroll_layer_set_content_offset(&notification_layer->scroll_layer, GPoint(0, 0), true);
 }
@@ -207,7 +210,7 @@ void notification_layer_destroy(NotificationLayer *notification_layer)
 {
     notification_layer_dtor(notification_layer);
     app_free(notification_layer);
-    fonts_resetcache();
+    //fonts_resetcache();
     LOG_DEBUG("FREE: %d", app_heap_bytes_free());
     window_dirty(true);
 }
@@ -293,37 +296,67 @@ static void _scroll_down_click_handler(ClickRecognizerRef recognizer, void *cont
 }
 
 static void _action_performed_callback(ActionMenu *action_menu, const ActionMenuItem *action, void *context) {
-    // ACTION!
+    LOG_DEBUG("AP Con %x", context);
+    rebble_action *na = (rebble_action *)context;
+    NotificationLayer *nl = (NotificationLayer *)action_menu_get_context(action_menu);
+    timeline_action_send(na->timeline_action.action_id, &nl->notification->timeline_item.uuid, NULL, NULL);
 }
 
 static void _show_options_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-//     NotificationLayer *notification_layer = (NotificationLayer *)context;
-//     Notification *notification = notification_layer->active;
-// 
-//     // Make + show the ActionMenu
-//     ActionMenuLevel *root_level = action_menu_level_create(3);
-//     ActionMenuLevel *reply_level = action_menu_level_create(3);
-// 
-//     action_menu_level_add_child(root_level, reply_level, "Reply");
-//     action_menu_level_add_action(root_level, "Dismiss", _action_performed_callback, NULL);
-//     action_menu_level_add_action(root_level, "Dismiss All", _action_performed_callback, NULL);
-// 
-//     action_menu_level_add_action(reply_level, "Dictate", _action_performed_callback, NULL);
-//     action_menu_level_add_action(reply_level, "Canned Response", _action_performed_callback, NULL);
-//     action_menu_level_add_action(reply_level, "Emoji", _action_performed_callback, NULL);
-// 
-//     ActionMenuConfig config = (ActionMenuConfig)
-//     {
-//         .root_level = root_level,
-//         .colors = {
-//             .background = notification_layer->active->color,
-//             .foreground = GColorWhite,
-//         },
-//         .align = ActionMenuAlignCenter
-//     };
-// 
-//     action_menu_open(&config);
+    NotificationLayer *notification_layer = (NotificationLayer *)context;
+
+    rebble_action *na;
+    rebble_attribute *aa;
+    int actions = 0;
+    
+    list_foreach(na, &notification_layer->notification->actions, rebble_action, node)
+        actions++;
+        
+    ActionMenuLevel *root_level = action_menu_level_create(actions);
+    
+    list_foreach(na, &notification_layer->notification->actions, rebble_action, node)
+    {
+        LOG_DEBUG("ACTION Id %d type %d cnt %d", na->timeline_action.action_id, na->timeline_action.type, na->timeline_action.attr_count);
+        
+        /* each attribute */
+        list_foreach(aa, &na->attributes, rebble_attribute, node)
+        {
+            LOG_DEBUG("- ATTR Id %d len %d data %s", aa->timeline_attribute.attribute_id, aa->timeline_attribute.length, aa->data);
+            
+            switch (aa->timeline_attribute.attribute_id)
+            {
+                case TimelineAttributeType_Sender:
+                    action_menu_level_add_action(root_level, aa->data, _action_performed_callback, na);
+                    break;
+            }            
+        }
+    }
+    
+    // Make + show the ActionMenu
+    /*ActionMenuLevel *root_level = action_menu_level_create(3);
+    ActionMenuLevel *reply_level = action_menu_level_create(3);
+
+    action_menu_level_add_child(root_level, reply_level, "Reply");
+    action_menu_level_add_action(root_level, "Dismiss", _action_performed_callback, 1);
+    action_menu_level_add_action(root_level, "Dismiss All", _action_performed_callback, 2);
+
+    action_menu_level_add_action(reply_level, "Dictate", _action_performed_callback, 3);
+    action_menu_level_add_action(reply_level, "Canned Response", _action_performed_callback, 4);
+    action_menu_level_add_action(reply_level, "Emoji", _action_performed_callback, 5);
+*/
+    ActionMenuConfig config = (ActionMenuConfig)
+    {
+        .root_level = root_level,
+        .context = notification_layer,
+        .colors = {
+            .background = GColorBlack,
+            .foreground = GColorWhite,
+        },
+        .align = ActionMenuAlignCenter
+    };
+
+    action_menu_open(&config);
 }
 
 static void _click_config_provider(void *context)
@@ -343,6 +376,7 @@ static void _click_config_provider(void *context)
 
 static void _notification_layer_update_proc(Layer *layer, GContext *ctx)
 {
+    
     NotificationLayer *notification_layer = container_of(layer, NotificationLayer, layer);
     assert(notification_layer);
 
@@ -421,5 +455,9 @@ static void _notification_layer_update_proc(Layer *layer, GContext *ctx)
         n_graphics_fill_circle(ctx, GPoint(DISPLAY_COLS / 2, DISPLAY_ROWS - 2), 10);
     }*/
 #endif
+
+//     NotificationLayer *notification_layer = (NotificationLayer *)context;
+//    Notification *notification = notification_layer->active;
+
 
 }

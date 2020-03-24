@@ -8,12 +8,12 @@
  */ 
 #define MEMORY_SIZE_APP           90000
 #define MEMORY_SIZE_WORKER        10500
-#define MEMORY_SIZE_OVERLAY       18000
+#define MEMORY_SIZE_OVERLAY       18500
 
 /* Size of the stack in WORDS */
 #define MEMORY_SIZE_APP_STACK     3000
 #define MEMORY_SIZE_WORKER_STACK  250
-#define MEMORY_SIZE_OVERLAY_STACK 350
+#define MEMORY_SIZE_OVERLAY_STACK 450
 
 
 #define MEMORY_SIZE_APP_HEAP      MEMORY_SIZE_APP - (MEMORY_SIZE_APP_STACK * 4)
@@ -34,6 +34,7 @@
 #define REGION_FS_START         0x400000
 #define REGION_FS_PAGE_SIZE     0x2000
 #define REGION_FS_N_PAGES       ((0x1000000 - REGION_FS_START) / REGION_FS_PAGE_SIZE)
+#define REGION_FS_ERASE_SIZE    (32*1024)
 
 #define REGION_APP_RES_START    0xB3A000
 #define REGION_APP_RES_SIZE     0x7D000
@@ -58,7 +59,8 @@
 /* Use the prefix CCRAM to force the memory of an object to be pushed
  * into memory bank 2. Note bank 2 is NOT DMA capable
  */
-#define CCRAM __attribute__((section(".ccmram")))
+#define MEM_REGION_CCRAM __attribute__((section(".ccmram")))
+
 
 //Snowy uses OC1 for backlight
 #define BL_TIM_CH 1

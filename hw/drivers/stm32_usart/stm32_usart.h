@@ -37,6 +37,7 @@ const typedef struct {
     uint32_t gpio_clock;
     uint32_t usart_clock;
     uint32_t af;
+    int is_binary;
 } stm32_usart_config_t;
 
 typedef struct {

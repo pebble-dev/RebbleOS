@@ -27,6 +27,7 @@ extern int memcmp(const char *a2, const char *a1, int bytes);
 extern int strcmp(const char *a2, const char *a1);
 extern int strncmp(const char *a2, const char *a1, int n);
 extern int strlen(const char *c);
+extern int strnlen(const char *c, int n);
 extern void *strcat(char *dest, const char *src);
 extern void *strncat(char *dest, const char *src, int num);
 extern void *strcpy(char *a2, const char *a1);

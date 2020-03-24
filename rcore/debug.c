@@ -14,7 +14,7 @@
 
 int in_panic = 0;
 
-static StackType_t _panic_stack[PANIC_STACK_SIZE] CCRAM;
+static StackType_t _panic_stack[PANIC_STACK_SIZE] MEM_REGION_PANIC;
 
 __attribute__((__noreturn__)) static void _panic(const char *s) {
     in_panic = 1;

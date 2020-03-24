@@ -71,7 +71,7 @@ bool uuid_is_int(const Uuid *uuid, const uint8_t c)
         if (((uint8_t *)uuid)[i] != c)
             break;
     }
-    return i == UUID_SIZE;
+    return i + 1 == UUID_SIZE;
 }
 
 bool uuid_equal(const Uuid *uu1, const Uuid *uu2)

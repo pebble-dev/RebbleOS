@@ -35,4 +35,5 @@ enum
 
 
 uint8_t qemu_init(void);
+void qemu_reply_test(uint8_t *data, uint16_t len);
 void qemu_send_data(uint16_t endpoint, uint8_t *data, uint16_t len);

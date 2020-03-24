@@ -54,9 +54,15 @@ SECTIONS
     PROVIDE_HIDDEN (__fini_array_end = .);
   } >FLASH
 
+  .rodata.tests : {
+    __tests_start = .;
+    *(.rodata.tests);
+    __tests_end = .;
+  } >FLASH
+
   .rodata : {
+    *(SORT(.rodata.*));
     *(.rodata);
-    *(.rodata*);
     *(.jcr);
     *(.tm_clone_table);
     *(.igot.plt);

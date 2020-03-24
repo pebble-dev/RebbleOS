@@ -1,6 +1,6 @@
 #pragma once
 /**
- * @file overlay_manager_c.h
+ * @file overlay_manager.h
  * @author Barry Carter
  * @date 02 Feb 2018
  * @brief Overlay Windows management. You can create overlay windows over an app
@@ -23,7 +23,6 @@
  * and constrain memory and runtime of the window
  */
 #include "rebbleos.h"
-#include "overlay_manager.h"
 
 /* NOT USED YET */
 typedef enum OverlayMode {
@@ -41,6 +40,7 @@ typedef struct OverlayWindow {
     void *context;
     struct n_GContext *graphics_context;
     list_node node;
+    list_head head;
 } OverlayWindow;
 
 
@@ -51,7 +51,6 @@ typedef struct OverlayWindow {
  */
 typedef void (*OverlayCreateCallback)(OverlayWindow *overlay, Window *window);
 
-typedef void (*NotificationCreateCallback)(void *context);
 
 /* Internal initialiser */
 uint8_t overlay_window_init(void);
@@ -169,15 +168,11 @@ bool overlay_window_stack_remove(OverlayWindow *overlay_window, bool animated);
  */ 
 Window *overlay_window_get_next_window_with_click_config(void);
 
-
+void overlay_window_post_event(uint8_t command, void *data, DestroyEventProc destroy_callback);
 
 
 void overlay_await_draw_complete(void);
 
-/**
- * @brief Create a notification window with a callback 
- */
-void overlay_window_post_create_notification(NotificationCreateCallback cb, void *context);
 
 /**
  * @brief force a timer recalculation
