@@ -1,5 +1,7 @@
 #pragma once
 
+#include "blobdb.h"
+
 enum TimelineItemType {
     TimelineItemType_Notification = 1,
     TimelineItemType_Pin = 2,
@@ -84,7 +86,7 @@ typedef struct rebble_action_t {
 
 
 rebble_notification *timeline_item_process(void *data);
-list_head *timeline_notifications(uint32_t from_timestamp);
+blobdb_select_result_list *timeline_notifications(uint32_t from_timestamp);
 rebble_notification *timeline_get_notification(Uuid *uuid);
 void timeline_notification_arrived(Uuid *uuid);
 void timeline_destroy(rebble_notification *notification);

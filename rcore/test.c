@@ -68,6 +68,8 @@ static void _test_thread(void *par) {
     alive = htons(QEMU_TEST_ALIVE);
     qemu_reply_test(&alive, sizeof(alive)); /* Tell QEMU we are awake. */
     
+    appmanager_test_become_thread(AppThreadMainApp);
+    
     while (1) {
         uint16_t testreq;
         static struct qemu_test_complete resp;

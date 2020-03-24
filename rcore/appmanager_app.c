@@ -14,7 +14,7 @@
 #include "notification.h"
 #include "test_defs.h"
 #include "node_list.h"
-#include "blob_db.h"
+#include "blobdb.h"
 
 static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
@@ -162,24 +162,32 @@ static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint
 
 static void _appmanager_flash_load_app_manifest_n(void)
 {
-    list_head *head = calloc(1, sizeof(list_head));
-    list_init_head(head);
+    list_head head;
+    list_init_head(&head);
     
-    uint16_t count = blobdb_select_items1(BlobDatabaseID_App, head,
-                        offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), 
-                        offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), 
-                        /* where */
-                        offsetof(appdb_n, flags), FIELD_SIZEOF(appdb_n, flags),
-                        0, Blob_Less);
-    blobdb_result_set *rs;
-    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d", count);
-    list_foreach(rs, head, blobdb_result_set, node)
-    {
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_App);
+    struct blobdb_iter it;
+    if (blobdb_iter_start(db, &it) == 0)
+        return;
+    
+    int zero = 0;
+    struct blobdb_selector selectors[] = {
+        { offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), Blob_Result },
+        { offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), Blob_Result },
+        { }
+    };
+    int count = blobdb_select(&it, &head, selectors);
+    
+    blobdb_close(db);
+    
+    struct blobdb_select_result *res;
+    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "found %d apps", count);
+    blobdb_select_result_foreach(res, &head) {
         KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d", count);
         /* main gets set later */
-        _appmanager_add_to_manifest(_appmanager_create_app((char *)rs->select1,
-                                                           (Uuid *)rs->select2,
-                                                           *rs->key,
+        _appmanager_add_to_manifest(_appmanager_create_app((char *)res->result[0],
+                                                           (Uuid *)res->result[1],
+                                                           *(uint32_t *)res->key,
                                                            //((uint16_t)rs->select2 & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
                                                            AppTypeWatchface,
                                                            NULL,
@@ -187,8 +195,7 @@ static void _appmanager_flash_load_app_manifest_n(void)
                                                            NULL,
                                                            NULL));
     }
-    
-    blobdb_resultset_destroy(head);
+    blobdb_select_free_all(&head);
 }
 
 /*

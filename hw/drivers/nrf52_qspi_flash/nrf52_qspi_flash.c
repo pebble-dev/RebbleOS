@@ -77,7 +77,7 @@ void hw_flash_init() {
 
 void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
     nrfx_err_t err;
-
+    
     err = nrfx_qspi_read(buf, len, addr);
     assert(err == NRFX_SUCCESS);
 }
@@ -112,6 +112,10 @@ int hw_flash_erase_sync(uint32_t addr, uint32_t len) {
 int hw_flash_write_sync(uint32_t addr, uint8_t *buf, size_t len) {
     nrfx_err_t err;
     
+    if (((uint32_t)buf) & 3) {
+        DRV_LOG("flash", APP_LOG_LEVEL_ERROR, "HEY!  buf %p was not 4-byte aligned!", buf);
+    }
+
     _flash_sync = 1;
     err = nrfx_qspi_write(buf, len, addr);
     assert(err == NRFX_SUCCESS);

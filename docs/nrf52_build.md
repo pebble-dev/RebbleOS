@@ -55,7 +55,7 @@ compatible OpenOCD installed; on my machine, I use:
 First, connect the FTDI dongle to your system, and connect to it.  On my
 Mac, I use a command like:
 
-    sudo cu -l /dev/tty.usbserial-12345678 -115200
+    sudo cu -l /dev/tty.usbserial-12345678 -230400
 
 Then, start OpenOCD from inside the `RebbleOS` root directory.  (It's
 important which directory you start OpenOCD from the `RebbleOS` directory,

@@ -36,8 +36,12 @@ static SemaphoreHandle_t _qemu_mutex;
 static StaticSemaphore_t _qemu_sem_buf;
 static SemaphoreHandle_t _qemu_sem;
 
+static int is_qemu = 0;
+
 uint8_t qemu_init(void)
 {
+    is_qemu = 1;
+    
     hw_qemu_init();
     _qemu_mutex = xSemaphoreCreateMutexStatic(&_qemu_mutex_mem);
     _qemu_task = xTaskCreateStatic(_qemu_thread,
@@ -70,6 +74,9 @@ size_t qemu_write(const void *buffer, size_t len)
 
 void qemu_send_data(uint16_t endpoint, uint8_t *data, uint16_t len)
 {
+    if (!is_qemu)
+        return;
+    
     xSemaphoreTake(_qemu_mutex, portMAX_DELAY);
     QemuCommChannelHeader header;
     header.signature = htons(QEMU_HEADER_SIGNATURE);
