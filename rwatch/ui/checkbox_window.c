@@ -9,25 +9,23 @@
 
 #include "rebbleos.h"
 #include "checkbox_window.h"
-#include "menu.h"
 #include "platform_res.h"
 
 static Window *s_main_window;
 static MenuLayer *s_menu_layer;
 
-GColor menu_background;
-GColor menu_foreground;
+GColor menu_background, menu_foreground;
 
 static GBitmap *s_tick_black_bitmap, *s_tick_white_bitmap;
-static bool s_selections[CHECKBOX_WINDOW_NUM_ROWS];
 
-char selection_labels[10][14];
-int selection_labels_num = 0;
+char checkbox_selection_labels[10][14];
+int checkbox_selection_labels_num = 0;
+static bool s_selections[checkbox_selection_labels_num];
 
 void add_checkbox_selection(char *selection_label) {
-  strcpy(selection_labels[selection_labels_num], selection_label);
+  strcpy(checkbox_selection_labels[checkbox_selection_labels_num], selection_label);
 
-  selection_labels_num++;
+  checkbox_selection_labels_num++;
 }
 
 void set_checkbox_selection_colors(GColor background, GColor foreground) {
@@ -36,17 +34,17 @@ void set_checkbox_selection_colors(GColor background, GColor foreground) {
 }
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
-  return CHECKBOX_WINDOW_NUM_ROWS + 1;
+  return checkbox_selection_labels_num + 1;
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
-  if(cell_index->row == CHECKBOX_WINDOW_NUM_ROWS) {
+  if(cell_index->row == checkbox_selection_labels_num) {
     // Submit item
     menu_cell_basic_draw(ctx, cell_layer, "Submit", NULL, NULL);
   } else {
     // Choice item
     static char s_buff[16];
-    snprintf(s_buff, sizeof(s_buff), selection_labels[(int)cell_index->row], (int)cell_index->row);
+    snprintf(s_buff, sizeof(s_buff), checkbox_selection_labels[(int)cell_index->row]);
     menu_cell_basic_draw(ctx, cell_layer, s_buff, NULL, NULL);
 
     // Selected?
@@ -67,9 +65,10 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
     graphics_draw_rect(ctx, r, 1, GCornerNone);
     if(s_selections[cell_index->row]) {
       graphics_context_set_compositing_mode(ctx, GCompOpSet);
-      graphics_draw_bitmap_in_rect(ctx, ptr, GRect(r.origin.x, r.origin.y - 3, bitmap_bounds.size.w, bitmap_bounds.size.h));
+      graphics_draw_bitmap_in_rect(ctx, ptr, GRect(r.origin.x, r.origin.y - 68, bitmap_bounds.size.w, bitmap_bounds.size.h));
     }
   }
+
 }
 
 static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
@@ -80,10 +79,11 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 }
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
-  if(cell_index->row == CHECKBOX_WINDOW_NUM_ROWS) {
+  if(cell_index->row == checkbox_selection_labels_num) {
     // Do something with choices made
-    for(int i = 0; i < CHECKBOX_WINDOW_NUM_ROWS; i++) {
+    for(int i = 0; i < checkbox_selection_labels_num; i++) {
       //APP_LOG(APP_LOG_LEVEL_INFO, "Option %d was %s", i, (s_selections[i] ? "selected" : "not selected"));
+      APP_LOG("test",APP_LOG_LEVEL_DEBUG,"Option %d was %s", i, (s_selections[i] ? "selected" : "not selected"));
     }
     window_stack_pop(true);
   } else {
