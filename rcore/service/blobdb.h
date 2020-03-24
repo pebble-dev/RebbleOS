@@ -68,7 +68,8 @@ struct blobdb_select_result {
 
 typedef list_head blobdb_select_result_list;
 
-const struct blobdb_database *blobdb_open(uint16_t database_id);
+struct blobdb_database *blobdb_open(uint16_t database_id);
+void blobdb_close(struct blobdb_database *db);
 int blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size);
 int blobdb_delete(struct blobdb_iter *it);
 

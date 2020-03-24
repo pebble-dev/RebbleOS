@@ -52,9 +52,12 @@ struct blobdb_database {
     uint8_t id;
     const char *filename;
     uint16_t def_db_size;
+    int locked;
+    SemaphoreHandle_t mutex;
+    StaticSemaphore_t mutex_buf;
 };
 
-static const struct blobdb_database databases[] = {
+static struct blobdb_database databases[] = {
     {
         .id = BlobDatabaseID_Test,
         .filename = "rebble/testblob",
@@ -72,14 +75,29 @@ static const struct blobdb_database databases[] = {
     },
 };
 
-const struct blobdb_database *blobdb_open(uint16_t database_id) {
+struct blobdb_database *blobdb_open(uint16_t database_id) {
     for (int i = 0; i < sizeof(databases) / sizeof(databases[0]); i++)
     {
-        if (databases[i].id == database_id)
+        if (databases[i].id == database_id) {
+            /* Avoid race on mutex setup. */
+            taskENTER_CRITICAL();
+            if (!databases[i].mutex)
+                databases[i].mutex = xSemaphoreCreateMutexStatic(&databases[i].mutex_buf);
+            taskEXIT_CRITICAL();
+            
+            xSemaphoreTake(databases[i].mutex, portMAX_DELAY);
+            databases[i].locked = 1;
             return &databases[i];
+        }
     }
 
     return NULL;
+}
+
+void blobdb_close(struct blobdb_database *db) {
+    assert(db->locked);
+    db->locked = 0;
+    xSemaphoreGive(db->mutex);
 }
 
 /* Positions the fd to the next valid header.  If no remaining valid headers
@@ -151,6 +169,8 @@ int blobdb_iter_start(const struct blobdb_database *db, struct blobdb_iter *it) 
     struct file file;
     struct fd fd;
     struct blobdb_hdr hdr;
+    
+    assert(db->locked);
     
     if (fs_find_file(&file, db->filename) < 0) {
         LOG_ERROR("file not found for db %s", db->filename);
@@ -416,6 +436,8 @@ int blobdb_insert(const struct blobdb_database *db, uint8_t *key, uint16_t key_s
 {
     struct blobdb_iter it;
 
+    assert(db->locked);
+    
     /* Create the db if it doesn't already exist. */
     struct file file;
     if (fs_find_file(&file, db->filename) < 0) {

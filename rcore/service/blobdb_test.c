@@ -20,7 +20,7 @@
 #ifdef REBBLEOS_TESTING
 
 static int _insert(int key, int dsize) {
-    const struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
     
     uint8_t *val = app_calloc(1, dsize);
     for (int i = 0; i < dsize; i++)
@@ -30,11 +30,13 @@ static int _insert(int key, int dsize) {
     
     app_free(val);
     
+    blobdb_close(db);
+    
     return rv != Blob_Success;
 }
 
 static int _retrieve(int key, int dsize) {
-    const struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
     struct blobdb_iter it;
     blobdb_select_result_list head;
     
@@ -65,11 +67,13 @@ static int _retrieve(int key, int dsize) {
     
     blobdb_select_free_all(&head);
     
+    blobdb_close(db);
+    
     return 0;
 }
 
 static int _delete(int key) {
-    const struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
     struct blobdb_iter it;
     blobdb_select_result_list head;
     
@@ -89,6 +93,8 @@ static int _delete(int key) {
     
     struct blobdb_select_result *res = blobdb_select_result_head(&head);
     blobdb_delete(&res->it);
+    
+    blobdb_close(db);
     
     return 0;
 }

@@ -214,8 +214,10 @@ blobdb_select_result_list *timeline_notifications(uint32_t from_timestamp)
     blobdb_select_result_list *head = app_calloc(1, sizeof(blobdb_select_result_list));
     list_init_head(head);
     
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_Notification);
     struct blobdb_iter it;
-    if (blobdb_iter_start(blobdb_open(BlobDatabaseID_Notification), &it) == 0)
+    
+    if (blobdb_iter_start(db, &it) == 0)
         return head;
     
     struct blobdb_selector selectors[] = {
@@ -227,6 +229,8 @@ blobdb_select_result_list *timeline_notifications(uint32_t from_timestamp)
     };
     
     blobdb_select(&it, head, selectors);
+    
+    blobdb_close(db);
 
     return head;
 }
@@ -236,8 +240,10 @@ rebble_notification *timeline_get_notification(Uuid *uuid)
     blobdb_select_result_list head;
     list_init_head(&head);
     
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_Notification);
     struct blobdb_iter it;
-    if (blobdb_iter_start(blobdb_open(BlobDatabaseID_Notification), &it) == 0)
+    
+    if (blobdb_iter_start(db, &it) == 0)
         assert(!"blobdb open on notif db failed");
 
     struct blobdb_selector selectors[] = {
@@ -253,6 +259,8 @@ rebble_notification *timeline_get_notification(Uuid *uuid)
     rebble_notification *notif = timeline_item_process(res->result[0]);
     printblob(notif);
     blobdb_select_free_all(&head);
+    
+    blobdb_close(db);
 
     return notif;
 }

@@ -89,6 +89,8 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     int rv = blobdb_insert(db, blob->key, blob->key_size, val_start, val_sz);
     if (rv != Blob_Success)
         return rv;
+    
+    blobdb_close(db);
 
     return blob_process((pcol_blob_db_key *)&blob->blobdb, val_start, val_sz);
 }

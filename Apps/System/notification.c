@@ -92,10 +92,12 @@ static void _notif_window_load(Window *window)
     blobdb_select_result_list head;
     list_init_head(&head);
     
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_Notification);
     struct blobdb_iter it;
-    if (blobdb_iter_start(blobdb_open(BlobDatabaseID_Notification), &it)) {
+    if (blobdb_iter_start(db, &it)) {
         struct blobdb_selector selectors[] = { { } };
-        blobdb_select(&it, &head, selectors);
+        int n = blobdb_select(&it, &head, selectors);
+        APP_LOG("noty", APP_LOG_LEVEL_INFO, "%d items from select", n);
     }
 
     int nmsgs = 0;
@@ -112,6 +114,8 @@ static void _notif_window_load(Window *window)
         menu_set_items(s_menu, items);
         return;
     }
+    
+    blobdb_close(db);
 
     items = menu_items_create(nmsgs);
 //     rebble_notification *msg;

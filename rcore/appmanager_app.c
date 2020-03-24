@@ -165,8 +165,9 @@ static void _appmanager_flash_load_app_manifest_n(void)
     list_head head;
     list_init_head(&head);
     
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_App);
     struct blobdb_iter it;
-    if (blobdb_iter_start(blobdb_open(BlobDatabaseID_App), &it) == 0)
+    if (blobdb_iter_start(db, &it) == 0)
         return;
     
     int zero = 0;
@@ -176,6 +177,8 @@ static void _appmanager_flash_load_app_manifest_n(void)
         { }
     };
     int count = blobdb_select(&it, &head, selectors);
+    
+    blobdb_close(db);
     
     struct blobdb_select_result *res;
     KERN_LOG("app", APP_LOG_LEVEL_ERROR, "found %d apps", count);
