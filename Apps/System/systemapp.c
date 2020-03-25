@@ -90,11 +90,6 @@ static MenuItems* music_item_selected(const MenuItem *item)
     return NULL;
 }
 
-static MenuItems* music_item_selected(const MenuItem *item)
-{
-    return NULL;
-}
-
 static MenuItems* watch_list_item_selected(const MenuItem *item) {
     MenuItems *items = menu_items_create(16);
     // loop through all apps

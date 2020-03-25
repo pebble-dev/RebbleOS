@@ -108,8 +108,10 @@ void appmanager_app_loader_init()
     _appmanager_add_to_manifest(_appmanager_create_app("TestApp", 
                                                        NULL, 9995, 
                                                        AppTypeSystem, testapp_main, true, &empty, &empty));
-    _appmanager_add_to_manifest(_appmanager_create_app("Music", APP_TYPE_SYSTEM, music_main, true, &empty, &empty));
-    
+    _appmanager_add_to_manifest(_appmanager_create_app("Music", 
+                                                       NULL, 9996, 
+                                                       AppTypeSystem, music_main, true, &empty, &empty));
+  
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
     
