@@ -8,6 +8,8 @@
 #include "checkbox_window.h"
 #include "test_defs.h"
 
+static CheckboxWindow *checkers;
+
 bool checkbox_test_init(Window *window)
 {
     return true;
@@ -15,15 +17,16 @@ bool checkbox_test_init(Window *window)
 
 bool checkbox_test_exec(void)
 {
+    
+    checkers = checkbox_window_create(4);
+    checkbox_add_selection(checkers, "Good evening");
+    checkbox_add_selection(checkers, "Twitter,");
+    checkbox_add_selection(checkers, "It's ya boy");
+    checkbox_add_selection(checkers, "Eatdatpussy445");
 
-    set_checkbox_selection_colors(PBL_IF_COLOR_ELSE(GColorRed, GColorBlack), GColorWhite);
+    set_checkbox_selection_colors(checkers, PBL_IF_COLOR_ELSE(GColorPurple, GColorBlack), GColorWhite);
 
-    add_checkbox_selection("Good evening");
-    add_checkbox_selection("Twitter,");
-    add_checkbox_selection("It's ya boy");
-    add_checkbox_selection("Eatdatpussy445");
-
-    checkbox_window_push();
+    checkbox_window_push(checkers);
 
     return true;
 }

@@ -11,26 +11,34 @@
 #include "checkbox_window.h"
 #include "platform_res.h"
 
-static Window *s_main_window;
-static MenuLayer *s_menu_layer;
-
 GColor menu_background, menu_foreground;
 
 static GBitmap *s_tick_black_bitmap, *s_tick_white_bitmap;
 
 char checkbox_selection_labels[10][14];
-int checkbox_selection_labels_num = 0;
-static bool s_selections[checkbox_selection_labels_num];
+int checkbox_selection_labels_num = CHECKBOX_WINDOW_NUM_ROWS;
+static bool s_selections[CHECKBOX_WINDOW_NUM_ROWS];
 
-void add_checkbox_selection(char *selection_label) {
-  strcpy(checkbox_selection_labels[checkbox_selection_labels_num], selection_label);
+struct CheckboxWindow
+{
+    Window window;
+    MenuLayer *menu_layer;
+    
+    GColor checkbox_foreground_color;
+    GColor checkbox_background_color;
+    char checkbox_selections[10][14];
+    int selection_count;
+};
 
-  checkbox_selection_labels_num++;
+void checkbox_add_selection(CheckboxWindow *checkmate, char *selection_label) {
+  strcpy(checkmate->checkbox_selections[checkmate->selection_count], selection_label);
+
+  checkmate->selection_count++;
 }
 
-void set_checkbox_selection_colors(GColor background, GColor foreground) {
-  menu_background = background;
-  menu_foreground = foreground;
+void set_checkbox_selection_colors(CheckboxWindow *checkmate, GColor background, GColor foreground) {
+  checkmate->checkbox_background_color = background;
+  checkmate->checkbox_foreground_color = foreground;
 }
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
@@ -38,13 +46,16 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_in
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
+
+  CheckboxWindow *checkmate = (CheckboxWindow *) context;
+
   if(cell_index->row == checkbox_selection_labels_num) {
     // Submit item
     menu_cell_basic_draw(ctx, cell_layer, "Submit", NULL, NULL);
   } else {
     // Choice item
     static char s_buff[16];
-    snprintf(s_buff, sizeof(s_buff), checkbox_selection_labels[(int)cell_index->row]);
+    snprintf(s_buff, sizeof(s_buff), checkmate->checkbox_selections[(int)cell_index->row]);
     menu_cell_basic_draw(ctx, cell_layer, s_buff, NULL, NULL);
 
     // Selected?
@@ -94,45 +105,60 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
   }
 }
 
-static void window_load(Window *window) {
+static void checkbox_window_load(Window *window) {
+
+  CheckboxWindow *checkmate = (CheckboxWindow *)window;
+
+
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
   s_tick_black_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL_RINGING);
   s_tick_white_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL);
 
-  s_menu_layer = menu_layer_create(bounds);
+  checkmate->menu_layer = menu_layer_create(bounds);
 
-  menu_layer_set_highlight_colors(s_menu_layer, menu_background, menu_foreground);
+  menu_layer_set_highlight_colors(checkmate->menu_layer, checkmate->checkbox_background_color, checkmate->checkbox_foreground_color);
 
-  menu_layer_set_click_config_onto_window(s_menu_layer, window);
-  menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks) {
+  menu_layer_set_click_config_onto_window(checkmate->menu_layer, window);
+  menu_layer_set_callbacks(checkmate->menu_layer, checkmate, (MenuLayerCallbacks) {
       .get_num_rows = get_num_rows_callback,
       .draw_row = draw_row_callback,
       .get_cell_height = get_cell_height_callback,
       .select_click = select_callback,
   });
 
-  layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
+  layer_add_child(window_layer, menu_layer_get_layer(checkmate->menu_layer));
 }
 
-static void window_unload(Window *window) {
-  menu_layer_destroy(s_menu_layer);
+static void checkbox_window_unload(Window *window) {
+  //menu_layer_destroy(s_menu_layer);
 
   gbitmap_destroy(s_tick_black_bitmap);
   gbitmap_destroy(s_tick_white_bitmap);
 
   window_destroy(window);
-  s_main_window = NULL;
+  //s_main_window = NULL;
 }
 
-void checkbox_window_push() {
-  if(!s_main_window) {
-    s_main_window = window_create();
-    window_set_window_handlers(s_main_window, (WindowHandlers) {
-        .load = window_load,
-        .unload = window_unload,
+void checkbox_window_push(CheckboxWindow *checkmate) {
+  window_stack_push(&checkmate->window, true);
+}
+
+CheckboxWindow *checkbox_window_create(uint16_t max_items)
+{
+  CheckboxWindow *checkmate = (CheckboxWindow *)app_calloc(1, sizeof(CheckboxWindow) + (sizeof(char[10]) * max_items));
+
+  window_ctor(&checkmate->window);
+  checkmate->window.user_data = checkmate;
+    window_set_window_handlers(&checkmate->window, (WindowHandlers) {
+        .load = checkbox_window_load,
+        .unload = checkbox_window_unload,
     });
-  }
-  window_stack_push(s_main_window, true);
+
+  checkmate->checkbox_foreground_color = PBL_IF_COLOR_ELSE(GColorRed, GColorBlack);
+  checkmate->checkbox_background_color = GColorWhite;
+  checkmate->selection_count = 0;
+
+  return checkmate;
 }
