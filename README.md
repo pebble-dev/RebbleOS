@@ -58,6 +58,8 @@ get started working on the project.
 
 ### Building
 
+![](https://github.com/pebble-dev/RebbleOS/workflows/CI%20build/badge.svg)
+
 RebbleOS currently can be built for `snowy` (Pebble Time and Pebble Time
 Steel) and `tintin` (Pebble and Pebble Steel).  To build RebbleOS, follow
 these steps:

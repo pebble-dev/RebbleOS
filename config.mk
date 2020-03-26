@@ -127,8 +127,8 @@ SRCS_all += rcore/protocol/protocol_call.c
 SRCS_all += rcore/protocol/protocol_music.c
 SRCS_all += rcore/protocol/protocol_transfer.c
 
-SRCS_all += rcore/service/blob_db.c
-SRCS_all += rcore/service/blob_db_test.c
+SRCS_all += rcore/service/blobdb.c
+SRCS_all += rcore/service/blobdb_test.c
 SRCS_all += rcore/service/protocol_service.c
 SRCS_all += rcore/service/timeline.c
 

@@ -16,7 +16,7 @@
 #include "menu.h"
 #include "timeline.h"
 #include "notification_manager.h"
-#include "blob_db.h"
+#include "blobdb.h"
 
 static NotificationLayer* _notif_layer;
 static Window* _notif_window;
@@ -89,28 +89,35 @@ static void _notif_window_load(Window *window)
 
     menu_set_click_config_onto_window(s_menu, window);
 
-    list_head *lh = app_calloc(1, sizeof(list_head));
-    list_init_head(lh);
+    blobdb_select_result_list head;
+    list_init_head(&head);
+    
+    struct blobdb_database *db = blobdb_open(BlobDatabaseID_Notification);
+    struct blobdb_iter it;
+    if (blobdb_iter_start(db, &it)) {
+        struct blobdb_selector selectors[] = { { } };
+        int n = blobdb_select(&it, &head, selectors);
+        APP_LOG("noty", APP_LOG_LEVEL_INFO, "%d items from select", n);
+    }
 
-    blobdb_select_items_all(BlobDatabaseID_Notification, lh,
-                            offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid),
-                            0,0);
+    int nmsgs = 0;
+    struct blobdb_select_result *res;
+    blobdb_select_result_foreach(res, &head) {
+        nmsgs++;
+    }
 
-    uint8_t msg_count = 0;
-    blobdb_result_set *rs;
+    blobdb_select_free_all(&head);
 
-    list_foreach(rs, lh, blobdb_result_set, node)
-        msg_count++;
-
-    if (!msg_count)
-    {
+    if (!nmsgs) {
         items = menu_items_create(1);
         menu_items_add(items, MenuItem("No Messages", NULL, RESOURCE_ID_SPEECH_BUBBLE, NULL));
         menu_set_items(s_menu, items);
         return;
     }
+    
+    blobdb_close(db);
 
-    items = menu_items_create(msg_count);
+    items = menu_items_create(nmsgs);
 //     rebble_notification *msg;
 //     cmd_phone_attribute_t *a;
 //     
@@ -125,7 +132,6 @@ static void _notif_window_load(Window *window)
 //         }
 //     }        
     menu_set_items(s_menu, items);
-
     
     return;
     

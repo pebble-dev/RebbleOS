@@ -24,4 +24,6 @@ testplan = [
     Test("Filesystem: file as smaller file", testname = b'fs_sub_file', golden = 0),
     Test("Filesystem: big files", testname = b'fs_bigfiles', golden = 0),
     Test("Blobdb: basic", testname = b'blobdb_basic', golden = 0),
+    Test("Blobdb: fill", testname = b'blobdb_fill', golden = 0),
+    
 ]
