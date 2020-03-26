@@ -16,7 +16,7 @@
 #include "node_list.h"
 #include "rdb.h"
 #include "blobdb.h"
-#include "music.h"
+#include "musicapp.h"
 
 static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);

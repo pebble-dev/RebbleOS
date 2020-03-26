@@ -44,9 +44,10 @@
  * Author: Chris Multhaupt <chris.multhaupt@gmail.com>.
  */
 
-#include "rebbleos.h"
-#include "music.h"
+#include "musicapp.h"
 #include "property_animation.h"
+#include "protocol.h"
+#include "protocol_music.h"
 
 #define LERP(a, b)  ((a) + ((b) - (a)) * distance_normalized / ANIMATION_NORMALIZED_MAX)
 #define RECORD_CENTER_X 56
@@ -323,15 +324,8 @@ static void _skip_track(int32_t direction) {
 
 /*******************
  * Click handles: handle play controls, like skipping and volume.
- * Also has a pop handler for exiting the app
  */
 
-static void _pop_notification_click_handler(ClickRecognizerRef recognizer, void *context)
-{
-    _music_deinit();
-    window_stack_pop(true);
-    appmanager_app_start("System");
-}
 
 static void _up_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO Switch between volume and skipping
@@ -360,7 +354,7 @@ static void _click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) _up_click_handler);
     window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) _down_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) _select_click_handler);
-    window_single_click_subscribe(BUTTON_ID_BACK, (ClickHandler) _pop_notification_click_handler);
+//    window_single_click_subscribe(BUTTON_ID_BACK, (ClickHandler) _pop_notification_click_handler);
 
     window_set_click_context(BUTTON_ID_UP, s_music_action_bar);
     window_set_click_context(BUTTON_ID_DOWN, s_music_action_bar);
@@ -396,24 +390,19 @@ static void _destroy_paths() {
 }
 
 static void _draw_arm(GContext *ctx, int32_t angle) {
-    if (angle != s_old_arm_angle) {
-        // Only recalculate the points if the angle has changed
-        _destroy_paths();
-        s_arm_base_path_ptr = n_gpath_create(&pathinfo_arm_base);
-        s_arm_1_path_ptr    = n_gpath_create(&pathinfo_arm_1);
-        s_arm_2_path_ptr    = n_gpath_create(&pathinfo_arm_2);
-        s_arm_head_path_ptr = n_gpath_create(&pathinfo_arm_head);
-        n_gpath_move_to(s_arm_base_path_ptr, ARM_OFFSET);
-        n_gpath_move_to(s_arm_1_path_ptr,    ARM_OFFSET);
-        n_gpath_move_to(s_arm_2_path_ptr,    ARM_OFFSET);
-        n_gpath_move_to(s_arm_head_path_ptr, ARM_OFFSET);
-        int32_t calculated_angle = TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE);
-        n_gpath_rotate_to(s_arm_base_path_ptr, calculated_angle);
-        n_gpath_rotate_to(s_arm_1_path_ptr,    calculated_angle);
-        n_gpath_rotate_to(s_arm_2_path_ptr,    calculated_angle);
-        n_gpath_rotate_to(s_arm_head_path_ptr, calculated_angle);
-        s_old_arm_angle = s_arm_angle;
-    }
+	s_arm_base_path_ptr = n_gpath_create(&pathinfo_arm_base);
+    s_arm_1_path_ptr    = n_gpath_create(&pathinfo_arm_1);
+    s_arm_2_path_ptr    = n_gpath_create(&pathinfo_arm_2);
+    s_arm_head_path_ptr = n_gpath_create(&pathinfo_arm_head);
+    n_gpath_move_to(s_arm_base_path_ptr, ARM_OFFSET);
+    n_gpath_move_to(s_arm_1_path_ptr,    ARM_OFFSET);
+    n_gpath_move_to(s_arm_2_path_ptr,    ARM_OFFSET);
+    n_gpath_move_to(s_arm_head_path_ptr, ARM_OFFSET);
+    int32_t calculated_angle = TRIG_MAX_ANGLE / 360 * (angle + ARM_OFFSET_ANGLE);
+    n_gpath_rotate_to(s_arm_base_path_ptr, calculated_angle);
+    n_gpath_rotate_to(s_arm_1_path_ptr,    calculated_angle);
+    n_gpath_rotate_to(s_arm_2_path_ptr,    calculated_angle);
+    n_gpath_rotate_to(s_arm_head_path_ptr, calculated_angle);
     n_graphics_context_set_stroke_caps(ctx, false);
     n_graphics_context_set_stroke_width(ctx, 5);
     n_gpath_draw(ctx, s_arm_base_path_ptr);
@@ -476,15 +465,9 @@ static void _main_layer_update_proc(Layer *layer, GContext *ctx) {
                        GTextOverflowModeTrailingEllipsis,
                        GTextAlignmentCenter, NULL);
     
-    if (s_animating_disk_change) {
-        _draw_arm(ctx, s_arm_angle);
-        _draw_record(ctx, s_next_disk_pos, s_next_disk_color);
-    }
     _draw_record(ctx, s_curr_disk_pos, s_curr_disk_color);
+    _draw_arm(ctx, s_arm_angle);
 
-    if (!s_animating_disk_change) {
-        _draw_arm(ctx, s_arm_angle);
-    }
     // Draw bar
     graphics_fill_rect(ctx, GRect(4, 102, PROGRESS_PIXELS_MAX, 6), 1, n_GCornersAll);
     graphics_context_set_fill_color(ctx, s_curr_disk_color);
