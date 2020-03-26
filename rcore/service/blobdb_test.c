@@ -39,12 +39,15 @@ static int _retrieve(int key, int dsize) {
     struct blobdb_database *db = blobdb_open(BlobDatabaseID_Test);
     struct blobdb_iter it;
     blobdb_select_result_list head;
+    int ret = 0;
     
     list_init_head(&head);
     
     int rv = blobdb_iter_start(db, &it);
-    if (!rv)
-        return 1;
+    if (!rv) {
+        ret = 1;
+        goto fail;
+    }
     
     struct blobdb_selector selectors[] = {
         { BLOBDB_SELECTOR_OFFSET_KEY, 4, Blob_Eq, &key },
@@ -52,8 +55,10 @@ static int _retrieve(int key, int dsize) {
         { }
     };
     int n = blobdb_select(&it, &head, selectors);
-    if (n != 1)
-        return 2;
+    if (n != 1) {
+        ret = 2;
+        goto fail;
+    }
     
     struct blobdb_select_result *res = blobdb_select_result_head(&head);
     for (int i = 0; i < dsize; i++) {
@@ -61,15 +66,18 @@ static int _retrieve(int key, int dsize) {
         uint8_t rd = ((uint8_t *)res->result[0])[i];
         if (exp != rd) {
             LOG_ERROR("blobdb_select incorrect readback key %d size %d ofs %d, should be %02x is %02x", key, dsize, i, exp, rd);
-            return 3;
+            ret = 3;
+            goto fail;
         }
     }
     
+    res = 0;
+    
+fail:
     blobdb_select_free_all(&head);
-    
     blobdb_close(db);
-    
-    return 0;
+
+    return ret;
 }
 
 static int _delete(int key) {

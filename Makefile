@@ -247,7 +247,7 @@ $(VIRTUALENV): Utilities/requirements.txt
 	$(call SAY,RM $@)
 	$(QUIET)rm -rf $@
 	$(call SAY,VIRTUALENV $@)
-	$(QUIET)$(PYTHON3) -m virtualenv $@
+	$(QUIET)$(PYTHON3) -m virtualenv -p $(PYTHON3) $@
 	$(call SAY,PIP INSTALL $@)
 	$(QUIET)$(VIRTUALENV)/bin/pip3 install -r $<
 
