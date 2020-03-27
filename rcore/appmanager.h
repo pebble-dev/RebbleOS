@@ -160,11 +160,9 @@ typedef struct app_running_thread_t {
     TaskHandle_t task_handle;
     StaticTask_t static_task;
     size_t stack_size;
-    size_t heap_size;
     StackType_t *stack;
-    uint8_t *heap;
     struct CoreTimer *timer_head;
-    qarena_t *arena;
+    struct mem_heap *heap;
     struct n_GContext *graphics_context;
 } app_running_thread;
 

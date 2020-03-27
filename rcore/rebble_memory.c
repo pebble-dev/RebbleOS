@@ -49,49 +49,91 @@ void *app_malloc(size_t size)
 
 void *app_calloc(size_t count, size_t size)
 {
-    app_running_thread *thread = appmanager_get_current_thread();
-    assert(thread && "invalid thread");
-    void *x = qalloc(thread->arena, count * size);
-    if (x == NULL)
-    {
-        LOG_ERROR("!!! NO MEM!\n");
+    assert(mem_thread_get_heap());
+    void *p = mem_heap_alloc(mem_thread_get_heap(), count * size);
+    if (!p) {
+        LOG_ERROR("app_calloc(%d) failed", count * size);
         return NULL;
     }
-
-    memset(x, 0, count * size);
-    return x;
+    memset(p, 0, count * size);
+    return p;
 }
 
-void app_free(void *mem)
+void app_free(void *p)
 {
-    LOG_DEBUG("Free 0x%x", mem);
-    app_running_thread *thread = appmanager_get_current_thread();
-    qfree(thread->arena, mem);
+    assert(mem_thread_get_heap());
+    mem_heap_free(mem_thread_get_heap(), p);
 }
 
 void *app_realloc(void *mem, size_t new_size)
 {
-    app_running_thread *thread = appmanager_get_current_thread();
-    assert(thread && "invalid thread");
-
-    return qrealloc(thread->arena, mem, new_size);
+    assert(mem_thread_get_heap());
+    return mem_heap_realloc(mem_thread_get_heap(), mem, new_size);
 }
 
 uint32_t app_heap_bytes_free(void)
 {
-    app_running_thread *thread = appmanager_get_current_thread();
-    assert(thread && "invalid thread");
+    assert(mem_thread_get_heap());
 
-    uint32_t free_bytes = qfreebytes(thread->arena);
-
-    return free_bytes;
+    assert(mem_thread_get_heap()->arena); /* XXX: lock */
+    return qfreebytes(mem_thread_get_heap()->arena);
 }
 
 uint32_t app_heap_bytes_used(void)
 {
-    app_running_thread *thread = appmanager_get_current_thread();
-    assert(thread && "invalid thread");
+    assert(mem_thread_get_heap());
 
-    return qusedbytes(thread->arena);
+    assert(mem_thread_get_heap()->arena); /* XXX: lock */
+    return qusedbytes(mem_thread_get_heap()->arena);
 }
 
+/* Thread-local heap implementation. */
+
+
+/* Define the available heaps. */
+
+static MEM_REGION_HEAP_OVL uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
+static                     uint8_t _heap_app[MEMORY_SIZE_APP_HEAP];
+static MEM_REGION_HEAP_WRK uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
+
+struct mem_heap mem_heaps[HEAP_MAX] = {
+    [HEAP_OVERLAY] = { _heap_overlay, MEMORY_SIZE_OVERLAY_HEAP },
+    [HEAP_APP]     = { _heap_app,     MEMORY_SIZE_APP_HEAP },
+    [HEAP_WORKER]  = { _heap_worker,  MEMORY_SIZE_WORKER_HEAP } 
+};
+
+void mem_heap_init(struct mem_heap *heap) {
+    memset(heap->start, 0, heap->size);
+    heap->mutex = xSemaphoreCreateMutexStatic(&heap->mutex_buf);
+    heap->arena = qinit(heap->start, heap->size);
+}
+
+void *mem_heap_alloc(struct mem_heap *heap, size_t newsz) {
+    return mem_heap_realloc(heap, NULL, newsz);
+}
+
+void *mem_heap_realloc(struct mem_heap *heap, void *p, size_t newsz) {
+    assert(heap->arena);
+    
+    xSemaphoreTake(heap->mutex, portMAX_DELAY);
+    void *rp = qrealloc(heap->arena, p, newsz);
+    xSemaphoreGive(heap->mutex);
+
+    return rp;
+}
+
+void mem_heap_free(struct mem_heap *heap, void *p) {
+    assert(heap->arena);
+    
+    xSemaphoreTake(heap->mutex, portMAX_DELAY);
+    qfree(heap->arena, p);
+    xSemaphoreGive(heap->mutex);
+}
+
+void mem_thread_set_heap(struct mem_heap *heap) {
+    vTaskSetThreadLocalStoragePointer(NULL /* this task */, FREERTOS_TLS_CUR_HEAP, heap);
+}
+
+struct mem_heap *mem_thread_get_heap() {
+    return pvTaskGetThreadLocalStoragePointer(NULL /* this task */, FREERTOS_TLS_CUR_HEAP);
+}

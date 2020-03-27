@@ -8,6 +8,8 @@
  */
 
 #include "FreeRTOS.h"
+#include "semphr.h"
+#include "qalloc.h"
 #include <string.h>
 #include <stdlib.h>
 #include "stdbool.h"
@@ -27,3 +29,30 @@ void *app_realloc(void *mem, size_t new_size);
 void app_free(void *mem);
 uint32_t app_heap_bytes_free(void);
 uint32_t app_heap_bytes_used(void);
+
+/* Each thread has its own "home heap". [...] */
+
+struct mem_heap {
+    void *start;
+    size_t size;
+    
+    qarena_t *arena;
+    SemaphoreHandle_t mutex;
+    StaticSemaphore_t mutex_buf;
+};
+
+enum {
+    HEAP_OVERLAY,
+    HEAP_APP,
+    HEAP_WORKER,
+    HEAP_MAX
+};
+
+extern struct mem_heap mem_heaps[HEAP_MAX];
+
+void mem_heap_init(struct mem_heap *heap);
+void *mem_heap_alloc(struct mem_heap *heap, size_t newsz);
+void *mem_heap_realloc(struct mem_heap *heap, void *p, size_t newsz);
+void mem_heap_free(struct mem_heap *heap, void *p);
+void mem_thread_set_heap(struct mem_heap *heap);
+struct mem_heap *mem_thread_get_heap();
