@@ -10,25 +10,30 @@
 #include "rebbleos.h"
 #include "radio_button_window.h"
 
-static Window *s_main_window;
-static MenuLayer *s_menu_layer;
-
-GColor menu_background, menu_foreground;
-
 static int s_current_selection = 0;
 
-char radio_selection_labels[10][14];
-int radio_selection_labels_num = 0;
+int radio_selection_labels_num = 4;
 
-void add_radio_selection(char *selection_label) {
-  strcpy(radio_selection_labels[radio_selection_labels_num], selection_label);
+struct RadiobuttonWindow
+{
+  Window window;
+  MenuLayer *menu_layer;
 
-  radio_selection_labels_num++;
+  GColor radiobutton_foreground_color;
+  GColor radiobutton_background_color;
+  char radiobutton_selections[10][14];
+  int selection_count;
+};
+
+void radiobutton_add_selection(RadiobuttonWindow *radio_star, char *selection_label) {
+  strcpy(radio_star->radiobutton_selections[radio_star->selection_count], selection_label);
+
+  radio_star->selection_count++;
 }
 
-void set_radio_selection_colors(GColor background, GColor foreground) {
-  menu_background = background;
-  menu_foreground = foreground;
+void set_radiobutton_selection_colors(RadiobuttonWindow *radio_star, GColor background, GColor foreground) {
+  radio_star->radiobutton_background_color = background;
+  radio_star->radiobutton_foreground_color = foreground;
 }
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
@@ -36,13 +41,16 @@ static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_in
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
+  
+  RadiobuttonWindow *radio_star = (RadiobuttonWindow *) context;
+  
   if(cell_index->row == radio_selection_labels_num) {
     // This is the submit item
     menu_cell_basic_draw(ctx, cell_layer, "Submit", NULL, NULL);
   } else {
     // This is a choice item
     static char s_buff[16];
-    snprintf(s_buff, sizeof(s_buff), radio_selection_labels[(int)cell_index->row]);
+    snprintf(s_buff, sizeof(s_buff), radio_star->radiobutton_selections[(int)cell_index->row]);
     menu_cell_basic_draw(ctx, cell_layer, s_buff, NULL, NULL);
 
     GRect bounds = layer_get_bounds(cell_layer);
@@ -84,35 +92,50 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
   }
 }
 
-static void window_load(Window *window) {
+static void radiobutton_window_load(Window *window) {
+
+  RadiobuttonWindow *radio_star = (RadiobuttonWindow *)window;
+
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  s_menu_layer = menu_layer_create(bounds);
-  menu_layer_set_click_config_onto_window(s_menu_layer, window);
-  menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks) {
+  radio_star->menu_layer = menu_layer_create(bounds);
+
+  menu_layer_set_click_config_onto_window(radio_star->menu_layer, window);
+  menu_layer_set_callbacks(radio_star->menu_layer, radio_star, (MenuLayerCallbacks) {
       .get_num_rows = get_num_rows_callback,
       .draw_row = draw_row_callback,
       .get_cell_height = get_cell_height_callback,
       .select_click = select_callback,
   });
-  layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
+  layer_add_child(window_layer, menu_layer_get_layer(radio_star->menu_layer));
 }
 
-static void window_unload(Window *window) {
-  menu_layer_destroy(s_menu_layer);
+static void radiobutton_window_unload(Window *window) {
+  /*menu_layer_destroy(s_menu_layer);
 
   window_destroy(window);
-  s_main_window = NULL;
+  s_main_window = NULL;*/
 }
 
-void radio_button_window_push() {
-  if(!s_main_window) {
-    s_main_window = window_create();
-    window_set_window_handlers(s_main_window, (WindowHandlers) {
-        .load = window_load,
-        .unload = window_unload,
+void radiobutton_window_push(RadiobuttonWindow *radio_star) {
+  window_stack_push(&radio_star->window, true);
+}
+
+RadiobuttonWindow *radiobutton_window_create(uint16_t max_items)
+{
+  RadiobuttonWindow *radio_star = (RadiobuttonWindow *)app_calloc(1, sizeof(RadiobuttonWindow) + (sizeof(char[10]) * max_items));
+
+  window_ctor(&radio_star->window);
+  radio_star->window.user_data = radio_star;
+    window_set_window_handlers(&radio_star->window, (WindowHandlers) {
+        .load = radiobutton_window_load,
+        .unload = radiobutton_window_unload,
     });
-  }
-  window_stack_push(s_main_window, true);
+
+  radio_star->radiobutton_foreground_color = PBL_IF_COLOR_ELSE(GColorRed, GColorBlack);
+  radio_star->radiobutton_background_color = GColorWhite;
+  radio_star->selection_count = 0;
+
+  return radio_star;
 }

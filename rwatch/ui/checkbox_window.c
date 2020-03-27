@@ -11,8 +11,6 @@
 #include "checkbox_window.h"
 #include "platform_res.h"
 
-GColor menu_background, menu_foreground;
-
 static GBitmap *s_tick_black_bitmap, *s_tick_white_bitmap;
 
 char checkbox_selection_labels[10][14];
@@ -108,7 +106,6 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
 static void checkbox_window_load(Window *window) {
 
   CheckboxWindow *checkmate = (CheckboxWindow *)window;
-
 
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);

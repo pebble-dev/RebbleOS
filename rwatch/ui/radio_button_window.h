@@ -13,7 +13,11 @@
 #define RADIO_BUTTON_WINDOW_CELL_HEIGHT  44
 #define RADIO_BUTTON_WINDOW_RADIO_RADIUS 6
 
-void radio_button_window_push();
+struct RadiobuttonWindow;
+typedef struct RadiobuttonWindow RadiobuttonWindow;
 
-void add_radio_selection(char *selection_label);
-void set_radio_selection_colors(GColor background, GColor foreground);
+void radio_button_window_push(RadiobuttonWindow *radio_star);
+
+RadiobuttonWindow *radiobutton_window_create(uint16_t max_items);
+void radiobutton_add_selection(RadiobuttonWindow *radio_star, char *selection_label);
+void set_radiobutton_selection_colors(RadiobuttonWindow *radio_star, GColor background, GColor foreground);

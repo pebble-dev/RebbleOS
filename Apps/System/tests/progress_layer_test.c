@@ -8,6 +8,8 @@
 #include "progress_layer_window.h"
 #include "test_defs.h"
 
+ProgressLayerWindow *prog;
+
 bool progress_layer_test_init(Window *window)
 {
     return true;
@@ -16,7 +18,11 @@ bool progress_layer_test_init(Window *window)
 bool progress_layer_test_exec(void)
 {
 
-    progress_layer_window_push();
+    prog = progresslayer_window_create();
+
+    progresslayer_window_push(prog);
+
+    //progress_layer_window_push();
 
     return true;
 }

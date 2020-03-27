@@ -19,10 +19,10 @@ bool checkbox_test_exec(void)
 {
     
     checkers = checkbox_window_create(4);
-    checkbox_add_selection(checkers, "Good evening");
-    checkbox_add_selection(checkers, "Twitter,");
-    checkbox_add_selection(checkers, "It's ya boy");
-    checkbox_add_selection(checkers, "Eatdatpussy445");
+    checkbox_add_selection(checkers, "When this");
+    checkbox_add_selection(checkers, "baby hits");
+    checkbox_add_selection(checkers, "88 MPH you're");
+    checkbox_add_selection(checkers, "going to see");
 
     set_checkbox_selection_colors(checkers, PBL_IF_COLOR_ELSE(GColorPurple, GColorBlack), GColorWhite);
 
