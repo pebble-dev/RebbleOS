@@ -176,4 +176,7 @@
 #define xPortPendSVHandler PendSV_Handler
 #define xPortSysTickHandler SysTick_Handler
 
+#define configNUM_THREAD_LOCAL_STORAGE_POINTERS 1
+#define FREERTOS_TLS_CUR_HEAP 0
+
 #endif /* FREERTOS_CONFIG_H */
