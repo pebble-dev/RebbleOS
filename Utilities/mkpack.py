@@ -68,7 +68,7 @@ def import_crush_png(sdk_path):
     """
 
     activate_this = os.path.join(sdk_path, ".env/bin/activate_this.py")
-    execfile(activate_this, dict(__file__=activate_this))
+    exec(compile(open(activate_this, "rb").read(), activate_this, 'exec'), dict(__file__=activate_this))
     
     sys.path.append(os.path.join(sdk_path, "sdk-core/pebble/common/tools/"))
     from png2pblpng import convert_png_to_pebble_png_bytes
@@ -245,7 +245,7 @@ class ResourceCollection:
             jdb = json.load(f)
         
         if "references" in jdb:
-            self.references = {k: "{}/{}".format(self.root, v) for k, v in jdb["references"].items()}
+            self.references = {k: "{}/{}".format(self.root, v) for k, v in list(jdb["references"].items())}
         else:
             self.references = {}
 
@@ -358,13 +358,13 @@ def main():
     dep_name = "{}.d".format(args.basename)
     if args.pbpack:
         bytes = rc.write_pbpack(pbpack_name)
-        print("wrote {} ({} bytes)".format(pbpack_name, bytes))
+        print(("wrote {} ({} bytes)".format(pbpack_name, bytes)))
     if args.header:
         rc.write_header(header_name)
-        print("wrote {}".format(header_name))
+        print(("wrote {}".format(header_name)))
     if args.make_dep:
         rc.write_makedeps(dep_name, pbpack_name, header_name)
-        print("wrote {}".format(dep_name))
+        print(("wrote {}".format(dep_name)))
 
 if __name__ == '__main__':
     main()
