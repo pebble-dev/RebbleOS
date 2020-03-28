@@ -6,17 +6,17 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-#include "FreeRTOS.h"
+#include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <inttypes.h>
+#include "FreeRTOS.h"
 #include "rebble_memory.h"
 #include "log.h"
 #include "resource.h"
-#include <stdlib.h>
 #include "platform_config.h"
 
 // tell neographics we are using it as our core
@@ -28,17 +28,13 @@
 #define TRIG_MAX_RATIO 0xffff
 #define TRIG_MAX_ANGLE 0x10000
 
-struct n_GRect;
-
+#include "types/rect.h"
 #include "graphics_reshandle.h"
 #include "graphics_resource.h"
-
-#include "gbitmap.h"
+#include "pebble_defines.h"
 
 int32_t sin_lookup(int32_t angle);
 int32_t cos_lookup(int32_t angle);
-
-
 
 //! Represents insets for four sides. Negative values mean a side extends.
 //! @see \ref grect_inset

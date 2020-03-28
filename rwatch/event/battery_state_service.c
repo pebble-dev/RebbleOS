@@ -8,6 +8,7 @@
 #include "librebble.h"
 #include "ngfxwrap.h"
 #include "battery_state_service.h"
+#include "power.h"
 
 static BatteryStateHandler _state_handler;
 

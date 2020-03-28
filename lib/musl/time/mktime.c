@@ -3,11 +3,10 @@
 
 time_t mktime(struct tm *tm)
 {
-	struct tm new;
-	long opp;
 	long long t = __tm_to_secs(tm);
+	/*struct tm new;
+	long opp;
 
-	/*
 	__secs_to_zone(t, 1, &new.tm_isdst, &new.__tm_gmtoff, &opp, &new.__tm_zone);
 
 	if (tm->tm_isdst>=0 && new.tm_isdst!=tm->tm_isdst)

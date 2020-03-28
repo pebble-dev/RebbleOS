@@ -1,8 +1,10 @@
+#include "rebble_memory.h"
+#include "log.h"
+
 #include "upng.h"
 #include "png.h"
 
-
-void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
+void png_to_gbitmap(n_GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
 {
     /* Set up the bitmap, assuming we will fail. */
     bitmap->palette = NULL;
@@ -14,7 +16,7 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
     bitmap->raw_bitmap_size.w = 0;
     bitmap->raw_bitmap_size.h = 0;
     bitmap->addr = NULL;
-    bitmap->format = GBitmapFormat8Bit;
+    bitmap->format = n_GBitmapFormat8Bit;
     bitmap->free_data_on_destroy = true;
     bitmap->free_palette_on_destroy = true;
 
@@ -121,12 +123,12 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         // set the resultant format
         if (bpp == 1 && (bitmap->palette_size > 0 || alen > 0))
         {
-            bitmap->format = GBitmapFormat1BitPalette;
+            bitmap->format = n_GBitmapFormat1BitPalette;
         }
         else if (bpp == 1)
         {
             // easier to generate the black/white palette than to reverse every byte
-            bitmap->format = GBitmapFormat1BitPalette;
+            bitmap->format = n_GBitmapFormat1BitPalette;
 
             n_GColor* bw_palette = app_calloc(2, sizeof(n_GColor));
             bw_palette[0] = n_GColorBlack;
@@ -136,15 +138,15 @@ void png_to_gbitmap(GBitmap *bitmap, uint8_t *raw_buffer, size_t png_size)
         }
         else if (bpp == 2)
         {
-            bitmap->format = GBitmapFormat2BitPalette;
+            bitmap->format = n_GBitmapFormat2BitPalette;
         }
         else if (bpp == 4)
         {
-            bitmap->format = GBitmapFormat4BitPalette;
+            bitmap->format = n_GBitmapFormat4BitPalette;
         }
         else if (bpp == 8)
         {
-            bitmap->format = GBitmapFormat8Bit;
+            bitmap->format = n_GBitmapFormat8Bit;
 
             // Convert 8bit palette to just 8bit
             if (plen)

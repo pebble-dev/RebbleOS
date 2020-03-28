@@ -6,12 +6,13 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-#include "librebble.h"
+//#include "librebble.h"
 #include "point.h"
 #include "rect.h"
 #include "size.h"
 #include "animation.h"
 #include "click_config.h"
+#include "content_indicator.h"
 
 struct ScrollLayer;
 

@@ -6,10 +6,8 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-#include "layer.h"
 #include "platform.h"
 #include "pebble_defines.h"
-#include "gbitmap.h"
 
 /* XXX: move this to buttons.h so we don't have to depend on platform.h (ick) here */
 typedef enum ButtonId
@@ -21,9 +19,6 @@ typedef enum ButtonId
     NUM_BUTTONS      = HW_BUTTON_MAX
 } ButtonId;
 
-
-struct Layer;
-struct GRect;
 
 typedef void *ClickRecognizerRef;
 typedef void (*ClickHandler)(ClickRecognizerRef recognizer, void *context);
@@ -64,28 +59,3 @@ uint8_t click_number_of_clicks_counted(ClickRecognizerRef recognizer);
 ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer);
 bool click_recognizer_is_repeating(ClickRecognizerRef recognizer);
 
-// TODO move me
-
-
-typedef struct GColourPair
-{
-    GColor foreground;
-    GColor background;
-} GColourPair;
-
-typedef struct ContentIndicatorConfig
-{
-    Layer *layer;
-    bool times_out;
-    GAlign alignment;
-    GColourPair colors;
-} ContentIndicatorConfig;
-
-typedef struct ContentIndicator ContentIndicator;
-
-typedef enum ContentIndicatorDirection 
-{
-    ContentIndicatorDirectionUp,
-    ContentIndicatorDirectionDown,
-    NumContentIndicatorDirections
-} ContentIndicatorDirection;

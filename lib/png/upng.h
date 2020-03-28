@@ -24,9 +24,10 @@ freely, subject to the following restrictions:
 		distribution.
 */
 
-#if !defined(UPNG_H)
-#define UPNG_H
-#include <pebble.h>
+#ifndef __UPNG_H
+#define __UPNG_H
+
+
 typedef enum upng_error {
 	UPNG_EOK			= 0, /* success (no error) */
 	UPNG_ENOMEM			= 1, /* memory allocation failed */
@@ -95,6 +96,6 @@ unsigned				upng_get_size		(const upng_t* upng);
 
 //returns keyword and text_out matching keyword
 char*	upng_get_text(const upng_t* upng, char** text_out, unsigned int index);
-int upng_get_alpha(const upng_t* upng, uint8_t **alpha);
+int upng_get_alpha(const upng_t* upng, unsigned char **alpha);
 
 #endif /*defined(UPNG_H)*/

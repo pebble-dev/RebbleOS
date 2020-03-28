@@ -135,18 +135,18 @@ $(BUILD)/$(1)/tintin_fw.elf: $(BUILD)/$(1)/res/platform_res.h $$(OBJS_$(1))
 $(BUILD)/$(1)/%.o: %.c
 	$(call SAY,[$(1)] CC $$<)
 	@mkdir -p $$(dir $$@)
-	$(QUIET)$(CC) $$(CFLAGS_$(1)) -MMD -MP -MT $$@ -MF $$(addsuffix .d,$$(basename $$@)) -c -o $$@ $$< 
+	$(QUIET)$(CC) $$(CFLAGS_$(1)) -MMD -MP -MT $$@ -MF $$(addsuffix .d,$$(basename $$@)) -c -o $$@ $$<
 
 $(BUILD)/$(1)/%.o: %.s
 	$(call SAY,[$(1)] AS $$<)
 	@mkdir -p $$(dir $$@)
-	$(QUIET)$(CC) $$(CFLAGS_$(1)) -c -o $$@ $$< 
+	$(QUIET)$(CC) $$(CFLAGS_$(1)) -c -o $$@ $$<
 
 $(BUILD)/$(1)/%.o: %.S
 	$(call SAY,[$(1)] AS $$<)
 	@mkdir -p $$(dir $$@)
-	$(QUIET)$(CC) $$(CFLAGS_$(1)) -c -o $$@ $$< 
-	
+	$(QUIET)$(CC) $$(CFLAGS_$(1)) -c -o $$@ $$<
+
 $(BUILD)/$(1)/Resources/%_fpga.o: Resources/%_fpga.bin
 	$(call SAY,[$(1)] FPGA $$<)
 	@mkdir -p $$(dir $$@)

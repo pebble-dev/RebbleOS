@@ -9,11 +9,16 @@
 
 #include <stdbool.h>
 #include "point.h"
+#include "color.h"
 #include "rect.h"
 #include "size.h"
 #include "node_list.h"
+#include "graphics/gbitmap.h"
+#include "input/click_config.h"
 
 struct Layer;
+struct Window;
+
 typedef void (*WindowHandler)(struct Window *window);
 
 typedef struct WindowHandlers
@@ -33,9 +38,8 @@ typedef enum WindowLoadState {
 
 typedef struct window_node window_node;
 
-typedef struct Window
-{
-    Layer *root_layer;
+typedef struct Window {
+    struct Layer *root_layer;
     const GBitmap *status_bar_icon;
     //WindowInputHandlers input_handlers;
     WindowHandlers window_handlers;
@@ -65,7 +69,7 @@ void window_set_click_config_provider_with_context(Window *window, ClickConfigPr
 ClickConfigProvider window_get_click_config_provider(const Window *window);
 void *window_get_click_config_context(Window *window);
 void window_set_window_handlers(Window *window, WindowHandlers handlers);
-Layer *window_get_root_layer(Window *window);
+struct Layer *window_get_root_layer(Window *window);
 void window_set_background_color(Window *window, GColor background_color);
 bool window_is_loaded(Window *window);
 void window_set_user_data(Window *window, void *data);

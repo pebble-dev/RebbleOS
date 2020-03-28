@@ -7,7 +7,6 @@
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
 
-#include "rebbleos.h"
 #include "menu.h"
 
 static list_head _res_list_head = LIST_HEAD(_res_list_head);

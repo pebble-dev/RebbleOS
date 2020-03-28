@@ -6,7 +6,7 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-#include "rebbleos.h"
+#include "librebble.h"
 #include "menu.h"
 #include "status_bar_layer.h"
 #include "test_defs.h"

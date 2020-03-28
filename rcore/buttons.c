@@ -7,18 +7,21 @@
 
 /*
  * MODULE TODO
- * 
+ *
  * Button Multi click support
  * buttonholder -> clickrecognizer convert / typedef
  * Theres a couple of bytes of ram to be shaved
- * 
+ *
  * review task priorities
  */
+#include <stdbool.h>
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 #include "buttons.h"
 #include "overlay_manager.h"
+#include "appmanager.h"
+#include "rebble_memory.h"
 
 typedef struct ButtonHolder {
     uint8_t button_id;
@@ -84,21 +87,21 @@ uint8_t rcore_buttons_init(void)
     {
         _button_init(i, (ClickConfig) {});
     }
-    
+
     _button_queue = xQueueCreateStatic(BUTTON_QUEUE_SIZE, sizeof(uint8_t), _button_queue_contents, &_button_queue_buf);
-    
-    _button_message_task = xTaskCreateStatic(_button_message_thread, 
-                                             "Button", 
-                                             STACK_SIZE_BUTTON_THREAD, 
-                                             NULL, 
-                                             tskIDLE_PRIORITY + 5UL, 
-                                             _button_message_task_stack, 
+
+    _button_message_task = xTaskCreateStatic(_button_message_thread,
+                                             "Button",
+                                             STACK_SIZE_BUTTON_THREAD,
+                                             NULL,
+                                             tskIDLE_PRIORITY + 5UL,
+                                             _button_message_task_stack,
                                              &_button_message_task_buf);
-    
+
     _button_debounce_task = xTaskCreateStatic(_button_debounce_thread, "Debounce", STACK_SIZE_BUTTON_DEBOUNCE, NULL, tskIDLE_PRIORITY + 6UL, _button_debounce_task_stack, &_button_debounce_task_buf);
-    
+
     KERN_LOG("buttons", APP_LOG_LEVEL_INFO, "Button Task Created");
-    
+
     return 0;
 }
 
@@ -108,7 +111,7 @@ uint8_t rcore_buttons_init(void)
 static void _button_isr(hw_button_t /* which is definitionally the same as a ButtonID */ button_id)
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-    
+
     _last_press = button_id;
 
     vTaskNotifyGiveFromISR(_button_debounce_task, &xHigherPriorityTaskWoken);
@@ -127,7 +130,7 @@ static ButtonHolder *_button_init(ButtonId button_id, ClickConfig click_config)
 {
     if (button_id >= NUM_BUTTONS)
         return NULL;
-    
+
     ButtonHolder *button_holder = calloc(1, sizeof(ButtonHolder));
 
     if (!button_holder) // could not malloc
@@ -137,7 +140,7 @@ static ButtonHolder *_button_init(ButtonId button_id, ClickConfig click_config)
     button_holder->button_id = button_id;
 
     _button_holders[button_id] = button_holder;
-    
+
     return button_holder;
 }
 
@@ -147,13 +150,13 @@ static ButtonHolder *_button_init(ButtonId button_id, ClickConfig click_config)
 static void _button_update(ButtonId button_id, uint8_t press)
 {
     ButtonHolder *button = _button_holders[button_id];
-    
+
     // go through the buttons and find any that match
     if (press)
     {
         button->press_time = xTaskGetTickCount();
         button->repeat_time = button->press_time;
-            
+
         // send the raw keypress
         if (button->click_config.raw.down_handler)
         {
@@ -178,11 +181,11 @@ static void _button_released(ButtonHolder *button)
 {
     uint32_t now = xTaskGetTickCount();
     uint32_t delta_ms = portTICK_PERIOD_MS * (now - button->press_time);
-    
+
     // we are releasing and it has a click handler
     // if we have long click, we are below the trigger threshold
     if (button->click_config.click.handler ||
-        (button->click_config.click.handler && 
+        (button->click_config.click.handler &&
         button->click_config.long_click.handler &&
         delta_ms < button->click_config.long_click.delay_ms))
     {
@@ -190,9 +193,9 @@ static void _button_released(ButtonHolder *button)
                 NULL, // TODO
                 button->click_config.context);
     }
-    
+
     // long press release handler
-    if (button->click_config.long_click.release_handler && 
+    if (button->click_config.long_click.release_handler &&
         button->state == BUTTON_STATE_LONG)
     {
         // only trigger the release if we are over the repeat time
@@ -200,7 +203,7 @@ static void _button_released(ButtonHolder *button)
                 NULL, // TODO
                 button->click_config.context);
     }
-    
+
     // just send the raw
     if (button->click_config.raw.up_handler)
     {
@@ -209,7 +212,7 @@ static void _button_released(ButtonHolder *button)
                 NULL, // TODO
                 button->click_config.context);
     }
-    
+
     button->press_time = 0;
     button->repeat_time = 0;
     button->state = BUTTON_STATE_RELEASED;
@@ -224,13 +227,13 @@ static uint8_t _button_check_time(void)
 {
     uint32_t now = xTaskGetTickCount();
     ButtonHolder *button;
-    uint8_t pressed, any_pressed = 0;    
+    uint8_t pressed, any_pressed = 0;
 
     for (uint8_t i = 0; i < NUM_BUTTONS; i++)
     {
         button = _button_holders[i];
         pressed = _button_pressed(i);
-                
+
         if (!pressed)
         {
             continue;
@@ -242,7 +245,7 @@ static uint8_t _button_check_time(void)
 
         // button is still pressed
         // we have a click and a repeat
-        if (button->click_config.click.handler && button->repeat_time > 0 && 
+        if (button->click_config.click.handler && button->repeat_time > 0 &&
             button->click_config.click.repeat_interval_ms > 0)
         {
             // and the time of the last repeat was < now
@@ -252,14 +255,14 @@ static uint8_t _button_check_time(void)
                 button_send_app_click(button, BUTTON_CLICK_THREAD_S_C, button->click_config.click.handler,
                         NULL, // TODO
                         button->click_config.context);
-                
+
                 // reset the time
                 button->repeat_time = now;
             }
         }
-        
+
         // button pressed, and we just blasted past the long press time
-        if (button->click_config.long_click.handler && button->press_time > 0 && 
+        if (button->click_config.long_click.handler && button->press_time > 0 &&
             button->click_config.long_click.delay_ms > 0)
         {
             if (now > button->press_time + (button->click_config.long_click.delay_ms / portTICK_PERIOD_MS))
@@ -268,14 +271,14 @@ static uint8_t _button_check_time(void)
                 button_send_app_click(button, BUTTON_CLICK_THREAD_L_C, button->click_config.long_click.handler,
                         NULL, // TODO
                         button->click_config.context);
-                
+
                 // stop further processing
                 button->press_time = 0;
                 button->repeat_time = 0;
             }
         }
     }
-    
+
     return any_pressed;
 }
 
@@ -288,13 +291,13 @@ static uint8_t _button_check_time(void)
 static void _button_message_thread(void *pvParameters)
 {
     uint8_t data;
-    
+
     TickType_t time_increment = portMAX_DELAY;
-           
+
     for( ;; )
     {
         if (xQueueReceive(_button_queue, &data, time_increment))
-        {           
+        {
             _button_update(data, _button_pressed(data));
         }
 
@@ -304,7 +307,7 @@ static void _button_message_thread(void *pvParameters)
             time_increment = portMAX_DELAY;
         else
             time_increment = pdMS_TO_TICKS(10);
-        
+
     }
 }
 
@@ -323,9 +326,9 @@ static void _button_debounce_thread(void *pvParameters)
 
         // because we are using a notification on the task, any further triggers while
         // the buttons are bouncing are ignored while we are sleeping
-        // so lets go ahead and have a nap                           
+        // so lets go ahead and have a nap
         vTaskDelay(butDEBOUNCE_DELAY);
-        
+
         // one last cleardown of our notification just to be sure
         ulTaskNotifyTake(pdTRUE, 0);
 
@@ -337,7 +340,7 @@ static void _button_debounce_thread(void *pvParameters)
  * Convenience function to send a button click to the main application processor
  */
 void button_send_app_click(ButtonHolder *button, uint8_t bit, void *callback, void *recognizer, void *context)
-{   
+{
     _button_message.callback = callback;
     _button_message.clickref = recognizer; // TODO
     _button_message.context  = context;
@@ -355,7 +358,7 @@ void button_send_app_click(ButtonHolder *button, uint8_t bit, void *callback, vo
  * Check if a button is pressed
  */
 static uint8_t _button_pressed(ButtonId button_id)
-{   
+{
     return hw_button_pressed(button_id);
 }
 
@@ -378,11 +381,11 @@ void button_single_click_subscribe(ButtonId button_id, ClickHandler handler)
 {
     if (button_id >= NUM_BUTTONS)
         return;
-    
+
     ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.click.handler = handler;
     holder->click_config.click.repeat_interval_ms = 0;
-    
+
     _button_set_is_app_thread_bit(holder, BUTTON_CLICK_THREAD_S_C);
 }
 
@@ -390,11 +393,11 @@ void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat
 {
     if (button_id >= NUM_BUTTONS)
         return;
-    
+
     ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.click.handler = handler;
     holder->click_config.click.repeat_interval_ms = repeat_interval_ms;
-    
+
     _button_set_is_app_thread_bit(holder, BUTTON_CLICK_THREAD_R_C);
 }
 
@@ -410,12 +413,12 @@ void button_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHan
 {
     if (button_id >= NUM_BUTTONS)
         return;
-    
+
     ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.long_click.handler = down_handler;
     holder->click_config.long_click.release_handler = up_handler;
     holder->click_config.long_click.delay_ms = delay_ms;
-    
+
     _button_set_is_app_thread_bit(holder, BUTTON_CLICK_THREAD_L_C);
 }
 
@@ -423,13 +426,13 @@ void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
 {
     if (button_id >= NUM_BUTTONS)
         return;
-    
+
     ButtonHolder *holder = _button_holders[button_id]; // get the button
     holder->click_config.raw.up_handler = up_handler;
     holder->click_config.raw.down_handler = down_handler;
     if (context != NULL)
         holder->click_config.context = context;
-    
+
     _button_set_is_app_thread_bit(holder, BUTTON_CLICK_THREAD_N_C);
 }
 
@@ -455,8 +458,8 @@ uint8_t button_short_click_is_subscribed(ButtonId button_id)
 {
     if (button_id >= NUM_BUTTONS)
         return NULL;
-    
+
     ButtonHolder *holder = _button_holders[button_id];
-    
+
     return holder->click_config.click.handler != NULL;
 }

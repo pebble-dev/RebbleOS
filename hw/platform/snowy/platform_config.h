@@ -12,7 +12,9 @@
 #define DISPLAY_COLS 144
 
 //We are a square device
+#ifndef PBL_RECT
 #define PBL_RECT
+#endif
 
 extern unsigned char _binary_Resources_snowy_fpga_bin_size;
 extern unsigned char _binary_Resources_snowy_fpga_bin_start;
