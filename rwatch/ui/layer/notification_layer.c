@@ -78,10 +78,6 @@ static void notification_layer_ctor(NotificationLayer *notification_layer, GRect
 
 void _load_notification(NotificationLayer *notification_layer, Uuid *uuid)
 {
-    LOG_DEBUG("FREE 1: %d", app_heap_bytes_free());
-    fonts_resetcache();
-    LOG_DEBUG("FREE 2: %d", app_heap_bytes_free());
-
     if (notification_layer->notification)
         timeline_destroy(notification_layer->notification);
 

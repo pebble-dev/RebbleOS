@@ -48,11 +48,8 @@ void fonts_resetcache()
     struct GFontCache *ent = *cachep;
     *cachep = NULL;
     
-    while (ent) {
-        struct GFontCache *next = ent->next;
-        free(ent);
-        ent = next;
-    }
+    /* We don't walk the chain of fonts deallocating them because we presume
+     * that they got blown away along with the rest of the heap.  */
 }
 
 // get a system font and then cache it. Ugh.
