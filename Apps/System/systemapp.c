@@ -6,8 +6,6 @@
  */
 
 #include "rebbleos.h"
-#include "systemapp.h"
-#include "menu.h"
 #include "status_bar_layer.h"
 #include "platform_config.h"
 #include "platform_res.h"
@@ -15,6 +13,9 @@
 #include "protocol.h"
 #include "protocol_music.h"
 #include "event_service.h"
+#include "graphics/system_font.h"
+#include "menu.h"
+#include "systemapp.h"
 
 /* Configure Logging */
 #define MODULE_NAME "sysapp"
@@ -145,7 +146,7 @@ static void _music_info(EventServiceProc command, void *data)
     LOG_INFO("Title: %s", amusic->title);
     LOG_INFO("Artist: %s", amusic->artist);
     LOG_INFO("Album: %s", amusic->album);
-            
+
     items->items[2].sub_text = amusic->title;
 }
 
@@ -182,7 +183,7 @@ static void systemapp_window_load(Window *window)
 #endif
 
     //tick_timer_service_subscribe(MINUTE_UNIT, prv_tick_handler);
-    
+
     /* Music. Request the music track from the remote device */
     protocol_music_get_current_track();
     event_service_subscribe(EventServiceCommandMusic, _music_info);
@@ -195,7 +196,7 @@ static void systemapp_window_unload(Window *window)
 
 static void window_exit_handler(ClickRecognizerRef recognizer, void *context)
 {
-    window_stack_pop(true);  
+    window_stack_pop(true);
 }
 
 static void about_window_load(Window *window)
@@ -215,7 +216,7 @@ static void about_window_load(Window *window)
 
     s_aboutCanvas_layer = layer_create(bounds);
     layer_set_update_proc(s_aboutCanvas_layer, about_update_proc);
-    scroll_layer_add_child(s_about_scroll, s_aboutCanvas_layer);	
+    scroll_layer_add_child(s_about_scroll, s_aboutCanvas_layer);
     layer_mark_dirty(s_aboutCanvas_layer);
 
     layer_add_child(window_layer, scroll_layer_get_layer(s_about_scroll));
@@ -224,19 +225,19 @@ static void about_window_load(Window *window)
     #ifdef PBL_BW
          //TODO: Get black and white rocket bitmap for Classic
         logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_BW);
-        rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON_BW);       
+        rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON_BW);
     #else
         logo_bitmap = gbitmap_create_with_resource(RESOURCE_ID_REBBLE_LOGO_DARK);
         rocket_bitmap = gbitmap_create_with_resource(RESOURCE_ID_TO_MOON);
     #endif
 
     about_did_set_size = 0;
-    
+
     /* XXX: Some day it would be cool to automatically scroll the credits after a short delay. */
 }
 
 static void about_update_proc(Layer *layer, GContext *nGContext)
-{  
+{
     GRect bounds = layer_get_unobstructed_bounds(layer);
     graphics_context_set_text_color(nGContext, GColorBlack);
     graphics_context_set_compositing_mode(nGContext, GCompOpSet);
@@ -257,10 +258,10 @@ static void about_update_proc(Layer *layer, GContext *nGContext)
 
     graphics_draw_bitmap_in_rect(nGContext, logo_bitmap, GRect((bounds.size.w/2)-17, (bounds.size.h/2)-63, 34, 53));
     graphics_draw_bitmap_in_rect(nGContext, rocket_bitmap, GRect((bounds.size.w/2)-8, (bounds.size.h/2)+60, 19, 19));
-    
+
     graphics_draw_text(nGContext, "Credits", fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD), GRect(10, bounds.size.h, bounds.size.w - 20, 20),
                        n_GTextOverflowModeWordWrap, GTextAlignmentCenter, 0);
-    
+
     const char **authorp = git_authors;
     int y = bounds.size.h + 30;
     for (authorp = git_authors; *authorp; authorp++) {
@@ -269,7 +270,7 @@ static void about_update_proc(Layer *layer, GContext *nGContext)
                            n_GTextOverflowModeWordWrap, GTextAlignmentCenter, 0);
         y += 16;
     }
-    
+
     /* Set the size on the first render only, lest we interfere with actual scrolling. */
     if (!about_did_set_size) {
         about_did_set_size = 1;

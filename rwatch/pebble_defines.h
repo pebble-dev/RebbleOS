@@ -171,7 +171,5 @@
 #define GColorBlack n_GColorBlack
 #define GColorClear n_GColorClear
 
-
 #define GCornerNone n_GCornerNone
 
-#include "gbitmap.h"

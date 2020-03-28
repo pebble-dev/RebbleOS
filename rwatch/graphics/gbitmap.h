@@ -7,6 +7,8 @@
  */
 
 #include "types.h"
+#include "context.h"
+#include "text.h"
 #include "pebble_defines.h"
 #include "color.h"
 #include "upng.h"

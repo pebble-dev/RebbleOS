@@ -27,7 +27,11 @@ freely, subject to the following restrictions:
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <limits.h>
+
+// TODO try to remove this. (Maybe do things on the stack, or let the caller do that allocation)
+#include "rebble_memory.h"
 
 #include "upng.h"
 
@@ -35,7 +39,7 @@ freely, subject to the following restrictions:
 //saves about 900 bytes, but still crashing watch
 //#include "tinfl.h"
 //#define TINFL 1
-#include <pebble.h>
+//#include "pebble.h"
 
 //Debug stack overflow
 //register uint32_t sp __asm("sp");
@@ -1422,7 +1426,7 @@ int upng_get_palette(const upng_t* upng, rgb **palette)
     return upng->palette_entries;
 }
 
-int upng_get_alpha(const upng_t* upng, uint8_t **alpha)
+int upng_get_alpha(const upng_t* upng, unsigned char **alpha)
 {
     *alpha = upng->alpha;
     return upng->alpha_entries;

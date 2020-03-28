@@ -8,7 +8,7 @@
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
 
-#include "librebble.h"
+#include <stdint.h>
 #include "menu_layer.h"
 
 struct Menu;

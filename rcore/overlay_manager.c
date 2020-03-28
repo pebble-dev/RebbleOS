@@ -1,17 +1,13 @@
 /* overlay_manager.c
  * Routines for managing the overlay window and it's content
  * RebbleOS
- * 
+ *
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
+#include "overlay_manager.h"
 #include "rebbleos.h"
 #include "ngfxwrap.h"
-#include "overlay_manager.h"
-#include "protocol.h"
-#include "protocol_music.h"
-#include "event_service.h"
 #include "notification_manager.h"
-#include "ngfxwrap.h"
 
 /* A message to talk to the overlay thread */
 typedef struct OverlayMessage {
@@ -42,21 +38,21 @@ static SemaphoreHandle_t _ovl_done_sem;
 static StaticSemaphore_t _ovl_done_sem_buf;
 
 uint8_t overlay_window_init(void)
-{   
+{
     _ovl_done_sem = xSemaphoreCreateBinaryStatic(&_ovl_done_sem_buf);
 
     // XXX make static
     _overlay_queue = xQueueCreate(1, sizeof(struct OverlayMessage));
-   
+
     app_running_thread *thread = appmanager_get_thread(AppThreadOverlay);
     thread->status = AppThreadLoading;
     thread->thread_entry = &_overlay_thread;
-    /* start the thread 
+    /* start the thread
      * We are only using the thread launcher in appmanager for this
      * not the full supervisory process. It's lightweight
      */
     appmanager_execute_app(thread, 0);
-        
+
     /* init must wait for us to complete */
     return INIT_RESP_ASYNC_WAIT;
 }
@@ -99,9 +95,9 @@ void overlay_window_draw(bool window_is_dirty)
     OverlayMessage om = (OverlayMessage) {
         .command = AppMessageOverlayDraw,
         .data = (void *)window_is_dirty,
-    };    
+    };
     xQueueSendToBack(_overlay_queue, &om, 0);
-    
+
 //     xSemaphoreTake(_ovl_done_sem, portMAX_DELAY);
 }
 
@@ -274,12 +270,12 @@ static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated
     window_dtor(&overlay_window->window);
     list_remove(&_overlay_window_list_head, &overlay_window->node);
     app_free(overlay_window);
-    
+
     Window *top_window = overlay_window_get_next_window_with_click_config();
 
     if (top_window == NULL)
     {
-        /* we are out of overlay windows, restore click 
+        /* we are out of overlay windows, restore click
          * first get the top normal window. Grab it's click context
          * then restore it. Then configure it. */
         /* next try and find any window */
@@ -293,7 +289,7 @@ static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated
                 top_window = NULL;
             }
         }
-        
+
         if (top_window == NULL)
         {
             top_window = window_stack_get_top_window();
@@ -313,7 +309,7 @@ static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated
 static void _overlay_window_draw(bool window_is_dirty)
 {
     app_running_thread *appthread = appmanager_get_thread(AppThreadMainApp);
-    
+
     if (appmanager_get_thread_type() != AppThreadOverlay)
     {
         SYS_LOG("ov win", APP_LOG_LEVEL_ERROR, "Someone not overlay thread is trying to draw. Tsk.");
@@ -328,9 +324,9 @@ static void _overlay_window_draw(bool window_is_dirty)
          * the main app has forced a redraw, then we have to do painting
          * regardless. So we paint. */
         rbl_window_draw(window);
-        
+
         window->is_render_scheduled = false;
-        
+
         Window *w;
         list_foreach(w, &ow->head, Window, node)
         {
@@ -347,22 +343,22 @@ static void _overlay_thread(void *pvParameters)
 {
     OverlayMessage data;
     app_running_thread *_this_thread = appmanager_get_current_thread();
-    
+
     SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Starting overlay thread...");
 
     _this_thread->status = AppThreadLoaded;
     os_module_init_complete(0);
-    
+
     event_service_subscribe(EventServiceCommandCall, notification_show_incoming_call);
     event_service_subscribe(EventServiceCommandAlert, notification_show_small_message);
     event_service_subscribe(EventServiceCommandNotification, notification_arrived);
     event_service_subscribe(EventServiceCommandProgress, notification_show_progress);
-    
+
     while(1)
     {
         TickType_t next_timer = appmanager_timer_get_next_expiry(_this_thread);
 
-        if(next_timer == 0) 
+        if(next_timer == 0)
         {
             appmanager_timer_expired(_this_thread);
             /* When we need to update draw, we post it to the main app. This way

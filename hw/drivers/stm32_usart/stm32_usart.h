@@ -1,4 +1,4 @@
-/* 
+/*
  * stm32_usart.h
  * External-facing API for stm32 USART module
  * This is a simple wrapper around common USART defaults and functions
@@ -45,7 +45,7 @@ typedef struct {
     const stm32_dma_t *dma;
     uint32_t baud;
 } stm32_usart_t;
-    
+
 void stm32_usart_init_device(stm32_usart_t *usart);
 void stm32_usart_set_baud(stm32_usart_t *usart, uint32_t baud);
 size_t stm32_usart_write(stm32_usart_t *usart, const uint8_t *buf, size_t len);
@@ -69,7 +69,7 @@ void _stm32_usart_rx_start_init_isr(stm32_usart_t *usart, uint16_t irqn, uint16_
     static inline void _stm32_usart_tx_isr(void) { \
         stm32_usart_tx_isr(usart, callback); \
     }
-    
+
 #define STM32_USART_MK_RX_IRQ_HANDLER(usart, dma_channel, stream, callback) \
     STM32_DMA_MK_RX_IRQ_HANDLER( (usart) ->dma, dma_channel, stream, _stm32_usart_rx_isr ) \
     \

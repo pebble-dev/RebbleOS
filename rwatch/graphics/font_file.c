@@ -5,7 +5,7 @@
 uint8_t n_graphics_font_get_line_height(struct file *font) {
     struct fd fd;
     n_GFontInfo info;
-    
+
     /* XXX: cache this */
     fs_open(&fd, font);
     fs_read(&fd, &info, sizeof(info));
@@ -16,17 +16,16 @@ n_GGlyphInfo * n_graphics_font_get_glyph_info(struct file *font, uint32_t codepo
     struct fd fd;
     n_GFontInfo info;
     n_GGlyphInfo pglyph;
-    
+
     n_GGlyphInfo *cglyph = fonts_glyphcache_get(font, codepoint);
     if (cglyph) {
         return cglyph;
     }
-    
+
     /* XXX: cache this */
     fs_open(&fd, font);
     fs_read(&fd, &info, sizeof(info));
 
-    uint8_t * data;
     uint8_t hash_table_size = 255, codepoint_bytes = 4, features = 0;
     switch (info.version) {
         case 1:
@@ -56,7 +55,7 @@ n_GGlyphInfo * n_graphics_font_get_glyph_info(struct file *font, uint32_t codepo
 
     /* Read the codepoint from the hash table ... */
     fs_seek(&fd, (codepoint % hash_table_size) * sizeof(n_GFontHashTableEntry), FS_SEEK_CUR);
-    
+
     n_GFontHashTableEntry hash_data;
     fs_read(&fd, &hash_data, sizeof(hash_data));
 
@@ -68,7 +67,7 @@ n_GGlyphInfo * n_graphics_font_get_glyph_info(struct file *font, uint32_t codepo
         fs_seek(&fd, offset_table_item_length * info.glyph_amount + 4, FS_SEEK_CUR);
         goto readglyph;
     }
-    
+
     /* It exists, so we find it in the offset table. */
     fs_seek(&fd, loc + hash_data.offset_table_offset, FS_SEEK_SET);
     uint8_t offset_entry[8]; /* 4 bytes max for codepoint, 4 bytes max for glyph offset */
@@ -102,11 +101,11 @@ readglyph:
     fs_read(&fd, &pglyph, sizeof(pglyph));
     int gbits = pglyph.height * pglyph.width;
     int gbytes = (gbits + 7) / 8;
-    
+
     n_GGlyphInfo *glyph = malloc(sizeof(pglyph) + gbytes);
     memcpy(glyph, &pglyph, sizeof(pglyph));
     fs_read(&fd, glyph + 1, gbytes);
-    
+
     fonts_glyphcache_put(font, codepoint, glyph);
 
     return glyph;

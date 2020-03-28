@@ -5,9 +5,8 @@
  */
 
 #include "librebble.h"
+#include "rebble_util.h"
 #include "node_list.h"
-#include "event_service.h"
-#include "event_service.h"
 #include "connection_service.h"
 
 
@@ -15,7 +14,7 @@ static void _connection_service_cb(EventServiceCommand command, void *data, void
 {
     /* context contains the handlers */
     ConnectionHandlers *handlers = (ConnectionHandlers *)context;
-    
+
     if (handlers->pebble_app_connection_handler)
         handlers->pebble_app_connection_handler((uint32_t)data);
 }
@@ -41,7 +40,7 @@ void connection_service_subscribe(ConnectionHandlers conn_handlers)
 
     if (handlers->pebblekit_connection_handler)
         MK_THUMB_CB(handlers->pebblekit_connection_handler);
-    
+
     event_service_subscribe_with_context(EventServiceCommandConnectionService, _connection_service_cb, handlers);
 }
 

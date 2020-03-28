@@ -9,6 +9,7 @@
 #include "FreeRTOS.h"
 #include "rebbleos.h"
 #include "librebble.h"
+#include "click_config.h"
 
 #define butDEBOUNCE_DELAY       ( pdMS_TO_TICKS(2) )
 

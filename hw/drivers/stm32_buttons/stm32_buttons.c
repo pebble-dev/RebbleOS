@@ -32,7 +32,6 @@
 #include "stm32_buttons.h"
 #include "stm32_power.h"
 #include "stm32_buttons_platform.h"
-#include "buttons.h"
 #include "debug.h"
 
 static hw_button_isr_t _isr = NULL;

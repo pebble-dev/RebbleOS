@@ -62,7 +62,7 @@ static void _qsplit(qarena_t *arena, qblock_t *blk, unsigned size);
 qarena_t *qinit(void *start, unsigned size) {
 	qarena_t *arena = start;
 	arena->size = size;
-	
+
 	qblock_t *blk = BLK(arena + 1); // start = &arena[1], so arena[0] is left alone.
 	blk->szflag = size - sizeof(*arena);
 		_cookie_unset(arena, blk);
@@ -70,23 +70,22 @@ qarena_t *qinit(void *start, unsigned size) {
 	memset(BLK_PAYLOAD(blk), 0xAA, BLK_SZ(blk) - sizeof(qblock_t));
 #endif
 	BLK_FREE(blk);
-	
+
 	return arena;
 }
 
 void *qalloc(qarena_t *arena, unsigned size) {
 	qblock_t *blk = BLK(arena+1);
 	qblock_t *end = BLK((char *)arena + arena->size);
-	void *n = NULL;
-	
+
 	if (size == 0)
 		return NULL;
 
 	size = BLK_ALSIZE(size);
-	
+
 	while (blk && blk < end) {
 		qcheck(arena, blk);
-		
+
 		/* We need either exactly enough room for this block, or we
 		 * need enough room for this and one more block to be
 		 * constructed at the end.  */
@@ -103,7 +102,7 @@ void *qalloc(qarena_t *arena, unsigned size) {
 
 		_cookie_set(arena, blk);
 		BLK_ALLOC(blk);
-		
+
 		return BLK_PAYLOAD(blk);
 	}
 	return NULL;
@@ -121,14 +120,14 @@ static void _qsplit(qarena_t *arena, qblock_t *blk, unsigned size) {
 void *qrealloc(qarena_t *arena, void *ptr, unsigned size) {
 	if (size == 0)
 		return NULL;
-	
+
 	size = BLK_ALSIZE(size);
-	
+
 	if (!ptr)
 		return qalloc(arena, size);
-	
+
 	qblock_t *blk = BLK_FROMPAYLOAD(ptr);
-	
+
 	/* is the new size smaller? */
 	if (size < BLK_SZ(blk)) {
 		_qsplit(arena, blk, size);
@@ -136,7 +135,7 @@ void *qrealloc(qarena_t *arena, void *ptr, unsigned size) {
 		qjoin(arena);
 		return BLK_PAYLOAD(blk);
 	}
-	
+
 	/* is there room after */
 	qblock_t *nblk = BLK_NEXT(blk);
 	uint32_t reqsize = size - BLK_SZ(blk);
@@ -151,11 +150,11 @@ void *qrealloc(qarena_t *arena, void *ptr, unsigned size) {
 	void *newm = qalloc(arena, size);
 	if (!newm)
 		return NULL;
-	
+
 	memcpy(newm, BLK_PAYLOAD(blk), BLK_SZ(blk));
 	qfree(arena, BLK_PAYLOAD(blk));
 	qjoin(arena);
-	
+
 	return newm;
 }
 
@@ -163,7 +162,7 @@ uint32_t qusedbytes(qarena_t *arena) {
 	qblock_t *blk = BLK(arena+1);
 	qblock_t *end = BLK((char *)arena + arena->size);
 	uint32_t cnt = 0;
-	
+
 	while (blk && blk < end) {
 		if (!BLK_ISFREE(blk)) {
 			cnt += BLK_SZ(blk);
@@ -180,7 +179,7 @@ uint32_t qfreebytes(qarena_t *arena) {
 void qfree(qarena_t *arena, void *ptr) {
 	if (!ptr)
 		return;
-		
+
 	qblock_t *blk = BLK_FROMPAYLOAD(ptr);
 
 #ifdef HEAP_INTEGRITY
@@ -200,7 +199,7 @@ void qfree(qarena_t *arena, void *ptr) {
 static void qjoin(qarena_t *arena) {
 	qblock_t *blk = BLK(arena+1);
 	qblock_t *end = (qblock_t *)((char *)arena + arena->size);
-	
+
 	while (blk && blk < end) {
 		qcheck(arena, blk);
 		if (BLK_NEXT(blk) < end && BLK_ISFREE(blk) && BLK_ISFREE(BLK_NEXT(blk))) {
@@ -233,7 +232,7 @@ static void qcheck(qarena_t *arena, qblock_t *blk) {
 	if (BLK_ISFREE(blk)) {
 		unsigned i;
 		uint8_t *p = BLK_PAYLOAD(blk);
-		
+
 		for (i = 0; i < BLK_SZ(blk) - sizeof(qblock_t); i++)
 			if (p[i] != 0xAA) {
 				printf("%08x %08x %08x %02x\n", p, i, &p[i], p[i]);

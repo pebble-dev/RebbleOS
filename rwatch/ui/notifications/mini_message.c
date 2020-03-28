@@ -8,6 +8,7 @@
 #include "protocol_notification.h"
 #include "notification_manager.h"
 #include "platform_res.h"
+#include "window.h"
 
 static void _minimsg_window_load(Window *window);
 static void _minimsg_window_unload(Window *window);

@@ -6,15 +6,16 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
-#include "point.h"
-#include "rect.h"
-#include "size.h"
-#include "gbitmap.h"
+// neographics includes
+#include "types/point.h"
+#include "types/rect.h"
+#include "types/size.h"
+
+// rwatch includes
+#include "graphics/gbitmap.h"
+#include "layer/layer.h"
 
 struct Window;
-struct Layer;
-struct BitmapLayer;
-
 
 // TODO in neogfx?
 

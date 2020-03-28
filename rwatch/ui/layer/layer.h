@@ -9,8 +9,10 @@
 #include "point.h"
 #include "rect.h"
 #include "size.h"
+#include "window.h"
 
-struct Window;
+#include "pebble_defines.h"
+
 struct Layer;
 
 // Callback for the layer drawing
@@ -24,7 +26,7 @@ typedef struct Layer
     struct Layer *sibling;
     struct Layer *parent;
     void *container; // pointer to parent type, if any. i.e. a textlayer
-    struct Window  *window;
+    Window  *window;
     GRect bounds;
     GRect frame;
     bool clip;

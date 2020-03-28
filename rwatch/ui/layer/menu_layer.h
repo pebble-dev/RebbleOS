@@ -5,6 +5,10 @@
  * RebbleOS
  */
 
+#include "scroll_layer.h"
+#include "context.h"
+
+#include "pebble_defines.h"
 
 void menu_cell_basic_draw(GContext *ctx, const Layer *layer, const char *title,
                           const char *subtitle, GBitmap *icon);

@@ -8,7 +8,7 @@
 #include "rebbleos.h"
 #include "platform.h"
 #include "flash.h"
-
+#include "rect.h"
 
 /* Configure Logging */
 #define MODULE_NAME "res"
