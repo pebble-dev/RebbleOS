@@ -13,33 +13,38 @@
 #define MODULE_TYPE "KERN"
 #define LOG_LEVEL RBL_LOG_LEVEL_ERROR //RBL_LOG_LEVEL_NONE
 
-void rblos_memory_init(void)
-{
-}
-
 void *system_calloc(size_t count, size_t size)
 {
     if (!appmanager_is_thread_system())
         LOG_ERROR("XXX System Calloc. Check who did this");
 
-    void *x = pvPortMalloc(count * size);
-    if (x != NULL)
-        memset(x, 0, count * size);
-    return x;
+    void *p = mem_heap_alloc(&mem_heaps[HEAP_SYSTEM], count * size);
+    if (!p)
+        return NULL;
+    memset(p, 0, count * size);
+    return p;
 }
 
 void *system_malloc(size_t size)
 {
     if (appmanager_is_thread_system())
         LOG_ERROR("XXX System Malloc. Check who did this");
-    return pvPortMalloc(size);
+    return mem_heap_alloc(&mem_heaps[HEAP_SYSTEM], size);
+}
+
+void *pvPortMalloc(size_t size) {
+    return system_malloc(size);
 }
 
 void system_free(void *mem)
 {
     if (appmanager_is_thread_system())
         LOG_ERROR("XXX System Free. Check who did this");
-    free(mem);
+    return mem_heap_free(&mem_heaps[HEAP_SYSTEM], mem);
+}
+
+void vPortFree(void *p) {
+    return system_free(p);
 }
 
 void *app_malloc(size_t size)
@@ -92,15 +97,21 @@ uint32_t app_heap_bytes_used(void)
 
 /* Define the available heaps. */
 
+static                     uint8_t _heap_system[MEMORY_SIZE_SYSTEM];
 static MEM_REGION_HEAP_OVL uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
 static                     uint8_t _heap_app[MEMORY_SIZE_APP_HEAP];
 static MEM_REGION_HEAP_WRK uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
 
 struct mem_heap mem_heaps[HEAP_MAX] = {
+    [HEAP_SYSTEM]  = { _heap_system,  MEMORY_SIZE_SYSTEM },
     [HEAP_OVERLAY] = { _heap_overlay, MEMORY_SIZE_OVERLAY_HEAP },
     [HEAP_APP]     = { _heap_app,     MEMORY_SIZE_APP_HEAP },
     [HEAP_WORKER]  = { _heap_worker,  MEMORY_SIZE_WORKER_HEAP } 
 };
+
+void mem_init() {
+    mem_heap_init(&mem_heaps[HEAP_SYSTEM]);
+}
 
 void mem_heap_init(struct mem_heap *heap) {
     memset(heap->start, 0, heap->size);

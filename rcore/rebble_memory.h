@@ -42,6 +42,7 @@ struct mem_heap {
 };
 
 enum {
+    HEAP_SYSTEM,
     HEAP_OVERLAY,
     HEAP_APP,
     HEAP_WORKER,
@@ -49,6 +50,8 @@ enum {
 };
 
 extern struct mem_heap mem_heaps[HEAP_MAX];
+
+void mem_init();
 
 void mem_heap_init(struct mem_heap *heap);
 void *mem_heap_alloc(struct mem_heap *heap, size_t newsz);

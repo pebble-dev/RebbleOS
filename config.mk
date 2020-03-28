@@ -48,7 +48,6 @@ SRCS_all += FreeRTOS/queue.c
 SRCS_all += FreeRTOS/tasks.c
 SRCS_all += FreeRTOS/timers.c
 SRCS_all += FreeRTOS/portable/GCC/ARM_CM4F/port.c
-SRCS_all += FreeRTOS/portable/MemMang/heap_4.c
 
 SRCS_all += lib/minilib/minilib.c
 SRCS_all += lib/minilib/dprint.c
