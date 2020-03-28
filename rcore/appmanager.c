@@ -665,16 +665,3 @@ static void _appmanager_thread_init(void *thread_handle)
     ((VoidFunc)thread->thread_entry)();
 }
 
-#ifdef REBBLEOS_TESTING 
-
-void appmanager_test_become_thread(AppThreadType me) {
-    TaskHandle_t this_task = xTaskGetCurrentTaskHandle();
-    
-    for (uint8_t i = 0; i < MAX_APP_THREADS; i++)
-        if (_app_threads[i].thread_type == me) {
-            _app_threads[i].task_handle = this_task;
-            _app_threads[i].arena = qinit(_app_threads[i].heap, _app_threads[i].heap_size);
-        }
-}
-
-#endif
