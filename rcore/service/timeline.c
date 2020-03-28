@@ -158,16 +158,11 @@ rebble_notification *timeline_item_process(void *data)
     return notification;
 }
 
-static void _timeline_event_destroy(void *uuid)
-{
-    protocol_free(uuid);
-}
-
 void timeline_notification_arrived(Uuid *uuid)
 {
-    Uuid *uuidc = protocol_calloc(1, sizeof(Uuid));
+    Uuid *uuidc = calloc(1, sizeof(Uuid));
     memcpy(uuidc, uuid, UUID_SIZE);
-    event_service_post(EventServiceCommandNotification, (void *)uuidc, _timeline_event_destroy);
+    event_service_post(EventServiceCommandNotification, (void *)uuidc, remote_free);
 }
 
 void timeline_destroy(rebble_notification *notification)
