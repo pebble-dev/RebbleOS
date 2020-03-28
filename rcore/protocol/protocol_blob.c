@@ -8,7 +8,7 @@
 #include "protocol_system.h"
 #include "pebble_protocol.h"
 #include "protocol_service.h"
-#include "blobdb.h"
+#include "rdb.h"
 #include "timeline.h"
 
 typedef struct blob_db_t {
@@ -47,15 +47,15 @@ void printblock(void *data, size_t len)
 uint8_t blob_process(pcol_blob_db_key *blob, void *data, uint16_t data_size)
 {
     switch(blob->blobdb.database_id) {
-        case BlobDatabaseID_AppGlance:
-        case BlobDatabaseID_Pin:
-        case BlobDatabaseID_Reminder:
-        case BlobDatabaseID_Test:
+        case RDB_ID_APP_GLANCE:
+        case RDB_ID_PIN:
+        case RDB_ID_REMINDER:
+        case RDB_ID_TEST:
             break;
-        case BlobDatabaseID_App:
+        case RDB_ID_APP:
             appmanager_app_loader_init_n();
             break;
-        case BlobDatabaseID_Notification:
+        case RDB_ID_NOTIFICATION:
             timeline_notification_arrived((Uuid *)blob->key);
             break;
     }
@@ -73,7 +73,7 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     void *val_start = val_sz_start + sizeof(iblob->value_size);
 
     /* Pre-process */
-    if (blob->blobdb.database_id == BlobDatabaseID_App)
+    if (blob->blobdb.database_id == RDB_ID_APP)
     {
         /* Apps keys are the app id. Get one and monkey with the key */
         uint32_t newappid = appmanager_get_next_appid();
@@ -82,15 +82,15 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     }
         
     /* insert to database */
-    const struct blobdb_database *db = blobdb_open(blob->blobdb.database_id);
+    const struct rdb_database *db = rdb_open(blob->blobdb.database_id);
     if (!db)
         return Blob_InvalidDatabaseID;
     
-    int rv = blobdb_insert(db, blob->key, blob->key_size, val_start, val_sz);
+    int rv = rdb_insert(db, blob->key, blob->key_size, val_start, val_sz);
     if (rv != Blob_Success)
         return rv;
     
-    blobdb_close(db);
+    rdb_close(db);
 
     return blob_process((pcol_blob_db_key *)&blob->blobdb, val_start, val_sz);
 }
