@@ -108,6 +108,7 @@ static int pktslost = 0;
 
 static void _ppogatt_rx_main(void *param) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: rx thread awake");
+    mem_thread_set_heap(&mem_heaps[HEAP_LOWPRIO]);
 
     while (1) {
         static struct ppogatt_packet pkt;

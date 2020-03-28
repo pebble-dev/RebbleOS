@@ -5,6 +5,7 @@
    IN BYTES
  */ 
 #define MEMORY_SIZE_SYSTEM        30000
+#define MEMORY_SIZE_LOWPRIO       2048
 #define MEMORY_SIZE_APP           90000
 #define MEMORY_SIZE_WORKER        10500
 #define MEMORY_SIZE_OVERLAY       18500

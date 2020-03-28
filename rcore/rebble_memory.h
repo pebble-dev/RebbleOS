@@ -36,6 +36,7 @@ struct mem_heap {
 
 enum {
     HEAP_SYSTEM,
+    HEAP_LOWPRIO,
     HEAP_OVERLAY,
     HEAP_APP,
     HEAP_WORKER,

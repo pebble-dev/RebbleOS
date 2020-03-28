@@ -183,12 +183,14 @@ void protocol_process_transfer(const RebblePacket packet)
             _cookie = nhdr->cookie;
             _bytes_transferred += data_size;
             
-            notification_progress *prog = calloc(1, sizeof(notification_progress));
-            prog->progress_bytes = _bytes_transferred;
-            prog->total_bytes = _total_size;
+            notification_progress *prog = mem_heap_alloc(&mem_heaps[HEAP_LOWPRIO], sizeof(notification_progress));
+            if (prog) {
+                prog->progress_bytes = _bytes_transferred;
+                prog->total_bytes = _total_size;
             
-            event_service_post(EventServiceCommandProgress, prog, remote_free);
-            vTaskDelay(0);
+                event_service_post(EventServiceCommandProgress, prog, remote_free);
+                vTaskDelay(0);
+            }
             _send_ack(nhdr->cookie);
             break;
             
