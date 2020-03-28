@@ -44,35 +44,6 @@ void vPortFree(void *p) {
 }
 
 
-void *app_malloc(size_t size)
-{
-    return app_calloc(1, size);    
-}
-
-void *app_calloc(size_t count, size_t size)
-{
-    assert(mem_thread_get_heap());
-    void *p = mem_heap_alloc(mem_thread_get_heap(), count * size);
-    if (!p) {
-        LOG_ERROR("app_calloc(%d) failed", count * size);
-        return NULL;
-    }
-    memset(p, 0, count * size);
-    return p;
-}
-
-void app_free(void *p)
-{
-    assert(mem_thread_get_heap());
-    mem_heap_free(mem_thread_get_heap(), p);
-}
-
-void *app_realloc(void *mem, size_t new_size)
-{
-    assert(mem_thread_get_heap());
-    return mem_heap_realloc(mem_thread_get_heap(), mem, new_size);
-}
-
 uint32_t app_heap_bytes_free(void)
 {
     assert(mem_thread_get_heap());
