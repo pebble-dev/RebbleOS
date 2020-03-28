@@ -86,6 +86,8 @@ void appmanager_app_loader_init()
 {
     struct file empty = { 0, 0, 0 }; /* TODO: make files optional in `App` to avoid this */
     
+    /* XXX: We need to completely clear the app manifest each time we reload the blobdb, really. */
+    
     /* add the baked in apps */
     _appmanager_add_to_manifest(_appmanager_create_app("System", 
                                                        NULL, 9991, 
@@ -106,6 +108,8 @@ void appmanager_app_loader_init()
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
+    
+    appmanager_app_loader_init_n();
 }
 
 
@@ -183,7 +187,21 @@ static void _appmanager_flash_load_app_manifest_n(void)
     struct blobdb_select_result *res;
     KERN_LOG("app", APP_LOG_LEVEL_ERROR, "found %d apps", count);
     blobdb_select_result_foreach(res, &head) {
-        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d", count);
+        uint32_t appid = *(uint32_t *)res->key;
+        
+        /* does it have a file? */
+        struct file appfile, resfile;
+        int hasapp, hasres;
+        char fname[14];
+        snprintf(fname, 14, "@%08lx/app", appid);
+        hasapp = fs_find_file(&appfile, fname) >= 0;
+        snprintf(fname, 14, "@%08lx/res", appid);
+        hasres = fs_find_file(&resfile, fname) >= 0;
+
+        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d (%s) with key %08x (app %s, res %s)", count, (char *)res->result[0], appid,
+            hasapp ? "present" : "missing",
+            hasres ? "present" : "missing");
+        
         /* main gets set later */
         _appmanager_add_to_manifest(_appmanager_create_app((char *)res->result[0],
                                                            (Uuid *)res->result[1],
@@ -192,8 +210,8 @@ static void _appmanager_flash_load_app_manifest_n(void)
                                                            AppTypeWatchface,
                                                            NULL,
                                                            false,
-                                                           NULL,
-                                                           NULL));
+                                                           hasapp ? &appfile : NULL,
+                                                           hasres ? &resfile : NULL));
     }
     blobdb_select_free_all(&head);
 }
