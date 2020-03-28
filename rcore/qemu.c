@@ -21,7 +21,7 @@
 
 extern const PebbleEndpoint qemu_endpoints[];
 
-#define STACK_SZ_QEMU configMINIMAL_STACK_SIZE + 200
+#define STACK_SZ_QEMU configMINIMAL_STACK_SIZE + 400
 
 static TaskHandle_t _qemu_task;
 static StackType_t _qemu_task_stack[STACK_SZ_QEMU];
@@ -138,6 +138,8 @@ void qemu_rx_started_isr(void)
 
 static void _qemu_thread(void *pvParameters)
 {
+    mem_thread_set_heap(&mem_heaps[HEAP_LOWPRIO]);
+    
     for (;;)
     {
         xSemaphoreTake(_qemu_sem, portMAX_DELAY);

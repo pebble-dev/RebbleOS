@@ -65,12 +65,14 @@ uint32_t app_heap_bytes_used(void)
 /* Define the available heaps. */
 
 static                     uint8_t _heap_system[MEMORY_SIZE_SYSTEM];
+static                     uint8_t _heap_lowprio[MEMORY_SIZE_LOWPRIO];
 static MEM_REGION_HEAP_OVL uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
 static                     uint8_t _heap_app[MEMORY_SIZE_APP_HEAP];
 static MEM_REGION_HEAP_WRK uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
 
 struct mem_heap mem_heaps[HEAP_MAX] = {
     [HEAP_SYSTEM]  = { _heap_system,  MEMORY_SIZE_SYSTEM },
+    [HEAP_LOWPRIO] = { _heap_lowprio, MEMORY_SIZE_LOWPRIO },
     [HEAP_OVERLAY] = { _heap_overlay, MEMORY_SIZE_OVERLAY_HEAP },
     [HEAP_APP]     = { _heap_app,     MEMORY_SIZE_APP_HEAP },
     [HEAP_WORKER]  = { _heap_worker,  MEMORY_SIZE_WORKER_HEAP } 
@@ -78,6 +80,7 @@ struct mem_heap mem_heaps[HEAP_MAX] = {
 
 void mem_init() {
     mem_heap_init(&mem_heaps[HEAP_SYSTEM]);
+    mem_heap_init(&mem_heaps[HEAP_LOWPRIO]);
 }
 
 void mem_heap_init(struct mem_heap *heap) {

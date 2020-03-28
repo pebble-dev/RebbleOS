@@ -180,6 +180,8 @@ void bluetooth_tx_complete_from_isr(void)
  */
 static void _bt_thread(void *pvParameters)
 {
+    mem_thread_set_heap(&mem_heaps[HEAP_LOWPRIO]);
+    
     /* We are blocked here while bluetooth further delegates a runloop */
     hw_bluetooth_init();
 
