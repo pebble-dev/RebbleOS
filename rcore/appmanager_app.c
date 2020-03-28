@@ -14,7 +14,7 @@
 #include "notification.h"
 #include "test_defs.h"
 #include "node_list.h"
-#include "blobdb.h"
+#include "rdb.h"
 
 static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
@@ -59,7 +59,7 @@ struct appdb
 
 typedef struct appdb_n
 {
-//     uint32_t application_id; this is the blobdb key
+//     uint32_t application_id; this is the rdb key
     Uuid app_uuid;  // 16 bytes
     uint32_t flags; /* pebble_process_info.h, PebbleProcessInfoFlags in the SDK */
     uint32_t icon;
@@ -86,7 +86,7 @@ void appmanager_app_loader_init()
 {
     struct file empty = { 0, 0, 0 }; /* TODO: make files optional in `App` to avoid this */
     
-    /* XXX: We need to completely clear the app manifest each time we reload the blobdb, really. */
+    /* XXX: We need to completely clear the app manifest each time we reload the rdb, really. */
     
     /* add the baked in apps */
     _appmanager_add_to_manifest(_appmanager_create_app("System", 
@@ -169,24 +169,24 @@ static void _appmanager_flash_load_app_manifest_n(void)
     list_head head;
     list_init_head(&head);
     
-    struct blobdb_database *db = blobdb_open(BlobDatabaseID_App);
-    struct blobdb_iter it;
-    if (blobdb_iter_start(db, &it) == 0)
+    struct rdb_database *db = rdb_open(RDB_ID_APP);
+    struct rdb_iter it;
+    if (rdb_iter_start(db, &it) == 0)
         return;
     
     int zero = 0;
-    struct blobdb_selector selectors[] = {
-        { offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), Blob_Result },
-        { offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), Blob_Result },
+    struct rdb_selector selectors[] = {
+        { offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), RDB_OP_RESULT },
+        { offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), RDB_OP_RESULT },
         { }
     };
-    int count = blobdb_select(&it, &head, selectors);
+    int count = rdb_select(&it, &head, selectors);
     
-    blobdb_close(db);
+    rdb_close(db);
     
-    struct blobdb_select_result *res;
+    struct rdb_select_result *res;
     KERN_LOG("app", APP_LOG_LEVEL_ERROR, "found %d apps", count);
-    blobdb_select_result_foreach(res, &head) {
+    rdb_select_result_foreach(res, &head) {
         uint32_t appid = *(uint32_t *)res->key;
         
         /* does it have a file? */
@@ -213,7 +213,7 @@ static void _appmanager_flash_load_app_manifest_n(void)
                                                            hasapp ? &appfile : NULL,
                                                            hasres ? &resfile : NULL));
     }
-    blobdb_select_free_all(&head);
+    rdb_select_free_all(&head);
 }
 
 /*
