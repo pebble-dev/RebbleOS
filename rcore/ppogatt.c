@@ -38,11 +38,11 @@
 #include <debug.h>
 #include "platform.h"
 #include "FreeRTOS.h"
+#include "rebble_memory.h"
 #include "task.h" /* xTaskCreate */
 #include "queue.h" /* xQueueCreate */
 #include "log.h" /* KERN_LOG */
 #include "rbl_bluetooth.h"
-#include "minilib.h"
 
 #ifdef BLUETOOTH_IS_BLE
 
