@@ -160,7 +160,6 @@ void protocol_process_transfer(const RebblePacket packet)
                 LOG_ERROR("Couldn't create %s!", buf);
                 goto error;
             }
-            fs_mark_written(&_fd);
             _send_ack(0);
             break;
             
@@ -214,6 +213,7 @@ void protocol_process_transfer(const RebblePacket packet)
                 goto error;
             }
 
+            fs_mark_written(&_fd);
             LOG_DEBUG("CRC %x valid", crc);
             
             _send_ack(_cookie);
