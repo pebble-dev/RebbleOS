@@ -325,8 +325,8 @@ static void _appmanager_thread_state_update(uint32_t app_id, uint8_t thread_id, 
                 protocol_app_fetch_request(&app->uuid, app->id);
                 _this_thread->status = AppThreadDownloading;
                 
-                notification_progress *prog = system_calloc(1, sizeof(notification_progress));
-                event_service_post(EventServiceCommandProgress, prog, (void *)system_free);
+                notification_progress *prog = calloc(1, sizeof(notification_progress));
+                event_service_post(EventServiceCommandProgress, prog, (void *)remote_free);
                 
                 LOG_INFO("Requesting App from host %x", app);
                 return;

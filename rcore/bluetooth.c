@@ -213,7 +213,7 @@ static void _bt_cmd_thread(void *pvParameters)
                 BT_LOG("BT", APP_LOG_LEVEL_ERROR, "Timed out sending!");
 
             /* XXX ugh, should be using a better dynamic pool of memory not sys malloc */
-            system_free(pkt.data);
+            free(pkt.data);
         }
     }
 }
@@ -243,7 +243,7 @@ void bluetooth_send_async(uint8_t *data, size_t len, tx_complete_callback cb)
         return;
     
     /* XXX ugh, should be using a better dynamic pool of memory not sys malloc */
-    uint8_t *ndata = system_malloc(len);
+    uint8_t *ndata = malloc(len);
     assert(ndata && "Well that will teach you for letting me abuse malloc. Fix this code");
     memcpy(ndata, data, len);
     
