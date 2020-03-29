@@ -49,7 +49,7 @@ void window_ctor(Window *window)
     window->frame = frame;
     window->root_layer = layer_create(bounds);
     window->root_layer->window = window;
-    window->background_color = GColorWhite;
+    window->background_color = GColorBlack;
     window->load_state = WindowLoadStateUnloaded;
     SYS_LOG("window", APP_LOG_LEVEL_INFO, "CTOR");
 }
