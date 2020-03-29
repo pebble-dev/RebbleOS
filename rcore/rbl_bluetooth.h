@@ -30,6 +30,9 @@ bool bluetooth_is_device_connected(void);
 void bluetooth_enable(void);
 bool bluetooth_is_enabled(void);
 
+const char *hw_bluetooth_name();
+void hw_bluetooth_advertising_visible(int vis);
+
 #ifdef BLUETOOTH_IS_BLE
 void ppogatt_init(void);
 

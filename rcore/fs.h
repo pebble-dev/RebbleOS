@@ -34,6 +34,7 @@ enum seek {
 };
 
 void fs_init();
+int fs_format();
 int fs_find_file(struct file *file, const char *name);
 void fs_file_from_file(struct file *file, const struct file *from, size_t offset, size_t len);
 void fs_file_from_flash(struct file *file, size_t addr, size_t len);
