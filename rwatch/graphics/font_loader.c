@@ -38,16 +38,14 @@ void fonts_resetcache()
     KERN_LOG("font", APP_LOG_LEVEL_DEBUG, "Purging fonts");
     switch (appmanager_get_thread_type())
     {
-    case AppThreadMainApp: cachep = &_app_font_cache; break;
-    case AppThreadOverlay: cachep = &_ovl_font_cache; break;
+    case AppThreadMainApp: _app_font_cache = NULL; break;
+    case AppThreadOverlay: _ovl_font_cache = NULL; break;
     default:
         KERN_LOG("font", APP_LOG_LEVEL_ERROR, "Why you need fonts?");
         return;
     }
     
-    struct GFontCache *ent = *cachep;
-    *cachep = NULL;
-    
+    _fonts_glyphcache_reset();
     /* We don't walk the chain of fonts deallocating them because we presume
      * that they got blown away along with the rest of the heap.  */
 }
