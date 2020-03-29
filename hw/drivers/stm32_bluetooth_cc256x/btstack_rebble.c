@@ -480,3 +480,12 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             break;
     }
 }
+
+const char *hw_bluetooth_name() {
+    return BLUETOOTH_MODULE_GAP_NAME;
+}
+
+void hw_bluetooth_advertising_visible(int vis) {
+    /* XXX: not yet implemented */
+    SYS_LOG("BT", APP_LOG_LEVEL_ERROR, "NYI: hw_bluetooth_advertising_visible(%d)", vis);
+}

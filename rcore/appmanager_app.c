@@ -82,6 +82,8 @@ void appmanager_app_loader_init_n()
 /*
  * Load any pre-existing apps into the manifest, search for any new ones and then start up
  */
+extern void settings_main();
+
 void appmanager_app_loader_init()
 {
     struct file empty = { 0, 0, 0 }; /* TODO: make files optional in `App` to avoid this */
@@ -105,6 +107,9 @@ void appmanager_app_loader_init()
     _appmanager_add_to_manifest(_appmanager_create_app("TestApp", 
                                                        NULL, 9995, 
                                                        AppTypeSystem, testapp_main, true, &empty, &empty));
+    _appmanager_add_to_manifest(_appmanager_create_app("Settings", 
+                                                       NULL, 9996, 
+                                                       AppTypeSystem, settings_main, true, &empty, &empty));
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();

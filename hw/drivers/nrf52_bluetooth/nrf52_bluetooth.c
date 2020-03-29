@@ -33,18 +33,12 @@
 NRF_BLE_GATT_DEF(_gatt);
 BLE_DB_DISCOVERY_DEF(_disc);
 
-static uint8_t _adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
-static uint8_t _advdata_buf[BLE_GAP_ADV_SET_DATA_SIZE_MAX];
-static uint8_t _srdata_buf[BLE_GAP_ADV_SET_DATA_SIZE_MAX];
-static ble_gap_adv_data_t _advdata = {
-    .adv_data = { .p_data = _advdata_buf, .len = sizeof(_advdata_buf) },
-    .scan_rsp_data = { .p_data = _srdata_buf, .len = sizeof(_srdata_buf) },
-};
 
 int sfmt(char *buf, unsigned int len, const char *ifmt, ...);
 static uint8_t _name_buf[] = "Pebble Asterix LE xxxx";
 
-void _ppogatt_init();
+static void _ppogatt_init();
+static void _advertising_init();
 
 uint8_t hw_bluetooth_init() {
     ret_code_t rv;
@@ -100,19 +94,58 @@ uint8_t hw_bluetooth_init() {
     _ppogatt_init();
     
     /* Set up advertising data. */
+    _advertising_init();
+
+    /* Should set up conn params to save battery, conn_params_init in the sample */
+    
+    /* And turn on advertising! */
+    
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "advertising as \"%s\"", (char *)_name_buf);
+    
+    bluetooth_init_complete(INIT_RESP_OK);
+    
+    return 0;
+}
+
+/***** Advertising enable and disable *****/
+
+static uint8_t _adv_handle = BLE_GAP_ADV_SET_HANDLE_NOT_SET;
+static uint8_t _advdata_buf[BLE_GAP_ADV_SET_DATA_SIZE_MAX];
+static uint8_t _srdata_buf[BLE_GAP_ADV_SET_DATA_SIZE_MAX];
+static ble_gap_adv_data_t _advdata = {
+    .adv_data = { .p_data = _advdata_buf, .len = sizeof(_advdata_buf) },
+    .scan_rsp_data = { .p_data = _srdata_buf, .len = sizeof(_srdata_buf) },
+};
+
+static void _advertising_init() {
+    hw_bluetooth_advertising_visible(0);
+}
+
+const char *hw_bluetooth_name() {
+    return (const char *)_name_buf;
+}
+
+void hw_bluetooth_advertising_visible(int vis) {
     ble_advdata_t advdata;
     ble_advdata_t srdata;
     ble_advdata_manuf_data_t manufdata;
+    int rv;
+    
+    if (_adv_handle != BLE_GAP_ADV_SET_HANDLE_NOT_SET) {
+        sd_ble_gap_adv_stop(_adv_handle);
+    }
     
     memset(&advdata, 0, sizeof(advdata));
-    advdata.name_type = BLE_ADVDATA_FULL_NAME;
-    advdata.include_appearance = 1;
+    _advdata.adv_data.len = sizeof(_advdata_buf);
+    advdata.name_type = vis ? BLE_ADVDATA_FULL_NAME : BLE_ADVDATA_NO_NAME;
+    advdata.include_appearance = vis ? 1 : 0;
     advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
     rv = ble_advdata_encode(&advdata, _advdata.adv_data.p_data, &_advdata.adv_data.len);
     assert(rv == NRF_SUCCESS && "ble_advdata_encode(advdata)");
 
     ble_uuid_t adv_uuids[] = {{0xFED9, BLE_UUID_TYPE_BLE}};
     memset(&srdata, 0, sizeof(srdata));
+    _advdata.scan_rsp_data.len = sizeof(_srdata_buf);
     srdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
     srdata.uuids_complete.p_uuids = adv_uuids;
     manufdata.company_identifier = 0x0154 /* Pebble Technology */;
@@ -127,28 +160,18 @@ uint8_t hw_bluetooth_init() {
     memset(&advparams, 0, sizeof(advparams));
     advparams.primary_phy = BLE_GAP_PHY_1MBPS;
     advparams.duration = BLE_GAP_ADV_TIMEOUT_GENERAL_UNLIMITED;
-    advparams.properties.type = BLE_GAP_ADV_TYPE_CONNECTABLE_SCANNABLE_UNDIRECTED;
+    advparams.properties.type = /* vis ? */ BLE_GAP_ADV_TYPE_CONNECTABLE_SCANNABLE_UNDIRECTED /*: BLE_GAP_ADV_TYPE_CONNECTABLE_NONSCANNABLE_DIRECTED */;
     advparams.p_peer_addr = NULL;
-    advparams.filter_policy = BLE_GAP_ADV_FP_ANY;
-    advparams.interval = 64; /* 40ms */
+    advparams.filter_policy = /* vis ? */ BLE_GAP_ADV_FP_ANY /* : BLE_GAP_ADV_FP_FILTER_BOTH */; /* XXX: Later, whitelist things that can try to connect. */
+    advparams.interval = vis ? 64 /* 40ms */ : 800 /* 500ms */;
     rv = sd_ble_gap_adv_set_configure(&_adv_handle, &_advdata, &advparams);
     assert(rv == NRF_SUCCESS && "sd_ble_gap_adv_set_configure");
     
-    /* Should set up conn params to save battery, conn_params_init in the sample */
-    
-    /* And turn on advertising! */
     rv = sd_ble_gap_adv_start(_adv_handle, CONN_TAG);
     assert(rv == NRF_SUCCESS && "sd_ble_gap_adv_start");
-    
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "advertising as \"%s\"", (char *)_name_buf);
-    
-    bluetooth_init_complete(INIT_RESP_OK);
-    
-    return 0;
 }
 
 /***** Pairing and PPoGATT handling *****/
-
 
 /* PPoGATT protocol notes:
  *
@@ -451,7 +474,7 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
 }
 
 /* On-boot PPoGATT setup (adds GATT server on watch side). */
-void _ppogatt_init() {
+static void _ppogatt_init() {
     ret_code_t rv;
     /* UUID: 30000003-328e-0fbb-c642-1aa6699bdada */
     /*   characteristics: 0004, 0005, 0006 */
