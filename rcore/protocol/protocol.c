@@ -78,10 +78,6 @@ uint8_t *protocol_get_rx_buffer(void)
     return _rx_buffer;
 }
 
-#define BUFFER_OK   0
-#define BUFFER_FULL 1
-
-
 static void _is_rx_buf_expired(void)
 {
     if (!_buf_ptr)
@@ -94,10 +90,10 @@ static void _is_rx_buf_expired(void)
     }
 }
 
-uint8_t protocol_rx_buffer_append(uint8_t *data, size_t len)
+int protocol_rx_buffer_append(uint8_t *data, size_t len)
 {
     if (_buf_ptr + len > RX_BUFFER_SIZE)
-        return BUFFER_FULL;
+        return PROTOCOL_BUFFER_FULL;
 
     _is_rx_buf_expired();
     _last_rx = xTaskGetTickCount();
@@ -105,10 +101,20 @@ uint8_t protocol_rx_buffer_append(uint8_t *data, size_t len)
 
     _buf_ptr += len;
 
-    return 0;
+    return PROTOCOL_BUFFER_OK;
 }
 
-uint16_t protocol_get_rx_buf_size(void)
+size_t protocol_get_rx_buf_size(void)
+{
+    return RX_BUFFER_SIZE;
+}
+
+size_t protocol_get_rx_buf_free(void)
+{
+    return RX_BUFFER_SIZE - _buf_ptr;
+}
+
+size_t protocol_get_rx_buf_used(void)
 {
     return _buf_ptr;
 }
@@ -125,11 +131,19 @@ void protocol_rx_buffer_release(uint16_t len)
     _buf_ptr += len;
 }
 
-void protocol_rx_buffer_consume(uint16_t len)
+int protocol_rx_buffer_consume(uint16_t len)
 {
     _last_rx = xTaskGetTickCount();
-    memmove(_rx_buffer, _rx_buffer + len, _buf_ptr - len);
-    _buf_ptr -= len;
+    uint16_t mv = _buf_ptr - len < 0 ? _buf_ptr : len;
+    memmove(_rx_buffer, _rx_buffer + mv, _buf_ptr - mv);
+    _buf_ptr -= mv;
+
+    return mv;
+}
+
+void protocol_rx_buffer_reset(void)
+{
+    _buf_ptr = 0;
 }
 
 ProtocolTransportSender protocol_get_current_transport_sender()
@@ -143,7 +157,7 @@ ProtocolTransportSender protocol_get_current_transport_sender()
  * 
  * Returns false when done or on completion errors
  */
-bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport)
+int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport)
 {
     uint16_t pkt_length = (data[0] << 8) | (data[1] & 0xff);
     uint16_t pkt_endpoint = (data[2] << 8) | (data[3] & 0xff);
@@ -153,23 +167,23 @@ bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoc
     LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
     
     if (_buf_ptr < 4) /* not enough data to parse a header */
-        return false;
+        return PACKET_MORE_DATA_REQD;
 
     /* done! (usually) */
     if (pkt_length == 0)
-        return false;
+        return PACKET_PROCESSED;
 
     /* Seems sensible */
     if (pkt_length > RX_BUFFER_SIZE)
     {
         LOG_ERROR("RX: payload length %d. Seems suspect!", pkt_length);
-        return false;
+        return PACKET_INVALID;
     }
 
     if (_buf_ptr < pkt_length + 4)
     {
         LOG_INFO("RX: Partial. Still waiting for %d bytes", (pkt_length + 4) - _buf_ptr);
-        return false;
+        return PACKET_MORE_DATA_REQD;
     }
 
     LOG_INFO("RX: packet is complete %x", transport);
@@ -180,15 +194,22 @@ bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoc
     packet->data = data + 4;
     packet->transport_sender = transport;
 
-    return true;
+    return PACKET_PROCESSED;
 }
 
 /* 
  * Given a packet, process it and call the relevant function
  */
-void protocol_process_packet(const RebblePacket packet)
+int protocol_process_packet(const RebblePacket packet)
 {
-    protocol_service_rx_data(packet);
+    EndpointHandler handler = protocol_find_endpoint_handler(packet_get_endpoint(packet), protocol_get_pebble_endpoints());
+    if (handler == NULL)
+    {
+        return PACKET_INVALID;
+    }
+
+    handler(packet);
+    return PACKET_PROCESSED;
 }
 
 /*
@@ -200,6 +221,7 @@ void protocol_send_packet(const RebblePacket packet)
     uint16_t endpoint = packet_get_endpoint(packet);
 
     LOG_DEBUG("TX protocol: e:%d l %d", endpoint, len);
+    _last_transport_used = packet_get_transport(packet);
 
     packet_send_to_transport(packet, endpoint, packet_get_data(packet), len);
 }

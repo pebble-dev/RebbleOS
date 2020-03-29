@@ -68,8 +68,9 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     pcol_blob_db_insert *iblob = (pcol_blob_db_insert *)blob;
     void *val_sz_start = (void *)blob + sizeof(pcol_blob_db_key) + blob->key_size;
     uint8_t val_sz = *((uint8_t *)val_sz_start);
+    int key_size = blob->key_size;
 
-    printf("  ValueSize: %d, %d\n", val_sz, blob->key_size);
+    printf("  ValueSize: %d, %d\n", val_sz, key_size);
     void *val_start = val_sz_start + sizeof(iblob->value_size);
 
     /* Pre-process */
@@ -78,7 +79,7 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
         /* Apps keys are the app id. Get one and monkey with the key */
         uint32_t newappid = appmanager_get_next_appid();
         memcpy(blob->key, &newappid, 4);
-        blob->key_size = 4;
+        key_size = 4;
     }
         
     /* insert to database */
@@ -86,11 +87,12 @@ uint8_t blob_insert(pcol_blob_db_key *blob)
     if (!db)
         return Blob_InvalidDatabaseID;
     
-    int rv = rdb_insert(db, blob->key, blob->key_size, val_start, val_sz);
-    if (rv != Blob_Success)
-        return rv;
+    int rv = rdb_insert(db, blob->key, key_size, val_start, val_sz);
     
     rdb_close(db);
+
+    if (rv != Blob_Success)
+        return rv;
 
     return blob_process((pcol_blob_db_key *)&blob->blobdb, val_start, val_sz);
 }
@@ -127,9 +129,8 @@ void protocol_process_blobdb(const RebblePacket packet)
     pcol_blob_db_response response;
     response.token = blob->blobdb.token;
     response.response = ret;
-    SYS_LOG("pblob", APP_LOG_LEVEL_INFO, "Done: Send Response: token %d, %d\n", response.token, response.response);
+    SYS_LOG("pblob", APP_LOG_LEVEL_ERROR, "Done: Send Response: token %d, %d\n", response.token, response.response);
 
     /* Reply back with the cookie */
-    rebble_protocol_send(packet_get_endpoint(packet), (void *)&response, sizeof(pcol_blob_db_response));
-    packet_destroy(packet);
+    packet_reply(packet, (void *)&response, sizeof(pcol_blob_db_response));
 }

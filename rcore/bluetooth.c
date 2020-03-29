@@ -141,7 +141,7 @@ void bluetooth_data_rx(uint8_t *data, size_t len)
     RebblePacketDataHeader header;
     protocol_rx_buffer_append(data, len);
     
-    while (protocol_get_rx_buf_size() > 0) {           
+    while (protocol_get_rx_buf_used() > 0) {           
         if (!protocol_parse_packet(protocol_get_rx_buffer(), &header, bluetooth_send_data))
             return; /* Packet is incomplete */
 
@@ -151,6 +151,7 @@ void bluetooth_data_rx(uint8_t *data, size_t len)
         uint8_t *newdata = packet_get_data(packet);
         memcpy(newdata, header.data, header.length);
         protocol_process_packet(packet);
+        packet_destroy(packet);
     
         protocol_rx_buffer_consume(header.length + sizeof(RebblePacketHeader));
     }
