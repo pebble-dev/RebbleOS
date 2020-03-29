@@ -171,8 +171,10 @@ static void _appmanager_flash_load_app_manifest_n(void)
     
     struct rdb_database *db = rdb_open(RDB_ID_APP);
     struct rdb_iter it;
-    if (rdb_iter_start(db, &it) == 0)
+    if (rdb_iter_start(db, &it) == 0) {
+        rdb_close(db);
         return;
+    }
     
     int zero = 0;
     struct rdb_selector selectors[] = {
