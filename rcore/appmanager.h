@@ -160,11 +160,9 @@ typedef struct app_running_thread_t {
     TaskHandle_t task_handle;
     StaticTask_t static_task;
     size_t stack_size;
-    size_t heap_size;
     StackType_t *stack;
-    uint8_t *heap;
     struct CoreTimer *timer_head;
-    qarena_t *arena;
+    struct mem_heap *heap;
     struct n_GContext *graphics_context;
 } app_running_thread;
 
@@ -185,10 +183,6 @@ void appmanager_execute_app(app_running_thread *thread, uint32_t total_app_size)
 app_running_thread *appmanager_get_thread(AppThreadType type);
 app_running_thread *appmanager_get_threads(void);
 AppThreadType appmanager_get_thread_type(void);
-
-#ifdef REBBLEOS_TESTING
-void appmanager_test_become_thread(AppThreadType me);
-#endif
 
 /* in appmanager_app_runloop.c */
 void appmanager_app_runloop_init(void);

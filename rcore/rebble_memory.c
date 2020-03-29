@@ -13,85 +13,154 @@
 #define MODULE_TYPE "KERN"
 #define LOG_LEVEL RBL_LOG_LEVEL_ERROR //RBL_LOG_LEVEL_NONE
 
-void rblos_memory_init(void)
-{
-}
-
-void *system_calloc(size_t count, size_t size)
-{
-    if (!appmanager_is_thread_system())
-        LOG_ERROR("XXX System Calloc. Check who did this");
-
-    void *x = pvPortMalloc(count * size);
-    if (x != NULL)
-        memset(x, 0, count * size);
-    return x;
-}
-
 void *system_malloc(size_t size)
 {
     if (appmanager_is_thread_system())
         LOG_ERROR("XXX System Malloc. Check who did this");
-    return pvPortMalloc(size);
+    return mem_heap_alloc(&mem_heaps[HEAP_SYSTEM], size);
+}
+
+void *system_calloc(size_t sz, size_t n) {
+    void *p = system_malloc(sz * n);
+    if (!p)
+        return NULL;
+    memset(p, 0, sz * n);
+    return p;
+}
+
+void *pvPortMalloc(size_t size) {
+    return system_malloc(size);
 }
 
 void system_free(void *mem)
 {
     if (appmanager_is_thread_system())
         LOG_ERROR("XXX System Free. Check who did this");
-    free(mem);
+    return mem_heap_free(&mem_heaps[HEAP_SYSTEM], mem);
 }
 
-void *app_malloc(size_t size)
-{
-    return app_calloc(1, size);    
+void vPortFree(void *p) {
+    return system_free(p);
 }
 
-void *app_calloc(size_t count, size_t size)
-{
-    app_running_thread *thread = appmanager_get_current_thread();
-    assert(thread && "invalid thread");
-    void *x = qalloc(thread->arena, count * size);
-    if (x == NULL)
-    {
-        LOG_ERROR("!!! NO MEM!\n");
-        return NULL;
-    }
-
-    memset(x, 0, count * size);
-    return x;
-}
-
-void app_free(void *mem)
-{
-    LOG_DEBUG("Free 0x%x", mem);
-    app_running_thread *thread = appmanager_get_current_thread();
-    qfree(thread->arena, mem);
-}
-
-void *app_realloc(void *mem, size_t new_size)
-{
-    app_running_thread *thread = appmanager_get_current_thread();
-    assert(thread && "invalid thread");
-
-    return qrealloc(thread->arena, mem, new_size);
-}
 
 uint32_t app_heap_bytes_free(void)
 {
-    app_running_thread *thread = appmanager_get_current_thread();
-    assert(thread && "invalid thread");
+    assert(mem_thread_get_heap());
 
-    uint32_t free_bytes = qfreebytes(thread->arena);
-
-    return free_bytes;
+    assert(mem_thread_get_heap()->arena); /* XXX: lock */
+    return qfreebytes(mem_thread_get_heap()->arena);
 }
 
 uint32_t app_heap_bytes_used(void)
 {
-    app_running_thread *thread = appmanager_get_current_thread();
-    assert(thread && "invalid thread");
+    assert(mem_thread_get_heap());
 
-    return qusedbytes(thread->arena);
+    assert(mem_thread_get_heap()->arena); /* XXX: lock */
+    return qusedbytes(mem_thread_get_heap()->arena);
 }
 
+/* Thread-local heap implementation. */
+
+/* Define the available heaps. */
+
+static                     uint8_t _heap_system[MEMORY_SIZE_SYSTEM];
+static                     uint8_t _heap_lowprio[MEMORY_SIZE_LOWPRIO];
+static MEM_REGION_HEAP_OVL uint8_t _heap_overlay[MEMORY_SIZE_OVERLAY_HEAP];
+static                     uint8_t _heap_app[MEMORY_SIZE_APP_HEAP];
+static MEM_REGION_HEAP_WRK uint8_t _heap_worker[MEMORY_SIZE_WORKER_HEAP];
+
+struct mem_heap mem_heaps[HEAP_MAX] = {
+    [HEAP_SYSTEM]  = { _heap_system,  MEMORY_SIZE_SYSTEM },
+    [HEAP_LOWPRIO] = { _heap_lowprio, MEMORY_SIZE_LOWPRIO },
+    [HEAP_OVERLAY] = { _heap_overlay, MEMORY_SIZE_OVERLAY_HEAP },
+    [HEAP_APP]     = { _heap_app,     MEMORY_SIZE_APP_HEAP },
+    [HEAP_WORKER]  = { _heap_worker,  MEMORY_SIZE_WORKER_HEAP } 
+};
+
+void mem_init() {
+    mem_heap_init(&mem_heaps[HEAP_SYSTEM]);
+    mem_heap_init(&mem_heaps[HEAP_LOWPRIO]);
+}
+
+void mem_heap_init(struct mem_heap *heap) {
+    memset(heap->start, 0, heap->size);
+    heap->mutex = xSemaphoreCreateMutexStatic(&heap->mutex_buf);
+    heap->arena = qinit(heap->start, heap->size);
+}
+
+void *mem_heap_alloc(struct mem_heap *heap, size_t newsz) {
+    return mem_heap_realloc(heap, NULL, newsz);
+}
+
+void *mem_heap_realloc(struct mem_heap *heap, void *p, size_t newsz) {
+    assert(heap->arena);
+    
+    xSemaphoreTake(heap->mutex, portMAX_DELAY);
+    void *rp = qrealloc(heap->arena, p, newsz);
+    xSemaphoreGive(heap->mutex);
+
+    return rp;
+}
+
+void mem_heap_free(struct mem_heap *heap, void *p) {
+    assert(heap->arena);
+    
+    xSemaphoreTake(heap->mutex, portMAX_DELAY);
+    qfree(heap->arena, p);
+    xSemaphoreGive(heap->mutex);
+}
+
+void mem_thread_set_heap(struct mem_heap *heap) {
+    vTaskSetThreadLocalStoragePointer(NULL /* this task */, FREERTOS_TLS_CUR_HEAP, heap);
+}
+
+struct mem_heap *mem_thread_get_heap() {
+    return pvTaskGetThreadLocalStoragePointer(NULL /* this task */, FREERTOS_TLS_CUR_HEAP);
+}
+
+/* Wrappers to "magically allocate" on the correct heap. */
+
+static struct mem_heap *_heap_or_system() {
+    struct mem_heap *heap = mem_thread_get_heap();
+    if (!heap)
+        return &mem_heaps[HEAP_SYSTEM];
+    return heap;
+}
+
+static struct mem_heap *_heap_for_pointer(void *p) {
+    for (int i = 0; i < HEAP_MAX; i++)
+        if ((p >= mem_heaps[i].start) && (p <= (mem_heaps[i].start + mem_heaps[i].size)))
+            return &mem_heaps[i];
+    return NULL;
+}
+
+static void *_realloc(void *p, size_t new_size, int remote) {
+    struct mem_heap *heap = _heap_or_system();
+    if (p) {
+        struct mem_heap *pheap = _heap_for_pointer(p);
+        assert(pheap && "allocation operation on pointer that did not come from an alloc");
+        assert(((pheap == heap) || remote) && "allocation operation on pointer from remote heap without acknowledging it first");
+        heap = pheap;
+    }
+    
+    if (!new_size) {
+        mem_heap_free(heap, p);
+        return NULL;
+    } else
+        return mem_heap_realloc(heap, p, new_size);
+}
+
+void *malloc(size_t sz) { return _realloc(NULL, sz, 0); }
+void *realloc(void *p, size_t new_size) { return  _realloc(p, new_size, 0); }
+void *remote_realloc(void *p, size_t new_size) { return  _realloc(p, new_size, 1); }
+void free(void *p) { _realloc(p, 0, 0); }
+void remote_free(void *p) { _realloc(p, 0, 1); }
+
+void *calloc(size_t sz, size_t n) {
+    void *p = malloc(sz * n);
+    if (!p)
+        return NULL;
+    memset(p, 0, sz * n);
+    return p;
+}

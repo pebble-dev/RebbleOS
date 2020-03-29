@@ -40,7 +40,7 @@ bool _resource_is_sane(ResHandleFileHeader *res_handle)
     app_running_thread *_this_thread = appmanager_get_current_thread();
     App *_running_app = _this_thread->app;
     uint32_t total_app_size = &_running_app->header->app_size;
-    uint32_t app_heap_size = _this_thread->heap_size - total_app_size;
+    uint32_t app_heap_size = app_heap_bytes_free();
 
 
     if (sz <= 0)

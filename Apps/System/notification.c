@@ -16,7 +16,7 @@
 #include "menu.h"
 #include "timeline.h"
 #include "notification_manager.h"
-#include "blobdb.h"
+#include "rdb.h"
 
 static NotificationLayer* _notif_layer;
 static Window* _notif_window;
@@ -89,24 +89,24 @@ static void _notif_window_load(Window *window)
 
     menu_set_click_config_onto_window(s_menu, window);
 
-    blobdb_select_result_list head;
+    rdb_select_result_list head;
     list_init_head(&head);
     
-    struct blobdb_database *db = blobdb_open(BlobDatabaseID_Notification);
-    struct blobdb_iter it;
-    if (blobdb_iter_start(db, &it)) {
-        struct blobdb_selector selectors[] = { { } };
-        int n = blobdb_select(&it, &head, selectors);
+    struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
+    struct rdb_iter it;
+    if (rdb_iter_start(db, &it)) {
+        struct rdb_selector selectors[] = { { } };
+        int n = rdb_select(&it, &head, selectors);
         APP_LOG("noty", APP_LOG_LEVEL_INFO, "%d items from select", n);
     }
 
     int nmsgs = 0;
-    struct blobdb_select_result *res;
-    blobdb_select_result_foreach(res, &head) {
+    struct rdb_select_result *res;
+    rdb_select_result_foreach(res, &head) {
         nmsgs++;
     }
 
-    blobdb_select_free_all(&head);
+    rdb_select_free_all(&head);
 
     if (!nmsgs) {
         items = menu_items_create(1);
@@ -115,7 +115,7 @@ static void _notif_window_load(Window *window)
         return;
     }
     
-    blobdb_close(db);
+    rdb_close(db);
 
     items = menu_items_create(nmsgs);
 //     rebble_notification *msg;
