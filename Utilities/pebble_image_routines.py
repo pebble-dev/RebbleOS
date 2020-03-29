@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# This file came from the Pebble SDK; its copyright is held by the Pebble
+# Technology Corporation, or its successors.
+
 import math
 
 # This module contains common image and color routines used to convert images

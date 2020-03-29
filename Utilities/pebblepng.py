@@ -1,5 +1,7 @@
-# Copyright Pebble inc.
 #!/usr/bin/env python
+
+# This file came from the Pebble SDK; its copyright is held by the Pebble
+# Technology Corporation, or its successors.
 
 import png
 import itertools
