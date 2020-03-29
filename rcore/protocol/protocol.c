@@ -227,21 +227,120 @@ void protocol_send_packet(const RebblePacket packet)
 }
 
 
+#ifdef REBBLEOS_TESTING
+#include "test.h"
+extern const PebbleEndpoint qemu_endpoints[];
+uint8_t _test_reply_buf[32];
 
-uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf)
-{
-    uint8_t len = (uint8_t)source_buf[0];
-    /* Byte by byte copy the src to the dest */
-    for(int i = 0; i < len; i++)
-        result_buf[i] = source_buf[i+1];
+TEST(protocol_basic) {
+    uint8_t buf = 0;
+    protocol_rx_buffer_reset();
+
+    LOG_INFO("protocol test buffer greedy");
+    if (protocol_rx_buffer_append(&buf, 1) == PROTOCOL_BUFFER_OK) {
+        int mv = protocol_rx_buffer_consume(2);
+        if (protocol_rx_buffer_consume(2) != 0) {
+            LOG_ERROR("failed to append 1 remove 2 %d", mv);
+            goto fail;
+        }
+
+        protocol_rx_buffer_reset();
+    }
     
-    /* and null term it */
-    result_buf[len] = 0;
+    LOG_INFO("protocol test buffer fill");
+    int remaining = protocol_get_rx_buf_size();
+    while (remaining) {        
+        buf = remaining % 0xFF;
+        if (protocol_rx_buffer_append((uint8_t *)&buf, 1) != PROTOCOL_BUFFER_OK) {
+            LOG_ERROR("Could not append byte %d, %d", buf, _buf_ptr);
+            goto fail;
+        }
+        remaining--;
+    }
+
+    LOG_INFO("protocol test buffer overfill");
+    if (protocol_get_rx_buf_used() != protocol_get_rx_buf_size()) {
+        LOG_ERROR("Buffer not full after fill");
+        goto fail;
+    }
+    buf = 1;
+    if (protocol_rx_buffer_append(&buf, 1) != PROTOCOL_BUFFER_FULL) {
+        LOG_ERROR("Buffer should be full %d, %d", buf, _buf_ptr);
+        goto fail;
+    }
+
+    LOG_INFO("protocol test buffer consume");
+    protocol_rx_buffer_consume(8);
+    uint8_t *pbuf = protocol_get_rx_buffer();
+
+    if (protocol_get_rx_buf_used() + 8 != protocol_get_rx_buf_size()) {
+        LOG_ERROR("Buffer used invalid");
+        goto fail;
+    }
+
+    if (pbuf[0] != 0 && pbuf[1] != 254) {
+        LOG_ERROR("Buffer contents(%d) invalid", pbuf[0]);
+        goto fail;
+    }
     
-    return len + 1;
+   
+    *artifact = 0;
+    return TEST_PASS;
+
+fail:
+    protocol_rx_buffer_reset();
+    return TEST_FAIL;
 }
 
-uint8_t pascal_strlen(char *str)
-{
-    return (uint8_t)str[0];
+TEST(protocol_packet) {
+    uint8_t *pbuf = protocol_get_rx_buffer();
+    uint8_t pacbuf[5];
+    
+    LOG_INFO("protocol test time message");
+    protocol_rx_buffer_reset();
+    RebblePacketDataHeader hdr = {
+        .length = htons(1),
+        .endpoint = htons(WatchProtocol_Time),
+    };
+
+    protocol_rx_buffer_append((uint8_t *)&hdr, 4);
+    pacbuf[0] = 0;
+    memset(_test_reply_buf, 0, sizeof(_test_reply_buf));
+    protocol_rx_buffer_append(pacbuf, 1);
+    EndpointHandler handler = protocol_find_endpoint_handler(QemuProtocol_TestsLoopback, qemu_endpoints);
+    assert(handler);
+    RebblePacket p = packet_create_with_data(2, pbuf, 1);
+    handler(p);
+
+    /* test the packet */
+    if (_test_reply_buf[0] != 1) { /* Time Response endpoint */
+        LOG_ERROR("Packet endpoint invalid(%d)", (uint8_t *)_test_reply_buf[0]);
+        return TEST_FAIL;
+    }
+    uint32_t t = *(uint32_t *)&_test_reply_buf[1];
+    if (htonl(t) != (uint32_t)rcore_get_time()) { /* time back */
+        LOG_ERROR("Packet time invalid(%x) now %x", htonl(t), (uint32_t)rcore_get_time());
+        return TEST_FAIL;
+    }
+
+    *artifact = 0;
+    return TEST_PASS;
 }
+
+void test_packet_loopback_sender(uint16_t endpoint, uint8_t *data, uint16_t len)
+{
+    memcpy(_test_reply_buf, data, len);
+    KERN_LOG("test", APP_LOG_LEVEL_INFO, "test RX got %d bytes %x %x %x %x %x", len, data[0], data[1], data[2], data[3], data[4]);
+}
+
+void test_packet_loopback_handler(const RebblePacket packet)
+{
+    ProtocolTransportSender _default_handler = _last_transport_used;
+    
+    KERN_LOG("test", APP_LOG_LEVEL_INFO, "test RX got %d bytes", packet_get_data_length(packet));
+    _last_transport_used = test_packet_loopback_sender;
+    packet_set_transport(packet, test_packet_loopback_sender);
+    spp_handler(packet);
+    _last_transport_used = _default_handler;
+}
+#endif

@@ -183,9 +183,7 @@ static void _appmanager_flash_load_app_manifest_n(void)
         { }
     };
     int count = rdb_select(&it, &head, selectors);
-    
-    rdb_close(db);
-    
+        
     struct rdb_select_result *res;
     KERN_LOG("app", APP_LOG_LEVEL_ERROR, "found %d apps", count);
     rdb_select_result_foreach(res, &head) {
@@ -215,6 +213,7 @@ static void _appmanager_flash_load_app_manifest_n(void)
                                                            hasapp ? &appfile : NULL,
                                                            hasres ? &resfile : NULL));
     }
+    rdb_close(db);
     rdb_select_free_all(&head);
 }
 
