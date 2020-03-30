@@ -33,6 +33,36 @@ bool bluetooth_is_enabled(void);
 const char *hw_bluetooth_name();
 void hw_bluetooth_advertising_visible(int vis);
 
+/* Bonding database access.
+ *
+ * These callbacks come from ISR context, and should return quickly, and
+ * certainly must not block (for instance, as if they were accessing a
+ * database); functionally, this means pushing the requests onto a queue for
+ * a thread to handle.
+ *
+ * The expected sequence is, approximately, as follows:
+ *
+ *  * When a Bluetooth central connects to a Rebble device, the stack calls
+ *    into the get_bond_data callback with an opaque "peer" (which may or
+ *    may not match a MAC address).  If the database contains bond data for
+ *    that "peer", the opaque bond data is (later, not on IRQ context)
+ *    returned in bond_data_available.  If it isn't, then
+ *    bond_data_available is called with a NULL data.
+ *
+ *  * Later, if new bond data are created, then the stack calls into the
+ *    request_bond callback with the name of the peer and with the opaque
+ *    data to be returned next time.  If the UI agrees to bond with this
+ *    device, it stores the bond data, then calls back bond_acknowledge(1);
+ *    otherwise, it calls back bond_acknowledge(0) (or simply does nothing).
+ */
+typedef void (*bt_callback_get_bond_data_t)(const uint8_t *peer, size_t len);
+typedef void (*bt_callback_request_bond_t)(const uint8_t *peer, size_t len, const char *name, const uint8_t *data, size_t datalen);
+
+extern void bt_set_callback_get_bond_data(bt_callback_get_bond_data_t cbk);
+extern void bt_set_callback_request_bond(bt_callback_request_bond_t cbk);
+void hw_bluetooth_bond_data_available(const uint8_t *data, size_t datalen);
+void hw_bluetooth_bond_acknowledge(int accepted);
+
 #ifdef BLUETOOTH_IS_BLE
 void ppogatt_init(void);
 
