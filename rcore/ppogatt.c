@@ -38,11 +38,11 @@
 #include <debug.h>
 #include "platform.h"
 #include "FreeRTOS.h"
+#include "rebble_memory.h"
 #include "task.h" /* xTaskCreate */
 #include "queue.h" /* xQueueCreate */
 #include "log.h" /* KERN_LOG */
 #include "rbl_bluetooth.h"
-#include "minilib.h"
 
 #ifdef BLUETOOTH_IS_BLE
 
@@ -108,6 +108,7 @@ static int pktslost = 0;
 
 static void _ppogatt_rx_main(void *param) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: rx thread awake");
+    mem_thread_set_heap(&mem_heaps[HEAP_LOWPRIO]);
 
     while (1) {
         static struct ppogatt_packet pkt;

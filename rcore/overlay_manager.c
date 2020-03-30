@@ -349,6 +349,8 @@ static void _overlay_thread(void *pvParameters)
     app_running_thread *_this_thread = appmanager_get_current_thread();
     
     SYS_LOG("overlay", APP_LOG_LEVEL_INFO, "Starting overlay thread...");
+    mem_heap_init(&mem_heaps[HEAP_OVERLAY]);
+    mem_thread_set_heap(&mem_heaps[HEAP_OVERLAY]);
 
     _this_thread->status = AppThreadLoaded;
     os_module_init_complete(0);
