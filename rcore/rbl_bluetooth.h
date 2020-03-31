@@ -55,13 +55,13 @@ void hw_bluetooth_advertising_visible(int vis);
  *    device, it stores the bond data, then calls back bond_acknowledge(1);
  *    otherwise, it calls back bond_acknowledge(0) (or simply does nothing).
  */
-typedef void (*bt_callback_get_bond_data_t)(const uint8_t *peer, size_t len);
-typedef void (*bt_callback_request_bond_t)(const uint8_t *peer, size_t len, const char *name, const uint8_t *data, size_t datalen);
+typedef void (*bt_callback_get_bond_data_t)(const void *peer, size_t len);
+typedef void (*bt_callback_request_bond_t)(const void *peer, size_t len, const char *name, const void *data, size_t datalen);
 
 extern void bt_set_callback_get_bond_data(bt_callback_get_bond_data_t cbk);
 extern void bt_set_callback_request_bond(bt_callback_request_bond_t cbk);
-void hw_bluetooth_bond_data_available(const uint8_t *data, size_t datalen);
-void hw_bluetooth_bond_acknowledge(int accepted);
+extern void hw_bluetooth_bond_data_available(const void *data, size_t datalen);
+extern void hw_bluetooth_bond_acknowledge(int accepted);
 
 #ifdef BLUETOOTH_IS_BLE
 void ppogatt_init(void);

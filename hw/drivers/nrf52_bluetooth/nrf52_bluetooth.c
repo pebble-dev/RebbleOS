@@ -7,6 +7,7 @@
 
 #include <debug.h>
 #include "rebbleos.h"
+#include "service.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_ble_gatt.h"
@@ -213,6 +214,9 @@ void hw_bluetooth_advertising_visible(int vis) {
  * the watch, or what the phone would be a client for */
 static uint16_t _bt_conn = BLE_CONN_HANDLE_INVALID;
 
+static bt_callback_get_bond_data_t _bt_get_bond_data;
+static bt_callback_request_bond_t _bt_request_bond;
+
 static ble_uuid_t ppogatt_srv_svc_uuid;
 static ble_uuid_t ppogatt_cli_svc_uuid;
 static ble_uuid_t pebble_metadata_svc_uuid;
@@ -245,12 +249,30 @@ static ble_ppogatt_callback_txready_t _ppogatt_callback_txready;
 static ble_ppogatt_callback_rx_t _ppogatt_callback_rx;
 static ble_ppogatt_callback_disconnected_t _ppogatt_callback_disconnected;
 
+static void _default_get_bond_data(const void *peer, size_t len) {
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "default bond getter, returning none");
+    hw_bluetooth_bond_data_available(NULL, 0);
+}
+
+static void _default_request_bond(const void *peer, size_t len, const char *name, const void *data, size_t datalen) {
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "default bond request for peer %s, returning bonded", name);
+    hw_bluetooth_bond_acknowledge(1);
+}
+
+static bt_callback_get_bond_data_t _bt_get_bond_data = _default_get_bond_data;
+static bt_callback_request_bond_t _bt_request_bond = _default_request_bond;
+
 static int _ppogatt_is_ready = 0;
 
 static ble_gap_enc_key_t _bt_own_enc_key, _bt_peer_enc_key;
 static ble_gap_id_key_t  _bt_own_id_key , _bt_peer_id_key;
+static ble_gap_master_id_t _bt_peer_id;
 
-static int _bt_has_keys = 0;
+static uint8_t _bt_remote_name[64];
+static uint16_t _bt_remote_name_hnd = BLE_GATT_HANDLE_INVALID;
+static int _bt_remote_name_request_queued = 0;
+
+static int _bt_conn_is_bonded = 0;
 
 static ble_gap_sec_keyset_t _bt_peer_keys = {
     .keys_own = {
@@ -267,16 +289,56 @@ static ble_gap_sec_keyset_t _bt_peer_keys = {
     }
 };
 
+struct nrf52_peer_data {
+    ble_gap_enc_key_t enc_key_own;
+    ble_gap_id_key_t  id_key_own;
+};
+
+static struct nrf52_peer_data _bt_pdata_buf;
+
+/* The SoftDevice is not really capable of walking and chewing bubble gum at
+ * the same time -- or, at least, of doing service discovery while
+ * simultaneously doing a GATTC request.  So we help it out by periodically
+ * retrying once it becomes no-longer-busy.  We use the service worker to
+ * schedule periodic retries.
+ */
+
+static void _enqueue_remote_name_request();
+
+static void _svc_req_remote_name(void *p) {
+    if (_bt_remote_name_hnd == BLE_GATT_HANDLE_INVALID)
+        return;
+    
+    ret_code_t rv = sd_ble_gattc_read(_bt_conn, _bt_remote_name_hnd, 0);
+    if (rv == NRF_ERROR_BUSY) {
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote req busy, trying again");
+        _bt_remote_name_request_queued = 1;
+        return;
+    }
+    assert(rv == NRF_SUCCESS && "sd_ble_gattc_read(device name)");
+}
+
+static void _enqueue_remote_name_request() {
+    if (!_bt_remote_name_request_queued)
+        return;
+    _bt_remote_name_request_queued = 0;
+    service_submit(_svc_req_remote_name, NULL);
+}
+
 static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     ret_code_t rv;
     
+    _enqueue_remote_name_request();
+    
     switch (evt->header.evt_id) {
     case BLE_GAP_EVT_CONNECTED:
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote endpoint connected");
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote endpoint connected, bonded status %d", _bt_conn_is_bonded);
         _bt_conn = evt->evt.gap_evt.conn_handle;
         
         rv = ble_db_discovery_start(&_disc, _bt_conn);
         assert(rv == NRF_SUCCESS && "ble_db_discovery_start");
+        
+        _bt_remote_name_hnd = BLE_GATT_HANDLE_INVALID;
         
         ppogatt_srv_notify_cccd = 0;
         _ppogatt_is_ready = 0;
@@ -285,6 +347,7 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     case BLE_GAP_EVT_DISCONNECTED:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote disconnected");
         _bt_conn = BLE_CONN_HANDLE_INVALID;
+        _bt_remote_name_hnd = BLE_GATT_HANDLE_INVALID;
         ppogatt_srv_notify_cccd = 0;
         ppogatt_cli_data_value_hnd = BLE_GATT_HANDLE_INVALID;
         ppogatt_cli_data_cccd_hnd = BLE_GATT_HANDLE_INVALID;
@@ -292,6 +355,12 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         assert(rv == NRF_SUCCESS && "sd_ble_gap_adv_start");
         _ppogatt_callback_disconnected();
         break;
+    case BLE_GAP_EVT_SEC_INFO_REQUEST: {
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_SEC_INFO_REQUEST");
+        memcpy(&_bt_peer_id, &evt->evt.gap_evt.params.sec_info_request.master_id, sizeof(_bt_peer_id));
+        _bt_get_bond_data(&_bt_peer_id, sizeof(_bt_peer_id));
+        break;
+    }
     case BLE_GAP_EVT_SEC_PARAMS_REQUEST: {
         const ble_gap_sec_params_t params = {
             .bond = 1,
@@ -303,15 +372,10 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
             .max_key_size = 16,
         };
         rv = sd_ble_gap_sec_params_reply(_bt_conn, BLE_GAP_SEC_STATUS_SUCCESS, &params, &_bt_peer_keys);
-        _bt_has_keys = 1;
         assert(rv == NRF_SUCCESS && "sd_ble_gap_sec_params_reply");
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "initiating bonding");
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "initiating pairing");
         break;
     }
-    case BLE_GAP_EVT_SEC_INFO_REQUEST:
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_SEC_INFO_REQUEST");
-        rv = sd_ble_gap_sec_info_reply(_bt_conn, _bt_has_keys ? &_bt_own_enc_key.enc_info : NULL, _bt_has_keys ? &_bt_own_id_key.id_info : NULL, NULL);
-        break;
     case BLE_GAP_EVT_AUTH_STATUS:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_AUTH_STATUS: bonded %d", evt->evt.gap_evt.params.auth_status.bonded);
         break;
@@ -356,12 +420,12 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         if (evtwr->handle != ppogatt_srv_write_hnd.value_handle)
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "GATTS write evt: handle %04x %s, op %02x, auth req %u, offset %02x, len %d", evtwr->handle, hname, evtwr->op, evtwr->auth_required, evtwr->offset, evtwr->len);
         
-        if (evtwr->handle == ppogatt_srv_write_hnd.value_handle) {
+        if (evtwr->handle == ppogatt_srv_write_hnd.value_handle && _bt_conn_is_bonded) {
             _ppogatt_callback_rx(evtwr->data, evtwr->len);
         } else if (evtwr->handle == ppogatt_srv_notify_hnd.cccd_handle && evtwr->len <= 2) {
             memcpy(&ppogatt_srv_notify_cccd, evtwr->data, evtwr->len);
             if (ppogatt_srv_notify_cccd) {
-                if (!_ppogatt_is_ready)
+                if (!_ppogatt_is_ready && _bt_conn_is_bonded)
                     _ppogatt_callback_connected();
                 _ppogatt_is_ready = 1;
             }
@@ -372,13 +436,30 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTS_EVT_EXCHANGE_MTU_REQUEST");
         rv = sd_ble_gatts_exchange_mtu_reply(_bt_conn, PPOGATT_MTU);
         break;
+    case BLE_GATTC_EVT_READ_RSP: {
+        /* Currently, the only gattc read that happens is from
+         * _ble_disc_handler, where we get the remote device name.  So we
+         * assume that a READ_RSP is from there.
+         */
+        assert(evt->evt.gattc_evt.params.read_rsp.handle == _bt_remote_name_hnd);
+        int len = evt->evt.gattc_evt.params.read_rsp.len;
+        if (len >= sizeof(_bt_remote_name))
+            len = sizeof(_bt_remote_name) - 1;
+        memcpy(_bt_remote_name, evt->evt.gattc_evt.params.read_rsp.data, len);
+        _bt_remote_name[len] = 0;
+        
+        /* Set up the return data buffer. */
+        memcpy(&_bt_pdata_buf.enc_key_own, &_bt_own_enc_key, sizeof(ble_gap_enc_key_t));
+        memcpy(&_bt_pdata_buf.id_key_own,  &_bt_own_id_key,  sizeof(ble_gap_id_key_t));
+        assert(!_bt_conn_is_bonded);
+        _bt_request_bond(&_bt_peer_id, sizeof(_bt_peer_id), (char *)_bt_remote_name, &_bt_pdata_buf, sizeof(_bt_pdata_buf));
+        break;
+    }
     case BLE_GATTC_EVT_CHAR_DISC_RSP:
     case BLE_GATTC_EVT_DESC_DISC_RSP:
     case BLE_GATTC_EVT_PRIM_SRVC_DISC_RSP:
     case BLE_GATTC_EVT_CHAR_VAL_BY_UUID_READ_RSP:
-    case BLE_GATTC_EVT_READ_RSP:
     case BLE_GATTC_EVT_WRITE_RSP:
-        /* ignore */
         break;
     case BLE_GAP_EVT_PHY_UPDATE:
         /* XXX */
@@ -402,7 +483,8 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
             break;
         }
         
-        _ppogatt_callback_rx(evthvx->data, evthvx->len);
+        if (_bt_conn_is_bonded)
+            _ppogatt_callback_rx(evthvx->data, evthvx->len);
         break;
     }
     case BLE_GATTC_EVT_TIMEOUT:
@@ -422,6 +504,36 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     }
 }
 
+void hw_bluetooth_bond_data_available(const void *data, size_t datalen) {
+    if (!data || (datalen != sizeof(struct nrf52_peer_data))) {
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "bond data not available, returning NULL");
+        int rv = sd_ble_gap_sec_info_reply(_bt_conn, NULL, NULL, NULL);
+        assert(rv == NRF_SUCCESS && "sd_ble_gap_sec_info_reply");
+        _bt_conn_is_bonded = 0;
+        
+        return;
+    }
+    
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "using stored bond data");
+    const struct nrf52_peer_data *pdata = data;
+    memcpy(&_bt_own_enc_key , &pdata->enc_key_own , sizeof(ble_gap_enc_key_t));
+    memcpy(&_bt_own_id_key  , &pdata->id_key_own  , sizeof(ble_gap_id_key_t));
+    int rv = sd_ble_gap_sec_info_reply(_bt_conn, &_bt_own_enc_key.enc_info, &_bt_own_id_key.id_info, NULL);
+    assert(rv == NRF_SUCCESS && "sd_ble_gap_sec_info_reply");
+    _bt_conn_is_bonded = 1;
+}
+
+void hw_bluetooth_bond_acknowledge(int accepted) {
+    if (!accepted)
+        return; /* disconnect? */
+    
+    assert(!_bt_conn_is_bonded);
+    _bt_conn_is_bonded = 1;
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "bond accepted!");
+    if (_ppogatt_is_ready)
+        _ppogatt_callback_connected();
+}
+
 static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
     switch (evt->evt_type) {
     case BLE_DB_DISCOVERY_ERROR:
@@ -433,17 +545,27 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
     case BLE_DB_DISCOVERY_AVAILABLE:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: available");
         break;
-    case BLE_DB_DISCOVERY_COMPLETE:
+    case BLE_DB_DISCOVERY_COMPLETE: {
+        int is_ppogatt = evt->params.discovered_db.srv_uuid.type == ppogatt_cli_svc_uuid.type;
+        int is_gap = (evt->params.discovered_db.srv_uuid.type == BLE_UUID_TYPE_BLE) && (evt->params.discovered_db.srv_uuid.uuid == BLE_UUID_GAP);
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: service uuid %04x (type %d (%s)), %d chars",
             evt->params.discovered_db.srv_uuid.uuid,
             evt->params.discovered_db.srv_uuid.type,
-            evt->params.discovered_db.srv_uuid.type == ppogatt_cli_svc_uuid.type ? "PPoGATT server" : "unknown",
+            is_ppogatt ? "PPoGATT server" :
+              is_gap ? "GAP" :
+              "unknown",
             evt->params.discovered_db.char_count);
         
         for (int i = 0; i < evt->params.discovered_db.char_count; i++) {
             const ble_gatt_db_char_t *dbchar = &(evt->params.discovered_db.charateristics[i]); /* Yes, the typo is in the nRF SDK. */
             
-            if (dbchar->characteristic.uuid.uuid == 0x0001) {
+            /* ... keep implementing GAP discovery ... */
+            if (is_gap && (dbchar->characteristic.uuid.uuid == BLE_UUID_GAP_CHARACTERISTIC_DEVICE_NAME)) {
+                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: found device name characteristic w/ value handle %04x", dbchar->characteristic.handle_value);
+                _bt_remote_name_hnd = dbchar->characteristic.handle_value;
+                _bt_remote_name_request_queued = 1;
+                _enqueue_remote_name_request();
+            } else if (is_ppogatt && (dbchar->characteristic.uuid.uuid == 0x0001)) {
                 ppogatt_cli_data_value_hnd = dbchar->characteristic.handle_value;
                 ppogatt_cli_data_cccd_hnd = dbchar->cccd_handle;
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: found data characteristic w/ value handle %04x, cccd handle %04x", ppogatt_cli_data_value_hnd, ppogatt_cli_data_cccd_hnd);
@@ -462,7 +584,7 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
                 ret_code_t rv = sd_ble_gattc_write(_bt_conn, &params);
                 assert(rv == NRF_SUCCESS);
                 
-                if (!_ppogatt_is_ready)
+                if (!_ppogatt_is_ready && _bt_conn_is_bonded)
                     _ppogatt_callback_connected();
                 _ppogatt_is_ready = 1;
             } else {
@@ -470,6 +592,7 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
             }
         }
         break;
+    }
     }
 }
 
@@ -625,12 +748,20 @@ static void _ppogatt_init() {
     MAKE_UUID(ppogatt_cli_svc_uuid, {
         0xda, 0xda, 0x9b, 0x69, 0xa6, 0x1a, 0x42, 0xc6,
         0xbb, 0x0f, 0x8e, 0x32, 0x00, 0x00, 0x00, 0x10 });
+    
+    /* Also listen for the GAP UUID, so we can discover the device name. */
+    ble_uuid_t gap_uuid;
+    gap_uuid.type = BLE_UUID_TYPE_BLE;
+    gap_uuid.uuid = BLE_UUID_GAP;
 
     rv = ble_db_discovery_init(_ble_disc_handler);
     assert(rv == NRF_SUCCESS && "ble_db_discovery_init");
 
     rv = ble_db_discovery_evt_register(&ppogatt_cli_svc_uuid);
-    assert(rv == NRF_SUCCESS && "ble_db_discovery_evt_register");
+    assert(rv == NRF_SUCCESS && "ble_db_discovery_evt_register(PPoGATT)");
+    
+    rv = ble_db_discovery_evt_register(&gap_uuid);
+    assert(rv == NRF_SUCCESS && "ble_db_discovery_evt_register(GAP)");
 }
 
 
@@ -685,6 +816,14 @@ int ble_ppogatt_tx(const uint8_t *buf, size_t len) {
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT TX: no active way to tx back to phone");
         return -1;
     }
+}
+
+void bt_set_callback_get_bond_data(bt_callback_get_bond_data_t cbk) {
+    _bt_get_bond_data = cbk;
+}
+
+void bt_set_callback_request_bond(bt_callback_request_bond_t cbk) {
+    _bt_request_bond = cbk;
 }
 
 void ble_ppogatt_set_callback_connected(ble_ppogatt_callback_connected_t cbk) {
