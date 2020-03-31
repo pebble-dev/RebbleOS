@@ -1,7 +1,7 @@
 #pragma once
 /* dialog_choice_window.h
  *
- * Dialog choice component.
+ * Dialog choice component. Adapted from Pebble UI Examples.
  *
  * RebbleOS
  * 
@@ -10,6 +10,9 @@
 
  #include "librebble.h"
 
-#define DIALOG_CHOICE_WINDOW_MESSAGE "Set as default?"
+struct DialogchoiceWindow;
+typedef struct DialogchoiceWindow DialogchoiceWindow;
 
-void dialog_choice_window_push();
+void dialog_choice_window_push(DialogchoiceWindow *dial);
+void dialogchoice_window_set_message(DialogchoiceWindow *dial, char dialogchoice_window_message);
+DialogchoiceWindow *dialogchoice_window_create();

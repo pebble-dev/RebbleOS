@@ -1,7 +1,8 @@
 #pragma once
+
 /* checkbox_window.h
  *
- * Checkbox menu component.
+ * Checkbox menu component. Adapted from Pebble UI Examples.
  *
  * RebbleOS
  * 

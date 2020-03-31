@@ -1,74 +1,95 @@
 /* dialog_choice_window.c
  *
- * Dialog choice component.
+ * Dialog choice component. Adapted from Pebble UI Examples.
  *
  * RebbleOS
  * 
  * Author: Taylor E. <taylor@stanivision.com>.
  */
 
-#include "rebbleos.h"
 #include "dialog_choice_window.h"
 #include "action_bar_layer.h"
 #include "platform_res.h"
 
-static Window *s_main_window;
-static TextLayer *s_label_layer;
-static BitmapLayer *s_icon_layer;
-static ActionBarLayer *s_action_bar_layer;
+struct DialogchoiceWindow
+{
+  Window window;
+  TextLayer *s_label_layer;
+  BitmapLayer *s_icon_layer;
+  ActionBarLayer *s_action_bar_layer;
 
-static GBitmap *s_icon_bitmap, *s_tick_bitmap, *s_cross_bitmap;
+  char choice_window_message[10];
+  GBitmap *s_icon_bitmap, *s_tick_bitmap, *s_cross_bitmap;
+};
 
-static void window_load(Window *window) {
+void dialogchoice_window_set_message(DialogchoiceWindow *dial, char dialogchoice_window_message) {
+  strcpy(dial->choice_window_message, dialogchoice_window_message);
+}
+
+
+static void dial_window_load(Window *window) {
+
+  DialogchoiceWindow *dial = (DialogchoiceWindow *)window;
+
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  s_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE);
+  dial->s_icon_bitmap = gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE);
 
   const GEdgeInsets icon_insets = {.top = 7, .right = 28, .bottom = 56, .left = 14};
-  s_icon_layer = bitmap_layer_create(grect_inset(bounds, icon_insets));
-  bitmap_layer_set_bitmap(s_icon_layer, s_icon_bitmap);
-  bitmap_layer_set_compositing_mode(s_icon_layer, GCompOpSet);
-  layer_add_child(window_layer, bitmap_layer_get_layer(s_icon_layer));
+  dial->s_icon_layer = bitmap_layer_create(grect_inset(bounds, icon_insets));
+  bitmap_layer_set_bitmap(dial->s_icon_layer, dial->s_icon_bitmap);
+  bitmap_layer_set_compositing_mode(dial->s_icon_layer, GCompOpSet);
+  layer_add_child(window_layer, bitmap_layer_get_layer(dial->s_icon_layer));
 
   const GEdgeInsets label_insets = {.top = 112, .right = ACTION_BAR_WIDTH, .left = ACTION_BAR_WIDTH / 2};
-  s_label_layer = text_layer_create(grect_inset(bounds, label_insets));
-  text_layer_set_text(s_label_layer, DIALOG_CHOICE_WINDOW_MESSAGE);
-  text_layer_set_background_color(s_label_layer, GColorClear);
-  text_layer_set_text_alignment(s_label_layer, GTextAlignmentCenter);
-  text_layer_set_font(s_label_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-  layer_add_child(window_layer, text_layer_get_layer(s_label_layer));
+  dial->s_label_layer = text_layer_create(grect_inset(bounds, label_insets));
+  text_layer_set_text(dial->s_label_layer, dial->choice_window_message);
+  text_layer_set_background_color(dial->s_label_layer, GColorClear);
+  text_layer_set_text_alignment(dial->s_label_layer, GTextAlignmentCenter);
+  text_layer_set_font(dial->s_label_layer, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+  layer_add_child(window_layer, text_layer_get_layer(dial->s_label_layer));
 
-  s_tick_bitmap = gbitmap_create_with_resource(RESOURCE_ID_MUSIC_PLAY);
-  s_cross_bitmap = gbitmap_create_with_resource(RESOURCE_ID_MUSIC_PAUSE);
+  dial->s_tick_bitmap = gbitmap_create_with_resource(RESOURCE_ID_MUSIC_PLAY);
+  dial->s_cross_bitmap = gbitmap_create_with_resource(RESOURCE_ID_MUSIC_PAUSE);
 
-  s_action_bar_layer = action_bar_layer_create();
-  action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_UP, s_tick_bitmap);
-  action_bar_layer_set_icon(s_action_bar_layer, BUTTON_ID_DOWN, s_cross_bitmap);
-  action_bar_layer_add_to_window(s_action_bar_layer, window);
+  dial->s_action_bar_layer = action_bar_layer_create();
+  action_bar_layer_set_icon(dial->s_action_bar_layer, BUTTON_ID_UP, dial->s_tick_bitmap);
+  action_bar_layer_set_icon(dial->s_action_bar_layer, BUTTON_ID_DOWN, dial->s_cross_bitmap);
+  action_bar_layer_add_to_window(dial->s_action_bar_layer, window);
 }
 
-static void window_unload(Window *window) {
-  text_layer_destroy(s_label_layer);
-  action_bar_layer_destroy(s_action_bar_layer);
-  bitmap_layer_destroy(s_icon_layer);
+static void dial_window_unload(Window *window) {
 
-  gbitmap_destroy(s_icon_bitmap);
-  gbitmap_destroy(s_tick_bitmap);
-  gbitmap_destroy(s_cross_bitmap);
+  DialogchoiceWindow *dial = (DialogchoiceWindow *)window;
 
-  window_destroy(window);
-  s_main_window = NULL;
+  text_layer_destroy(dial->s_label_layer);
+  action_bar_layer_destroy(dial->s_action_bar_layer);
+  bitmap_layer_destroy(dial->s_icon_layer);
+
+  gbitmap_destroy(dial->s_icon_bitmap);
+  gbitmap_destroy(dial->s_tick_bitmap);
+  gbitmap_destroy(dial->s_cross_bitmap);
+
+  window_destroy(&dial->window);
+  window = NULL;
 }
 
-void dialog_choice_window_push() {
-  if(!s_main_window) {
-    s_main_window = window_create();
-    window_set_background_color(s_main_window, PBL_IF_COLOR_ELSE(GColorJaegerGreen, GColorWhite));
-    window_set_window_handlers(s_main_window, (WindowHandlers) {
-        .load = window_load,
-        .unload = window_unload,
+void dialog_choice_window_push(DialogchoiceWindow *dial) {
+  window_stack_push(&dial->window, true);
+}
+
+DialogchoiceWindow *dialogchoice_window_create() {
+  DialogchoiceWindow *dial = (DialogchoiceWindow *)app_calloc(1, sizeof(DialogchoiceWindow));
+
+  window_ctor(&dial->window);
+  dial->window.user_data = dial;
+    window_set_window_handlers(&dial->window, (WindowHandlers) {
+        .load = dial_window_load,
+        .unload = dial_window_unload,
     });
-  }
-  window_stack_push(s_main_window, true);
+
+  window_set_background_color(&dial->window, PBL_IF_COLOR_ELSE(GColorJaegerGreen, GColorWhite));
+
+  return dial;  
 }

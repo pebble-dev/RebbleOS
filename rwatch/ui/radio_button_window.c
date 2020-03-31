@@ -1,13 +1,12 @@
 /* radio_button_window.c
  *
- * Radio button menu component.
+ * Radio button menu component. Adapted from Pebble UI Examples.
  *
  * RebbleOS
  * 
  * Author: Taylor E. <taylor@stanivision.com>.
  */
 
-#include "rebbleos.h"
 #include "radio_button_window.h"
 
 static int s_current_selection = 0;
@@ -83,7 +82,7 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
   if(cell_index->row == radio_selection_labels_num) {
     // Do something with user choice
-    //APP_LOG(APP_LOG_LEVEL_INFO, "Submitted choice %d", s_current_selection);
+    APP_LOG(APP_LOG_LEVEL_INFO, "Submitted choice %d", s_current_selection);
     window_stack_pop(true);
   } else {
     // Change selection

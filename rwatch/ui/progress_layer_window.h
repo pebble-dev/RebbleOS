@@ -1,5 +1,14 @@
 #pragma once
 
+/* progress_layer_window.h
+ *
+ * Progress layer window component. Adapted from Pebble UI Examples.
+ *
+ * RebbleOS
+ * 
+ * Author: Taylor E. <taylor@stanivision.com>.
+ */
+
 #include "librebble.h"
 #include "progress_layer.h"
 

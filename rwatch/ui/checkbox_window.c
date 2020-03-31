@@ -1,13 +1,12 @@
 /* checkbox_window.c
  *
- * Checkbox menu component.
+ * Checkbox menu component. Adapted from Pebble UI Examples.
  *
  * RebbleOS
  * 
  * Author: Taylor E. <taylor@stanivision.com>.
  */
 
-#include "rebbleos.h"
 #include "checkbox_window.h"
 #include "platform_res.h"
 
