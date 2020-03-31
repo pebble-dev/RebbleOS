@@ -39,6 +39,8 @@
 #include "connection_service.h"
 #include "protocol.h"
 #include "protocol_service.h"
+#include "service.h"
+#include "rdb.h"
 
 /* Stack sizes of the threads */
 #define STACK_SZ_CMD configMINIMAL_STACK_SIZE + 600
@@ -92,6 +94,9 @@ static void _bt_thread(void *pvParameters);
 static void _bt_cmd_thread(void *pvParameters);
 static uint8_t _bluetooth_tx(uint8_t *data, uint16_t len);
 
+static void _get_bond_data_isr(const void *peer, size_t len);
+static void _request_bond_isr(const void *peer, size_t len, const char *name, const void *data, size_t datalen);
+
  #define BT_LOG_ENABLED
 #ifdef BT_LOG_ENABLED
     #define BT_LOG SYS_LOG
@@ -117,6 +122,9 @@ uint8_t bluetooth_init(void)
 #ifdef BLUETOOTH_IS_BLE
     ppogatt_init();
 #endif
+
+    bt_set_callback_get_bond_data(_get_bond_data_isr);
+    /* bt_set_callback_request_bond(_request_bond_isr); */
     
     return INIT_RESP_ASYNC_WAIT;
 }
@@ -329,4 +337,55 @@ int sprintf(char *str, const char *format, ...)
 int sscanf ( const char * s, const char * format, ...)
 {
     return 0;
+}
+
+/* Bond database management. */
+
+static const void *_bondreq_peer;
+static int _bondreq_len;
+
+static void _get_bond_data(void *p) {
+    struct rdb_database *db = rdb_open(RDB_ID_BLUETOOTH);
+    struct rdb_iter it;
+    rdb_select_result_list head;
+    
+    int rv = rdb_iter_start(db, &it);
+    if (!rv) {
+        DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "no bond database (looking up \"%08x...\")", *(uint32_t *)_bondreq_peer);
+        hw_bluetooth_bond_data_available(NULL, 0);
+        rdb_close(db);
+        return;
+    }
+
+    struct rdb_selector selectors[] = {
+        { RDB_SELECTOR_OFFSET_KEY, _bondreq_len, RDB_OP_EQ, (void *) _bondreq_peer },
+        { 0, 0, RDB_OP_RESULT_FULLY_LOAD },
+        { }
+    };
+    
+    int n = rdb_select(&it, &head, selectors);
+    assert(n <= 1 && "must have zero or one bluetooth bond results...");
+    if (n == 0) {
+        DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "no bond data available for \"%08x...\"", *(uint32_t *)_bondreq_peer);
+        hw_bluetooth_bond_data_available(NULL, 0);
+        rdb_close(db);
+        return;
+    }
+    
+    struct rdb_select_result *res = rdb_select_result_head(&head);
+    uint8_t namelen = ((uint8_t *)res->result[0])[0] /* including terminating 0 */;
+    uint8_t bondlen = ((uint8_t *)res->result[0])[1];
+    
+    DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "found bond for device %s with len %d", ((uint8_t *)res->result[0]) + 2, bondlen);
+    hw_bluetooth_bond_data_available((res->result[0]) + 2 + namelen, bondlen);
+    
+    rdb_select_free_all(&head);
+    rdb_close(db);
+}
+
+static void _get_bond_data_isr(const void *peer, size_t len) {
+    _bondreq_peer = peer;
+    _bondreq_len = len;
+    DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "get bond data...");
+    service_submit(_get_bond_data, NULL);
 }

@@ -214,9 +214,6 @@ void hw_bluetooth_advertising_visible(int vis) {
  * the watch, or what the phone would be a client for */
 static uint16_t _bt_conn = BLE_CONN_HANDLE_INVALID;
 
-static bt_callback_get_bond_data_t _bt_get_bond_data;
-static bt_callback_request_bond_t _bt_request_bond;
-
 static ble_uuid_t ppogatt_srv_svc_uuid;
 static ble_uuid_t ppogatt_cli_svc_uuid;
 static ble_uuid_t pebble_metadata_svc_uuid;
