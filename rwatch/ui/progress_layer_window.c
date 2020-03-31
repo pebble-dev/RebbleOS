@@ -1,4 +1,12 @@
-#include "rebbleos.h"
+/* progress_layer_window.c
+ *
+ * Progress layer window component. Adapted from Pebble UI Examples.
+ *
+ * RebbleOS
+ * 
+ * Author: Taylor E. <taylor@stanivision.com>.
+ */
+
 #include "progress_layer_window.h"
 
 static ProgressLayer *s_progress_layer;

@@ -1,7 +1,8 @@
 #pragma once
+
 /* radio_button_window.h
  *
- * Radio button menu component.
+ * Radio button menu component. Adapted from Pebble UI Examples.
  *
  * RebbleOS
  * 

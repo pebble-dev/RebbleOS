@@ -8,6 +8,8 @@
 #include "dialog_choice_window.h"
 #include "test_defs.h"
 
+DialogchoiceWindow *dial;
+
 bool dialog_choice_test_init(Window *window)
 {
     return true;
@@ -16,7 +18,10 @@ bool dialog_choice_test_init(Window *window)
 bool dialog_choice_test_exec(void)
 {
 
-    dialog_choice_window_push();
+    dial = dialogchoice_window_create();
+
+    dialogchoice_window_set_message(dial, "Set phasers to kill?");
+    dialog_choice_window_push(dial);
 
     return true;
 }
