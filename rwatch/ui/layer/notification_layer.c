@@ -12,7 +12,7 @@
 #include "property_animation.h"
 #include "librebble.h"
 #include "ngfxwrap.h"
-#include "blobdb.h"
+#include "rdb.h"
 #include "timeline.h"
 #include "notification_manager.h"
 #include "platform_res.h"
@@ -27,20 +27,20 @@ static void _notification_layer_update_proc(Layer *layer, GContext *ctx);
 static void _status_index_draw(Layer *layer, GContext *ctx);
 static void _click_config_provider(void *context);
 
-static void _load_notifs_from_blobdb(NotificationLayer *notification_layer, Uuid *highlight) {
+static void _load_notifs_from_rdb(NotificationLayer *notification_layer, Uuid *highlight) {
    /* Load in the messages from the database.
      We actually only want a key value of each message 
      We are also fitering on message time for now */
     /* XXX TODO make this now - some time */
     uint32_t val_timestamp = 1550699327;
-    blobdb_select_result_list *lh = timeline_notifications(val_timestamp);
+    rdb_select_result_list *lh = timeline_notifications(val_timestamp);
 
     notification_layer->all_notifications = lh;
-    notification_layer->selected_result_item = blobdb_select_result_head(lh);
+    notification_layer->selected_result_item = rdb_select_result_head(lh);
 
     uint8_t msg_count = 0;
-    struct blobdb_select_result *rs;
-    blobdb_select_result_foreach(rs, lh) {
+    struct rdb_select_result *rs;
+    rdb_select_result_foreach(rs, lh) {
         msg_count++;
         if (highlight && !memcmp(highlight, rs->result[0], sizeof(*highlight)))
             notification_layer->selected_result_item = rs;
@@ -71,17 +71,13 @@ static void notification_layer_ctor(NotificationLayer *notification_layer, GRect
 
     layer_set_update_proc(&notification_layer->layer, _notification_layer_update_proc);
 
-    _load_notifs_from_blobdb(notification_layer, NULL);
+    _load_notifs_from_rdb(notification_layer, NULL);
  
     LOG_INFO("N CTOR %d", notification_layer->notif_count);
 }
 
 void _load_notification(NotificationLayer *notification_layer, Uuid *uuid)
 {
-    LOG_DEBUG("FREE 1: %d", app_heap_bytes_free());
-    fonts_resetcache();
-    LOG_DEBUG("FREE 2: %d", app_heap_bytes_free());
-
     if (notification_layer->notification)
         timeline_destroy(notification_layer->notification);
 
@@ -153,11 +149,11 @@ void notification_layer_message_arrived(NotificationLayer *notification_layer, U
 
     if (notification_layer->all_notifications)
     {
-        blobdb_select_free_all(notification_layer->all_notifications);
+        rdb_select_free_all(notification_layer->all_notifications);
         app_free(notification_layer->all_notifications);
     }
     
-    _load_notifs_from_blobdb(notification_layer, uuid);
+    _load_notifs_from_rdb(notification_layer, uuid);
     _load_notification(notification_layer, uuid);
 }
 
@@ -180,7 +176,7 @@ static void notification_layer_dtor(NotificationLayer *notification_layer)
         gbitmap_destroy(notification_layer->icon);
 
     if (notification_layer->all_notifications) {
-        blobdb_select_free_all(notification_layer->all_notifications);
+        rdb_select_free_all(notification_layer->all_notifications);
         app_free(notification_layer->all_notifications);
     }
 
@@ -257,7 +253,7 @@ static void _scroll_up_click_handler(ClickRecognizerRef recognizer, void *contex
 
     notification_layer->selected_notif_idx--;
 
-    struct blobdb_select_result *ri = blobdb_select_result_prev(notification_layer->selected_result_item, notification_layer->all_notifications);
+    struct rdb_select_result *ri = rdb_select_result_prev(notification_layer->selected_result_item, notification_layer->all_notifications);
     if (!ri)
         return;
 
@@ -288,7 +284,7 @@ static void _scroll_down_click_handler(ClickRecognizerRef recognizer, void *cont
 
     notification_layer->selected_notif_idx++;
 
-    struct blobdb_select_result *ri = blobdb_select_result_next(notification_layer->selected_result_item, notification_layer->all_notifications);
+    struct rdb_select_result *ri = rdb_select_result_next(notification_layer->selected_result_item, notification_layer->all_notifications);
     if (!ri)
         return;
 

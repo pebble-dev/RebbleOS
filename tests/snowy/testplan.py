@@ -23,7 +23,7 @@ testplan = [
     Test("Filesystem: basic file replacement test", testname = b'fs_replace_file_basic', golden = 0),
     Test("Filesystem: file as smaller file", testname = b'fs_sub_file', golden = 0),
     Test("Filesystem: big files", testname = b'fs_bigfiles', golden = 0),
-    Test("Blobdb: basic", testname = b'blobdb_basic', golden = 0),
-    Test("Blobdb: fill", testname = b'blobdb_fill', golden = 0),
+    Test("rdb: basic", testname = b'rdb_basic', golden = 0),
+    Test("rdb: fill", testname = b'rdb_fill', golden = 0),
     
 ]

@@ -30,7 +30,6 @@ struct rebble_packet {
     size_t length;
     Uuid *uuid;
     uint32_t endpoint;
-    bool own_data; /* user provided own data buffer. we won't free it */
     ProtocolTransportSender transport_sender;
 //    completion_callback callback;
     list_node node;
@@ -42,14 +41,8 @@ THREAD_DEFINE(tx, 300, tskIDLE_PRIORITY + 4UL, _thread_protocol_tx);
 QUEUE_DEFINE(rx, rebble_packet *, 2);
 THREAD_DEFINE(rx, 300, tskIDLE_PRIORITY + 6UL, _thread_protocol_rx);
 
-#define PROTOCOL_MEM_SIZE 400
-static qarena_t *_protocol_arena;
-static uint8_t _protocol_heap[PROTOCOL_MEM_SIZE];
-
 void rebble_protocol_init()
 {
-    _protocol_arena = qinit(_protocol_heap, PROTOCOL_MEM_SIZE);
-       
     QUEUE_CREATE(tx);
     THREAD_CREATE(tx);
     QUEUE_CREATE(rx);
@@ -106,53 +99,31 @@ static void _thread_protocol_tx()
     }
 }
 
-void *protocol_calloc(uint8_t count, size_t size)
-{
-    void *x = qalloc(_protocol_arena, count * size);
-    if (x == NULL)
-    {
-        LOG_ERROR("!!! NO MEM!");
-        return NULL;
-    }
-    LOG_ERROR("CALLOC! 0x%x", x);
-
-    memset(x, 0, count * size);
-    return x;
-}
-
-void protocol_free(void *mem)
-{
-    LOG_ERROR("P Free 0x%x", mem);
-    qfree(_protocol_arena, mem);
-}
-
-
 RebblePacket packet_create(uint16_t endpoint, uint16_t length)
 {
-    void *data = protocol_calloc(1, length);
+    void *data = calloc(1, sizeof(rebble_packet) + length);
     if (!data)
         return NULL;
-    rebble_packet *rp = packet_create_with_data(endpoint, data, length);
-    rp->own_data = false;
+    rebble_packet *rp = data;
+    rp->data = (void *)(rp + 1);
+    rp->length = length;
+    rp->endpoint = endpoint;
     return rp;
 }
 
 RebblePacket packet_create_with_data(uint16_t endpoint, uint8_t *data, uint16_t length)
 {
-    rebble_packet *rp = protocol_calloc(1, sizeof(rebble_packet));
+    rebble_packet *rp = calloc(1, sizeof(rebble_packet));
     
     rp->data = data;
     rp->length = length;
     rp->endpoint = endpoint;
-    rp->own_data = true;
     return rp;
 }
 
 void packet_destroy(RebblePacket packet)
 {
-    if (!packet->own_data)
-        protocol_free(packet->data);
-    protocol_free(packet);
+    remote_free(packet);
 }
 
 void packet_send(RebblePacket packet)
@@ -163,13 +134,6 @@ void packet_send(RebblePacket packet)
 inline uint8_t *packet_get_data(RebblePacket packet)
 {
     return packet->data;
-}
-
-void packet_set_data(RebblePacket packet, uint8_t *data)
-{
-    if (packet->own_data)
-        protocol_free(packet->data);
-    packet->data = data;
 }
 
 inline uint16_t packet_get_data_length(RebblePacket packet)

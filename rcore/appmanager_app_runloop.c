@@ -53,6 +53,7 @@ bool appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout)
 void appmanager_app_main_entry(void)
 {
     app_running_thread *_this_thread = appmanager_get_current_thread();
+    mem_thread_set_heap(_this_thread->heap);
     
     _this_thread->status = AppThreadLoaded;
     
