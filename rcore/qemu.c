@@ -152,56 +152,18 @@ static void _qemu_thread(void *pvParameters)
             
             if (lenr && protocol_rx_buffer_append(buf, lenr) < 0)
             {
-                LOG_ERROR("Buffer Error");
-                if (_qemu_process_all_messages())
-                {
-                    if (protocol_rx_buffer_append(buf, lenr) < 0)
-                    {
-                        LOG_ERROR("Still no room!");
-                        protocol_rx_buffer_reset();
-                        done = true;
-                    }
-                }
+                protocol_rx_buffer_reset();
+                done = true;
             }
             
-            if (_qemu_process_all_messages())
+            int rv = _qemu_handle_packet();
+
+            if (rv == PACKET_PROCESSED || rv == PACKET_MORE_DATA_REQD)
                 done = true;
-            
             vTaskDelay(0);
         }
         hw_qemu_irq_enable();
     }
-}
-
-static bool _qemu_process_all_messages(void)
-{
-    uint8_t guard = 2;
-    while(guard)
-    {
-        int res = _qemu_handle_packet();
-        if (res == PACKET_MORE_DATA_REQD)
-        {
-            return false;
-        }
-        else if (res == PACKET_BUFFER_HAS_DATA)
-        {
-            LOG_DEBUG("Data left in the buffer");
-        }
-        else if (res == PACKET_INVALID)
-        {
-            /* do we trust anything in the buffer? */
-            protocol_rx_buffer_reset();
-            return true;
-        }
-        else if (res == PACKET_PROCESSED)
-        {
-            return true;
-        }
-        
-        guard--;
-    }
-    
-    return true;
 }
 
 static void _qemu_read_header(QemuCommChannelHeader *header)
@@ -252,13 +214,21 @@ static int _qemu_handle_packet(void)
         return PACKET_INVALID;
     }
 
-    void *data = buf + sizeof(QemuCommChannelHeader);   
-    RebblePacket p = packet_create_with_data(0, data, header.len);
+    /* Clean up the buffer so it has only the protocol data, not the qemu data */
+    protocol_rx_buffer_consume(sizeof(QemuCommChannelHeader));
+    
+    /* Chop the footer */
+    memmove(buf + header.len, 
+            buf + header.len + sizeof(QemuCommChannelFooter),
+            sizeof(QemuCommChannelFooter));
+
+    protocol_rx_buffer_pointer_adjust(-sizeof(QemuCommChannelFooter));
+
+    RebblePacket p = packet_create_with_data(0, buf, header.len);
     packet_set_transport(p, qemu_send_data);
     handler(p);
-    packet_destroy(p);
 
-    if (protocol_get_rx_buf_used() > 0)
+    if (protocol_get_rx_buf_used() > header.len)
         return PACKET_BUFFER_HAS_DATA; /* more work to do */
     
     /* we are done */

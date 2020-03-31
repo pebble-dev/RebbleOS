@@ -141,6 +141,13 @@ int protocol_rx_buffer_consume(uint16_t len)
     return mv;
 }
 
+int protocol_rx_buffer_pointer_adjust(int howmuch)
+{
+    _buf_ptr += howmuch;
+
+    return howmuch;
+}
+
 void protocol_rx_buffer_reset(void)
 {
     _buf_ptr = 0;
@@ -197,21 +204,6 @@ int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoco
     return PACKET_PROCESSED;
 }
 
-/* 
- * Given a packet, process it and call the relevant function
- */
-int protocol_process_packet(const RebblePacket packet)
-{
-    EndpointHandler handler = protocol_find_endpoint_handler(packet_get_endpoint(packet), protocol_get_pebble_endpoints());
-    if (handler == NULL)
-    {
-        return PACKET_INVALID;
-    }
-
-    handler(packet);
-    return PACKET_PROCESSED;
-}
-
 /*
  * Send a Pebble packet right now
  */
@@ -225,7 +217,6 @@ void protocol_send_packet(const RebblePacket packet)
 
     packet_send_to_transport(packet, endpoint, packet_get_data(packet), len);
 }
-
 
 #ifdef REBBLEOS_TESTING
 #include "test.h"
@@ -295,7 +286,7 @@ fail:
 TEST(protocol_packet) {
     uint8_t *pbuf = protocol_get_rx_buffer();
     uint8_t pacbuf[5];
-    
+
     LOG_INFO("protocol test time message");
     protocol_rx_buffer_reset();
     RebblePacketDataHeader hdr = {

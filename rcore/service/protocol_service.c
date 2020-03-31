@@ -36,12 +36,64 @@ struct rebble_packet {
 };
 
 QUEUE_DEFINE(tx, rebble_packet *, 3);
+QUEUE_DEFINE(rx, rebble_packet *, 3);
 THREAD_DEFINE(tx, 300, tskIDLE_PRIORITY + 4UL, _thread_protocol_tx);
+THREAD_DEFINE(rx, 300, tskIDLE_PRIORITY + 4UL, _thread_protocol_rx);
 
 void rebble_protocol_init()
 {
     QUEUE_CREATE(tx);
+    QUEUE_CREATE(rx);
     THREAD_CREATE(tx);
+    THREAD_CREATE(rx);
+}
+
+
+static void _thread_protocol_rx()
+{
+    RebblePacket packet;
+    RebblePacket newpacket;
+
+    while(1)
+    {
+        xQueueReceive(QUEUE_HANDLE(rx), &packet, portMAX_DELAY);
+        ProtocolTransportSender transport = packet->transport_sender;
+        RebblePacketDataHeader hdr;
+        if (protocol_parse_packet(protocol_get_rx_buffer(), &hdr, transport) != PACKET_PROCESSED)
+            continue; // Not a valid packet
+
+        /* seems legit. We have a valid packet. Create a data packet and process it */
+        newpacket = packet_create_with_data(hdr.endpoint, hdr.data, hdr.length);
+        packet_set_transport(newpacket, transport);
+        
+        LOG_ERROR("PACKET RX %x %x", newpacket->transport_sender, qemu_send_data);
+        EndpointHandler handler = protocol_find_endpoint_handler(packet_get_endpoint(newpacket), protocol_get_pebble_endpoints());
+        if (handler == NULL)
+        {
+            LOG_ERROR("unknown endpoint %d", newpacket->endpoint);
+            protocol_rx_buffer_consume(newpacket->length + sizeof(RebblePacketHeader));
+            continue;
+        }
+
+        handler(newpacket);
+        
+        // consume buffer
+        protocol_rx_buffer_consume(&newpacket->length + sizeof(RebblePacketHeader));
+
+        packet_destroy(packet);
+        packet_destroy(newpacket);
+    }
+}
+
+static void _packet_tx(const RebblePacket packet)
+{
+    if (!packet->transport_sender)
+        packet->transport_sender = protocol_get_current_transport_sender();
+
+    LOG_ERROR("PACKET TX %x %x", packet->transport_sender, qemu_send_data);
+    protocol_send_packet(packet); /* send a transport packet */
+        
+    packet_destroy(packet);
 }
 
 static void _thread_protocol_tx()
@@ -50,14 +102,7 @@ static void _thread_protocol_tx()
     while(1)
     {
         xQueueReceive(QUEUE_HANDLE(tx), &packet, portMAX_DELAY);
-
-        if (!packet->transport_sender)
-            packet->transport_sender = protocol_get_current_transport_sender();
-
-        LOG_ERROR("PACKET TX %x %x", packet->transport_sender, qemu_send_data);
-        protocol_send_packet(packet); /* send a transport packet */
-        
-        packet_destroy(packet);
+        _packet_tx(packet);
     }
 }
 
@@ -88,17 +133,30 @@ void packet_destroy(RebblePacket packet)
     remote_free(packet);
 }
 
-void packet_send(RebblePacket packet)
+int packet_send(const RebblePacket packet)
 {
+    if (xTaskGetCurrentTaskHandle() == THREAD_HANDLE(rx)) {
+        _packet_tx(packet);
+        return 0;
+    }
+
     xQueueSendToBack(QUEUE_HANDLE(tx), &packet, portMAX_DELAY);
+
+    return 0;
 }
 
-void packet_reply(RebblePacket packet, uint8_t *data, uint16_t size)
+int packet_reply(RebblePacket packet, uint8_t *data, uint16_t size)
 {
     RebblePacket newpacket = packet_create(packet->endpoint, size);    
     packet_copy_data(newpacket, data, size);
     newpacket->transport_sender = packet->transport_sender;
     packet_send(newpacket);
+    return 0;
+}
+
+int packet_recv(const RebblePacket packet)
+{
+    xQueueSendToBack(QUEUE_HANDLE(rx), &packet, portMAX_DELAY);
 }
 
 inline uint8_t *packet_get_data(RebblePacket packet)

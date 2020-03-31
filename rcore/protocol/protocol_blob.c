@@ -53,6 +53,7 @@ uint8_t blob_process(pcol_blob_db_key *blob, void *data, uint16_t data_size)
         case RDB_ID_TEST:
             break;
         case RDB_ID_APP:
+            /* XXX This this at service thread */
             appmanager_app_loader_init_n();
             break;
         case RDB_ID_NOTIFICATION:
