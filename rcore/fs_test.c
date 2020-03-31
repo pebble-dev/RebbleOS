@@ -205,7 +205,7 @@ open the file for read and make sure you get contents A; do the 'finish replacin
 open the file for read and make sure you get contents B;
 */
 TEST(fs_replace_file_basic) {
-    struct fd fd, *fdp;
+    struct fd fd, fd_repl, *fdp, *fdp_repl;
     struct file file;
     int rv = TEST_PASS;
 
@@ -215,13 +215,13 @@ TEST(fs_replace_file_basic) {
     fdp = fs_creat(&fd, "hello", 5);
     if (!fdp) { *artifact = 1; return TEST_FAIL; }
     fs_write(&fd, "Hello", 5);
-    fs_mark_written(fdp);
+    fs_mark_written(&fd);
 
     //create a file replacing that file with contents B
     rv = fs_find_file(&file, "hello");
     if (rv < 0) { *artifact = 2; return TEST_FAIL; }
-    fdp = fs_creat_replacing(&fd, "hello", 5, &file);
-    fs_write(&fd, "World", 5);
+    fdp_repl = fs_creat_replacing(&fd_repl, "hello", 5, &file);
+    fs_write(&fd_repl, "World", 5);
 
     //open the file for read and make sure you get contents A;
     char buf[5];
@@ -234,7 +234,7 @@ TEST(fs_replace_file_basic) {
     if (memcmp(buf, "Hello", 5)) { *artifact = 4; return TEST_FAIL; }
 
     //do the 'finish replacing' operation;
-    fs_mark_written(fdp);
+    fs_mark_written(&fd_repl);
 
     //open the file for read and make sure you get contents B;
     rv = fs_find_file(&file, "hello");

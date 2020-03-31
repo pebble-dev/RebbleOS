@@ -11,7 +11,6 @@
 #include "overlay_manager.h"
 #include "platform_res.h"
 #include "notification_message.h"
-#include "blobdb.h"
 #include "protocol_service.h"
 #include "event_service.h"
 #include "protocol_call.h"

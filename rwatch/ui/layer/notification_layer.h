@@ -11,7 +11,7 @@
 #include "status_bar_layer.h"
 #include "property_animation.h"
 #include "timeline.h"
-#include "blobdb.h"
+#include "rdb.h"
 
 typedef struct NotificationLayer
 {
@@ -39,8 +39,8 @@ typedef struct NotificationLayer
 
     rebble_notification *notification;
 
-    blobdb_select_result_list *all_notifications;
-    struct blobdb_select_result *selected_result_item;
+    rdb_select_result_list *all_notifications;
+    struct rdb_select_result *selected_result_item;
 
     /* some display properties */
     GColor type_color;
