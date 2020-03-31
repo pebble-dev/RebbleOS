@@ -375,6 +375,10 @@ static void _hw_bluetooth_handler(const ble_evt_t *evt, void *context) {
     }
     case BLE_GAP_EVT_AUTH_STATUS:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_AUTH_STATUS: bonded %d", evt->evt.gap_evt.params.auth_status.bonded);
+        if (evt->evt.gap_evt.params.auth_status.bonded) {
+            _bt_remote_name_request_queued = 1;
+            _enqueue_remote_name_request();
+        }
         break;
     case BLE_GAP_EVT_CONN_SEC_UPDATE:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_CONN_SEC_UPDATE");
@@ -560,8 +564,6 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
             if (is_gap && (dbchar->characteristic.uuid.uuid == BLE_UUID_GAP_CHARACTERISTIC_DEVICE_NAME)) {
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: found device name characteristic w/ value handle %04x", dbchar->characteristic.handle_value);
                 _bt_remote_name_hnd = dbchar->characteristic.handle_value;
-                _bt_remote_name_request_queued = 1;
-                _enqueue_remote_name_request();
             } else if (is_ppogatt && (dbchar->characteristic.uuid.uuid == 0x0001)) {
                 ppogatt_cli_data_value_hnd = dbchar->characteristic.handle_value;
                 ppogatt_cli_data_cccd_hnd = dbchar->cccd_handle;
@@ -631,9 +633,9 @@ static void _ppogatt_init() {
     params.p_init_value = ppogatt_srv_rd_buf;
     params.char_props.notify = 1;
     params.char_props.write_wo_resp = 1;
-    params.read_access = SEC_OPEN /* XXX */;
-    params.write_access = SEC_OPEN /* XXX */;
-    params.cccd_write_access = SEC_OPEN /* XXX */;
+    params.read_access = SEC_MITM /* XXX */;
+    params.write_access = SEC_MITM /* XXX */;
+    params.cccd_write_access = SEC_MITM /* XXX */;
     
     rv = characteristic_add(ppogatt_srv_svc_hnd, &params, &ppogatt_srv_notify_hnd);
     assert(rv == NRF_SUCCESS && "characteristic_add(ppogatt_srv_notify)");
@@ -646,7 +648,7 @@ static void _ppogatt_init() {
     params.is_var_len = 1;
     params.p_init_value = ppogatt_srv_rd_buf;
     params.char_props.read = 1;
-    params.read_access = SEC_OPEN /* XXX */;
+    params.read_access = SEC_MITM /* XXX */;
     
     rv = characteristic_add(ppogatt_srv_svc_hnd, &params, &ppogatt_srv_read_hnd);
     assert(rv == NRF_SUCCESS && "characteristic_add(ppogatt_srv_write)");
@@ -659,7 +661,7 @@ static void _ppogatt_init() {
     params.is_var_len = 1;
     params.p_init_value = ppogatt_srv_wr_buf;
     params.char_props.write_wo_resp = 1;
-    params.write_access = SEC_OPEN /* XXX */;
+    params.write_access = SEC_MITM /* XXX */;
     
     rv = characteristic_add(ppogatt_srv_svc_hnd, &params, &ppogatt_srv_write_hnd);
     assert(rv == NRF_SUCCESS && "characteristic_add(ppogatt_srv_write)");
@@ -701,8 +703,8 @@ static void _ppogatt_init() {
     params.p_init_value = pebble_metadata_pairing_buf;
     params.char_props.read = 1;
     params.char_props.write = 1;
-    params.read_access = SEC_OPEN /* XXX */;
-    params.write_access = SEC_OPEN /* XXX */;
+    params.read_access = SEC_MITM /* XXX */;
+    params.write_access = SEC_MITM /* XXX */;
     
     rv = characteristic_add(pebble_metadata_srv_svc_hnd, &params, &pebble_metadata_srv_pairing_hnd);
     assert(rv == NRF_SUCCESS && "characteristic_add(pebble_metadata_srv_pairing_hnd)");
@@ -717,9 +719,9 @@ static void _ppogatt_init() {
     params.char_props.read = 1;
     params.char_props.notify = 1;
     params.char_props.write = 1;
-    params.read_access = SEC_OPEN /* XXX */;
-    params.write_access = SEC_OPEN /* XXX */;
-    params.cccd_write_access = SEC_OPEN /* XXX */;
+    params.read_access = SEC_MITM /* XXX */;
+    params.write_access = SEC_MITM /* XXX */;
+    params.cccd_write_access = SEC_MITM /* XXX */;
     
     rv = characteristic_add(pebble_metadata_srv_svc_hnd, &params, &pebble_metadata_srv_mtu_hnd);
     assert(rv == NRF_SUCCESS && "characteristic_add(pebble_metadata_srv_mtu_hnd)");
