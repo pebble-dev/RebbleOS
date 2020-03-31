@@ -77,6 +77,11 @@ static struct rdb_database databases[] = {
         .filename = "rebble/apppersistdb",
         .def_db_size = 16384,
     },
+    {
+        .id = RDB_ID_BLUETOOTH,
+        .filename = "rebble/bluetooth",
+        .def_db_size = 8192
+    }
 };
 
 struct rdb_database *rdb_open(uint16_t database_id) {

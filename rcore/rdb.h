@@ -39,7 +39,8 @@ enum {
     RDB_ID_REMINDER = 3,
     RDB_ID_NOTIFICATION = 4,
     RDB_ID_APP_GLANCE = 11,
-    RDB_ID_APP_PERSIST = 16
+    RDB_ID_APP_PERSIST = 16,
+    RDB_ID_BLUETOOTH = 128,
 };
 
 struct rdb_database;
