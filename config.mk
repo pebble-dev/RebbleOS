@@ -117,6 +117,7 @@ SRCS_all += rcore/overlay_manager.c
 SRCS_all += rcore/rebble_util.c
 SRCS_all += rcore/qemu.c
 SRCS_all += rcore/qemu_endpoints.c
+SRCS_all += rcore/service.c
 
 SRCS_all += rcore/protocol/protocol_notification.c
 SRCS_all += rcore/protocol/protocol_system.c
