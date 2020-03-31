@@ -18,6 +18,7 @@
 #include "protocol_service.h"
 #include "rtoswrap.h"
 #include "test.h"
+#include "service.h"
 
 typedef uint8_t (*mod_callback)(void);
 // static TaskHandle_t _os_task;
@@ -63,6 +64,7 @@ static void _os_thread(void *pvParameters)
      * or a delay before it is up. Once the module is up, it 
      * can report completion
      */
+    service_init();
     _module_init(flash_init,            "Flash Storage");
     _module_init(vibrate_init,          "Vibro");
     _module_init(display_init,          "Display");
