@@ -160,6 +160,10 @@ static void _qemu_thread(void *pvParameters)
 
             if (rv == PACKET_PROCESSED || rv == PACKET_MORE_DATA_REQD)
                 done = true;
+            else if (rv == PACKET_INVALID) {
+                protocol_rx_buffer_reset();
+                done = true;
+            }
             vTaskDelay(0);
         }
         hw_qemu_irq_enable();
@@ -215,14 +219,16 @@ static int _qemu_handle_packet(void)
     }
 
     /* Clean up the buffer so it has only the protocol data, not the qemu data */
-    protocol_rx_buffer_consume(sizeof(QemuCommChannelHeader));
-    
-    /* Chop the footer */
-    memmove(buf + header.len, 
-            buf + header.len + sizeof(QemuCommChannelFooter),
-            sizeof(QemuCommChannelFooter));
+    protocol_buffer_lock();
+   
+    memmove(buf, 
+            buf + sizeof(QemuCommChannelHeader),
+            header.len);
 
-    protocol_rx_buffer_pointer_adjust(-sizeof(QemuCommChannelFooter));
+    protocol_rx_buffer_pointer_adjust(-(sizeof(QemuCommChannelFooter) + sizeof(QemuCommChannelHeader)));
+    assert(protocol_get_rx_buf_used() == header.len);
+    
+    protocol_buffer_unlock();
 
     RebblePacket p = packet_create_with_data(0, buf, header.len);
     packet_set_transport(p, qemu_send_data);

@@ -46,6 +46,8 @@ void rebble_protocol_init()
     QUEUE_CREATE(rx);
     THREAD_CREATE(tx);
     THREAD_CREATE(rx);
+
+    protocol_init();
 }
 
 
@@ -60,25 +62,24 @@ static void _thread_protocol_rx()
         ProtocolTransportSender transport = packet->transport_sender;
         RebblePacketDataHeader hdr;
         if (protocol_parse_packet(protocol_get_rx_buffer(), &hdr, transport) != PACKET_PROCESSED)
-            continue; // Not a valid packet
+            continue; /* Not a valid packet */
 
         /* seems legit. We have a valid packet. Create a data packet and process it */
         newpacket = packet_create_with_data(hdr.endpoint, hdr.data, hdr.length);
         packet_set_transport(newpacket, transport);
         
-        LOG_ERROR("PACKET RX %x %x", newpacket->transport_sender, qemu_send_data);
+        LOG_ERROR("PACKET RX %x %d", newpacket->transport_sender, hdr.length);
+        
         EndpointHandler handler = protocol_find_endpoint_handler(packet_get_endpoint(newpacket), protocol_get_pebble_endpoints());
-        if (handler == NULL)
-        {
+        if (handler == NULL) {
             LOG_ERROR("unknown endpoint %d", newpacket->endpoint);
-            protocol_rx_buffer_consume(newpacket->length + sizeof(RebblePacketHeader));
-            continue;
         }
-
-        handler(newpacket);
+        else {
+            handler(newpacket);
+        }
         
         // consume buffer
-        protocol_rx_buffer_consume(&newpacket->length + sizeof(RebblePacketHeader));
+        protocol_rx_buffer_consume(newpacket->length + sizeof(RebblePacketHeader));
 
         packet_destroy(packet);
         packet_destroy(newpacket);

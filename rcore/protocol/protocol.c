@@ -13,6 +13,7 @@
 #include "protocol_system.h"
 #include "protocol_service.h"
 #include "qemu.h"
+#include "rtoswrap.h"
 
 /* Configure Logging */
 #define MODULE_NAME "pcol"
@@ -72,6 +73,12 @@ static uint8_t _rx_buffer[RX_BUFFER_SIZE];
 static uint16_t _buf_ptr = 0;
 static TickType_t _last_rx;
 static ProtocolTransportSender _last_transport_used;
+MUTEX_DEFINE(rx_buf);
+
+void protocol_init(void)
+{
+    MUTEX_CREATE(rx_buf);
+}
 
 uint8_t *protocol_get_rx_buffer(void)
 {
@@ -90,6 +97,19 @@ static void _is_rx_buf_expired(void)
     }
 }
 
+int protocol_buffer_lock()
+{
+    if (!xSemaphoreTake(MUTEX_HANDLE(rx_buf), 100)) 
+        return -1;
+    return 0;
+}
+
+int protocol_buffer_unlock()
+{
+    xSemaphoreGive(MUTEX_HANDLE(rx_buf));
+    return 0;
+}
+
 int protocol_rx_buffer_append(uint8_t *data, size_t len)
 {
     if (_buf_ptr + len > RX_BUFFER_SIZE)
@@ -97,9 +117,11 @@ int protocol_rx_buffer_append(uint8_t *data, size_t len)
 
     _is_rx_buf_expired();
     _last_rx = xTaskGetTickCount();
-    memcpy(&_rx_buffer[_buf_ptr], data, len);
 
+    protocol_buffer_lock();
+    memcpy(&_rx_buffer[_buf_ptr], data, len);
     _buf_ptr += len;
+    protocol_buffer_unlock();
 
     return PROTOCOL_BUFFER_OK;
 }
@@ -121,28 +143,36 @@ size_t protocol_get_rx_buf_used(void)
 
 uint8_t *protocol_rx_buffer_request(void)
 {
+    protocol_buffer_lock();
     _is_rx_buf_expired();
-    return &_rx_buffer[_buf_ptr];
+    uint8_t *b = &_rx_buffer[_buf_ptr];
+    protocol_buffer_unlock();
+    
+    return b;
 }
 
 void protocol_rx_buffer_release(uint16_t len)
 {
     _last_rx = xTaskGetTickCount();
+    protocol_buffer_lock();
     _buf_ptr += len;
+    protocol_buffer_unlock();
 }
 
 int protocol_rx_buffer_consume(uint16_t len)
 {
     _last_rx = xTaskGetTickCount();
+    protocol_buffer_lock();
     uint16_t mv = _buf_ptr - len < 0 ? _buf_ptr : len;
     memmove(_rx_buffer, _rx_buffer + mv, _buf_ptr - mv);
     _buf_ptr -= mv;
-
+    protocol_buffer_unlock();
     return mv;
 }
 
 int protocol_rx_buffer_pointer_adjust(int howmuch)
 {
+    /* XXX not locked. kinda don't use this function unless you know why you need to */
     _buf_ptr += howmuch;
 
     return howmuch;
@@ -166,31 +196,37 @@ ProtocolTransportSender protocol_get_current_transport_sender()
  */
 int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport)
 {
+    int rv = 0;
     uint16_t pkt_length = (data[0] << 8) | (data[1] & 0xff);
     uint16_t pkt_endpoint = (data[2] << 8) | (data[3] & 0xff);
     
     _last_transport_used = transport;
     
+    protocol_buffer_lock();
     LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
     
-    if (_buf_ptr < 4) /* not enough data to parse a header */
-        return PACKET_MORE_DATA_REQD;
-
-    /* done! (usually) */
-    if (pkt_length == 0)
-        return PACKET_PROCESSED;
-
-    /* Seems sensible */
-    if (pkt_length > RX_BUFFER_SIZE)
-    {
-        LOG_ERROR("RX: payload length %d. Seems suspect!", pkt_length);
-        return PACKET_INVALID;
+    if (_buf_ptr < 4) { /* not enough data to parse a header */
+        rv = PACKET_MORE_DATA_REQD;
+        goto done;
     }
 
-    if (_buf_ptr < pkt_length + 4)
-    {
+    /* done! (usually) */
+    if (pkt_length == 0) {
+        rv = PACKET_PROCESSED;
+        goto done;
+    }
+
+    /* Seems sensible */
+    if (pkt_length > RX_BUFFER_SIZE) {
+        LOG_ERROR("RX: payload length %d. Seems suspect!", pkt_length);
+        rv = PACKET_INVALID;
+        goto done;
+    }
+
+    if (_buf_ptr < pkt_length + 4) {
         LOG_INFO("RX: Partial. Still waiting for %d bytes", (pkt_length + 4) - _buf_ptr);
-        return PACKET_MORE_DATA_REQD;
+        rv = PACKET_MORE_DATA_REQD;
+        goto done;
     }
 
     LOG_INFO("RX: packet is complete %x", transport);
@@ -201,7 +237,11 @@ int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoco
     packet->data = data + 4;
     packet->transport_sender = transport;
 
-    return PACKET_PROCESSED;
+    rv = PACKET_PROCESSED;
+
+done:
+    protocol_buffer_unlock();
+    return rv;
 }
 
 /*
