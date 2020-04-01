@@ -12,6 +12,10 @@
  *  Binary, Resource, Worker
  *  XXX Worker is not currently supported
  * 
+ *  XXX todo failed transfer mid way
+ *   timeout
+ *   cleanup
+ * 
  * Each request requires an (N)ACK
  */
 #include <stdlib.h>
@@ -122,14 +126,18 @@ static inline void _send_nack(const RebblePacket packet, uint32_t cookie)
 void protocol_process_transfer(const RebblePacket packet)
 {
      uint8_t *data = packet_get_data(packet);
-            
+
      switch (data[0]) {
         case PutBytesInit:
-            if (_transfer_state != 0)
-            {
+            if (_transfer_state != 0) {
                 LOG_ERROR("Invalid state for receiving data");
                 goto error;
             }
+            if (protocol_transaction_lock(200) < 0) {
+                LOG_ERROR("failed to acquire bulk xfer transaction lock");
+                goto error;
+            }
+
             _transfer_put_app_init_header *hdr = (_transfer_put_app_init_header *)data;
             LOG_INFO("PUT INIT cmd %d, sz %d t %d id %d", hdr->command, ntohl(hdr->total_size), hdr->data_type, ntohl(hdr->app_id));
             _total_size = ntohl(hdr->total_size);
@@ -228,6 +236,8 @@ void protocol_process_transfer(const RebblePacket packet)
             _bytes_transferred = 0;
             _cookie = 0;
             
+            protocol_transaction_unlock();
+            
             /* Once we have the resource, tell app manager we are good to load */
             if (_transfer_type == TransferType_AppResource)
                 appmanager_app_download_complete();
@@ -236,9 +246,7 @@ void protocol_process_transfer(const RebblePacket packet)
             
         case PutBytesAbort:
             LOG_INFO("Transfer Aborted");
-            _transfer_state = 0;
-            _bytes_transferred = 0;
-            break;
+            goto error;
             
         default:
             assert(!"IMPLEMENT ME");
@@ -249,4 +257,5 @@ error:
     _transfer_state = 0;
     _bytes_transferred = 0;
     _send_nack(packet, 0);
+    protocol_transaction_unlock();
 }

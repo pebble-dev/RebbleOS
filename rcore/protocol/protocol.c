@@ -74,10 +74,12 @@ static uint16_t _buf_ptr = 0;
 static TickType_t _last_rx;
 static ProtocolTransportSender _last_transport_used;
 MUTEX_DEFINE(rx_buf);
+MUTEX_DEFINE(txn);
 
 void protocol_init(void)
 {
     MUTEX_CREATE(rx_buf);
+    MUTEX_CREATE(txn);
 }
 
 uint8_t *protocol_get_rx_buffer(void)
@@ -90,10 +92,11 @@ static void _is_rx_buf_expired(void)
     if (!_buf_ptr)
         return;
     TickType_t now = xTaskGetTickCount();
-    if ((now - _last_rx) > pdMS_TO_TICKS(250))
+    if ((now - _last_rx) > pdMS_TO_TICKS(150))
     {
         LOG_ERROR("RX: Buffer timed out. Reset %d %d", now, _last_rx);
         _buf_ptr = 0;
+        protocol_transaction_unlock();
     }
 }
 
@@ -107,6 +110,19 @@ int protocol_buffer_lock()
 int protocol_buffer_unlock()
 {
     xSemaphoreGive(MUTEX_HANDLE(rx_buf));
+    return 0;
+}
+
+int protocol_transaction_lock(int ticks)
+{
+    if (!xSemaphoreTake(MUTEX_HANDLE(txn), ticks)) 
+        return -1;
+    return 0;
+}
+
+int protocol_transaction_unlock()
+{
+    xSemaphoreGive(MUTEX_HANDLE(txn));
     return 0;
 }
 
