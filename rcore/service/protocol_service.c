@@ -56,8 +56,7 @@ static void _thread_protocol_rx()
     RebblePacket packet;
     RebblePacket newpacket;
 
-    while(1)
-    {
+    while(1) {
         xQueueReceive(QUEUE_HANDLE(rx), &packet, portMAX_DELAY);
 
         ProtocolTransportSender transport = packet->transport_sender;
@@ -101,10 +100,11 @@ static void _packet_tx(const RebblePacket packet)
 static void _thread_protocol_tx()
 {
     rebble_packet *packet;
-    while(1)
-    {
+    while(1) {
         xQueueReceive(QUEUE_HANDLE(tx), &packet, portMAX_DELAY);
-
+        if (!packet)
+            continue;
+            
         if (protocol_transaction_lock(10) < 0) {
             xQueueSendToFront(QUEUE_HANDLE(tx), packet, 0); /* requeue */
         }

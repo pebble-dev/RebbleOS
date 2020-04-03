@@ -141,10 +141,12 @@ typedef enum AppThreadType {
 
 
 #define THREAD_MANAGER_APP_LOAD_ID           0
-#define THREAD_MANAGER_APP_QUIT_CLEAN        1
-#define THREAD_MANAGER_APP_DOWNLOAD_COMPLETE 2
-#define THREAD_MANAGER_APP_DOWNLOAD_PROGRESS 3
-#define THREAD_MANAGER_APP_DRAW              4
+#define THREAD_MANAGER_APP_QUIT_REQUEST      1
+#define THREAD_MANAGER_APP_TEARDOWN          2
+#define THREAD_MANAGER_APP_DOWNLOAD_COMPLETE 3
+#define THREAD_MANAGER_APP_DOWNLOAD_PROGRESS 4
+#define THREAD_MANAGER_APP_DRAW              5
+#define THREAD_MANAGER_APP_HEARTBEAT         6
 
 /* This struct hold all information about the task that is executing
  * There are many runing apps, such as main app, worker or background.
@@ -154,6 +156,7 @@ typedef struct app_running_thread_t {
     App *app;
     AppThreadState status;
     void *thread_entry;
+    TickType_t app_start_tick;
     TickType_t shutdown_at_tick;
     const char *thread_name;    
     uint8_t thread_priority;
@@ -168,8 +171,8 @@ typedef struct app_running_thread_t {
 
 /* in appmanager.c */
 uint8_t appmanager_init(void);
-void appmanager_timer_add(CoreTimer *timer);
-void appmanager_timer_remove(CoreTimer *timer);
+void appmanager_timer_add(CoreTimer *timer, app_running_thread *thread);
+void appmanager_timer_remove(CoreTimer *timer, app_running_thread *thread);
 void app_event_loop(void);
 bool appmanager_post_generic_thread_message(AppMessage *am, TickType_t timeout);
 app_running_thread *appmanager_get_current_thread(void);

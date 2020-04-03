@@ -56,7 +56,7 @@ void event_service_unsubscribe(EventServiceCommand command);
 /** 
  * @brief Un-Subscribe a given thread from all watched events
  */
-void event_service_unsubscribe_all(void);
+void event_service_unsubscribe_thread(app_running_thread *thread);
 
 /** 
  * @brief Get the context for a given \ref EventServiceCommand subscription

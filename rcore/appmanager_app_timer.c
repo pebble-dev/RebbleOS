@@ -55,9 +55,7 @@ void appmanager_timer_expired(app_running_thread *thread)
     }
 
     thread->timer_head = timer->next;
-
-    if (!appmanager_is_app_shutting_down())
-        timer->callback(timer);
+    timer->callback(timer);
 }
 
 /* 
@@ -65,10 +63,9 @@ void appmanager_timer_expired(app_running_thread *thread)
  * reasonable to do from the app thread: otherwise, you can race with the
  * check for the timer head.
  */
-void appmanager_timer_add(CoreTimer *timer)
+void appmanager_timer_add(CoreTimer *timer, app_running_thread *thread)
 {
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    CoreTimer **tnext = &_this_thread->timer_head;
+    CoreTimer **tnext = &thread->timer_head;
 
     /* until either the next pointer is null (i.e., we have hit the end of
      * the list), or the thing that the next pointer points to is further in
@@ -83,10 +80,9 @@ void appmanager_timer_add(CoreTimer *timer)
     *tnext = timer;
 }
 
-void appmanager_timer_remove(CoreTimer *timer)
+void appmanager_timer_remove(CoreTimer *timer, app_running_thread *thread)
 {
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    CoreTimer **tnext = &_this_thread->timer_head;
+    CoreTimer **tnext = &thread->timer_head;
 
     while (*tnext) {
         if (*tnext == timer) {
