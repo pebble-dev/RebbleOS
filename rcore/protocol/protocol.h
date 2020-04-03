@@ -35,11 +35,11 @@ enum {
 };
 
 
-uint8_t protocol_rx_buffer_append(uint8_t *data, size_t len);
-uint16_t protocol_get_rx_buf_size(void);
+int protocol_rx_buffer_append(uint8_t *data, size_t len);
+size_t protocol_get_rx_buf_size(void);
 uint8_t *protocol_rx_buffer_request(void);
 void protocol_rx_buffer_release(uint16_t len);
-void protocol_rx_buffer_consume(uint16_t len);
+int protocol_rx_buffer_consume(uint16_t len);
 EndpointHandler protocol_find_endpoint_handler(uint16_t protocol, const PebbleEndpoint *endpoint);
 PebbleEndpoint *protocol_get_pebble_endpoints(void);
 uint8_t *protocol_get_rx_buffer(void);
@@ -47,8 +47,8 @@ uint8_t *protocol_get_rx_buffer(void);
 /* API */
 
 void protocol_send_packet(const RebblePacket packet);
-bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport);
-void protocol_process_packet(const RebblePacket packet);
+int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport);
+int protocol_process_packet(const RebblePacket packet);
 ProtocolTransportSender protocol_get_current_transport_sender();
 
 typedef enum  {
@@ -84,3 +84,12 @@ void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id);
 
 uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf);
 uint8_t pascal_strlen(char *str);
+
+enum {
+    PROTOCOL_BUFFER_FULL = -1,
+    PROTOCOL_BUFFER_OK = 0,
+    PACKET_MORE_DATA_REQD = -1,
+    PACKET_BUFFER_HAS_DATA = -2,
+    PACKET_INVALID = -3,
+    PACKET_PROCESSED = 1,
+};

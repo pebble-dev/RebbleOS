@@ -14,27 +14,7 @@ void other_handler(const RebblePacket incoming_packet)
 
 void spp_handler(const RebblePacket incoming_packet)
 {
-    RebblePacketDataHeader packet;
-    
-    if (!protocol_parse_packet(packet_get_data(incoming_packet), &packet, qemu_send_data))
-        return; // we are done, no point looking as we have no data left
-
-    /* seems legit. We have a valid packet. Create a data packet and process it */
-    RebblePacket newpacket = packet_create_with_data(packet.endpoint, packet.data, packet.length);
-    
-    if (newpacket == NULL)
-    {
-        KERN_LOG("QEMU", APP_LOG_LEVEL_ERROR, "No Packet memory! Bailing");
-        return;
-    }
-    
-//     uint8_t *newdata = packet_get_data(newpacket);
-//     memcpy(newdata, packet.data, packet.length);
-    
-    protocol_process_packet(newpacket);
- 
-    /* Remove the processed packet from the buffer */
-    protocol_rx_buffer_consume(packet.length + sizeof(RebblePacketHeader) + sizeof(QemuCommChannelHeader) + sizeof(QemuCommChannelFooter));
+    packet_recv(incoming_packet);
 }
 
 const PebbleEndpoint qemu_endpoints[] =
@@ -47,6 +27,10 @@ const PebbleEndpoint qemu_endpoints[] =
     {
         .endpoint = QemuProtocol_Tests,
         .handler = test_packet_handler
+    },
+    {
+        .endpoint = QemuProtocol_TestsLoopback,
+        .handler = test_packet_loopback_handler
     },
 #endif
     {

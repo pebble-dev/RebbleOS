@@ -21,7 +21,7 @@
 /* Configure Logging */
 #define MODULE_NAME "appman"
 #define MODULE_TYPE "KERN"
-#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
+#define LOG_LEVEL RBL_LOG_LEVEL_ERROR //RBL_LOG_LEVEL_ERROR
 
 /*
  * Module TODO

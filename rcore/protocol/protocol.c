@@ -13,6 +13,7 @@
 #include "protocol_system.h"
 #include "protocol_service.h"
 #include "qemu.h"
+#include "rtoswrap.h"
 
 /* Configure Logging */
 #define MODULE_NAME "pcol"
@@ -72,64 +73,130 @@ static uint8_t _rx_buffer[RX_BUFFER_SIZE];
 static uint16_t _buf_ptr = 0;
 static TickType_t _last_rx;
 static ProtocolTransportSender _last_transport_used;
+MUTEX_DEFINE(rx_buf);
+MUTEX_DEFINE(txn);
+
+void protocol_init(void)
+{
+    MUTEX_CREATE(rx_buf);
+    MUTEX_CREATE(txn);
+}
 
 uint8_t *protocol_get_rx_buffer(void)
 {
     return _rx_buffer;
 }
 
-#define BUFFER_OK   0
-#define BUFFER_FULL 1
-
-
 static void _is_rx_buf_expired(void)
 {
     if (!_buf_ptr)
         return;
     TickType_t now = xTaskGetTickCount();
-    if ((now - _last_rx) > pdMS_TO_TICKS(250))
+    if ((now - _last_rx) > pdMS_TO_TICKS(150))
     {
         LOG_ERROR("RX: Buffer timed out. Reset %d %d", now, _last_rx);
         _buf_ptr = 0;
+        protocol_transaction_unlock();
     }
 }
 
-uint8_t protocol_rx_buffer_append(uint8_t *data, size_t len)
+int protocol_buffer_lock()
 {
-    if (_buf_ptr + len > RX_BUFFER_SIZE)
-        return BUFFER_FULL;
-
-    _is_rx_buf_expired();
-    _last_rx = xTaskGetTickCount();
-    memcpy(&_rx_buffer[_buf_ptr], data, len);
-
-    _buf_ptr += len;
-
+    if (!xSemaphoreTake(MUTEX_HANDLE(rx_buf), 100)) 
+        return -1;
     return 0;
 }
 
-uint16_t protocol_get_rx_buf_size(void)
+int protocol_buffer_unlock()
+{
+    xSemaphoreGive(MUTEX_HANDLE(rx_buf));
+    return 0;
+}
+
+int protocol_transaction_lock(int ticks)
+{
+    if (!xSemaphoreTake(MUTEX_HANDLE(txn), ticks)) 
+        return -1;
+    return 0;
+}
+
+int protocol_transaction_unlock()
+{
+    xSemaphoreGive(MUTEX_HANDLE(txn));
+    return 0;
+}
+
+int protocol_rx_buffer_append(uint8_t *data, size_t len)
+{
+    if (_buf_ptr + len > RX_BUFFER_SIZE)
+        return PROTOCOL_BUFFER_FULL;
+
+    _is_rx_buf_expired();
+    _last_rx = xTaskGetTickCount();
+
+    protocol_buffer_lock();
+    memcpy(&_rx_buffer[_buf_ptr], data, len);
+    _buf_ptr += len;
+    protocol_buffer_unlock();
+
+    return PROTOCOL_BUFFER_OK;
+}
+
+size_t protocol_get_rx_buf_size(void)
+{
+    return RX_BUFFER_SIZE;
+}
+
+size_t protocol_get_rx_buf_free(void)
+{
+    return RX_BUFFER_SIZE - _buf_ptr;
+}
+
+size_t protocol_get_rx_buf_used(void)
 {
     return _buf_ptr;
 }
 
 uint8_t *protocol_rx_buffer_request(void)
 {
+    protocol_buffer_lock();
     _is_rx_buf_expired();
-    return &_rx_buffer[_buf_ptr];
+    uint8_t *b = &_rx_buffer[_buf_ptr];
+    protocol_buffer_unlock();
+    
+    return b;
 }
 
 void protocol_rx_buffer_release(uint16_t len)
 {
     _last_rx = xTaskGetTickCount();
+    protocol_buffer_lock();
     _buf_ptr += len;
+    protocol_buffer_unlock();
 }
 
-void protocol_rx_buffer_consume(uint16_t len)
+int protocol_rx_buffer_consume(uint16_t len)
 {
     _last_rx = xTaskGetTickCount();
-    memmove(_rx_buffer, _rx_buffer + len, _buf_ptr - len);
-    _buf_ptr -= len;
+    protocol_buffer_lock();
+    uint16_t mv = _buf_ptr - len < 0 ? _buf_ptr : len;
+    memmove(_rx_buffer, _rx_buffer + mv, _buf_ptr - mv);
+    _buf_ptr -= mv;
+    protocol_buffer_unlock();
+    return mv;
+}
+
+int protocol_rx_buffer_pointer_adjust(int howmuch)
+{
+    /* XXX not locked. kinda don't use this function unless you know why you need to */
+    _buf_ptr += howmuch;
+
+    return howmuch;
+}
+
+void protocol_rx_buffer_reset(void)
+{
+    _buf_ptr = 0;
 }
 
 ProtocolTransportSender protocol_get_current_transport_sender()
@@ -143,33 +210,39 @@ ProtocolTransportSender protocol_get_current_transport_sender()
  * 
  * Returns false when done or on completion errors
  */
-bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport)
+int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport)
 {
+    int rv = 0;
     uint16_t pkt_length = (data[0] << 8) | (data[1] & 0xff);
     uint16_t pkt_endpoint = (data[2] << 8) | (data[3] & 0xff);
     
     _last_transport_used = transport;
     
+    protocol_buffer_lock();
     LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
     
-    if (_buf_ptr < 4) /* not enough data to parse a header */
-        return false;
-
-    /* done! (usually) */
-    if (pkt_length == 0)
-        return false;
-
-    /* Seems sensible */
-    if (pkt_length > RX_BUFFER_SIZE)
-    {
-        LOG_ERROR("RX: payload length %d. Seems suspect!", pkt_length);
-        return false;
+    if (_buf_ptr < 4) { /* not enough data to parse a header */
+        rv = PACKET_MORE_DATA_REQD;
+        goto done;
     }
 
-    if (_buf_ptr < pkt_length + 4)
-    {
+    /* done! (usually) */
+    if (pkt_length == 0) {
+        rv = PACKET_PROCESSED;
+        goto done;
+    }
+
+    /* Seems sensible */
+    if (pkt_length > RX_BUFFER_SIZE) {
+        LOG_ERROR("RX: payload length %d. Seems suspect!", pkt_length);
+        rv = PACKET_INVALID;
+        goto done;
+    }
+
+    if (_buf_ptr < pkt_length + 4) {
         LOG_INFO("RX: Partial. Still waiting for %d bytes", (pkt_length + 4) - _buf_ptr);
-        return false;
+        rv = PACKET_MORE_DATA_REQD;
+        goto done;
     }
 
     LOG_INFO("RX: packet is complete %x", transport);
@@ -180,15 +253,11 @@ bool protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoc
     packet->data = data + 4;
     packet->transport_sender = transport;
 
-    return true;
-}
+    rv = PACKET_PROCESSED;
 
-/* 
- * Given a packet, process it and call the relevant function
- */
-void protocol_process_packet(const RebblePacket packet)
-{
-    protocol_service_rx_data(packet);
+done:
+    protocol_buffer_unlock();
+    return rv;
 }
 
 /*
@@ -200,26 +269,125 @@ void protocol_send_packet(const RebblePacket packet)
     uint16_t endpoint = packet_get_endpoint(packet);
 
     LOG_DEBUG("TX protocol: e:%d l %d", endpoint, len);
+    _last_transport_used = packet_get_transport(packet);
 
     packet_send_to_transport(packet, endpoint, packet_get_data(packet), len);
 }
 
+#ifdef REBBLEOS_TESTING
+#include "test.h"
+extern const PebbleEndpoint qemu_endpoints[];
+uint8_t _test_reply_buf[32];
 
+TEST(protocol_basic) {
+    uint8_t buf = 0;
+    protocol_rx_buffer_reset();
 
-uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf)
-{
-    uint8_t len = (uint8_t)source_buf[0];
-    /* Byte by byte copy the src to the dest */
-    for(int i = 0; i < len; i++)
-        result_buf[i] = source_buf[i+1];
+    LOG_INFO("protocol test buffer greedy");
+    if (protocol_rx_buffer_append(&buf, 1) == PROTOCOL_BUFFER_OK) {
+        int mv = protocol_rx_buffer_consume(2);
+        if (protocol_rx_buffer_consume(2) != 0) {
+            LOG_ERROR("failed to append 1 remove 2 %d", mv);
+            goto fail;
+        }
+
+        protocol_rx_buffer_reset();
+    }
     
-    /* and null term it */
-    result_buf[len] = 0;
+    LOG_INFO("protocol test buffer fill");
+    int remaining = protocol_get_rx_buf_size();
+    while (remaining) {        
+        buf = remaining % 0xFF;
+        if (protocol_rx_buffer_append((uint8_t *)&buf, 1) != PROTOCOL_BUFFER_OK) {
+            LOG_ERROR("Could not append byte %d, %d", buf, _buf_ptr);
+            goto fail;
+        }
+        remaining--;
+    }
+
+    LOG_INFO("protocol test buffer overfill");
+    if (protocol_get_rx_buf_used() != protocol_get_rx_buf_size()) {
+        LOG_ERROR("Buffer not full after fill");
+        goto fail;
+    }
+    buf = 1;
+    if (protocol_rx_buffer_append(&buf, 1) != PROTOCOL_BUFFER_FULL) {
+        LOG_ERROR("Buffer should be full %d, %d", buf, _buf_ptr);
+        goto fail;
+    }
+
+    LOG_INFO("protocol test buffer consume");
+    protocol_rx_buffer_consume(8);
+    uint8_t *pbuf = protocol_get_rx_buffer();
+
+    if (protocol_get_rx_buf_used() + 8 != protocol_get_rx_buf_size()) {
+        LOG_ERROR("Buffer used invalid");
+        goto fail;
+    }
+
+    if (pbuf[0] != 0 && pbuf[1] != 254) {
+        LOG_ERROR("Buffer contents(%d) invalid", pbuf[0]);
+        goto fail;
+    }
     
-    return len + 1;
+   
+    *artifact = 0;
+    return TEST_PASS;
+
+fail:
+    protocol_rx_buffer_reset();
+    return TEST_FAIL;
 }
 
-uint8_t pascal_strlen(char *str)
-{
-    return (uint8_t)str[0];
+TEST(protocol_packet) {
+    uint8_t *pbuf = protocol_get_rx_buffer();
+    uint8_t pacbuf[5];
+
+    LOG_INFO("protocol test time message");
+    protocol_rx_buffer_reset();
+    RebblePacketDataHeader hdr = {
+        .length = htons(1),
+        .endpoint = htons(WatchProtocol_Time),
+    };
+
+    protocol_rx_buffer_append((uint8_t *)&hdr, 4);
+    pacbuf[0] = 0;
+    memset(_test_reply_buf, 0, sizeof(_test_reply_buf));
+    protocol_rx_buffer_append(pacbuf, 1);
+    EndpointHandler handler = protocol_find_endpoint_handler(QemuProtocol_TestsLoopback, qemu_endpoints);
+    assert(handler);
+    RebblePacket p = packet_create_with_data(2, pbuf, 1);
+    handler(p);
+
+    /* test the packet */
+    if (_test_reply_buf[0] != 1) { /* Time Response endpoint */
+        LOG_ERROR("Packet endpoint invalid(%d)", (uint8_t *)_test_reply_buf[0]);
+        return TEST_FAIL;
+    }
+    uint32_t t = *(uint32_t *)&_test_reply_buf[1];
+    if (htonl(t) != (uint32_t)rcore_get_time()) { /* time back */
+        LOG_ERROR("Packet time invalid(%x) now %x", htonl(t), (uint32_t)rcore_get_time());
+        return TEST_FAIL;
+    }
+
+    *artifact = 0;
+    return TEST_PASS;
 }
+
+void test_packet_loopback_sender(uint16_t endpoint, uint8_t *data, uint16_t len)
+{
+    memcpy(_test_reply_buf, data, len);
+    KERN_LOG("test", APP_LOG_LEVEL_INFO, "test RX got %d bytes %x %x %x %x %x", len, data[0], data[1], data[2], data[3], data[4]);
+}
+
+void test_packet_loopback_handler(const RebblePacket packet)
+{
+    ProtocolTransportSender _default_handler = _last_transport_used;
+    
+    KERN_LOG("test", APP_LOG_LEVEL_INFO, "test RX got %d bytes", packet_get_data_length(packet));
+    _last_transport_used = test_packet_loopback_sender;
+    packet_set_transport(packet, test_packet_loopback_sender);
+    spp_handler(packet);
+    _last_transport_used = _default_handler;
+}
+#endif

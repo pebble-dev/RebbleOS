@@ -28,3 +28,11 @@
 #define QUEUE_HANDLE(name) _##name##_queue
 
 #define QUEUE_CREATE(name) _##name##_queue = xQueueCreateStatic(sizeof(_##name##_queue_contents) / sizeof(_##name##_queue_contents[0]), sizeof(_##name##_queue_contents[0]), (uint8_t *) _##name##_queue_contents, &_##name##_queue_buf)
+
+#define MUTEX_HANDLE(name) _##name##_mutex
+
+#define MUTEX_DEFINE(name) \
+    static SemaphoreHandle_t _##name##_mutex; \
+    static StaticSemaphore_t _##name##_queue_buf
+
+#define MUTEX_CREATE(name) _##name##_mutex = xSemaphoreCreateMutexStatic(&_##name##_queue_buf)

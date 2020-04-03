@@ -68,7 +68,6 @@ static void _copy_and_null_term_string(uint8_t **dest, uint8_t *src, uint16_t le
 
 void protocol_process_legacy2_notification(const RebblePacket packet)
 {
-    packet_destroy(packet);
 //     full_msg_t *msg;
 //     notification_packet_push(data, &msg);
 //     notification_show_message(msg, 5000);
