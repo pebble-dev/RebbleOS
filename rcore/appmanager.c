@@ -8,9 +8,9 @@
  */
 
 #include <stdlib.h>
-#include "rebbleos.h"
-#include "librebble.h"
+#include "appmanager_thread.h"
 #include "appmanager.h"
+
 #include "systemapp.h"
 #include "test.h"
 #include "notification.h"
@@ -447,7 +447,7 @@ static void _app_management_thread(void *parms)
                     /* remove the ticktimer service handler and stop it */
                     tick_timer_service_unsubscribe_thread(_this_thread);
                     connection_service_unsubscribe_thread(_this_thread);
-                    event_service_unsubscribe_thread(_this_thread);
+                    event_service_unsubscribe_thread_all(_this_thread);
                     
                     appmanager_app_quit();
 

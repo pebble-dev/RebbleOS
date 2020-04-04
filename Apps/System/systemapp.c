@@ -162,6 +162,7 @@ static void systemapp_window_load(Window *window)
         .on_menu_exit = exit_to_watchface
     });
     layer_add_child(window_layer, menu_get_layer(s_menu));
+    window_set_background_color(s_main_window, GColorWhite);
 
     menu_set_click_config_onto_window(s_menu, window);
 

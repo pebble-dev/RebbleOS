@@ -6,6 +6,7 @@
  * 
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
+#include "appmanager_thread.h"
 
 typedef enum EventServiceCommand {
     EventServiceCommandGeneric,
@@ -56,7 +57,15 @@ void event_service_unsubscribe(EventServiceCommand command);
 /** 
  * @brief Un-Subscribe a given thread from all watched events
  */
-void event_service_unsubscribe_thread(app_running_thread *thread);
+void event_service_unsubscribe_thread_all(app_running_thread *thread);
+
+/** 
+ * @brief Un-Subscribe from a given \ref EventServiceCommand
+ * 
+ * @param command \ref EventServiceCommand to stop watching
+ * @param thread \ref app_running_thread to apply
+ */
+void event_service_unsubscribe_thread(EventServiceCommand command, app_running_thread *thread);
 
 /** 
  * @brief Get the context for a given \ref EventServiceCommand subscription
