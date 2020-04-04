@@ -165,7 +165,10 @@ int packet_reply(RebblePacket packet, uint8_t *data, uint16_t size)
 
 int packet_recv(const RebblePacket packet)
 {
-    xQueueSendToBack(QUEUE_HANDLE(rx), &packet, portMAX_DELAY);
+    if (xQueueSendToBack(QUEUE_HANDLE(rx), &packet, portMAX_DELAY))
+        return 0;
+    
+    return -1;
 }
 
 inline uint8_t *packet_get_data(RebblePacket packet)

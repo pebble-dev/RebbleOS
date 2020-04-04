@@ -134,7 +134,7 @@ static void exit_to_watchface(struct Menu *menu, void *context)
 static MusicTrackInfo *_music_track;
 static MenuItems *items;
 
-static void _music_info(EventServiceProc command, void *data)
+static void _music_info(EventServiceCommand command, void *data)
 {
     if (_music_track)
         app_free(_music_track);
@@ -146,7 +146,7 @@ static void _music_info(EventServiceProc command, void *data)
     LOG_INFO("Artist: %s", amusic->artist);
     LOG_INFO("Album: %s", amusic->album);
             
-    items->items[2].sub_text = amusic->title;
+    items->items[2].sub_text = (char *)amusic->title;
 }
 
 static void systemapp_window_load(Window *window)

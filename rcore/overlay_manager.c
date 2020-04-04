@@ -195,7 +195,7 @@ void overlay_window_stack_push_window(Window *window, bool animated)
 Window *overlay_window_stack_pop_window(bool animated)
 {
     Window *window = overlay_window_stack_get_top_window();
-    overlay_window_destroy(window);
+    overlay_window_destroy((OverlayWindow *)window);
 
     return window;
 }
