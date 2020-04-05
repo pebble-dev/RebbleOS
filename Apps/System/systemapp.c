@@ -59,9 +59,10 @@ static MenuItems* app_item_selected(const MenuItem *item)
     return NULL;
 }
 
+void settings_enter();
 static MenuItems* settings_item_selected(const MenuItem *item)
 {
-    appmanager_app_start("Settings");
+    settings_enter();
     return NULL;
 }
 
@@ -285,6 +286,7 @@ static void about_window_unload(Window *window)
     gbitmap_destroy(rocket_bitmap);
 }
 
+extern void settings_init();
 void systemapp_init(void)
 {
     s_main_window = window_create();
@@ -302,12 +304,15 @@ void systemapp_init(void)
     });
 
     window_stack_push(s_main_window, true);
+    settings_init();
 }
 
+extern void settings_deinit();
 void systemapp_deinit(void)
 {
     window_destroy(s_main_window);
     window_destroy(s_about_window);
+    settings_deinit();
 }
 
 void systemapp_main(void)

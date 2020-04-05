@@ -20,7 +20,7 @@ static void exit_to_watchface(struct Menu *menu, void *context)
 {
     /* Exit to watchface */
     hw_bluetooth_advertising_visible(0);
-    appmanager_app_start("System");
+    window_stack_pop(true);
 }
 
 static struct MenuItems *_really_wipe_fs(const struct MenuItem *ctx) {
@@ -71,14 +71,22 @@ static void _settings_window_load(Window *window)
     // Status Bar
     status_bar = status_bar_layer_create();
     layer_add_child(menu_get_layer(_menu), status_bar_layer_get_layer(status_bar));
+
+    hw_bluetooth_advertising_visible(1);
 }
 
 static void _settings_window_unload(Window *window)
 {
     menu_destroy(_menu);
+    status_bar_layer_destroy(status_bar);
+    hw_bluetooth_advertising_visible(0);
 }
 
-static void _settings_init(void)
+void settings_enter(void) {
+    window_stack_push(_main_window, true);
+}
+
+void settings_init(void)
 {
     _main_window = window_create();
 
@@ -86,20 +94,9 @@ static void _settings_init(void)
         .load = _settings_window_load,
         .unload = _settings_window_unload,
     });
-
-    window_stack_push(_main_window, true);
 }
 
-static void _settings_deinit(void)
+void settings_deinit(void)
 {
     window_destroy(_main_window);
-}
-
-void settings_main(void)
-{
-    hw_bluetooth_advertising_visible(1);
-    _settings_init();
-    app_event_loop();
-    _settings_deinit();
-    hw_bluetooth_advertising_visible(0);
 }
