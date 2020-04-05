@@ -45,12 +45,11 @@ uint8_t qemu_init(void)
     
     hw_qemu_init();
     _qemu_mutex = xSemaphoreCreateMutexStatic(&_qemu_mutex_mem);
+    _qemu_sem = xSemaphoreCreateBinaryStatic(&_qemu_sem_buf);
     _qemu_task = xTaskCreateStatic(_qemu_thread,
                                    "QEMU", STACK_SZ_QEMU, NULL,
-                                   tskIDLE_PRIORITY + 9UL,
+                                   tskIDLE_PRIORITY + 5UL,
                                    _qemu_task_stack, &_qemu_task_buf);
-    
-    _qemu_sem = xSemaphoreCreateBinaryStatic(&_qemu_sem_buf);
 
     return INIT_RESP_OK;
 }
