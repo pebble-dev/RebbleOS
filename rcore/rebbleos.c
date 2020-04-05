@@ -64,6 +64,7 @@ static void _os_thread(void *pvParameters)
      * or a delay before it is up. Once the module is up, it 
      * can report completion
      */
+    log_init();
     service_init();
     _module_init(flash_init,            "Flash Storage");
     _module_init(vibrate_init,          "Vibro");

@@ -17,6 +17,7 @@ enum {
 	ST_WIDTH    = 0x00000008,
 	ST_NEGATIVE = 0x00000010,
 	ST_PREC     = 0x00000020,
+	ST_SPACEPAD = 0x00000040,
 };
 
 #define PACKWID(c,w)	((c)->state |= (w << 20))
@@ -58,9 +59,9 @@ static void _utoa(struct fmtctx *ctx, unsigned int base, unsigned long long arg)
 		n--;
 		arg /= base;
 	}
-	if (ctx->state & ST_ZEROPAD)
+	if (ctx->state & (ST_ZEROPAD | ST_SPACEPAD))
 		while ((unsigned)(o - n) < WID(ctx) && n > buf)
-			*n-- = '0';
+			*n-- = (ctx->state & ST_ZEROPAD) ? '0' : ' ';
 	if (ctx->state & ST_NEGATIVE)
 		*n-- = '-';
 	n++;
@@ -141,6 +142,11 @@ int fmt(struct fmtctx *ctx, va_list args) {
 		ctx->state = 0;
 		if (*ctx->str == '0') {
 			ctx->state |= ST_ZEROPAD;
+			ctx->str++;
+		}
+		
+		if (*ctx->str == ' ') {
+			ctx->state |= ST_SPACEPAD;
 			ctx->str++;
 		}
 

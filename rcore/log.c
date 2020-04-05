@@ -6,8 +6,45 @@
  */
 
 #include "rebbleos.h"
+#include "minilib.h"
+#include "rtoswrap.h"
 
-extern int vsfmt(char *buf, unsigned int len, const char *ifmt, va_list ap);
+QUEUE_DEFINE(log, char, 512);
+static volatile int _log_isrunning = 0;
+static void _log_entry(void *arg) {
+    QUEUE_CREATE(log);
+    _log_isrunning = 1;
+    while (1) {
+        char c;
+        xQueueReceive(QUEUE_HANDLE(log), &c, portMAX_DELAY);
+        log_clock_enable();
+        printf("%c", c);
+        log_clock_disable();
+    }
+}
+THREAD_DEFINE(log, 300, tskIDLE_PRIORITY + 10UL, _log_entry);
+
+static void _logc(void *priv, char c) {
+    if (!_log_isrunning) {
+        log_clock_enable();
+        printf("%c", c);
+        log_clock_disable();
+        return;
+    }
+    BaseType_t woken = pdFALSE;
+    
+    if (xPortIsInsideInterrupt()) {
+        xQueueSendFromISR(QUEUE_HANDLE(log), &c, &woken);
+        portYIELD_FROM_ISR(woken);
+    } else {
+        xQueueSend(QUEUE_HANDLE(log), &c, portMAX_DELAY);
+    }
+}
+
+void log_init() {
+    QUEUE_CREATE(log);
+    THREAD_CREATE(log);
+}
 
 static SemaphoreHandle_t _log_mutex = NULL;
 static StaticSemaphore_t _log_mutex_buf;
@@ -32,35 +69,37 @@ void log_printf_to_ar(const char *layer, const char *module, uint8_t level, cons
     va_end(ar);
 }
 
-// NOTE Probably shouldn't use from an ISR or it'll likely lock
 
-#define PRBUFSIZ 160
+static void _vlogf(const char *s, va_list args) {
+    struct fmtctx ctx = {
+        .str = s,
+        .out = _logc,
+    };
+    fmt(&ctx, args);
+}
+
+static void _logf(const char *s, ...) {
+    va_list args;
+    va_start(args, s);
+    _vlogf(s, args);
+    va_end(args);
+}
+
 void log_printf(const char *layer, const char *module, uint8_t level, const char *filename, uint32_t line_no, const char *fmt, va_list ar)
 {
     uint8_t interrupt_set = 0;
     static BaseType_t xHigherPriorityTaskWoken;
-    char buf[PRBUFSIZ];
     char tbuf[16];
     
     // XXX: this means that log_printf *must* be called first from a non-threaded context, for this check is not thread-safe!
-    // XXX: verify this here.
     if (_log_mutex == NULL)
         _log_mutex = xSemaphoreCreateMutexStatic(&_log_mutex_buf);
     
-    if(is_interrupt_set())
-    {
-        xHigherPriorityTaskWoken = pdFALSE;
-        xSemaphoreTakeFromISR(_log_mutex, &xHigherPriorityTaskWoken);
-        interrupt_set = 1;
-    }
-    else
-    {
+    /* Opportunistically avoid smashing two things together.  Interrupts can
+     * smash, since they can't block.  */
+    if(!xPortIsInsideInterrupt())
         xSemaphoreTake(_log_mutex, portMAX_DELAY);
-    }
 
-    log_clock_enable();
- 
-    
 #define INT_LEN 6
 #define LEVEL_LEN 3
 #define LAYER_LEN 8
@@ -68,61 +107,47 @@ void log_printf(const char *layer, const char *module, uint8_t level, const char
 #define FILENM_LEN 15
 #define LINENO_LEN 5
  
-    snprintf(buf, (INT_LEN / 2) + 1, "[%d]", interrupt_set);
+    _logf(xPortIsInsideInterrupt() ? "[ISR]" : "[THD]");
     app_running_thread *thread = appmanager_get_current_thread();
-    snprintf(buf + INT_LEN / 2, (INT_LEN / 2) + 1, "[%d]", thread ? thread->thread_type : -1);
+    _logf(thread ? "[%d]" : "[x]", thread ? thread->thread_type : -1);
     
     // This is pretty cheesy. We print the sections in chunks back to back
     // This is becuase there is no %8d equiv in fmt.c so we hacky it up ourself
     switch(level)
     {
         case APP_LOG_LEVEL_ERROR:
-            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[E]");
+            _logf("[E]");
             break;
         case APP_LOG_LEVEL_WARNING:
-            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[W]");
+            _logf("[W]");
             break;
         case APP_LOG_LEVEL_INFO:
-            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[I]");
+            _logf("[I]");
             break;
         case APP_LOG_LEVEL_DEBUG:
-            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[D]");
+            _logf("[D]");
             break;
         case APP_LOG_LEVEL_DEBUG_VERBOSE:
-            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[V]");
+            _logf("[V]");
             break;
         default:
-            snprintf(buf + INT_LEN, LEVEL_LEN + 1, "[?]");
+            _logf("[?]");
     }
        
     _log_pad_string(layer, tbuf, LAYER_LEN - 2);
-    snprintf(buf + INT_LEN + LEVEL_LEN, LAYER_LEN + 1, "[%s]", tbuf);
+    _logf("[%s]", tbuf);
     
     _log_pad_string(module, tbuf, MODULE_LEN - 2);
-    snprintf(buf + INT_LEN + LEVEL_LEN + LAYER_LEN, MODULE_LEN + 1, "[%s]", tbuf);
+    _logf("[%s]", tbuf);
 
     _log_pad_string(filename, tbuf, FILENM_LEN - 2);
-    snprintf(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN, FILENM_LEN + 2, "[%s", tbuf);
+    _logf("[%s:% 4d] ", tbuf, (int)line_no);
 
-    snprintf(tbuf, LINENO_LEN + 2, ":%d", (int)line_no);
-    _log_pad_string(tbuf, buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN - 1, LINENO_LEN + 1);
-    snprintf(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN - 1, 3, "] ");
-
-    vsfmt(buf + INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN + 1, PRBUFSIZ - (INT_LEN + LEVEL_LEN + LAYER_LEN + MODULE_LEN + FILENM_LEN + LINENO_LEN + 1), fmt, ar);
-
-    printf("%s\n", buf);
+    _vlogf(fmt, ar);
+    _logf("\n");
     
-    log_clock_disable();
-    
-    if (interrupt_set)
-    {
-        xSemaphoreGiveFromISR(_log_mutex, &xHigherPriorityTaskWoken);
-        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-    }
-    else 
-    {
+    if (!xPortIsInsideInterrupt())
         xSemaphoreGive(_log_mutex);
-    }
 }
 
 
