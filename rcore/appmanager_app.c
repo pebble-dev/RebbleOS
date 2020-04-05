@@ -180,6 +180,7 @@ static void _appmanager_flash_load_app_manifest_n(void)
     struct rdb_selector selectors[] = {
         { offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), RDB_OP_RESULT },
         { offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), RDB_OP_RESULT },
+        { offsetof(appdb_n, flags), FIELD_SIZEOF(appdb_n, flags), RDB_OP_RESULT },
         { }
     };
     int count = rdb_select(&it, &head, selectors);
@@ -206,8 +207,7 @@ static void _appmanager_flash_load_app_manifest_n(void)
         _appmanager_add_to_manifest(_appmanager_create_app((char *)res->result[0],
                                                            (Uuid *)res->result[1],
                                                            *(uint32_t *)res->key,
-                                                           //((uint16_t)rs->select2 & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
-                                                           AppTypeWatchface,
+                                                           ((uint16_t)res->result[2] & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
                                                            NULL,
                                                            false,
                                                            hasapp ? &appfile : NULL,

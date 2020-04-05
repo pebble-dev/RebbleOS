@@ -11,6 +11,7 @@ bool connection_service_peek_pebble_app_connection(void);
 bool connection_service_peek_pebblekit_connection(void);
 void connection_service_subscribe(ConnectionHandlers conn_handlers);
 void connection_service_unsubscribe(void);
+void connection_service_unsubscribe_thread(app_running_thread *thread);
 bool bluetooth_connection_service_peek(void);
 void bluetooth_connection_service_subscribe(ConnectionHandler handler);
 void bluetooth_connection_service_unsubscribe(void);

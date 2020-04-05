@@ -291,7 +291,7 @@ static void _animation_complete(Animation *anim)
 static void _animation_update(Animation *anim)
 {
     if (anim->onqueue)
-        appmanager_timer_remove(&anim->timer);
+        appmanager_timer_remove(&anim->timer,  appmanager_get_current_thread());
 
     anim->onqueue = 0;
     TickType_t now = xTaskGetTickCount();
@@ -305,7 +305,7 @@ static void _animation_update(Animation *anim)
             return;
         }
         anim->timer.when = now + ANIMATION_TICKS;
-        appmanager_timer_add(&anim->timer);
+        appmanager_timer_add(&anim->timer,  appmanager_get_current_thread());
         return;
     }
 
@@ -369,7 +369,7 @@ static void _animation_update(Animation *anim)
         anim->impl.update(anim, (uint32_t) progress);
 
     anim->onqueue = 1;
-    appmanager_timer_add(&anim->timer);
+    appmanager_timer_add(&anim->timer, appmanager_get_current_thread());
 }
 
 static void _anim_callback(CoreTimer *timer)
@@ -402,7 +402,7 @@ static bool _animation_schedule_one(Animation *anim)
     _animation_started(anim);
 
     if (anim->onqueue)
-        appmanager_timer_remove(&anim->timer);
+        appmanager_timer_remove(&anim->timer, appmanager_get_current_thread());
 
     anim->startticks = xTaskGetTickCount();
     anim->scheduled = 1;
@@ -417,7 +417,7 @@ static bool _animation_schedule_one(Animation *anim)
         anim->timer.when = anim->startticks + anim->delay;
         anim->startticks = anim->timer.when;
         anim->onqueue = 1;
-        appmanager_timer_add(&anim->timer);
+        appmanager_timer_add(&anim->timer, appmanager_get_current_thread());
         return true;
     }
 

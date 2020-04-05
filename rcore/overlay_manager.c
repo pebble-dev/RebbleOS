@@ -195,14 +195,14 @@ void overlay_window_stack_push_window(Window *window, bool animated)
 Window *overlay_window_stack_pop_window(bool animated)
 {
     Window *window = overlay_window_stack_get_top_window();
-    overlay_window_destroy_window(window);
+    overlay_window_destroy((OverlayWindow *)window);
 
     return window;
 }
 
 bool overlay_window_stack_remove(OverlayWindow *overlay_window, bool animated)
 {
-    _overlay_window_destroy(overlay_window, animated);
+    _overlay_window_destroy((OverlayWindow *)overlay_window, animated);
 
     overlay_window->window.is_render_scheduled = true;
     window_dirty(true);

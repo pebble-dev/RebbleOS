@@ -146,6 +146,7 @@ void protocol_process_transfer(const RebblePacket packet)
             char buf[16];
             char sel[6];
             _transfer_type = hdr->data_type & 0x7F;
+            _bytes_transferred = 0;
             
             if (_transfer_type == TransferType_AppExecutable)
                 snprintf(sel, 4, "app");

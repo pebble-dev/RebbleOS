@@ -134,7 +134,7 @@ static void exit_to_watchface(struct Menu *menu, void *context)
 static MusicTrackInfo *_music_track;
 static MenuItems *items;
 
-static void _music_info(EventServiceProc command, void *data)
+static void _music_info(EventServiceCommand command, void *data)
 {
     if (_music_track)
         app_free(_music_track);
@@ -146,7 +146,7 @@ static void _music_info(EventServiceProc command, void *data)
     LOG_INFO("Artist: %s", amusic->artist);
     LOG_INFO("Album: %s", amusic->album);
             
-    items->items[2].sub_text = amusic->title;
+    items->items[2].sub_text = (char *)amusic->title;
 }
 
 static void systemapp_window_load(Window *window)
@@ -162,6 +162,7 @@ static void systemapp_window_load(Window *window)
         .on_menu_exit = exit_to_watchface
     });
     layer_add_child(window_layer, menu_get_layer(s_menu));
+    window_set_background_color(s_main_window, GColorWhite);
 
     menu_set_click_config_onto_window(s_menu, window);
 
