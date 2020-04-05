@@ -204,14 +204,16 @@ static void _appmanager_flash_load_app_manifest_n(void)
             hasres ? "present" : "missing");
         
         /* main gets set later */
-        _appmanager_add_to_manifest(_appmanager_create_app((char *)res->result[0],
+        App *app = _appmanager_create_app((char *)res->result[0],
                                                            (Uuid *)res->result[1],
                                                            *(uint32_t *)res->key,
-                                                           ((uint16_t)res->result[2] & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
+                                                           ((*(uint32_t *)res->result[2]) & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
                                                            NULL,
                                                            false,
                                                            hasapp ? &appfile : NULL,
-                                                           hasres ? &resfile : NULL));
+                                                           hasres ? &resfile : NULL);
+        
+        _appmanager_add_to_manifest(app);
     }
     rdb_close(db);
     rdb_select_free_all(&head);

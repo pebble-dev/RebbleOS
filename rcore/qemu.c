@@ -149,21 +149,22 @@ static void _qemu_thread(void *pvParameters)
         {
             size_t lenr = hw_qemu_read(buf, 64);
             
-            if (lenr && protocol_rx_buffer_append(buf, lenr) < 0)
-            {
+            if (lenr && protocol_rx_buffer_append(buf, lenr) < 0) {
                 protocol_rx_buffer_reset();
                 done = true;
+            }
+
+            if (!lenr) {
+                done = true;
+                continue;
             }
             
             int rv = _qemu_handle_packet();
 
-            if (rv == PACKET_PROCESSED || rv == PACKET_MORE_DATA_REQD)
-                done = true;
-            else if (rv == PACKET_INVALID) {
+            if (rv == PACKET_INVALID) {                
                 protocol_rx_buffer_reset();
                 done = true;
             }
-            vTaskDelay(0);
         }
         hw_qemu_irq_enable();
     }
@@ -180,6 +181,12 @@ static void _qemu_read_header(QemuCommChannelHeader *header)
 
 static int _qemu_handle_packet(void)
 {
+    if (rx_is_processing())
+        return PACKET_MORE_DATA_REQD;
+
+    if (protocol_get_rx_buf_used() == 0)
+        return PACKET_MORE_DATA_REQD;
+
     QemuCommChannelHeader header;
     _qemu_read_header(&header);
 

@@ -37,8 +37,8 @@ struct rebble_packet {
 
 QUEUE_DEFINE(tx, rebble_packet *, 3);
 QUEUE_DEFINE(rx, rebble_packet *, 3);
-THREAD_DEFINE(tx, 300, tskIDLE_PRIORITY + 4UL, _thread_protocol_tx);
-THREAD_DEFINE(rx, 300, tskIDLE_PRIORITY + 4UL, _thread_protocol_rx);
+THREAD_DEFINE(tx, 300, tskIDLE_PRIORITY + 9UL, _thread_protocol_tx);
+THREAD_DEFINE(rx, 650, tskIDLE_PRIORITY + 4UL, _thread_protocol_rx);
 
 void rebble_protocol_init()
 {
@@ -50,6 +50,9 @@ void rebble_protocol_init()
     protocol_init();
 }
 
+static bool _rx_is_processing = false;
+
+bool rx_is_processing() { return _rx_is_processing; }
 
 static void _thread_protocol_rx()
 {
@@ -61,6 +64,7 @@ static void _thread_protocol_rx()
 
         ProtocolTransportSender transport = packet->transport_sender;
         RebblePacketDataHeader hdr;
+        _rx_is_processing = true;
         if (protocol_parse_packet(protocol_get_rx_buffer(), &hdr, transport) != PACKET_PROCESSED)
             continue; /* Not a valid packet */
 
@@ -83,6 +87,7 @@ static void _thread_protocol_rx()
 
         packet_destroy(packet);
         packet_destroy(newpacket);
+        _rx_is_processing = false;
     }
 }
 

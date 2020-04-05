@@ -68,7 +68,7 @@ inline PebbleEndpoint *protocol_get_pebble_endpoints(void)
 /*
  * Packet processing
  */
-#define RX_BUFFER_SIZE 2048
+#define RX_BUFFER_SIZE 2176
 static uint8_t _rx_buffer[RX_BUFFER_SIZE];
 static uint16_t _buf_ptr = 0;
 static TickType_t _last_rx;
