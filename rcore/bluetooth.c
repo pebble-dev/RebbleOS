@@ -396,8 +396,11 @@ static int _bondreq_datalen;
 static void _request_bond(void *p) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "default bond request for peer %s, returning bonded", _bondreq_name);
     char *namedup = malloc(strlen(_bondreq_name)+1);
-    strcpy(namedup, _bondreq_name);
-    event_service_post(EventServiceCommandBluetoothPairRequest, namedup, remote_free);
+    if (namedup) {
+        strcpy(namedup, _bondreq_name);
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "posting for peer %s (%p)", namedup, namedup);
+        event_service_post(EventServiceCommandBluetoothPairRequest, namedup, remote_free);
+    }
     hw_bluetooth_bond_acknowledge(1);
 }
 
