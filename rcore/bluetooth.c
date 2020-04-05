@@ -124,7 +124,7 @@ uint8_t bluetooth_init(void)
 #endif
 
     bt_set_callback_get_bond_data(_get_bond_data_isr);
-    /* bt_set_callback_request_bond(_request_bond_isr); */
+    bt_set_callback_request_bond(_request_bond_isr);
     
     return INIT_RESP_ASYNC_WAIT;
 }
@@ -388,4 +388,9 @@ static void _get_bond_data_isr(const void *peer, size_t len) {
     _bondreq_len = len;
     DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "get bond data...");
     service_submit(_get_bond_data, NULL);
+}
+
+static void _request_bond_isr(const void *peer, size_t len, const char *name, const void *data, size_t datalen) {
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "default bond request for peer %s, returning bonded", name);
+    hw_bluetooth_bond_acknowledge(1);
 }
