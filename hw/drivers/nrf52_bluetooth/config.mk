@@ -1,6 +1,7 @@
 CFLAGS_driver_nrf52_bluetooth = -Ihw/drivers/nrf52_bluetooth
 
 SRCS_driver_nrf52_bluetooth = hw/drivers/nrf52_bluetooth/nrf52_bluetooth.c
+SRCS_driver_nrf52_bluetooth += hw/drivers/nrf52_bluetooth/nrf52_bluetooth_ppogatt.c
 SRCS_driver_nrf52_bluetooth += components/softdevice/common/nrf_sdh.c
 SRCS_driver_nrf52_bluetooth += components/softdevice/common/nrf_sdh_ble.c
 SRCS_driver_nrf52_bluetooth += components/ble/nrf_ble_gatt/nrf_ble_gatt.c
