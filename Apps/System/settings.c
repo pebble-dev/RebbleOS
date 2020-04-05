@@ -16,6 +16,11 @@ static StatusBarLayer *status_bar;
 
 static void _reset_menu_items(void);
 
+static void _bluetooth_pair_request(void *data, void *ctx) {
+    const char *name = (const char *)data;
+    APP_LOG("settings", APP_LOG_LEVEL_INFO, "BT pair request: %s\n", name);
+}
+
 static void exit_to_watchface(struct Menu *menu, void *context)
 {
     /* Exit to watchface */
@@ -73,6 +78,7 @@ static void _settings_window_load(Window *window)
     layer_add_child(menu_get_layer(_menu), status_bar_layer_get_layer(status_bar));
 
     hw_bluetooth_advertising_visible(1);
+    event_service_subscribe(EventServiceCommandBluetoothPairRequest, _bluetooth_pair_request);
 }
 
 static void _settings_window_unload(Window *window)

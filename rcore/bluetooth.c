@@ -390,7 +390,22 @@ static void _get_bond_data_isr(const void *peer, size_t len) {
     service_submit(_get_bond_data, NULL);
 }
 
-static void _request_bond_isr(const void *peer, size_t len, const char *name, const void *data, size_t datalen) {
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "default bond request for peer %s, returning bonded", name);
+static const void *_bondreq_name;
+static const void *_bondreq_data;
+static int _bondreq_datalen;
+static void _request_bond(void *p) {
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "default bond request for peer %s, returning bonded", _bondreq_name);
+    char *namedup = malloc(strlen(_bondreq_name)+1);
+    strcpy(namedup, _bondreq_name);
+    event_service_post(EventServiceCommandBluetoothPairRequest, namedup, remote_free);
     hw_bluetooth_bond_acknowledge(1);
+}
+
+static void _request_bond_isr(const void *peer, size_t len, const char *name, const void *data, size_t datalen) {
+    _bondreq_peer = peer;
+    _bondreq_len = len;
+    _bondreq_name = name;
+    _bondreq_data = data;
+    _bondreq_datalen = datalen;
+    service_submit(_request_bond, NULL);
 }
