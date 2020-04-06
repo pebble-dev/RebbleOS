@@ -30,7 +30,8 @@ enum
     QemuProtocol_Button = 8,
 
     // Rebble custom
-    QemuProtocol_Tests = 100
+    QemuProtocol_Tests = 100,
+    QemuProtocol_TestsLoopback = 101
 };
 
 

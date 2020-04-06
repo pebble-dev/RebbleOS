@@ -51,24 +51,30 @@ void event_service_subscribe_with_context(EventServiceCommand command, EventServ
     list_insert_head(&_subscriber_list_head, &conn->node);    
 }
 
-void event_service_unsubscribe_all(void)
+void event_service_unsubscribe_thread(EventServiceCommand command, app_running_thread *thread)
 {
-    app_running_thread *_this_thread = appmanager_get_current_thread();
-    bool done = false;
-    
-    while(!done)
+    event_service_subscriber *conn;
+    list_foreach(conn, &_subscriber_list_head, event_service_subscriber, node)
     {
-        done = true;
-        event_service_subscriber *conn;
-        list_foreach(conn, &_subscriber_list_head, event_service_subscriber, node)
+        if (conn->thread == thread)
         {
-            if (conn->thread == _this_thread)
-            {
-                list_remove(&_subscriber_list_head, &conn->node);
-                app_free(conn);
-                done = false;
-                break;
-            }
+            list_remove(&_subscriber_list_head, &conn->node);
+            remote_free(conn);
+            break;
+        }
+    }
+}
+
+void event_service_unsubscribe_thread_all(app_running_thread *thread)
+{
+    event_service_subscriber *conn;
+    list_foreach(conn, &_subscriber_list_head, event_service_subscriber, node)
+    {
+        if (conn->thread == thread)
+        {
+            list_remove(&_subscriber_list_head, &conn->node);
+            remote_free(conn);
+            break;
         }
     }
 }
@@ -76,16 +82,7 @@ void event_service_unsubscribe_all(void)
 void event_service_unsubscribe(EventServiceCommand command)
 {
     app_running_thread *_this_thread = appmanager_get_current_thread();
-    event_service_subscriber *conn;
-    list_foreach(conn, &_subscriber_list_head, event_service_subscriber, node)
-    {
-        if (conn->thread == _this_thread && conn->command == command)
-        {
-            list_remove(&_subscriber_list_head, &conn->node);
-            app_free(conn);
-            return;
-        }
-    }
+    event_service_unsubscribe_thread(command, _this_thread);
 }
 
 void *event_service_get_context(EventServiceCommand command)

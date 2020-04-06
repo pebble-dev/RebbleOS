@@ -18,7 +18,7 @@
 
 static void _protocol_phone_event_destroy(RebblePacket packet)
 {
-    packet_destroy(packet);
+    
 }
 
 void protocol_phone_message_process(const RebblePacket packet)

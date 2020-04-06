@@ -76,29 +76,24 @@ void protocol_watch_version(const RebblePacket packet)
             .is_unfaithful = 1, // = Optional(Boolean())
         };
 
-    packet_destroy(packet);
-    rebble_protocol_send(WatchProtocol_FirmwareVersion, (void *)&response, sizeof(firmware_version_response));
-    
+    packet_reply(packet, (void *)&response, sizeof(firmware_version_response));    
 }
 
 void protocol_watch_model(const RebblePacket packet)
 {
-    packet_destroy(packet);
     uint8_t resp[6] = { 1, 4, 0, 0, 0, SnowyBlack };
-    rebble_protocol_send(WatchProtocol_WatchModel, (void *)&resp, 6);    
+    packet_reply(packet, (void *)&resp, 6);    
 }
 
 void protocol_ping_pong(const RebblePacket packet)
 {
     uint8_t *data = packet_get_data(packet);
     uint8_t resp[5] = { 1, data[1], data[2], data[3], data[4] };
-    packet_destroy(packet);
-    rebble_protocol_send(WatchProtocol_PingPong, (void *)&resp, 5);
+    packet_reply(packet, (void *)&resp, 5);
 }
 
 void protocol_watch_reset(const RebblePacket packet)
 {
-    packet_destroy(packet);
     assert(0);
 }
 
@@ -128,7 +123,7 @@ void protocol_app_version(const RebblePacket packet)
         .protocol_caps = 0,
     };
 
-    rebble_protocol_send(WatchProtocol_AppVersion, (void *)&appv, sizeof(app_version_response));
+    packet_reply(packet, (void *)&appv, sizeof(app_version_response));
 }
 
 /* Time Command functions */
@@ -160,7 +155,7 @@ void protocol_time(const RebblePacket packet)
         uint32_t t = ntohl(rcore_get_time()); //pbl_time_t_deprecated(NULL);
         memcpy(&buf[1], &t, 4);
         SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "XXX Time %x", htonl(t));
-        rebble_protocol_send(WatchProtocol_Time, buf, 5);
+        packet_reply(packet, buf, 5);
     }
     else if (data[0] == SetLocalTime)
     {
@@ -178,6 +173,4 @@ void protocol_time(const RebblePacket packet)
     }
     else
         assert(!"Invalid time request!");
-    
-    packet_destroy(packet);
 }

@@ -171,19 +171,20 @@ static void _appmanager_flash_load_app_manifest_n(void)
     
     struct rdb_database *db = rdb_open(RDB_ID_APP);
     struct rdb_iter it;
-    if (rdb_iter_start(db, &it) == 0)
+    if (rdb_iter_start(db, &it) == 0) {
+        rdb_close(db);
         return;
+    }
     
     int zero = 0;
     struct rdb_selector selectors[] = {
         { offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), RDB_OP_RESULT },
         { offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), RDB_OP_RESULT },
+        { offsetof(appdb_n, flags), FIELD_SIZEOF(appdb_n, flags), RDB_OP_RESULT },
         { }
     };
     int count = rdb_select(&it, &head, selectors);
-    
-    rdb_close(db);
-    
+        
     struct rdb_select_result *res;
     KERN_LOG("app", APP_LOG_LEVEL_ERROR, "found %d apps", count);
     rdb_select_result_foreach(res, &head) {
@@ -203,16 +204,18 @@ static void _appmanager_flash_load_app_manifest_n(void)
             hasres ? "present" : "missing");
         
         /* main gets set later */
-        _appmanager_add_to_manifest(_appmanager_create_app((char *)res->result[0],
+        App *app = _appmanager_create_app((char *)res->result[0],
                                                            (Uuid *)res->result[1],
                                                            *(uint32_t *)res->key,
-                                                           //((uint16_t)rs->select2 & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
-                                                           AppTypeWatchface,
+                                                           ((*(uint32_t *)res->result[2]) & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
                                                            NULL,
                                                            false,
                                                            hasapp ? &appfile : NULL,
-                                                           hasres ? &resfile : NULL));
+                                                           hasres ? &resfile : NULL);
+        
+        _appmanager_add_to_manifest(app);
     }
+    rdb_close(db);
     rdb_select_free_all(&head);
 }
 

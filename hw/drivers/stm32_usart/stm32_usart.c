@@ -296,9 +296,8 @@ size_t stm32_usart_read(stm32_usart_t *usart, uint8_t *buf, size_t len)
 
     for (i = 0; i < len; i++)
     {
-//         while (!(usart->config->usart->SR & USART_FLAG_RXNE));
-        if (_timeout(usart->config->usart->SR & USART_FLAG_RXNE, 10))
-            break;
+        /* If ther eis no more data, don't wait, just return what we got */
+        if (!(usart->config->usart->SR & USART_FLAG_RXNE)) break;
         ((uint8_t *) buf)[i] = USART_ReceiveData(usart->config->usart);
     }
 

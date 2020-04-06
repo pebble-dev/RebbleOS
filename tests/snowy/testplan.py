@@ -25,5 +25,7 @@ testplan = [
     Test("Filesystem: big files", testname = b'fs_bigfiles', golden = 0),
     Test("rdb: basic", testname = b'rdb_basic', golden = 0),
     Test("rdb: fill", testname = b'rdb_fill', golden = 0),
+    Test("Protocol: buffer", testname = b'protocol_basic', golden = 0),
+    Test("Protocol: packet", testname = b'protocol_packet', golden = 0),
     
 ]

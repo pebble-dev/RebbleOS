@@ -128,7 +128,7 @@ MusicTrackInfo *protocol_music_decode(RebblePacket packet)
 
 void protocol_music_destroy(RebblePacket packet)
 {
-    packet_destroy(packet);
+
 }
 
 inline void protocol_music_playpause()
