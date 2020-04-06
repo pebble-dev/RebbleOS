@@ -36,6 +36,16 @@ void appmanager_app_start_by_uuid(Uuid *uuid)
     appmanager_post_generic_thread_message(&am, 100);
 }
 
+
+void appmanager_app_quit_request(void)
+{
+    AppMessage am = (AppMessage) {
+        .command = THREAD_MANAGER_APP_QUIT_REQUEST,
+        .thread_id = AppThreadMainApp,
+    };
+    appmanager_post_generic_thread_message(&am, 10);
+}
+
 void appmanager_app_quit(void)
 {
     AppMessage am = (AppMessage) {
@@ -43,6 +53,27 @@ void appmanager_app_quit(void)
         .data = NULL
     };
     appmanager_post_generic_app_message(&am, 10);
+}
+
+
+void appmanager_app_heartbeat(void)
+{
+    app_running_thread *_thread = appmanager_get_current_thread();
+    AppMessage am = (AppMessage) {
+        .thread_id = _thread->thread_type,
+        .command = THREAD_MANAGER_APP_HEARTBEAT,
+    };
+    appmanager_post_generic_thread_message(&am, 100);
+}
+
+void appmanager_app_quit_done(void)
+{
+    app_running_thread *_thread = appmanager_get_current_thread();
+    AppMessage am = (AppMessage) {
+        .thread_id = _thread->thread_type,
+        .command = THREAD_MANAGER_APP_TEARDOWN,
+    };
+    appmanager_post_generic_thread_message(&am, 100);
 }
 
 void appmanager_app_download_complete(void)

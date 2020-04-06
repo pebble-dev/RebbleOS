@@ -88,3 +88,22 @@ bool uuid_null(const Uuid *uuid)
     return uuid_is_int(uuid, 0);
 }
 
+/* String utils */
+
+uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf)
+{
+    uint8_t len = (uint8_t)source_buf[0];
+    /* Byte by byte copy the src to the dest */
+    for(int i = 0; i < len; i++)
+        result_buf[i] = source_buf[i+1];
+    
+    /* and null term it */
+    result_buf[len] = 0;
+    
+    return len + 1;
+}
+
+uint8_t pascal_strlen(char *str)
+{
+    return (uint8_t)str[0];
+}

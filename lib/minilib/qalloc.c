@@ -129,10 +129,15 @@ void *qrealloc(qarena_t *arena, void *ptr, unsigned size) {
 	
 	qblock_t *blk = BLK_FROMPAYLOAD(ptr);
 	
+	if (size == BLK_SZ(blk)) {
+		return BLK_PAYLOAD(blk);
+	}
+
 	/* is the new size smaller? */
 	if (size < BLK_SZ(blk)) {
 		_qsplit(arena, blk, size);
 		_cookie_unset(arena, blk);
+		_cookie_set(arena, blk);
 		qjoin(arena);
 		return BLK_PAYLOAD(blk);
 	}
