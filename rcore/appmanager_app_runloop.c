@@ -99,6 +99,11 @@ void rocky_event_loop_with_resource(uint16_t resource_id)
 
 static void _draw(uint8_t force_draw)
 {
+    app_running_thread *_this_thread = appmanager_get_current_thread();
+    GRect gr = GRect(0,0, DISPLAY_COLS, DISPLAY_ROWS);
+    graphics_context_set_fill_color(_this_thread->graphics_context, GColorBlack);
+    graphics_fill_rect(_this_thread->graphics_context, gr, 0, GCornerNone);
+    
     window_draw();
     
     appmanager_post_draw_update(1);
