@@ -142,6 +142,7 @@ SRCS_all += rwatch/ui/layer/scroll_layer.c
 SRCS_all += rwatch/ui/layer/action_bar_layer.c
 SRCS_all += rwatch/ui/layer/text_layer.c
 SRCS_all += rwatch/ui/layer/notification_layer.c
+SRCS_all += rwatch/ui/layer/inverter_layer.c
 SRCS_all += rwatch/ui/window.c
 SRCS_all += rwatch/ui/action_menu.c
 SRCS_all += rwatch/graphics/gbitmap.c

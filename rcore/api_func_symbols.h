@@ -4,6 +4,7 @@
 #include "graphics_wrapper.h"
 #include "libros_graphics.h"
 #include "battery_state_service.h"
+#include "inverter_layer.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
 bool persist_exists(void);
@@ -85,9 +86,6 @@ UNIMPL(_dict_write_uint8);
 UNIMPL(_gmtime);
 UNIMPL(_graphics_draw_round_rect);
 UNIMPL(_graphics_text_layout_get_max_used_size);
-UNIMPL(_inverter_layer_create);
-UNIMPL(_inverter_layer_destroy);
-UNIMPL(_inverter_layer_get_layer);
 UNIMPL(_layer_set_clips);
 UNIMPL(_light_enable);
 UNIMPL(_light_enable_interaction);
@@ -327,8 +325,9 @@ const VoidFunc sym[] = {
     [132] = (VoidFunc)n_grect_is_empty,                                                        // grect_is_empty@00000210
     [133] = (VoidFunc)grect_standardize,                                                       // grect_standardize@00000214
     [134] = (VoidFunc)n_gsize_equal,                                                           // gsize_equal@00000218
-                                                                                            
-                                                                                            
+    [135] = (VoidFunc)inverter_layer_create,                                                   // inverter_layer_create@0000021c
+    [136] = (VoidFunc)inverter_layer_destroy,                                                  // inverter_layer_destroy@00000220
+    [137] = (VoidFunc)inverter_layer_get_layer,                                                // inverter_layer_get_layer@00000224
     [138] = (VoidFunc)layer_add_child,                                                         // layer_add_child@00000228
     [139] = (VoidFunc)layer_create,                                                            // layer_create@0000022c
     [140] = (VoidFunc)layer_create_with_data,                                                  // layer_create_with_data@00000230
@@ -753,9 +752,6 @@ const VoidFunc sym[] = {
     [121] = (UnimplFunc)_graphics_draw_round_rect,                                             // graphics_draw_round_rect@000001e4
     [125] = (UnimplFunc)_graphics_text_layout_get_max_used_size,                               // graphics_text_layout_get_max_used_size@000001f4
     
-    [135] = (UnimplFunc)_inverter_layer_create,                                                // inverter_layer_create@0000021c
-    [136] = (UnimplFunc)_inverter_layer_destroy,                                               // inverter_layer_destroy@00000220
-    [137] = (UnimplFunc)_inverter_layer_get_layer,                                             // inverter_layer_get_layer@00000224
     [154] = (UnimplFunc)_layer_set_clips,                                                      // layer_set_clips@00000268
     [158] = (UnimplFunc)_light_enable,                                                         // light_enable@00000278
     [159] = (UnimplFunc)_light_enable_interaction,                                             // light_enable_interaction@0000027c
