@@ -2,6 +2,7 @@
 #include "rebbleos.h"
 #include "librebble.h"
 #include "graphics_wrapper.h"
+#include "libros_graphics.h"
 #include "battery_state_service.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
@@ -82,10 +83,6 @@ UNIMPL(_dict_write_uint16);
 UNIMPL(_dict_write_uint32);
 UNIMPL(_dict_write_uint8);
 UNIMPL(_gmtime);
-UNIMPL(_gpath_draw_filled_legacy);
-UNIMPL(_graphics_context_set_fill_color_2bit);
-UNIMPL(_graphics_context_set_stroke_color_2bit);
-UNIMPL(_graphics_context_set_text_color_2bit);
 UNIMPL(_graphics_draw_round_rect);
 UNIMPL(_graphics_text_layout_get_max_used_size);
 UNIMPL(_inverter_layer_create);
@@ -303,13 +300,15 @@ const VoidFunc sym[] = {
 
     [105] = (VoidFunc)n_gpath_create,                                                          // gpath_create@000001a4
     [106] = (VoidFunc)n_gpath_destroy,                                                         // gpath_destroy@000001a8
-
+    [107] = (VoidFunc)gpath_fill_app_legacy,                                                  // gpath_draw_filled_legacy@000001ac
     [108] = (VoidFunc)gpath_draw_app,                                                          // gpath_draw_outline@000001b0
     [109] = (VoidFunc)gpath_move_to_app,                                                       // gpath_move_to@000001b4
     [110] = (VoidFunc)gpath_rotate_to_app,                                                     // gpath_rotate_to@000001b8
     [111] = (VoidFunc)n_gpoint_equal,                                                          // gpoint_equal@000001bc
     [112] = (VoidFunc)n_graphics_context_set_compositing_mode,                                 // graphics_context_set_compositing_mode@000001c0
-    
+    [113] = (VoidFunc)graphics_context_set_fill_color_2bit,                                    // graphics_context_set_fill_color_2bit@000001c4
+    [114] = (VoidFunc)graphics_context_set_stroke_color_2bit,                                  // graphics_context_set_stroke_color_2bit@000001c8
+    [115] = (VoidFunc)graphics_context_set_text_color_2bit,                                    // graphics_context_set_text_color_2bit@000001cc
     [116] = (VoidFunc)graphics_draw_bitmap_in_rect,                                            // graphics_draw_bitmap_in_rect@000001d0
     [117] = (VoidFunc)graphics_draw_circle,                                                    // graphics_draw_circle@000001d4
     [118] = (VoidFunc)graphics_draw_line,                                                      // graphics_draw_line@000001d8
@@ -751,10 +750,6 @@ const VoidFunc sym[] = {
     [94]  = (UnimplFunc)_dict_write_uint32,                                                    // dict_write_uint32@00000178
     [95]  = (UnimplFunc)_dict_write_uint8,                                                     // dict_write_uint8@0000017c
     [104] = (UnimplFunc)_gmtime,                                                               // gmtime@000001a0
-    [107] = (UnimplFunc)_gpath_draw_filled_legacy,                                             // gpath_draw_filled_legacy@000001ac
-    [113] = (UnimplFunc)_graphics_context_set_fill_color_2bit,                                 // graphics_context_set_fill_color_2bit@000001c4
-    [114] = (UnimplFunc)_graphics_context_set_stroke_color_2bit,                               // graphics_context_set_stroke_color_2bit@000001c8
-    [115] = (UnimplFunc)_graphics_context_set_text_color_2bit,                                 // graphics_context_set_text_color_2bit@000001cc
     [121] = (UnimplFunc)_graphics_draw_round_rect,                                             // graphics_draw_round_rect@000001e4
     [125] = (UnimplFunc)_graphics_text_layout_get_max_used_size,                               // graphics_text_layout_get_max_used_size@000001f4
     
