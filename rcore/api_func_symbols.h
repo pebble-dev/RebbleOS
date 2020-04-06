@@ -88,7 +88,6 @@ UNIMPL(_graphics_context_set_stroke_color_2bit);
 UNIMPL(_graphics_context_set_text_color_2bit);
 UNIMPL(_graphics_draw_round_rect);
 UNIMPL(_graphics_text_layout_get_max_used_size);
-UNIMPL(_window_set_background_color_2bit);
 UNIMPL(_inverter_layer_create);
 UNIMPL(_inverter_layer_destroy);
 UNIMPL(_inverter_layer_get_layer);
@@ -440,7 +439,7 @@ const VoidFunc sym[] = {
     [274] = (VoidFunc)window_get_fullscreen,                                                   // window_get_fullscreen@00000448
     [275] = (VoidFunc)window_get_root_layer,                                                   // window_get_root_layer@0000044c
     [276] = (VoidFunc)window_is_loaded,                                                        // window_is_loaded@00000450
-
+    [277] = (VoidFunc)window_set_background_color_2bit,                                        // window_set_background_color_2bit@00000454
     [278] = (VoidFunc)window_set_click_config_provider,                                        // window_set_click_config_provider@00000458
     [279] = (VoidFunc)window_set_click_config_provider_with_context,                           // window_set_click_config_provider_with_context@0000045c
     [280] = (VoidFunc)window_set_fullscreen,                                                   // window_set_fullscreen@00000460
@@ -799,7 +798,6 @@ const VoidFunc sym[] = {
     [214] = (UnimplFunc)_rot_bitmap_layer_set_corner_clip_color_2bit,                          // rot_bitmap_layer_set_corner_clip_color_2bit@00000358
     [215] = (UnimplFunc)_rot_bitmap_set_compositing_mode,                                      // rot_bitmap_set_compositing_mode@0000035c
     [216] = (UnimplFunc)_rot_bitmap_set_src_ic,                                                // rot_bitmap_set_src_ic@00000360
-    [277] = (UnimplFunc)_window_set_background_color_2bit,                                     // window_set_background_color_2bit@00000454
     [281] = (UnimplFunc)_window_set_status_bar_icon,                                           // window_set_status_bar_icon@00000464
     [289] = (UnimplFunc)_app_focus_service_subscribe,                                          // app_focus_service_subscribe@00000484
     [290] = (UnimplFunc)_app_focus_service_unsubscribe,                                        // app_focus_service_unsubscribe@00000488
