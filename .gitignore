@@ -38,3 +38,5 @@ localconfig.mk
 
 .cproject
 .project
+
+.vscode
