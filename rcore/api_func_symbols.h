@@ -2,7 +2,9 @@
 #include "rebbleos.h"
 #include "librebble.h"
 #include "graphics_wrapper.h"
+#include "libros_graphics.h"
 #include "battery_state_service.h"
+#include "inverter_layer.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
 bool persist_exists(void);
@@ -82,16 +84,8 @@ UNIMPL(_dict_write_uint16);
 UNIMPL(_dict_write_uint32);
 UNIMPL(_dict_write_uint8);
 UNIMPL(_gmtime);
-UNIMPL(_gpath_draw_filled_legacy);
-UNIMPL(_graphics_context_set_fill_color_2bit);
-UNIMPL(_graphics_context_set_stroke_color_2bit);
-UNIMPL(_graphics_context_set_text_color_2bit);
 UNIMPL(_graphics_draw_round_rect);
 UNIMPL(_graphics_text_layout_get_max_used_size);
-UNIMPL(_window_set_background_color_2bit);
-UNIMPL(_inverter_layer_create);
-UNIMPL(_inverter_layer_destroy);
-UNIMPL(_inverter_layer_get_layer);
 UNIMPL(_layer_set_clips);
 UNIMPL(_light_enable);
 UNIMPL(_light_enable_interaction);
@@ -304,13 +298,15 @@ const VoidFunc sym[] = {
 
     [105] = (VoidFunc)n_gpath_create,                                                          // gpath_create@000001a4
     [106] = (VoidFunc)n_gpath_destroy,                                                         // gpath_destroy@000001a8
-
+    [107] = (VoidFunc)gpath_fill_app_legacy,                                                  // gpath_draw_filled_legacy@000001ac
     [108] = (VoidFunc)gpath_draw_app,                                                          // gpath_draw_outline@000001b0
     [109] = (VoidFunc)gpath_move_to_app,                                                       // gpath_move_to@000001b4
     [110] = (VoidFunc)gpath_rotate_to_app,                                                     // gpath_rotate_to@000001b8
     [111] = (VoidFunc)n_gpoint_equal,                                                          // gpoint_equal@000001bc
     [112] = (VoidFunc)n_graphics_context_set_compositing_mode,                                 // graphics_context_set_compositing_mode@000001c0
-    
+    [113] = (VoidFunc)graphics_context_set_fill_color_2bit,                                    // graphics_context_set_fill_color_2bit@000001c4
+    [114] = (VoidFunc)graphics_context_set_stroke_color_2bit,                                  // graphics_context_set_stroke_color_2bit@000001c8
+    [115] = (VoidFunc)graphics_context_set_text_color_2bit,                                    // graphics_context_set_text_color_2bit@000001cc
     [116] = (VoidFunc)graphics_draw_bitmap_in_rect,                                            // graphics_draw_bitmap_in_rect@000001d0
     [117] = (VoidFunc)graphics_draw_circle,                                                    // graphics_draw_circle@000001d4
     [118] = (VoidFunc)graphics_draw_line,                                                      // graphics_draw_line@000001d8
@@ -329,8 +325,9 @@ const VoidFunc sym[] = {
     [132] = (VoidFunc)n_grect_is_empty,                                                        // grect_is_empty@00000210
     [133] = (VoidFunc)grect_standardize,                                                       // grect_standardize@00000214
     [134] = (VoidFunc)n_gsize_equal,                                                           // gsize_equal@00000218
-                                                                                            
-                                                                                            
+    [135] = (VoidFunc)inverter_layer_create,                                                   // inverter_layer_create@0000021c
+    [136] = (VoidFunc)inverter_layer_destroy,                                                  // inverter_layer_destroy@00000220
+    [137] = (VoidFunc)inverter_layer_get_layer,                                                // inverter_layer_get_layer@00000224
     [138] = (VoidFunc)layer_add_child,                                                         // layer_add_child@00000228
     [139] = (VoidFunc)layer_create,                                                            // layer_create@0000022c
     [140] = (VoidFunc)layer_create_with_data,                                                  // layer_create_with_data@00000230
@@ -440,7 +437,7 @@ const VoidFunc sym[] = {
     [274] = (VoidFunc)window_get_fullscreen,                                                   // window_get_fullscreen@00000448
     [275] = (VoidFunc)window_get_root_layer,                                                   // window_get_root_layer@0000044c
     [276] = (VoidFunc)window_is_loaded,                                                        // window_is_loaded@00000450
-
+    [277] = (VoidFunc)window_set_background_color_2bit,                                        // window_set_background_color_2bit@00000454
     [278] = (VoidFunc)window_set_click_config_provider,                                        // window_set_click_config_provider@00000458
     [279] = (VoidFunc)window_set_click_config_provider_with_context,                           // window_set_click_config_provider_with_context@0000045c
     [280] = (VoidFunc)window_set_fullscreen,                                                   // window_set_fullscreen@00000460
@@ -752,16 +749,9 @@ const VoidFunc sym[] = {
     [94]  = (UnimplFunc)_dict_write_uint32,                                                    // dict_write_uint32@00000178
     [95]  = (UnimplFunc)_dict_write_uint8,                                                     // dict_write_uint8@0000017c
     [104] = (UnimplFunc)_gmtime,                                                               // gmtime@000001a0
-    [107] = (UnimplFunc)_gpath_draw_filled_legacy,                                             // gpath_draw_filled_legacy@000001ac
-    [113] = (UnimplFunc)_graphics_context_set_fill_color_2bit,                                 // graphics_context_set_fill_color_2bit@000001c4
-    [114] = (UnimplFunc)_graphics_context_set_stroke_color_2bit,                               // graphics_context_set_stroke_color_2bit@000001c8
-    [115] = (UnimplFunc)_graphics_context_set_text_color_2bit,                                 // graphics_context_set_text_color_2bit@000001cc
     [121] = (UnimplFunc)_graphics_draw_round_rect,                                             // graphics_draw_round_rect@000001e4
     [125] = (UnimplFunc)_graphics_text_layout_get_max_used_size,                               // graphics_text_layout_get_max_used_size@000001f4
     
-    [135] = (UnimplFunc)_inverter_layer_create,                                                // inverter_layer_create@0000021c
-    [136] = (UnimplFunc)_inverter_layer_destroy,                                               // inverter_layer_destroy@00000220
-    [137] = (UnimplFunc)_inverter_layer_get_layer,                                             // inverter_layer_get_layer@00000224
     [154] = (UnimplFunc)_layer_set_clips,                                                      // layer_set_clips@00000268
     [158] = (UnimplFunc)_light_enable,                                                         // light_enable@00000278
     [159] = (UnimplFunc)_light_enable_interaction,                                             // light_enable_interaction@0000027c
@@ -799,7 +789,6 @@ const VoidFunc sym[] = {
     [214] = (UnimplFunc)_rot_bitmap_layer_set_corner_clip_color_2bit,                          // rot_bitmap_layer_set_corner_clip_color_2bit@00000358
     [215] = (UnimplFunc)_rot_bitmap_set_compositing_mode,                                      // rot_bitmap_set_compositing_mode@0000035c
     [216] = (UnimplFunc)_rot_bitmap_set_src_ic,                                                // rot_bitmap_set_src_ic@00000360
-    [277] = (UnimplFunc)_window_set_background_color_2bit,                                     // window_set_background_color_2bit@00000454
     [281] = (UnimplFunc)_window_set_status_bar_icon,                                           // window_set_status_bar_icon@00000464
     [289] = (UnimplFunc)_app_focus_service_subscribe,                                          // app_focus_service_subscribe@00000484
     [290] = (UnimplFunc)_app_focus_service_unsubscribe,                                        // app_focus_service_unsubscribe@00000488

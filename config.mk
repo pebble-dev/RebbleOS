@@ -144,6 +144,7 @@ SRCS_all += rwatch/ui/layer/text_layer.c
 SRCS_all += rwatch/ui/layer/notification_layer.c
 SRCS_all += rwatch/ui/layer/progress_layer.c
 SRCS_all += rwatch/ui/layer/selection_layer.c
+SRCS_all += rwatch/ui/layer/inverter_layer.c
 SRCS_all += rwatch/ui/window.c
 SRCS_all += rwatch/ui/action_menu.c
 SRCS_all += rwatch/ui/checkbox_window.c

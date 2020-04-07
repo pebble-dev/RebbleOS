@@ -277,3 +277,35 @@ bool graphics_frame_buffer_is_captured(GContext * ctx)
 {
     return display_is_buffer_locked();
 }
+
+/* these are all probably wrong, but eyeballing it, seems legit */
+GColor graphics_gcolor_from_2bit(int color_2bit)
+{
+       return   (GColor)(color_2bit == 0 ? GColorBlack :
+                        color_2bit == 1 ? GColorWhite :
+                        color_2bit == 2 ? GColorWhite :
+                        color_2bit == 3 ? GColorClear :
+                        color_2bit == 4 ? GColorWhite :
+                        color_2bit == 5 ? GColorBlack :
+                                          GColorClear);
+}
+
+void graphics_context_set_fill_color_2bit(GContext * ctx, int color)
+{
+    n_graphics_context_set_fill_color(ctx, graphics_gcolor_from_2bit((int)color));
+}
+
+void graphics_context_set_text_color_2bit(GContext * ctx, int color)
+{
+    n_graphics_context_set_text_color(ctx, graphics_gcolor_from_2bit((int)color));
+}
+
+void graphics_context_set_stroke_color_2bit(GContext * ctx, int color)
+{
+    n_graphics_context_set_stroke_color(ctx, graphics_gcolor_from_2bit((int)color));
+}
+
+void gpath_fill_app_legacy(n_GContext * ctx, n_GPath * path)
+{
+    gpath_fill_app(ctx, path);
+}

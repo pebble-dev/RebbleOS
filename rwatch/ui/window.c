@@ -644,3 +644,8 @@ void window_set_fullscreen(Window *window)
 {
     return;
 }
+
+void window_set_background_color_2bit(Window *window, int color_2bit)
+{
+    window_set_background_color(window, graphics_gcolor_from_2bit(color_2bit));
+}
