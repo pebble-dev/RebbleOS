@@ -10,20 +10,17 @@
 #include "checkbox_window.h"
 #include "platform_res.h"
 
-static GBitmap *s_tick_black_bitmap, *s_tick_white_bitmap;
-
-char checkbox_selection_labels[10][14];
-int checkbox_selection_labels_num = CHECKBOX_WINDOW_NUM_ROWS;
-static bool s_selections[CHECKBOX_WINDOW_NUM_ROWS];
-
 struct CheckboxWindow
 {
     Window window;
     MenuLayer *menu_layer;
+    GBitmap *s_tick_black_bitmap, *s_tick_white_bitmap;
     
     GColor checkbox_foreground_color;
     GColor checkbox_background_color;
     char checkbox_selections[10][14];
+
+    bool* s_selections;
     int selection_count;
 };
 
@@ -39,14 +36,16 @@ void set_checkbox_selection_colors(CheckboxWindow *checkmate, GColor background,
 }
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
-  return checkbox_selection_labels_num + 1;
+  CheckboxWindow *checkmate = (CheckboxWindow *) context;
+
+  return checkmate->selection_count + 1;
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
 
   CheckboxWindow *checkmate = (CheckboxWindow *) context;
 
-  if(cell_index->row == checkbox_selection_labels_num) {
+  if(cell_index->row == checkmate->selection_count) {
     // Submit item
     menu_cell_basic_draw(ctx, cell_layer, "Submit", NULL, NULL);
   } else {
@@ -56,10 +55,10 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
     menu_cell_basic_draw(ctx, cell_layer, s_buff, NULL, NULL);
 
     // Selected?
-    GBitmap *ptr = s_tick_black_bitmap;
+    GBitmap *ptr = checkmate->s_tick_black_bitmap;
     if(menu_cell_layer_is_highlighted(cell_layer)) {
-      graphics_context_set_stroke_color(ctx, GColorWhite);
-      ptr = s_tick_white_bitmap;
+      graphics_context_set_stroke_color(ctx, GColorBlack);
+      ptr = checkmate->s_tick_white_bitmap;
     }
 
     GRect bounds = layer_get_bounds(cell_layer);
@@ -68,12 +67,12 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
     // Draw checkbox
     GRect r = GRect(
       bounds.size.w - (2 * CHECKBOX_WINDOW_BOX_SIZE),
-      (bounds.size.h / 2) - (CHECKBOX_WINDOW_BOX_SIZE / 2),
+      (bounds.size.h / 2) - (CHECKBOX_WINDOW_BOX_SIZE / 2) - 62,
       CHECKBOX_WINDOW_BOX_SIZE, CHECKBOX_WINDOW_BOX_SIZE);
     graphics_draw_rect(ctx, r, 1, GCornerNone);
-    if(s_selections[cell_index->row]) {
+    if(checkmate->s_selections[cell_index->row]) {
       graphics_context_set_compositing_mode(ctx, GCompOpSet);
-      graphics_draw_bitmap_in_rect(ctx, ptr, GRect(r.origin.x, r.origin.y - 68, bitmap_bounds.size.w, bitmap_bounds.size.h));
+      graphics_draw_bitmap_in_rect(ctx, ptr, GRect(r.origin.x, r.origin.y, bitmap_bounds.size.w, bitmap_bounds.size.h));
     }
   }
 
@@ -87,17 +86,19 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 }
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
-  if(cell_index->row == checkbox_selection_labels_num) {
+    CheckboxWindow *checkmate = (CheckboxWindow *) callback_context;
+  
+  if(cell_index->row == checkmate->selection_count) {
     // Do something with choices made
-    for(int i = 0; i < checkbox_selection_labels_num; i++) {
-      //APP_LOG(APP_LOG_LEVEL_INFO, "Option %d was %s", i, (s_selections[i] ? "selected" : "not selected"));
-      APP_LOG("test",APP_LOG_LEVEL_DEBUG,"Option %d was %s", i, (s_selections[i] ? "selected" : "not selected"));
+    for(int i = 0; i < checkmate->selection_count; i++) {
+      //APP_LOG(APP_LOG_LEVEL_INFO, "Option %d was %s", i, (checkmate->s_selections[i] ? "selected" : "not selected"));
+      APP_LOG("test",APP_LOG_LEVEL_DEBUG,"Option %d was %s", i, (checkmate->s_selections[i] ? "selected" : "not selected"));
     }
     window_stack_pop(true);
   } else {
     // Check/uncheck
     int row = cell_index->row;
-    s_selections[row] = !s_selections[row];
+    checkmate->s_selections[row] = !checkmate->s_selections[row];
     menu_layer_reload_data(menu_layer);
   }
 }
@@ -109,8 +110,8 @@ static void checkbox_window_load(Window *window) {
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
 
-  s_tick_black_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL_RINGING);
-  s_tick_white_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL);
+  checkmate->s_tick_black_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL_RINGING);
+  checkmate->s_tick_white_bitmap = gbitmap_create_with_resource(RESOURCE_ID_ALARM_BELL);
 
   checkmate->menu_layer = menu_layer_create(bounds);
 
@@ -124,17 +125,19 @@ static void checkbox_window_load(Window *window) {
       .select_click = select_callback,
   });
 
+  checkmate->s_selections = (bool*) malloc(sizeof(bool*));
+
   layer_add_child(window_layer, menu_layer_get_layer(checkmate->menu_layer));
 }
 
 static void checkbox_window_unload(Window *window) {
-  //menu_layer_destroy(s_menu_layer);
+  /*menu_layer_destroy(s_menu_layer);
 
   gbitmap_destroy(s_tick_black_bitmap);
   gbitmap_destroy(s_tick_white_bitmap);
 
   window_destroy(window);
-  //s_main_window = NULL;
+  s_main_window = NULL;*/
 }
 
 void checkbox_window_push(CheckboxWindow *checkmate) {

@@ -124,6 +124,13 @@ app_test _tests[] = {
         .test_init = &dialog_choice_test_init,
         .test_execute = &dialog_choice_test_exec,
         .test_deinit = &dialog_choice_test_deinit
+    },
+    {
+        .test_name = "Pin Test",
+        .test_desc = "Pin Window Test",
+        .test_init = &pin_window_test_init,
+        .test_execute = &pin_window_test_exec,
+        .test_deinit = &pin_window_test_deinit
     }
 };
 
