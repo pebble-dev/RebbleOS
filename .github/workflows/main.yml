@@ -1,0 +1,24 @@
+name: CI build
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+
+    - name: Build Docker base
+      run: docker build -t rebbleos -f Utilities/Dockerfile .
+    - name: Build snowy
+      run: docker run rebbleos make snowy
+    - name: Build asterix
+      run: docker run rebbleos make asterix

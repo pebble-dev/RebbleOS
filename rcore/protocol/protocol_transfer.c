@@ -12,6 +12,10 @@
  *  Binary, Resource, Worker
  *  XXX Worker is not currently supported
  * 
+ *  XXX todo failed transfer mid way
+ *   timeout
+ *   cleanup
+ * 
  * Each request requires an (N)ACK
  */
 #include <stdlib.h>
@@ -99,37 +103,41 @@ typedef struct _transfer_put_response_t {
     uint32_t cookie;
 } __attribute__((__packed__)) _transfer_put_response;
 
-static void _send_xack(uint8_t ack, uint32_t cookie)
+static void _send_xack(const RebblePacket packet, uint8_t ack, uint32_t cookie)
 {
     _transfer_put_response resp = {
         .result = ack,
         .cookie = cookie
     };
     
-    rebble_protocol_send(WatchProtocol_PutBytes, (void *)&resp, sizeof(_transfer_put_response));
+    packet_reply(packet, (void *)&resp, sizeof(_transfer_put_response));
 }
 
-static inline void _send_ack(uint32_t cookie)
+static inline void _send_ack(const RebblePacket packet, uint32_t cookie)
 {
-    _send_xack(ACK, cookie);
+    _send_xack(packet, ACK, cookie);
 }
 
-static inline void _send_nack(uint32_t cookie)
+static inline void _send_nack(const RebblePacket packet, uint32_t cookie)
 {
-    _send_xack(NACK, cookie);
+    _send_xack(packet, NACK, cookie);
 }
 
 void protocol_process_transfer(const RebblePacket packet)
 {
      uint8_t *data = packet_get_data(packet);
-            
+
      switch (data[0]) {
         case PutBytesInit:
-            if (_transfer_state != 0)
-            {
+            if (_transfer_state != 0) {
                 LOG_ERROR("Invalid state for receiving data");
                 goto error;
             }
+            if (protocol_transaction_lock(200) < 0) {
+                LOG_ERROR("failed to acquire bulk xfer transaction lock");
+                goto error;
+            }
+
             _transfer_put_app_init_header *hdr = (_transfer_put_app_init_header *)data;
             LOG_INFO("PUT INIT cmd %d, sz %d t %d id %d", hdr->command, ntohl(hdr->total_size), hdr->data_type, ntohl(hdr->app_id));
             _total_size = ntohl(hdr->total_size);
@@ -138,6 +146,7 @@ void protocol_process_transfer(const RebblePacket packet)
             char buf[16];
             char sel[6];
             _transfer_type = hdr->data_type & 0x7F;
+            _bytes_transferred = 0;
             
             if (_transfer_type == TransferType_AppExecutable)
                 snprintf(sel, 4, "app");
@@ -160,8 +169,7 @@ void protocol_process_transfer(const RebblePacket packet)
                 LOG_ERROR("Couldn't create %s!", buf);
                 goto error;
             }
-            fs_mark_written(&_fd);
-            _send_ack(0);
+            _send_ack(packet, 0);
             break;
             
         case PutBytesTransfer:
@@ -183,13 +191,15 @@ void protocol_process_transfer(const RebblePacket packet)
             _cookie = nhdr->cookie;
             _bytes_transferred += data_size;
             
-            notification_progress *prog = system_calloc(1, sizeof(notification_progress));
-            prog->progress_bytes = _bytes_transferred;
-            prog->total_bytes = _total_size;
+            notification_progress *prog = mem_heap_alloc(&mem_heaps[HEAP_LOWPRIO], sizeof(notification_progress));
+            if (prog) {
+                prog->progress_bytes = _bytes_transferred;
+                prog->total_bytes = _total_size;
             
-            event_service_post(EventServiceCommandProgress, prog, system_free);
-            vTaskDelay(0);
-            _send_ack(nhdr->cookie);
+                event_service_post(EventServiceCommandProgress, prog, remote_free);
+                vTaskDelay(0);
+            }
+            _send_ack(packet, nhdr->cookie);
             break;
             
         case PutBytesCommit:
@@ -212,9 +222,10 @@ void protocol_process_transfer(const RebblePacket packet)
                 goto error;
             }
 
+            fs_mark_written(&_fd);
             LOG_DEBUG("CRC %x valid", crc);
             
-            _send_ack(_cookie);
+            _send_ack(packet, _cookie);
             break;
         
         case PutBytesInstall:
@@ -222,9 +233,11 @@ void protocol_process_transfer(const RebblePacket packet)
             _transfer_put_install_header *ihdr = (_transfer_put_install_header *)data;           
             _cookie = ihdr->cookie;
             _transfer_state = 0;
-            _send_ack(_cookie);
+            _send_ack(packet, _cookie);
             _bytes_transferred = 0;
             _cookie = 0;
+            
+            protocol_transaction_unlock();
             
             /* Once we have the resource, tell app manager we are good to load */
             if (_transfer_type == TransferType_AppResource)
@@ -234,19 +247,16 @@ void protocol_process_transfer(const RebblePacket packet)
             
         case PutBytesAbort:
             LOG_INFO("Transfer Aborted");
-            _transfer_state = 0;
-            _bytes_transferred = 0;
-            break;
+            goto error;
             
         default:
             assert(!"IMPLEMENT ME");
     }
-    packet_destroy(packet);
     return;
     
 error:
     _transfer_state = 0;
     _bytes_transferred = 0;
-    packet_destroy(packet);
-    _send_nack(0);
+    _send_nack(packet, 0);
+    protocol_transaction_unlock();
 }

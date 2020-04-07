@@ -1,11 +1,11 @@
 #pragma once
 #include "stm32f4xx.h"
 
-#define RTOS_HEAP_SIZE 30 * 1024
-
 /* Size of the app + stack + heap of the running app. 
    IN BYTES
  */ 
+#define MEMORY_SIZE_SYSTEM        30000
+#define MEMORY_SIZE_LOWPRIO       2048
 #define MEMORY_SIZE_APP           90000
 #define MEMORY_SIZE_WORKER        10500
 #define MEMORY_SIZE_OVERLAY       18500

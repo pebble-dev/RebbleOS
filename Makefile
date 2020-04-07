@@ -170,9 +170,9 @@ $(BUILD)/$(1)/$(1).pbz: $(BUILD)/$(1)/tintin_fw.bin $(BUILD)/$(1)/res/$$(PLATFOR
 
 # We have to update this first, because otherwise we don't know that we have
 # to build the qemu pbpack.
-$(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.d: res/$$(PLATFORM_ALIAS_$(1)).json
+$(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.d: res/$$(PLATFORM_ALIAS_$(1)).json $(VIRTUALENV)
 	@mkdir -p $$(dir $$@)
-	$(QUIET)Utilities/mkpack.py -r res -M $$< $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res >/dev/null
+	$(QUIET)$(VPYTHON3) Utilities/mkpack.py -r res -M $$< $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res >/dev/null
 
 
 $(BUILD)/$(1)/res/platform_res.h: $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.h
@@ -181,10 +181,10 @@ $(BUILD)/$(1)/res/platform_res.h: $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.
 
 $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.h: $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.pbpack
 
-$(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.pbpack: res/$$(PLATFORM_ALIAS_$(1)).json
+$(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.pbpack: res/$$(PLATFORM_ALIAS_$(1)).json $(VIRTUALENV)
 	$(call SAY,[$(1)] MKPACK $$<)
 	@mkdir -p $$(dir $$@)
-	$(QUIET)Utilities/mkpack.py -r res -M -H -P $$< $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res
+	$(QUIET)$(VPYTHON3) Utilities/mkpack.py -r res -M -H -P $$< $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res
 
 $(BUILD)/$(1)/fw.qemu_spi.bin: Resources/$$(PLATFORM_ALIAS_$(1))_spi.bin $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.pbpack
 	$(call SAY,[$(1)] QEMU_SPI)
@@ -247,7 +247,7 @@ $(VIRTUALENV): Utilities/requirements.txt
 	$(call SAY,RM $@)
 	$(QUIET)rm -rf $@
 	$(call SAY,VIRTUALENV $@)
-	$(QUIET)$(PYTHON3) -m virtualenv $@
+	$(QUIET)$(PYTHON3) -m virtualenv -p $(PYTHON3) $@
 	$(call SAY,PIP INSTALL $@)
 	$(QUIET)$(VIRTUALENV)/bin/pip3 install -r $<
 

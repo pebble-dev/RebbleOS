@@ -14,7 +14,7 @@
 #include "notification.h"
 #include "test_defs.h"
 #include "node_list.h"
-#include "blob_db.h"
+#include "rdb.h"
 
 static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
@@ -59,7 +59,7 @@ struct appdb
 
 typedef struct appdb_n
 {
-//     uint32_t application_id; this is the blobdb key
+//     uint32_t application_id; this is the rdb key
     Uuid app_uuid;  // 16 bytes
     uint32_t flags; /* pebble_process_info.h, PebbleProcessInfoFlags in the SDK */
     uint32_t icon;
@@ -86,6 +86,8 @@ void appmanager_app_loader_init()
 {
     struct file empty = { 0, 0, 0 }; /* TODO: make files optional in `App` to avoid this */
     
+    /* XXX: We need to completely clear the app manifest each time we reload the rdb, really. */
+    
     /* add the baked in apps */
     _appmanager_add_to_manifest(_appmanager_create_app("System", 
                                                        NULL, 9991, 
@@ -106,6 +108,8 @@ void appmanager_app_loader_init()
     
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
+    
+    appmanager_app_loader_init_n();
 }
 
 
@@ -162,33 +166,57 @@ static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint
 
 static void _appmanager_flash_load_app_manifest_n(void)
 {
-    list_head *head = calloc(1, sizeof(list_head));
-    list_init_head(head);
+    list_head head;
+    list_init_head(&head);
     
-    uint16_t count = blobdb_select_items1(BlobDatabaseID_App, head,
-                        offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), 
-                        offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), 
-                        /* where */
-                        offsetof(appdb_n, flags), FIELD_SIZEOF(appdb_n, flags),
-                        0, Blob_Less);
-    blobdb_result_set *rs;
-    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d", count);
-    list_foreach(rs, head, blobdb_result_set, node)
-    {
-        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d", count);
-        /* main gets set later */
-        _appmanager_add_to_manifest(_appmanager_create_app((char *)rs->select1,
-                                                           (Uuid *)rs->select2,
-                                                           *rs->key,
-                                                           //((uint16_t)rs->select2 & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
-                                                           AppTypeWatchface,
-                                                           NULL,
-                                                           false,
-                                                           NULL,
-                                                           NULL));
+    struct rdb_database *db = rdb_open(RDB_ID_APP);
+    struct rdb_iter it;
+    if (rdb_iter_start(db, &it) == 0) {
+        rdb_close(db);
+        return;
     }
     
-    blobdb_resultset_destroy(head);
+    int zero = 0;
+    struct rdb_selector selectors[] = {
+        { offsetof(appdb_n, app_name), FIELD_SIZEOF(appdb_n, app_name), RDB_OP_RESULT },
+        { offsetof(appdb_n, app_uuid), FIELD_SIZEOF(appdb_n, app_uuid), RDB_OP_RESULT },
+        { offsetof(appdb_n, flags), FIELD_SIZEOF(appdb_n, flags), RDB_OP_RESULT },
+        { }
+    };
+    int count = rdb_select(&it, &head, selectors);
+        
+    struct rdb_select_result *res;
+    KERN_LOG("app", APP_LOG_LEVEL_ERROR, "found %d apps", count);
+    rdb_select_result_foreach(res, &head) {
+        uint32_t appid = *(uint32_t *)res->key;
+        
+        /* does it have a file? */
+        struct file appfile, resfile;
+        int hasapp, hasres;
+        char fname[14];
+        snprintf(fname, 14, "@%08lx/app", appid);
+        hasapp = fs_find_file(&appfile, fname) >= 0;
+        snprintf(fname, 14, "@%08lx/res", appid);
+        hasres = fs_find_file(&resfile, fname) >= 0;
+
+        KERN_LOG("app", APP_LOG_LEVEL_ERROR, "FOUND App %d (%s) with key %08x (app %s, res %s)", count, (char *)res->result[0], appid,
+            hasapp ? "present" : "missing",
+            hasres ? "present" : "missing");
+        
+        /* main gets set later */
+        App *app = _appmanager_create_app((char *)res->result[0],
+                                                           (Uuid *)res->result[1],
+                                                           *(uint32_t *)res->key,
+                                                           ((*(uint32_t *)res->result[2]) & APPDB_FLAGS_IS_WATCHFACE) ? AppTypeWatchface : AppTypeApp,
+                                                           NULL,
+                                                           false,
+                                                           hasapp ? &appfile : NULL,
+                                                           hasres ? &resfile : NULL);
+        
+        _appmanager_add_to_manifest(app);
+    }
+    rdb_close(db);
+    rdb_select_free_all(&head);
 }
 
 /*

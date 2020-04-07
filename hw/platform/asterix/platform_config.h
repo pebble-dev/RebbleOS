@@ -4,12 +4,12 @@
 //We are a square device
 #define PBL_RECT
 
-#define RTOS_HEAP_SIZE 12 * 1024
-
 /* Memory Configuration
  * Size of the app + stack + heap of the running app.
    IN BYTES
  */
+#define MEMORY_SIZE_SYSTEM        12000
+#define MEMORY_SIZE_LOWPRIO       2048
 #define MEMORY_SIZE_APP           40000
 #define MEMORY_SIZE_WORKER        10000
 #define MEMORY_SIZE_OVERLAY       16000
@@ -34,3 +34,8 @@
 #define BLUETOOTH_MODULE_GAP_NAME    "Pebble RblOs"
 
 #define BLUETOOTH_IS_BLE 1
+
+#define MEM_REGION_DISPLAY
+#define MEM_REGION_HEAP_OVL
+#define MEM_REGION_HEAP_WRK 
+#define MEM_REGION_PANIC

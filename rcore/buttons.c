@@ -454,7 +454,7 @@ void button_set_click_context(ButtonId button_id, void *context)
 uint8_t button_short_click_is_subscribed(ButtonId button_id)
 {
     if (button_id >= NUM_BUTTONS)
-        return NULL;
+        return 0;
     
     ButtonHolder *holder = _button_holders[button_id];
     

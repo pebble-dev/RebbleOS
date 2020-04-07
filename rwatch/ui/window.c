@@ -49,7 +49,7 @@ void window_ctor(Window *window)
     window->frame = frame;
     window->root_layer = layer_create(bounds);
     window->root_layer->window = window;
-    window->background_color = GColorWhite;
+    window->background_color = GColorBlack;
     window->load_state = WindowLoadStateUnloaded;
     SYS_LOG("window", APP_LOG_LEVEL_INFO, "CTOR");
 }
@@ -402,6 +402,8 @@ bool window_draw(void)
     }
 
     Window *wind = window_stack_get_top_window();
+    if (!wind)
+        return false;
 
     rbl_window_draw(wind);
     wind->is_render_scheduled = false;
@@ -570,7 +572,7 @@ void window_load_click_config(Window *window)
     if (button_short_click_is_subscribed(BUTTON_ID_BACK) == 0)
     {
         window_single_click_subscribe(BUTTON_ID_BACK, app_back_single_click_handler);
-    }    
+    }
 }
 
 

@@ -79,8 +79,9 @@ static int _fs_page_table_init()
      * state table, and find the earliest, lowest, page with the smallest
      * erase count.
      *
-     * XXX: Of course, this will get blown away as soon as it gets claimed
-     * as the GC page, but oh well.  It's just an optimization.  */
+     * XXX: The lastpg optimization is bizarre; we seem to have it down now,
+     * but it's not really clear how exactly this was supposed to work.
+     */
     
     _fs_lastpg = -1;
     _fs_best_erase_count = 0xFFFFFFFF;
@@ -110,6 +111,7 @@ static int _fs_page_table_init()
             if (!saw_page_in_outer_space)
                 KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d is marked as allocated, but page %d had the last page marker... hmm...", pg, _fs_lastpg);
             saw_page_in_outer_space = 1;
+            _fs_lastpg = pg;
         }
         
         if (!FLASHFLAG(pagehdr.empty, HDR_EMPTY_ALLOCATED) || /* block has never been written to */
@@ -206,6 +208,13 @@ static int _fs_page_alloc()
     return -1;
 }
 
+static int _update_moreblocks(int pg) {
+    struct fs_page_hdr pagehdr;
+    _fs_read_page_ofs(pg, 0, &pagehdr, sizeof(pagehdr));
+    pagehdr.empty &= ~HDR_EMPTY_ALLOCATED;
+    return _fs_write_page_ofs(pg, 0, &pagehdr, sizeof(pagehdr));
+}
+
 /*** GC routines. ***/
 
 static int _gc_sector;
@@ -266,11 +275,22 @@ static void _fs_gc_find_sector()
     
     _gc_sector = best_sector;
     assert(_gc_sector != -1);
-    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "chose GC sector of %d, with erase count %d", _gc_sector, lowest_erase_count);
+    KERN_LOG("flash", APP_LOG_LEVEL_INFO, "chose GC sector of %d-%d, with erase count %d", _gc_sector, _gc_sector + PAGES_PER_SECTOR - 1, lowest_erase_count);
     
-    /* Mark it all as in use so the allocator doesn't come for it. */
+    /* Mark it all as in use so the allocator doesn't come for it.  Also,
+     * mark it moreblocks so that we scan for things that come after it.
+     */
     for (int i = 0; i < PAGES_PER_SECTOR; i++) {
+        struct fs_page_hdr pagehdr;
+        
         _fs_set_page_state(_gc_sector + i, PageStateDirty);
+        _fs_read_page_ofs(_gc_sector + i, 0, &pagehdr, sizeof(pagehdr));
+        pagehdr.empty &= ~(HDR_EMPTY_MOREBLOCKS | HDR_EMPTY_ALLOCATED);
+        
+        assert(_update_moreblocks(_gc_sector + i + 1) >= 0);
+        
+        int rv = _fs_write_page_ofs(_gc_sector + i, 0, &pagehdr, sizeof(pagehdr));
+        assert(rv >= 0);
     }
 }
 
@@ -365,7 +385,7 @@ void fs_init()
             assert(_delete_file_by_pg(pg) == 0);
             continue;
         }
-        if (hdr->st_tmp_file) {
+        if (hdr->st_tmp_file && hdr->st_delete_complete) {
             KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "page %d is a temp file; cleaning up", pg);
             assert(_delete_file_by_pg(pg) == 0);
             continue;
@@ -445,7 +465,7 @@ int fs_find_file(struct file *file, const char *name)
         if (_fs_get_page_state(pg) == PageStateFileStart)
         {
             _fs_read_file_hdr(pg, &buffer);
-            if (!strcmp(name, buffer.name)) {
+            if (!strcmp(name, buffer.name) && (hdr->st_tmp_file == 0x0000)) {
                 file->startpage = pg;
                 file->size = hdr->file_size;
                 file->startpofs = sizeof(struct fs_file_hdr) + hdr->filename_len;
@@ -474,6 +494,7 @@ static uint16_t _fs_verily_alloc_page(enum page_state st)
     
     return (uint16_t) pg;
 }
+
 
 struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, const struct file *previous /* can be NULL */)
 {
@@ -517,7 +538,7 @@ struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, con
             memset(&filehdr, 0xFF, sizeof(filehdr));
             
             filehdr.v_0x5001 = 0x5001;
-            filehdr.empty = pagehdr.empty & ~HDR_EMPTY_MOREBLOCKS;
+            filehdr.empty = pagehdr.empty & ~(HDR_EMPTY_MOREBLOCKS | HDR_EMPTY_ALLOCATED);
             filehdr.status &= ~(HDR_STATUS_VALID | HDR_STATUS_FILE_START);
             /* XXX: update 'empty' status for someone else? */
             filehdr.wear_level_counter = pagehdr.wear_level_counter;
@@ -530,6 +551,8 @@ struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, con
                 filehdr.flag_2 &= ~HDR_FLAG_2_HAS_FILENAME;
             assert(strlen(name) < MAX_FILENAME_LEN);
             filehdr.filename_len = strlen(name);
+            
+            assert(_update_moreblocks(pg + 1) >= 0);
             
             int rv = _fs_write_page_ofs(pg, 0, &filehdr, sizeof(filehdr));
             assert(rv >= 0);
@@ -544,12 +567,14 @@ struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, con
             /* Write it down for later to finish the create_complete op. */
             startpg = pg;
         } else {
-            pagehdr.empty &= ~HDR_EMPTY_MOREBLOCKS;
-            pagehdr.status &= ~(HDR_STATUS_VALID | HDR_STATUS_FILE_START);
+            pagehdr.empty &= ~(HDR_EMPTY_MOREBLOCKS | HDR_EMPTY_ALLOCATED);
+            pagehdr.status &= ~(HDR_STATUS_VALID | HDR_STATUS_FILE_CONT);
             pagehdr.next_page = nextpg;
             pagehdr.next_page_crc = fs_next_page_crc(nextpg);
             pagehdr.pagehdr_crc = fs_pagehdr_crc(&pagehdr);
             
+            assert(_update_moreblocks(pg + 1) >= 0);
+
             int rv = _fs_write_page_ofs(pg, 0, &pagehdr, sizeof(pagehdr));
             assert(rv >= 0);
             
@@ -594,6 +619,8 @@ void fs_open(struct fd *fd, const struct file *file)
     fd->curpofs = fd->file.startpofs;
     
     fd->offset  = 0;
+    
+    memset(&fd->replaces, 0x0, sizeof(fd->replaces));
 }
 
 void fs_file_from_file(struct file *file, const struct file *from, size_t offset, size_t len)
@@ -649,6 +676,14 @@ void fs_mark_written(struct fd *fd)
         
         /* Then shoot the old one in the head completely. */
         _delete_file_by_pg(fd->replaces.startpage);
+    } else {
+        /* Simply mark the file as done writing. */
+        struct fs_file_hdr filehdr;
+        
+        _fs_read_page_ofs(fd->file.startpage, 0, &filehdr, sizeof(filehdr));
+        filehdr.st_tmp_file = 0x0;
+        rv = _fs_write_page_ofs(fd->file.startpage, 0, &filehdr, sizeof(filehdr));
+        assert(rv >= 0);
     }
     
     memset(&fd, 0, sizeof(fd));

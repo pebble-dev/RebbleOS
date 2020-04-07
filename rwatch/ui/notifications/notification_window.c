@@ -2,7 +2,6 @@
 #include "protocol_notification.h"
 #include "notification_manager.h"
 #include "platform_res.h"
-#include "blob_db.h"
 
 #define MODULE_NAME "notywin"
 #define MODULE_TYPE "SYS"

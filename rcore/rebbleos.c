@@ -46,6 +46,8 @@ SystemSettings _system_settings =
 
 void rebbleos_init(void)
 {   
+    mem_init();
+    
     _os_init_sem = xSemaphoreCreateBinary();
     QUEUE_CREATE(os);
     THREAD_CREATE(os);

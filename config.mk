@@ -48,7 +48,6 @@ SRCS_all += FreeRTOS/queue.c
 SRCS_all += FreeRTOS/tasks.c
 SRCS_all += FreeRTOS/timers.c
 SRCS_all += FreeRTOS/portable/GCC/ARM_CM4F/port.c
-SRCS_all += FreeRTOS/portable/MemMang/heap_4.c
 
 SRCS_all += lib/minilib/minilib.c
 SRCS_all += lib/minilib/dprint.c
@@ -127,8 +126,8 @@ SRCS_all += rcore/protocol/protocol_call.c
 SRCS_all += rcore/protocol/protocol_music.c
 SRCS_all += rcore/protocol/protocol_transfer.c
 
-SRCS_all += rcore/service/blob_db.c
-SRCS_all += rcore/service/blob_db_test.c
+SRCS_all += rcore/rdb.c
+SRCS_all += rcore/rdb_test.c
 SRCS_all += rcore/service/protocol_service.c
 SRCS_all += rcore/service/timeline.c
 

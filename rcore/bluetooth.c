@@ -140,20 +140,9 @@ void bluetooth_data_rx(uint8_t *data, size_t len)
 {
     RebblePacketDataHeader header;
     protocol_rx_buffer_append(data, len);
-    
-    while (protocol_get_rx_buf_size() > 0) {           
-        if (!protocol_parse_packet(protocol_get_rx_buffer(), &header, bluetooth_send_data))
-            return; /* Packet is incomplete */
-
-        /* seems legit. We have a valid packet. Create a data packet and process it */
-        RebblePacket packet = packet_create(header.endpoint, header.length);
-        assert(packet);
-        uint8_t *newdata = packet_get_data(packet);
-        memcpy(newdata, header.data, header.length);
-        protocol_process_packet(packet);
-    
-        protocol_rx_buffer_consume(header.length + sizeof(RebblePacketHeader));
-    }
+    RebblePacket packet = packet_create_with_data(0, data, len);
+    assert(packet);
+    packet_recv(packet);
 }
 
 /*
@@ -180,6 +169,8 @@ void bluetooth_tx_complete_from_isr(void)
  */
 static void _bt_thread(void *pvParameters)
 {
+    mem_thread_set_heap(&mem_heaps[HEAP_LOWPRIO]);
+    
     /* We are blocked here while bluetooth further delegates a runloop */
     hw_bluetooth_init();
 
@@ -213,7 +204,7 @@ static void _bt_cmd_thread(void *pvParameters)
                 BT_LOG("BT", APP_LOG_LEVEL_ERROR, "Timed out sending!");
 
             /* XXX ugh, should be using a better dynamic pool of memory not sys malloc */
-            system_free(pkt.data);
+            free(pkt.data);
         }
     }
 }
@@ -243,7 +234,7 @@ void bluetooth_send_async(uint8_t *data, size_t len, tx_complete_callback cb)
         return;
     
     /* XXX ugh, should be using a better dynamic pool of memory not sys malloc */
-    uint8_t *ndata = system_malloc(len);
+    uint8_t *ndata = malloc(len);
     assert(ndata && "Well that will teach you for letting me abuse malloc. Fix this code");
     memcpy(ndata, data, len);
     

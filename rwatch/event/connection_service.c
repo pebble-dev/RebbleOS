@@ -53,6 +53,14 @@ void connection_service_unsubscribe(void)
     event_service_unsubscribe(EventServiceCommandConnectionService);
 }
 
+void connection_service_unsubscribe_thread(app_running_thread *thread)
+{
+    void *context = event_service_get_context(EventServiceCommandConnectionService);
+    if (context)
+        free(context);
+    event_service_unsubscribe_thread(EventServiceCommandConnectionService, thread);
+}
+
 void connection_service_update(bool connected)
 {
     event_service_post(EventServiceCommandConnectionService, (void *)connected, NULL);

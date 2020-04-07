@@ -10,7 +10,7 @@
 #include "protocol_service.h"
 #include "pebble_protocol.h"
 #include "timeline.h"
-#include "blob_db.h"
+#include "rdb.h"
 #include "notification_manager.h"
 #include "event_service.h"
 
@@ -158,16 +158,11 @@ rebble_notification *timeline_item_process(void *data)
     return notification;
 }
 
-static void _timeline_event_destroy(void *uuid)
-{
-    protocol_free(uuid);
-}
-
 void timeline_notification_arrived(Uuid *uuid)
 {
-    Uuid *uuidc = protocol_calloc(1, sizeof(Uuid));
+    Uuid *uuidc = calloc(1, sizeof(Uuid));
     memcpy(uuidc, uuid, UUID_SIZE);
-    event_service_post(EventServiceCommandNotification, (void *)uuidc, _timeline_event_destroy);
+    event_service_post(EventServiceCommandNotification, (void *)uuidc, remote_free);
 }
 
 void timeline_destroy(rebble_notification *notification)
@@ -208,32 +203,59 @@ void timeline_destroy(rebble_notification *notification)
 }
 
 
-list_head *timeline_notifications(uint32_t from_timestamp)
+rdb_select_result_list *timeline_notifications(uint32_t from_timestamp)
 {
     uint32_t val_type = TimelineItemType_Notification;
-    list_head *head = app_calloc(1, sizeof(list_head));
+    rdb_select_result_list *head = app_calloc(1, sizeof(rdb_select_result_list));
     list_init_head(head);
+    
+    struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
+    struct rdb_iter it;
+    
+    if (rdb_iter_start(db, &it) == 0)
+        return head;
+    
+    struct rdb_selector selectors[] = {
+        { offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), RDB_OP_GREATER, &from_timestamp },
+        { offsetof(timeline_item, timeline_type), FIELD_SIZEOF(timeline_item, timeline_type), RDB_OP_EQ, &val_type },
+        { offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), RDB_OP_RESULT },
+        { offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), RDB_OP_RESULT },
+        { }
+    };
+    
+    rdb_select(&it, head, selectors);
+    
+    rdb_close(db);
 
-    blobdb_select_items2(BlobDatabaseID_Notification, head,
-                        offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), 
-                        offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp), 
-                        /* where */
-                        offsetof(timeline_item, timestamp), FIELD_SIZEOF(timeline_item, timestamp),
-                        (uint8_t *)&from_timestamp, Blob_Gtr,
-                        offsetof(timeline_item, timeline_type), FIELD_SIZEOF(timeline_item, timeline_type),
-                        (uint8_t *)&val_type, Blob_Eq);
     return head;
 }
 
-
 rebble_notification *timeline_get_notification(Uuid *uuid)
 {
-    uint8_t *data;
-    if (blobdb_select(BlobDatabaseID_Notification, (uint8_t *)uuid, sizeof(Uuid), &data) != Blob_Success)
-        assert(0);
-    rebble_notification *notif = timeline_item_process(data);
+    rdb_select_result_list head;
+    list_init_head(&head);
+    
+    struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
+    struct rdb_iter it;
+    
+    if (rdb_iter_start(db, &it) == 0)
+        assert(!"rdb open on notif db failed");
+
+    struct rdb_selector selectors[] = {
+        { RDB_SELECTOR_OFFSET_KEY, sizeof(Uuid), RDB_OP_EQ, uuid },
+        { 0, 0, RDB_OP_RESULT_FULLY_LOAD },
+        { }
+    };
+    
+    if (rdb_select(&it, &head, selectors) != 1)
+        assert(!"get_notification on nonexistant notif uuid");
+    
+    struct rdb_select_result *res = rdb_select_result_head(&head);
+    rebble_notification *notif = timeline_item_process(res->result[0]);
     printblob(notif);
-    app_free(data);
+    rdb_select_free_all(&head);
+    
+    rdb_close(db);
 
     return notif;
 }
