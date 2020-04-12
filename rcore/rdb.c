@@ -552,10 +552,10 @@ int rdb_update(const struct rdb_database *db, const uint8_t *key, const uint16_t
     
     struct rdb_select_result *res;
     rdb_select_result_foreach(res, &head) {
-        // is the data size <=
+        /* only update the value in place if the data size is the same */
         if (data_size != res->it.data_len) {
             if (fs_write(&res->it.fd, data, data_size) < data_size) {
-                LOG_ERROR("update: failed to update value");
+                LOG_ERROR("update: failed to update value. This should not be possible");
                 rdb_select_free_all(&head);
                 return Blob_GeneralFailure;
             }
@@ -564,6 +564,7 @@ int rdb_update(const struct rdb_database *db, const uint8_t *key, const uint16_t
                 !rdb_insert(db, key, res->it.key_len, data, data_size)) {
                 rdb_select_free_all(&head);
                 LOG_ERROR("update: failed to create value");
+                return Blob_GeneralFailure;
             }            
         }        
     }

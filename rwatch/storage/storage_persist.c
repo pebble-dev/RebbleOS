@@ -16,9 +16,17 @@
 #define PERSIST_MAX_STORAGE_BYTES 4096
 
 typedef struct app_persist_key_t {
-    uint32_t appid;
+    Uuid appid;
     uint32_t key;
 } app_persist_key;
+
+static void _create_composite_key(app_persist_key *c_key, uint32_t key)
+{
+    struct App *app = appmanager_get_current_app();
+    assert(app);
+    c_key->key = key;
+    memcpy(c_key, &app->uuid, UUID_SIZE);
+}
 
 bool persist_exists(const uint32_t key)
 {
@@ -41,10 +49,8 @@ int persist_get_size(const uint32_t key)
         return E_ERROR;
     }
     
-    struct App *app = appmanager_get_current_app();
-    assert(app);
-    
-    app_persist_key c_key = { .appid = app->id, .key = key };    
+    app_persist_key c_key;
+    _create_composite_key(&c_key, key);
     
     struct rdb_selector selectors[] = {
         { RDB_SELECTOR_OFFSET_KEY, sizeof(app_persist_key) , RDB_OP_EQ, &c_key },
@@ -131,10 +137,8 @@ status_t persist_delete(const uint32_t key)
         return E_ERROR;
     }
     
-    App *app = appmanager_get_current_app();
-    assert(app);
-    
-    app_persist_key c_key = { .appid = app->id, .key = key };    
+    app_persist_key c_key;
+    _create_composite_key(&c_key, key);
     
     struct rdb_selector selectors[] = {
         { RDB_SELECTOR_OFFSET_KEY, sizeof(app_persist_key) , RDB_OP_EQ, &c_key },
@@ -178,11 +182,8 @@ status_t persist_write(const uint32_t key, const void *data, const size_t size)
     if (rdb_create(db) != Blob_Success)
         return E_OUT_OF_STORAGE;  
     
-    // get this threads appid
-    App *app = appmanager_get_current_app();
-    assert(app);
-    
-    app_persist_key c_key = { .appid = app->id, .key = key };
+    app_persist_key c_key;
+    _create_composite_key(&c_key, key);
     
     if (!exists) {
         if (rdb_insert(db, (uint8_t *)&c_key, sizeof(app_persist_key), data, size) != Blob_Success) {
@@ -208,16 +209,14 @@ status_t persist_read(const uint32_t key, const void *buffer, const size_t size)
     struct rdb_database *db = rdb_open(RDB_ID_APP_PERSIST);
     assert(db);
     
-    App *app = appmanager_get_current_app();
-    assert(app);
-        
     int rv = rdb_iter_start(db, &it);
     if (!rv) {
         rdb_close(db);
         return E_ERROR;
     }
     
-    app_persist_key c_key = { .appid = app->id, .key = key };
+    app_persist_key c_key;
+    _create_composite_key(&c_key, key);
     
     struct rdb_selector selectors[] = {
         { RDB_SELECTOR_OFFSET_KEY, sizeof(app_persist_key) , RDB_OP_EQ, &c_key },
