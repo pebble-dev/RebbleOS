@@ -204,6 +204,8 @@ static void about_window_load(Window *window)
 {
     Layer *window_layer = window_get_root_layer(s_about_window);
     GRect bounds = layer_get_bounds(window_layer);
+    
+    window_set_background_color(window, GColorWhite);
 
     status_bar = status_bar_layer_create();
     status_bar_layer_set_separator_mode(status_bar, StatusBarLayerSeparatorModeDotted);
