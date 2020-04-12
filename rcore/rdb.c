@@ -535,6 +535,7 @@ int rdb_update(const struct rdb_database *db, const uint8_t *key, const uint16_t
     rdb_select_result_list head;
     assert(db);
     list_init_head(&head);
+
     int rv = rdb_iter_start(db, &it);
     if (!rv) {
         return Blob_InvalidDatabaseID;
@@ -544,29 +545,19 @@ int rdb_update(const struct rdb_database *db, const uint8_t *key, const uint16_t
         { RDB_SELECTOR_OFFSET_KEY, key_size, RDB_OP_EQ, key },
         { }
     };
-    int n = rdb_select(&it, &head, selectors);
 
-    if (!n) {
+    if (!rdb_select(&it, &head, selectors))
         return Blob_KeyDoesNotExist;
-    }
-    
+
+    /* Always delete and re-insert */    
     struct rdb_select_result *res;
     rdb_select_result_foreach(res, &head) {
-        /* only update the value in place if the data size is the same */
-        if (data_size != res->it.data_len) {
-            if (fs_write(&res->it.fd, data, data_size) < data_size) {
-                LOG_ERROR("update: failed to update value. This should not be possible");
-                rdb_select_free_all(&head);
-                return Blob_GeneralFailure;
-            }
-        } else {
-            if (!rdb_delete(&res->it) ||
-                !rdb_insert(db, key, res->it.key_len, data, data_size)) {
-                rdb_select_free_all(&head);
-                LOG_ERROR("update: failed to create value");
-                return Blob_GeneralFailure;
-            }            
-        }        
+        if (!rdb_delete(&res->it) ||
+            !rdb_insert(db, key, res->it.key_len, data, data_size)) {
+            rdb_select_free_all(&head);
+            LOG_ERROR("update: failed to create value");
+            return Blob_GeneralFailure;
+        }
     }
     
     rdb_select_free_all(&head);
