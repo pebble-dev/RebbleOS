@@ -21,19 +21,20 @@ static char *_bt_pair_name;
 
 static void _bluetooth_pair_request(EventServiceCommand svc, void *data, void *ctx) {
     const char *name = (const char *)data;
-    APP_LOG("settings", APP_LOG_LEVEL_INFO, "BT pair request: %s (%p)", name, name);
-    _bt_pair_name = malloc(strlen(name)+1);
-    strcpy(_bt_pair_name, name);
+    APP_LOG("settings", APP_LOG_LEVEL_INFO, "BT pair request: %s", name);
+    _bt_pair_name = strdup(name);
     window_stack_push(_bt_pair_window, false);
 }
 
 static void _bt_pair_do_accept(ClickRecognizerRef recognizer, void *context) {
     APP_LOG("settings", APP_LOG_LEVEL_INFO, "BT pair accept!");
+    bluetooth_bond_acknowledge(1);
     window_stack_pop(false);
 }
 
 static void _bt_pair_do_reject(ClickRecognizerRef recognizer, void *context) {
     APP_LOG("settings", APP_LOG_LEVEL_INFO, "BT pair reject!");
+    bluetooth_bond_acknowledge(0);
     window_stack_pop(false);
 }
 
@@ -52,7 +53,7 @@ static void _bt_pair_window_load(Window *window) {
     _bt_pair_accept = gbitmap_create_with_resource(RESOURCE_ID_CHECK_BLACK);
     _bt_pair_reject = gbitmap_create_with_resource(RESOURCE_ID_DISMISS_BLACK);
     GRect bmsize = gbitmap_get_bounds(_bt_pair_accept);
-    APP_LOG("settings", APP_LOG_LEVEL_INFO, "bt pair window load, bitmaps %p (%d,%d,%d,%d) %p", _bt_pair_accept, bmsize.origin.x, bmsize.origin.y, bmsize.size.w, bmsize.size.h, _bt_pair_reject);
+    APP_LOG("settings", APP_LOG_LEVEL_INFO, "bt pair window load");
     
     window_set_background_color(window, GColorWhite);
     

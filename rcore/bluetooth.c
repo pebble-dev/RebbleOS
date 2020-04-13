@@ -341,8 +341,45 @@ int sscanf ( const char * s, const char * format, ...)
 
 /* Bond database management. */
 
+/* XXX: This flow will all change soon.  On a Pebble, you get the name
+ * during a legacy pairing request, but this is not how it works on Pebble
+ * 2, which is LE only.  The Pebble legacy flow is:
+ *
+ *   Phone initiates pairing.
+ *   Pebble displays "Pair? [phone name]" on screen (and maybe a passkey, on old firmware).
+ *   Pebble user clicks 'yes'; Pebble shows "pairing...".
+ *   Phone confirms pairing.
+ *   Pebble shows pairing is complete.
+ *
+ * This flow is what is implemented here, but isn't really representative of
+ * how BLE bonding works.  In BLE pairing, we do not get a peer name
+ * associated with a bonding request -- and, interestingly, the Pebble seems
+ * to initiate the bonding request!  The BLE flow, on a Pebble 2, looks like
+ * this:
+ *
+ *   User initiates pairing:
+ *     Phone connects by BLE, and writes to pairing characteristic.
+ *   Pebble displays "pair?" screen, without peer name.
+ *   Pebble user clicks "yes"; Pebble shows "pairing...".
+ *     Pebble responds by initiating bonding request.  (Note that bonding has started before user taps "yes"!)
+ *   Phone confirms pairing.
+ *     Phone and Pebble exchange bond information.
+ *     Only now does Pebble look up peer's name (iPhones lie about their name until bonded!).
+ *     Pebble stores keys in bond database.
+ *   Pebble displays that pairing is complete.
+ * 
+ * We will need to change the API so that "store bond data" is an
+ * unconditional command that signals successful bonding, that there is a
+ * "bond attempt failed" callback, and that the "request to peer" command
+ * comes with an optional name, and not with keys.
+ */
+
+static int _bondreq_in_progress = 0;
 static const void *_bondreq_peer;
 static int _bondreq_len;
+static const void *_bondreq_name;
+static const void *_bondreq_data;
+static int _bondreq_datalen;
 
 static void _get_bond_data(void *p) {
     struct rdb_database *db = rdb_open(RDB_ID_BLUETOOTH);
@@ -386,19 +423,58 @@ static void _get_bond_data(void *p) {
 static void _get_bond_data_isr(const void *peer, size_t len) {
     _bondreq_peer = peer;
     _bondreq_len = len;
+    _bondreq_in_progress = 0;
     DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "get bond data...");
     service_submit(_get_bond_data, NULL);
 }
 
-static const void *_bondreq_name;
-static const void *_bondreq_data;
-static int _bondreq_datalen;
+void bluetooth_bond_acknowledge(int accepted) {
+    if (!_bondreq_in_progress) {
+        DRV_LOG("btbond", APP_LOG_LEVEL_ERROR, "bond acknowledge without bond in progress?");
+        return;
+    }
+    _bondreq_in_progress = 0;
+    
+    if (!accepted) {
+        hw_bluetooth_bond_acknowledge(0);
+        return;
+    }
+
+    uint8_t *p = malloc(2 + strlen(_bondreq_name) + 1 + _bondreq_datalen);
+    if (!p) {
+        DRV_LOG("btbond", APP_LOG_LEVEL_ERROR, "out of memory for bond");
+        hw_bluetooth_bond_acknowledge(0);
+        return;
+    }
+    
+    p[0] = strlen(_bondreq_name) + 1;
+    p[1] = _bondreq_datalen;
+    strcpy((char *) (p + 2), _bondreq_name);
+    memcpy(p + 2 + p[0] + p[1], _bondreq_data, _bondreq_datalen);
+    
+    struct rdb_database *db = rdb_open(RDB_ID_BLUETOOTH);
+    assert(db);
+
+    int rv = rdb_insert(db, _bondreq_peer, _bondreq_len, p, 2 + p[0] + p[1]);
+    
+    rdb_close(db);
+    free(p);
+    
+    if (rv != Blob_Success) {
+        DRV_LOG("btbond", APP_LOG_LEVEL_ERROR, "failed to insert into bondtab");
+        hw_bluetooth_bond_acknowledge(0);
+        return;
+    }
+    
+    DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "bonded with %s", _bondreq_name);
+    hw_bluetooth_bond_acknowledge(1);
+}
+
 static void _request_bond(void *p) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "default bond request for peer %s, returning bonded", _bondreq_name);
-    char *namedup = malloc(strlen(_bondreq_name)+1);
+    char *namedup = strdup(_bondreq_name);
     if (namedup) {
-        strcpy(namedup, _bondreq_name);
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "posting for peer %s (%p)", namedup, namedup);
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "posting for peer %s", namedup);
         event_service_post(EventServiceCommandBluetoothPairRequest, namedup, remote_free);
     }
     hw_bluetooth_bond_acknowledge(1);
@@ -410,5 +486,6 @@ static void _request_bond_isr(const void *peer, size_t len, const char *name, co
     _bondreq_name = name;
     _bondreq_data = data;
     _bondreq_datalen = datalen;
+    _bondreq_in_progress = 1;
     service_submit(_request_bond, NULL);
 }
