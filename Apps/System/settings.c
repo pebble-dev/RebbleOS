@@ -114,16 +114,22 @@ static struct MenuItems *_dummy_bt(const struct MenuItem *ctx) {
     return NULL;
 }
 
+static struct MenuItems *_do_panic(const struct MenuItem *ctx) {
+    panic("Lolol!");
+    return NULL;
+}
+
 static void _reset_menu_items(void)
 {
     MenuItems *back = _menu->items->back;
     MenuIndex *index = &_menu->items->back_index;
 
-    MenuItems *items = menu_items_create(3);
+    MenuItems *items = menu_items_create(4);
     
     menu_items_add(items, MenuItem("Discoverable", hw_bluetooth_name(), RESOURCE_ID_SPANNER, NULL));
     menu_items_add(items, MenuItem("Format filesystem", "Time to die, sucker!", RESOURCE_ID_SPANNER, _wipe_fs));
     menu_items_add(items, MenuItem("Dummy BT pair", "Be a dummy", RESOURCE_ID_SPANNER, _dummy_bt));
+    menu_items_add(items, MenuItem("Instapanic", "Oh no!", RESOURCE_ID_SPANNER, _do_panic));
     menu_set_items(_menu, items);
 
     items->back = back;
