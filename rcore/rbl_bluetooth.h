@@ -29,6 +29,8 @@ void bluetooth_device_disconnected(void);
 bool bluetooth_is_device_connected(void);
 void bluetooth_enable(void);
 bool bluetooth_is_enabled(void);
+void bluetooth_bond_acknowledge(int accepted);
+
 
 const char *hw_bluetooth_name();
 void hw_bluetooth_advertising_visible(int vis);
