@@ -450,7 +450,7 @@ void bluetooth_bond_acknowledge(int accepted) {
     p[0] = strlen(_bondreq_name) + 1;
     p[1] = _bondreq_datalen;
     strcpy((char *) (p + 2), _bondreq_name);
-    memcpy(p + 2 + p[0] + p[1], _bondreq_data, _bondreq_datalen);
+    memcpy(p + 2 + p[0], _bondreq_data, _bondreq_datalen);
     
     struct rdb_database *db = rdb_open(RDB_ID_BLUETOOTH);
     assert(db);
@@ -477,7 +477,6 @@ static void _request_bond(void *p) {
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "posting for peer %s", namedup);
         event_service_post(EventServiceCommandBluetoothPairRequest, namedup, remote_free);
     }
-    hw_bluetooth_bond_acknowledge(1);
 }
 
 static void _request_bond_isr(const void *peer, size_t len, const char *name, const void *data, size_t datalen) {
