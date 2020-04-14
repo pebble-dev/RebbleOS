@@ -104,7 +104,26 @@ int flash_write_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
         return rv;
 
     xSemaphoreTake(_flash_mutex, portMAX_DELAY);
-    rv |= hw_flash_write_sync(address, buffer, num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1));
+    if ((void *)buffer < (void *)0x20000000) /* XXX: this is correct on both STM32 and nRF52, but not guaranteed */ {
+        /* DMA out of microflash doesn't work, so need to copy through SRAM */
+#define FLASHRAMBUFSIZ 64
+        char buf[FLASHRAMBUFSIZ];
+        int nrem = num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1);
+        int ndone = 0;
+        int curad = address;
+        while (nrem) {
+            int nthis = (nrem < FLASHRAMBUFSIZ) ? nrem : FLASHRAMBUFSIZ;
+            
+            memcpy(buf, buffer + ndone, nthis);
+            rv |= hw_flash_write_sync(address + ndone, buf, nthis);
+            
+            ndone += nthis;
+            nrem -= nthis;
+        }
+    } else {
+        /* No need to copy through memory. */
+        rv |= hw_flash_write_sync(address, buffer, num_bytes & ~(PLATFORM_FLASH_ALIGNMENT - 1));
+    }
     
     /* writes currently are synchronous */
     
