@@ -39,6 +39,7 @@ enum {
     RDB_ID_REMINDER = 3,
     RDB_ID_NOTIFICATION = 4,
     RDB_ID_APP_GLANCE = 11,
+    RDB_ID_APP_PERSIST = 16
 };
 
 struct rdb_database;
@@ -72,6 +73,8 @@ struct rdb_database *rdb_open(uint16_t database_id);
 void rdb_close(struct rdb_database *db);
 int rdb_insert(const struct rdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size);
 int rdb_delete(struct rdb_iter *it);
+int rdb_update(const struct rdb_database *db, const uint8_t *key, const uint16_t key_size, const uint8_t *data, const size_t data_size);
+int rdb_create(const struct rdb_database *db);
 
 /* Each returns true if the iterator points to a valid header. */
 int rdb_iter_start(const struct rdb_database *db, struct rdb_iter *it);

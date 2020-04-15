@@ -5,10 +5,9 @@
 #include "libros_graphics.h"
 #include "battery_state_service.h"
 #include "inverter_layer.h"
+#include "storage_persist.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
-bool persist_exists(void);
-bool persist_exists(void) { return false; }
 
 typedef void (*VoidFunc)(void);
 typedef void (*UnimplFunc)(void);
@@ -99,16 +98,9 @@ UNIMPL(_number_window_set_max);
 UNIMPL(_number_window_set_min);
 UNIMPL(_number_window_set_step_size);
 UNIMPL(_number_window_set_value);
-UNIMPL(_persist_delete);
-UNIMPL(_persist_get_size);
-UNIMPL(_persist_read_bool);
 UNIMPL(_persist_read_data__deprecated);
-UNIMPL(_persist_read_int);
 UNIMPL(_persist_read_string__deprecated);
-UNIMPL(_persist_write_bool);
 UNIMPL(_persist_write_data__deprecated);
-UNIMPL(_persist_write_int);
-UNIMPL(_persist_write_string);
 UNIMPL(_property_animation_legacy2_create);
 UNIMPL(_property_animation_legacy2_create_layer_frame);
 UNIMPL(_property_animation_legacy2_destroy);
@@ -137,9 +129,6 @@ UNIMPL(_app_message_register_outbox_failed);
 UNIMPL(_app_message_register_outbox_sent);
 UNIMPL(_app_message_set_context);
 UNIMPL(_dict_serialize_tuplets_to_buffer);
-UNIMPL(_persist_read_data);
-UNIMPL(_persist_read_string);
-UNIMPL(_persist_write_data);
 UNIMPL(_dict_size);
 UNIMPL(_graphics_text_layout_get_content_size);
 UNIMPL(_accel_data_service_subscribe);
@@ -367,8 +356,18 @@ const VoidFunc sym[] = {
     [176] = (VoidFunc)menu_layer_set_click_config_onto_window,                                 // menu_layer_set_click_config_onto_window@000002c0
     [177] = (VoidFunc)menu_layer_set_selected_index,                                           // menu_layer_set_selected_index@000002c4
     [178] = (VoidFunc)menu_layer_set_selected_next,                                            // menu_layer_set_selected_next@000002c8
-                                                                                              
+    
+    [187] = (VoidFunc)persist_delete,                                                          // persist_delete@000002ec
     [188] = (VoidFunc)persist_exists,                                                          // persist_exists@000002f0
+    [189] = (VoidFunc)persist_get_size,                                                        // persist_get_size@000002f4
+    [190] = (VoidFunc)persist_read_bool,                                                       // persist_read_bool@000002f8                                                                 
+
+    [192] = (VoidFunc)persist_read_int,                                                        // persist_read_int@00000300
+
+    [194] = (VoidFunc)persist_write_bool,                                                      // persist_write_bool@00000308
+
+    [196] = (VoidFunc)persist_write_int,                                                       // persist_write_int@00000310
+    [197] = (VoidFunc)persist_write_string,                                                    // persist_write_string@00000314
 
     [205] = (VoidFunc)rand,                                                                    // rand@00000334
     [206] = (VoidFunc)resource_get_handle,                                                     // resource_get_handle@00000338
@@ -460,7 +459,11 @@ const VoidFunc sym[] = {
     [307] = (VoidFunc)window_single_click_subscribe,                                           // window_single_click_subscribe@000004cc
     [308] = (VoidFunc)window_single_repeating_click_subscribe,                                 // window_single_repeating_click_subscribe@000004d0
     [309] = (VoidFunc)graphics_draw_text,                                                      // graphics_draw_text@000004d4
-
+    
+    [311] = (VoidFunc)persist_read_data,                                                       // persist_read_data@000004dc
+    [312] = (VoidFunc)persist_read_string,                                                     // persist_read_string@000004e0
+    [313] = (VoidFunc)persist_write_data,                                                      // persist_write_data@000004e4
+    
     [316] = (VoidFunc)simple_menu_layer_get_menu_layer,                                        // simple_menu_layer_get_menu_layer@000004f0
 
     [318] = (VoidFunc)app_calloc,                                                              // calloc@000004f8
@@ -765,16 +768,10 @@ const VoidFunc sym[] = {
     [184] = (UnimplFunc)_number_window_set_min,                                                // number_window_set_min@000002e0
     [185] = (UnimplFunc)_number_window_set_step_size,                                          // number_window_set_step_size@000002e4
     [186] = (UnimplFunc)_number_window_set_value,                                              // number_window_set_value@000002e8
-    [187] = (UnimplFunc)_persist_delete,                                                       // persist_delete@000002ec
-    [189] = (UnimplFunc)_persist_get_size,                                                     // persist_get_size@000002f4
-    [190] = (UnimplFunc)_persist_read_bool,                                                    // persist_read_bool@000002f8
     [191] = (UnimplFunc)_persist_read_data__deprecated,                                        // persist_read_data__deprecated@000002fc
-    [192] = (UnimplFunc)_persist_read_int,                                                     // persist_read_int@00000300
+
     [193] = (UnimplFunc)_persist_read_string__deprecated,                                      // persist_read_string__deprecated@00000304
-    [194] = (UnimplFunc)_persist_write_bool,                                                   // persist_write_bool@00000308
-    [195] = (UnimplFunc)_persist_write_data__deprecated,                                       // persist_write_data__deprecated@0000030c
-    [196] = (UnimplFunc)_persist_write_int,                                                    // persist_write_int@00000310
-    [197] = (UnimplFunc)_persist_write_string,                                                 // persist_write_string@00000314
+    [195] = (UnimplFunc)_persist_write_data__deprecated,                                       // persist_write_data__deprecated@0000030c    
     [198] = (UnimplFunc)_property_animation_legacy2_create,                                    // property_animation_legacy2_create@00000318
     [199] = (UnimplFunc)_property_animation_legacy2_create_layer_frame,                        // property_animation_legacy2_create_layer_frame@0000031c
     [200] = (UnimplFunc)_property_animation_legacy2_destroy,                                   // property_animation_legacy2_destroy@00000320
@@ -803,9 +800,7 @@ const VoidFunc sym[] = {
     [301] = (UnimplFunc)_app_message_register_outbox_sent,                                     // app_message_register_outbox_sent@000004b4
     [302] = (UnimplFunc)_app_message_set_context,                                              // app_message_set_context@000004b8
     [310] = (UnimplFunc)_dict_serialize_tuplets_to_buffer,                                     // dict_serialize_tuplets_to_buffer@000004d8
-    [311] = (UnimplFunc)_persist_read_data,                                                    // persist_read_data@000004dc
-    [312] = (UnimplFunc)_persist_read_string,                                                  // persist_read_string@000004e0
-    [313] = (UnimplFunc)_persist_write_data,                                                   // persist_write_data@000004e4
+
     [314] = (UnimplFunc)_dict_size,                                                            // dict_size@000004e8
     [315] = (UnimplFunc)_graphics_text_layout_get_content_size,                                // graphics_text_layout_get_content_size@000004ec
     [317] = (UnimplFunc)_accel_data_service_subscribe,                                         // accel_data_service_subscribe@000004f4
