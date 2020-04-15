@@ -218,13 +218,17 @@ int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoco
     
     _last_transport_used = transport;
     
-    protocol_buffer_lock();
-    LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
+    if (protocol_buffer_lock() == -1) {
+        LOG_ERROR("RX: Lock acquire failed");
+        return PACKET_INVALID;
+    }
     
     if (_buf_ptr < 4) { /* not enough data to parse a header */
         rv = PACKET_MORE_DATA_REQD;
         goto done;
     }
+
+    LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
 
     /* done! (usually) */
     if (pkt_length == 0) {
