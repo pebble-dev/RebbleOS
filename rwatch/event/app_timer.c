@@ -51,7 +51,8 @@ AppTimerHandle app_timer_register(uint32_t ms, AppTimerCallback cb, void *priv)
     timer->priv = priv;
     timer->scheduled = 1;
     timer->id = _app_timer_next_free_id();
-    appmanager_timer_add(&timer->timer,  appmanager_get_current_thread());
+    app_running_thread *thread = appmanager_get_current_thread();
+    appmanager_timer_add(&thread->timer_head, &timer->timer);
 
     return (AppTimerHandle)timer->id;
 }
@@ -63,9 +64,9 @@ bool app_timer_reschedule(AppTimerHandle timer_handle, uint32_t ms)
     if (!timer || !timer->scheduled)
         return false;
 
-    appmanager_timer_remove(&timer->timer, thread);
+    appmanager_timer_remove(&thread->timer_head, &timer->timer);
     timer->timer.when = xTaskGetTickCount() + pdMS_TO_TICKS(ms);
-    appmanager_timer_add(&timer->timer, thread);
+    appmanager_timer_add(&thread->timer_head, &timer->timer);
     /* We need to cause the thread loops to timeout
      * casuing a re-calculation of the next timer */
     overlay_timer_recalc();
@@ -75,12 +76,12 @@ bool app_timer_reschedule(AppTimerHandle timer_handle, uint32_t ms)
 void app_timer_cancel(AppTimerHandle timer_handle)
 {
     AppTimer *timer = _app_timer_get_by_id(timer_handle);
-    
+    app_running_thread *thread = appmanager_get_current_thread();
     if (!timer)
         return;
     
     if (timer->scheduled)
-        appmanager_timer_remove(&timer->timer, appmanager_get_current_thread());
+        appmanager_timer_remove(&thread->timer_head, &timer->timer);
     
     app_free(timer);
 }
