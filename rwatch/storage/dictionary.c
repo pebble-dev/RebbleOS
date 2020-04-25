@@ -184,7 +184,7 @@ Tuple *dict_read_first(DictionaryIterator *iter)
 Tuple *dict_read_begin_from_buffer(DictionaryIterator *iter, 
     const uint8_t *const buffer, const uint16_t size)
 {
-    if (!iter || !iter->dictionary || !buffer || !size)
+    if (!iter || !buffer || !size)
         return NULL;
 
     iter->dictionary = (Dictionary *)buffer;
@@ -405,28 +405,39 @@ TEST(dictionary)
     Tuple *tuple = dict_read_begin_from_buffer(&iter, buf1, final_size);
 
     while (tuple) {
-        if (tuple->key == 1 && memcmp(data, tuple->value->data, tuple->value->length) != 0) {
-            return TEST_FAIL;
+        if (tuple->key == 1) {
+            if(memcmp(data, tuple->value->data, tuple->length) != 0)
+                return TEST_FAIL;
         }
-        else if (tuple->key == 2 && strcmp(data, tuple->value->cstring) != 0) {
-            return TEST_FAIL;
+        else if (tuple->key == 2) {
+            if (strcmp(string, tuple->value->cstring) != 0)
+                return TEST_FAIL;
         }
-        else if (tuple->key == 3 && tuple->value->int8 != -10) {
-            return TEST_FAIL;
+        else if (tuple->key == 3) {
+            if (tuple->value->int8 != -10)
+                return TEST_FAIL;
         }
-        else if (tuple->key == 4 && tuple->value->int16 != -1024) {
-            return TEST_FAIL;
+        else if (tuple->key == 4) {
+            if (tuple->value->int16 != -1024)
+                return TEST_FAIL;
         }
-        else if (tuple->key == 5 && tuple->value->int32 != -32000) {
-            return TEST_FAIL;
+        else if (tuple->key == 5) {
+            if (tuple->value->int32 != -32000)
+                return TEST_FAIL;
         }
-        else if (tuple->key == 6 && tuple->value->uint8 != 255) {
-            return TEST_FAIL;
+        else if (tuple->key == 6) {
+            if (tuple->value->uint8 != 255)
+                return TEST_FAIL;
         }
-        else if (tuple->key == 7 && tuple->value->uint16 != 1024) {
-            return TEST_FAIL;
+        else if (tuple->key == 7) {
+            if (tuple->value->uint16 != 1024)
+                return TEST_FAIL;
         }
-        else if (tuple->key == 8 && tuple->value->uint32 != 32000) {
+        else if (tuple->key == 8) {
+            if (tuple->value->uint32 != 32000)
+                return TEST_FAIL;
+        }
+        else {
             return TEST_FAIL;
         }
         
@@ -446,18 +457,18 @@ TEST(dictionary)
 
     uint8_t buf2[256];
     uint32_t sz = sizeof(buf2);
-    dict_serialize_tuplets_to_buffer(pairs, 2, buf2, &sz);
+    dict_serialize_tuplets_to_buffer(pairs, 5, buf2, &sz);
 
 
     tuple = dict_read_begin_from_buffer(&iter2, buf2, sz);
     while (tuple) {
-        else if(tuple->key == 100 && tuple->value->int8 != -50) {
+        if(tuple->key == 100 && tuple->value->int8 != -50) {
             return TEST_FAIL;
         }
         else if(tuple->key == 101 && tuple->value->int16 != -1000) {
             return TEST_FAIL;
         }
-        else if(tuple->key == 102 && tuple->value->cstring != -10000) {
+        else if(tuple->key == 102 && tuple->value->int32 != -10000) {
             return TEST_FAIL;
         }
         else if (tuple->key == 103 && strcmp("RebbleOS Rocks", tuple->value->cstring) != 0) {
@@ -476,7 +487,8 @@ TEST(dictionary)
     int count = 0;
     while(tuple) {
         count++;
-        if (tuple->key == 8 && tuple->value->uint32 != 32065) {
+        /* check we were not updated to 32065 and have the new value */
+        if (tuple->key == 8 && tuple->value->uint32 != 32000) {
             return TEST_FAIL;
         }
         tuple = dict_read_next(&iter2);

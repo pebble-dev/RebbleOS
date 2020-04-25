@@ -164,6 +164,7 @@ SRCS_all += rwatch/ui/notifications/call_window.c
 SRCS_all += rwatch/ui/notifications/progress_window.c
 SRCS_all += rwatch/ui/vibes.c
 SRCS_all += rwatch/storage/storage_persist.c
+SRCS_all += rwatch/storage/dictionary.c
 
 SRCS_all += Watchfaces/simple.c
 SRCS_all += Watchfaces/nivz.c
