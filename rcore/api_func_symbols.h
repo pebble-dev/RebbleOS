@@ -6,6 +6,7 @@
 #include "battery_state_service.h"
 #include "inverter_layer.h"
 #include "storage_persist.h"
+#include "dictionary.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
 
@@ -60,28 +61,7 @@ UNIMPL(_clock_copy_time_string);
 UNIMPL(_data_logging_create);
 UNIMPL(_data_logging_finish);
 UNIMPL(_data_logging_log);
-UNIMPL(_dict_calc_buffer_size);
-UNIMPL(_dict_calc_buffer_size_from_tuplets);
-UNIMPL(_dict_find);
-UNIMPL(_dict_merge);
-UNIMPL(_dict_read_begin_from_buffer);
-UNIMPL(_dict_read_first);
-UNIMPL(_dict_read_next);
-UNIMPL(_dict_serialize_tuplets);
 UNIMPL(_dict_serialize_tuplets_to_buffer__deprecated);
-UNIMPL(_dict_serialize_tuplets_to_buffer_with_iter);
-UNIMPL(_dict_write_begin);
-UNIMPL(_dict_write_cstring);
-UNIMPL(_dict_write_data);
-UNIMPL(_dict_write_end);
-UNIMPL(_dict_write_int);
-UNIMPL(_dict_write_int16);
-UNIMPL(_dict_write_int32);
-UNIMPL(_dict_write_int8);
-UNIMPL(_dict_write_tuplet);
-UNIMPL(_dict_write_uint16);
-UNIMPL(_dict_write_uint32);
-UNIMPL(_dict_write_uint8);
 UNIMPL(_gmtime);
 UNIMPL(_graphics_draw_round_rect);
 UNIMPL(_graphics_text_layout_get_max_used_size);
@@ -128,8 +108,6 @@ UNIMPL(_app_message_register_inbox_received);
 UNIMPL(_app_message_register_outbox_failed);
 UNIMPL(_app_message_register_outbox_sent);
 UNIMPL(_app_message_set_context);
-UNIMPL(_dict_serialize_tuplets_to_buffer);
-UNIMPL(_dict_size);
 UNIMPL(_graphics_text_layout_get_content_size);
 UNIMPL(_accel_data_service_subscribe);
 UNIMPL(_menu_layer_legacy2_set_callbacks);
@@ -149,8 +127,6 @@ UNIMPL(_compass_service_peek);
 UNIMPL(_compass_service_set_heading_filter);
 UNIMPL(_compass_service_subscribe);
 UNIMPL(_compass_service_unsubscribe);
-UNIMPL(_uuid_equal);
-UNIMPL(_uuid_to_string);
 UNIMPL(_animation_legacy2_set_custom_curve);
 UNIMPL(_watch_info_get_color);
 UNIMPL(_watch_info_get_firmware_version);
@@ -275,7 +251,30 @@ const VoidFunc sym[] = {
     [65]  = (VoidFunc)bluetooth_connection_service_unsubscribe,                                 // bluetooth_connection_service_unsubscribe@00000104
     [69]  = (VoidFunc)pbl_clock_is_24h_style,                                                   // clock_is_24h_style@00000114
     [70]  = (VoidFunc)cos_lookup,                                                               // cos_lookup@00000118
-          
+
+    [74]  = (VoidFunc)dict_calc_buffer_size,                                                    // dict_calc_buffer_size@00000128
+    [75]  = (VoidFunc)dict_calc_buffer_size_from_tuplets,                                       // dict_calc_buffer_size_from_tuplets@0000012c
+    [76]  = (VoidFunc)dict_find,                                                                // dict_find@00000130
+    [77]  = (VoidFunc)dict_merge,                                                               // dict_merge@00000134
+    [78]  = (VoidFunc)dict_read_begin_from_buffer,                                              // dict_read_begin_from_buffer@00000138
+    [79]  = (VoidFunc)dict_read_first,                                                          // dict_read_first@0000013c
+    [80]  = (VoidFunc)dict_read_next,                                                           // dict_read_next@00000140
+    [81]  = (VoidFunc)dict_serialize_tuplets,                                                   // dict_serialize_tuplets@00000144
+    
+    [83]  = (VoidFunc)dict_serialize_tuplets_to_buffer_with_iter,                               // dict_serialize_tuplets_to_buffer_with_iter@0000014c
+    [84]  = (VoidFunc)dict_write_begin,                                                         // dict_write_begin@00000150
+    [85]  = (VoidFunc)dict_write_cstring,                                                       // dict_write_cstring@00000154
+    [86]  = (VoidFunc)dict_write_data,                                                          // dict_write_data@00000158
+    [87]  = (VoidFunc)dict_write_end,                                                           // dict_write_end@0000015c
+    [88]  = (VoidFunc)dict_write_int,                                                           // dict_write_int@00000160
+    [89]  = (VoidFunc)dict_write_int16,                                                         // dict_write_int16@00000164
+    [90]  = (VoidFunc)dict_write_int32,                                                         // dict_write_int32@00000168
+    [91]  = (VoidFunc)dict_write_int8,                                                          // dict_write_int8@0000016c
+    [92]  = (VoidFunc)dict_write_tuplet,                                                        // dict_write_tuplet@00000170
+    [93]  = (VoidFunc)dict_write_uint16,                                                        // dict_write_uint16@00000174
+    [94]  = (VoidFunc)dict_write_uint32,                                                        // dict_write_uint32@00000178
+    [95]  = (VoidFunc)dict_write_uint8,                                                         // dict_write_uint8@0000017c
+
     [96]  = (VoidFunc)fonts_get_system_font,                                                    // fonts_get_system_font@00000180
     [97]  = (VoidFunc)fonts_load_custom_font_proxy,                                             // fonts_load_custom_font@00000184
     [98]  = (VoidFunc)fonts_unload_custom_font,                                                 // fonts_unload_custom_font@00000188
@@ -459,10 +458,11 @@ const VoidFunc sym[] = {
     [307] = (VoidFunc)window_single_click_subscribe,                                           // window_single_click_subscribe@000004cc
     [308] = (VoidFunc)window_single_repeating_click_subscribe,                                 // window_single_repeating_click_subscribe@000004d0
     [309] = (VoidFunc)graphics_draw_text,                                                      // graphics_draw_text@000004d4
-    
+    [310] = (VoidFunc)dict_serialize_tuplets_to_buffer,                                        // dict_serialize_tuplets_to_buffer@000004d8
     [311] = (VoidFunc)persist_read_data,                                                       // persist_read_data@000004dc
     [312] = (VoidFunc)persist_read_string,                                                     // persist_read_string@000004e0
     [313] = (VoidFunc)persist_write_data,                                                      // persist_write_data@000004e4
+    [314] = (VoidFunc)dict_size,                                                               // dict_size@000004e8
     
     [316] = (VoidFunc)simple_menu_layer_get_menu_layer,                                        // simple_menu_layer_get_menu_layer@000004f0
 
@@ -473,6 +473,9 @@ const VoidFunc sym[] = {
     [323] = (VoidFunc)app_realloc,                                                             // realloc@0000050c
     [335] = (VoidFunc)app_heap_bytes_free,                                                     // heap_bytes_free@0000053c
     [336] = (VoidFunc)app_heap_bytes_used,                                                     // heap_bytes_used@00000540
+    
+    [341] = (VoidFunc)uuid_equal,                                                              // uuid_equal@00000554
+    [342] = (VoidFunc)uuid_to_string,                                                          // uuid_to_string@00000558
     [343] = (VoidFunc)gpath_fill_app,                                                          // gpath_draw_filled@0000055c
 
     [349] = (VoidFunc)graphics_frame_buffer_is_captured,                                       // graphics_frame_buffer_is_captured@00000574
@@ -729,28 +732,7 @@ const VoidFunc sym[] = {
     [71]  = (UnimplFunc)_data_logging_create,                                                  // data_logging_create@0000011c
     [72]  = (UnimplFunc)_data_logging_finish,                                                  // data_logging_finish@00000120
     [73]  = (UnimplFunc)_data_logging_log,                                                     // data_logging_log@00000124
-    [74]  = (UnimplFunc)_dict_calc_buffer_size,                                                // dict_calc_buffer_size@00000128
-    [75]  = (UnimplFunc)_dict_calc_buffer_size_from_tuplets,                                   // dict_calc_buffer_size_from_tuplets@0000012c
-    [76]  = (UnimplFunc)_dict_find,                                                            // dict_find@00000130
-    [77]  = (UnimplFunc)_dict_merge,                                                           // dict_merge@00000134
-    [78]  = (UnimplFunc)_dict_read_begin_from_buffer,                                          // dict_read_begin_from_buffer@00000138
-    [79]  = (UnimplFunc)_dict_read_first,                                                      // dict_read_first@0000013c
-    [80]  = (UnimplFunc)_dict_read_next,                                                       // dict_read_next@00000140
-    [81]  = (UnimplFunc)_dict_serialize_tuplets,                                               // dict_serialize_tuplets@00000144
     [82]  = (UnimplFunc)_dict_serialize_tuplets_to_buffer__deprecated,                         // dict_serialize_tuplets_to_buffer__deprecated@00000148
-    [83]  = (UnimplFunc)_dict_serialize_tuplets_to_buffer_with_iter,                           // dict_serialize_tuplets_to_buffer_with_iter@0000014c
-    [84]  = (UnimplFunc)_dict_write_begin,                                                     // dict_write_begin@00000150
-    [85]  = (UnimplFunc)_dict_write_cstring,                                                   // dict_write_cstring@00000154
-    [86]  = (UnimplFunc)_dict_write_data,                                                      // dict_write_data@00000158
-    [87]  = (UnimplFunc)_dict_write_end,                                                       // dict_write_end@0000015c
-    [88]  = (UnimplFunc)_dict_write_int,                                                       // dict_write_int@00000160
-    [89]  = (UnimplFunc)_dict_write_int16,                                                     // dict_write_int16@00000164
-    [90]  = (UnimplFunc)_dict_write_int32,                                                     // dict_write_int32@00000168
-    [91]  = (UnimplFunc)_dict_write_int8,                                                      // dict_write_int8@0000016c
-    [92]  = (UnimplFunc)_dict_write_tuplet,                                                    // dict_write_tuplet@00000170
-    [93]  = (UnimplFunc)_dict_write_uint16,                                                    // dict_write_uint16@00000174
-    [94]  = (UnimplFunc)_dict_write_uint32,                                                    // dict_write_uint32@00000178
-    [95]  = (UnimplFunc)_dict_write_uint8,                                                     // dict_write_uint8@0000017c
     [104] = (UnimplFunc)_gmtime,                                                               // gmtime@000001a0
     [121] = (UnimplFunc)_graphics_draw_round_rect,                                             // graphics_draw_round_rect@000001e4
     [125] = (UnimplFunc)_graphics_text_layout_get_max_used_size,                               // graphics_text_layout_get_max_used_size@000001f4
@@ -799,9 +781,6 @@ const VoidFunc sym[] = {
     [300] = (UnimplFunc)_app_message_register_outbox_failed,                                   // app_message_register_outbox_failed@000004b0
     [301] = (UnimplFunc)_app_message_register_outbox_sent,                                     // app_message_register_outbox_sent@000004b4
     [302] = (UnimplFunc)_app_message_set_context,                                              // app_message_set_context@000004b8
-    [310] = (UnimplFunc)_dict_serialize_tuplets_to_buffer,                                     // dict_serialize_tuplets_to_buffer@000004d8
-
-    [314] = (UnimplFunc)_dict_size,                                                            // dict_size@000004e8
     [315] = (UnimplFunc)_graphics_text_layout_get_content_size,                                // graphics_text_layout_get_content_size@000004ec
     [317] = (UnimplFunc)_accel_data_service_subscribe,                                         // accel_data_service_subscribe@000004f4
     [320] = (UnimplFunc)_menu_layer_legacy2_set_callbacks,                                     // menu_layer_legacy2_set_callbacks@00000500
@@ -822,8 +801,6 @@ const VoidFunc sym[] = {
     [338] = (UnimplFunc)_compass_service_set_heading_filter,                                   // compass_service_set_heading_filter@00000548
     [339] = (UnimplFunc)_compass_service_subscribe,                                            // compass_service_subscribe@0000054c
     [340] = (UnimplFunc)_compass_service_unsubscribe,                                          // compass_service_unsubscribe@00000550
-    [341] = (UnimplFunc)_uuid_equal,                                                           // uuid_equal@00000554
-    [342] = (UnimplFunc)_uuid_to_string,                                                       // uuid_to_string@00000558
     [344] = (UnimplFunc)_animation_legacy2_set_custom_curve,                                   // animation_legacy2_set_custom_curve@00000560
     [345] = (UnimplFunc)_watch_info_get_color,                                                 // watch_info_get_color@00000564
     [346] = (UnimplFunc)_watch_info_get_firmware_version,                                      // watch_info_get_firmware_version@00000568

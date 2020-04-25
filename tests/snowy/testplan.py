@@ -27,5 +27,5 @@ testplan = [
     Test("rdb: fill", testname = b'rdb_fill', golden = 0),
     Test("Protocol: buffer", testname = b'protocol_basic', golden = 0),
     Test("Protocol: packet", testname = b'protocol_packet', golden = 0),
-    
+    Test("dictionary: basic", testname = b'dictionary', golden = 0),
 ]
