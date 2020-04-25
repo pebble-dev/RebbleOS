@@ -211,7 +211,8 @@ static int _qemu_handle_packet(uint8_t *buf, size_t *len)
 
         if (header.signature != QEMU_HEADER_SIGNATURE) {
             LOG_ERROR("Invalid header signature: %x", header.signature);
-            return PACKET_INVALID;
+            rv = PACKET_INVALID;
+            goto error;
         }
 
         if (header.len > QEMU_MAX_DATA_LEN) {
@@ -270,12 +271,12 @@ static int _qemu_handle_packet(uint8_t *buf, size_t *len)
         goto error;
     }
 
-    RebblePacket p = packet_create_with_data(0, NULL, header.len);
+    RebblePacket p = packet_create_with_data(0, protocol_get_rx_buffer(), header.len);
     packet_set_transport(p, qemu_send_data);
     handler(p);
 
     if (buflen - processed > 0) {
-        memmove(buf, buf + processed, buflen - processed);
+        //memmove(buf, buf + processed, buflen - processed);
         *len = buflen - processed;
         return PACKET_BUFFER_HAS_DATA; /* more work to do */
     }

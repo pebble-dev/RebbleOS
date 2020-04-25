@@ -35,8 +35,16 @@ struct rebble_packet {
 //    completion_callback callback;
 };
 
+enum {
+    ProtocolServiceMessageRX = 0,
+    //ProtocolServiceMessageTX = 1,
+    ProtocolServiceMessageBufferReset = 2,
+};
+
+static CoreTimer *_protocol_timer_head = NULL;
+
 QUEUE_DEFINE(tx, rebble_packet *, 3);
-QUEUE_DEFINE(rx, rebble_packet *, 6);
+QUEUE_DEFINE(rx, AppMessage, 4);
 THREAD_DEFINE(tx, 300, tskIDLE_PRIORITY + 9UL, _thread_protocol_tx);
 THREAD_DEFINE(rx, 650, tskIDLE_PRIORITY + 4UL, _thread_protocol_rx);
 
@@ -52,17 +60,41 @@ void rebble_protocol_init()
 
 static void _thread_protocol_rx()
 {
-    RebblePacket packet;
+    AppMessage am;
     RebblePacket newpacket;
 
     while(1) {
-        xQueueReceive(QUEUE_HANDLE(rx), &packet, portMAX_DELAY);
+
+        TickType_t next_timer = appmanager_timer_get_next_expiry(_protocol_timer_head);
+
+        if(next_timer == 0) {
+            appmanager_timer_expired(&_protocol_timer_head, _protocol_timer_head);
+            next_timer = appmanager_timer_get_next_expiry(_protocol_timer_head);
+        }
+        if (next_timer < 0)
+            next_timer = portMAX_DELAY;
+        
+        if (!xQueueReceive(QUEUE_HANDLE(rx), &am, next_timer))
+            continue;
+        
+        /* XXX TODO
+        if (am.command == ProtocolServiceMessageBufferReset) {
+
+        }*/
+        
+        if (am.command != ProtocolServiceMessageRX)
+            continue;
+        
+        RebblePacket packet = am.data;
+
         LOG_DEBUG("packet thread woke");
+        
+        ProtocolTransportSender transport = packet->transport_sender;
+        packet_destroy(packet);
 
         /* Go around the buffer until we have no more */
         while(1) {
             LOG_DEBUG("processing packet");
-            ProtocolTransportSender transport = packet->transport_sender;
             RebblePacketDataHeader hdr;
 
             int rv = protocol_parse_packet(protocol_get_rx_buffer(), &hdr, transport);
@@ -76,6 +108,9 @@ static void _thread_protocol_rx()
                 break;
             }
 
+            if (protocol_buffer_lock() < 0)
+                break;
+            
             /* seems legit. We have a valid packet. Create a data packet and process it */
             newpacket = packet_create_with_data(hdr.endpoint, hdr.data, hdr.length);
             packet_set_transport(newpacket, transport);
@@ -90,10 +125,10 @@ static void _thread_protocol_rx()
                 handler(newpacket);
             }
             
+            protocol_buffer_unlock();
             /* Remove the data we processed from the buffer */
             protocol_rx_buffer_consume(newpacket->length + sizeof(RebblePacketHeader));
 
-            packet_destroy(packet);
             packet_destroy(newpacket);
         }
     }
@@ -176,7 +211,11 @@ int packet_reply(RebblePacket packet, uint8_t *data, uint16_t size)
 
 int packet_recv(const RebblePacket packet)
 {
-    if (xQueueSendToBack(QUEUE_HANDLE(rx), &packet, portMAX_DELAY))
+    AppMessage am = {
+        .command = ProtocolServiceMessageRX,
+        .data = packet
+    };
+    if (xQueueSendToBack(QUEUE_HANDLE(rx), &am, portMAX_DELAY))
         return 0;
     
     return -1;
@@ -227,4 +266,58 @@ void packet_send_to_transport(RebblePacket packet, uint16_t endpoint, uint8_t *d
 {
     rebble_packet *pkt = (rebble_packet *)packet;
     pkt->transport_sender(endpoint, data, len);
+}
+
+
+/* Timer */
+
+ProtocolTimer *protocol_service_timer_create(ProtocolTimerCallback pcallback, TickType_t timeout)
+{
+    ProtocolTimer *ct = mem_heap_alloc(&mem_heaps[HEAP_LOWPRIO], sizeof(ProtocolTimer));
+    assert(ct);
+    memset(ct, 0, sizeof(ProtocolTimer));
+
+    ct->timer.callback = pcallback;
+    ct->timeout_ms = timeout;
+    return ct;
+}
+
+void protocol_service_timer_destroy(ProtocolTimer *timer)
+{
+    if (!timer)
+        return;
+
+    if (timer->on_queue)
+        appmanager_timer_remove(&_protocol_timer_head, (CoreTimer *)timer);
+    remote_free(timer);
+}
+
+void protocol_service_timer_cancel(ProtocolTimer *timer)
+{
+    if (timer->on_queue)
+        appmanager_timer_remove(&_protocol_timer_head, (CoreTimer *)timer);
+    timer->on_queue = 0;
+}
+
+void protocol_service_timer_start(ProtocolTimer *timer, TickType_t timeout)
+{
+    assert(timer);
+    if (timer->on_queue)
+        return;
+    appmanager_timer_add(&_protocol_timer_head, (CoreTimer *)timer);
+    timer->on_queue = 1;
+    timer->timeout_ms = timeout;
+    timer->timer.when = xTaskGetTickCount() + pdMS_TO_TICKS(timer->timeout_ms);
+}
+
+void protocol_service_timer_restart(ProtocolTimer *timer)
+{
+    assert(timer);
+    if (timer->on_queue) {
+        appmanager_timer_remove(&_protocol_timer_head, (CoreTimer *)timer);
+        timer->on_queue = 0;
+    }
+    timer->timer.when = xTaskGetTickCount() + pdMS_TO_TICKS(timer->timeout_ms);
+    appmanager_timer_add(&_protocol_timer_head, (CoreTimer *)timer);
+    timer->on_queue = 1;
 }
