@@ -290,8 +290,10 @@ static void _animation_complete(Animation *anim)
 /* Update logic. This deals with a timer that has expired, or needs to be executed */
 static void _animation_update(Animation *anim)
 {
+    app_running_thread *thread = appmanager_get_current_thread();
+
     if (anim->onqueue)
-        appmanager_timer_remove(&anim->timer,  appmanager_get_current_thread());
+        appmanager_timer_remove(&thread->timer_head, &anim->timer);
 
     anim->onqueue = 0;
     TickType_t now = xTaskGetTickCount();
@@ -305,7 +307,8 @@ static void _animation_update(Animation *anim)
             return;
         }
         anim->timer.when = now + ANIMATION_TICKS;
-        appmanager_timer_add(&anim->timer,  appmanager_get_current_thread());
+        
+        appmanager_timer_add(&thread->timer_head, &anim->timer);
         return;
     }
 
@@ -369,7 +372,7 @@ static void _animation_update(Animation *anim)
         anim->impl.update(anim, (uint32_t) progress);
 
     anim->onqueue = 1;
-    appmanager_timer_add(&anim->timer, appmanager_get_current_thread());
+    appmanager_timer_add(&thread->timer_head, &anim->timer);
 }
 
 static void _anim_callback(CoreTimer *timer)
@@ -394,6 +397,7 @@ static inline bool _is_immutable(Animation *anim)
 
 static bool _animation_schedule_one(Animation *anim)
 {
+    app_running_thread *thread = appmanager_get_current_thread();
     if (anim->scheduled)
         assert(0);
 
@@ -402,7 +406,7 @@ static bool _animation_schedule_one(Animation *anim)
     _animation_started(anim);
 
     if (anim->onqueue)
-        appmanager_timer_remove(&anim->timer, appmanager_get_current_thread());
+        appmanager_timer_remove(&thread->timer_head, &anim->timer);
 
     anim->startticks = xTaskGetTickCount();
     anim->scheduled = 1;
@@ -417,7 +421,7 @@ static bool _animation_schedule_one(Animation *anim)
         anim->timer.when = anim->startticks + anim->delay;
         anim->startticks = anim->timer.when;
         anim->onqueue = 1;
-        appmanager_timer_add(&anim->timer, appmanager_get_current_thread());
+        appmanager_timer_add(&thread->timer_head, &anim->timer);
         return true;
     }
 

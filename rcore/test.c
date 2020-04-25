@@ -133,6 +133,8 @@ void test_packet_handler(const RebblePacket packet)
     default:
         KERN_LOG("test", APP_LOG_LEVEL_ERROR, "unknown qemu opcode %04x", qpkt->opcode);
     }
+
+    protocol_rx_buffer_consume(packet_get_data_length(packet) + sizeof(RebblePacketHeader));
 }
 
 TEST(simple) {

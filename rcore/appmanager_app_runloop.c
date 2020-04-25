@@ -171,13 +171,13 @@ void app_event_loop(void)
     /* App is now fully initialised and inside the runloop. */
     for ( ;; )
     {
-        next_timer = appmanager_timer_get_next_expiry(_this_thread);
+        next_timer = appmanager_timer_get_next_expiry(_this_thread->timer_head);
 
         if (next_timer == 0)
         {
-            appmanager_timer_expired(_this_thread);
+            appmanager_timer_expired(&_this_thread->timer_head, _this_thread->timer_head);
             appmanager_post_draw_message(0);
-            next_timer = appmanager_timer_get_next_expiry(_this_thread);
+            next_timer = appmanager_timer_get_next_expiry(_this_thread->timer_head);
         }
         if (next_timer < 0)
             next_timer = HEARTBEAT_INTERVAL;

@@ -79,8 +79,6 @@ enum {
 
 /* in appmanager.c */
 uint8_t appmanager_init(void);
-void appmanager_timer_add(CoreTimer *timer, app_running_thread *thread);
-void appmanager_timer_remove(CoreTimer *timer, app_running_thread *thread);
 void app_event_loop(void);
 bool appmanager_post_generic_thread_message(AppMessage *am, TickType_t timeout);
 app_running_thread *appmanager_get_current_thread(void);
@@ -117,8 +115,11 @@ bool appmanager_is_app_shutting_down(void);
 bool appmanager_is_app_running(void);
 
 bool appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
-void appmanager_timer_expired(app_running_thread *thread);
-TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);
+
+void appmanager_timer_add(CoreTimer **timer_head, CoreTimer *timer);
+void appmanager_timer_remove(CoreTimer **timer_head, CoreTimer *timer);
+void appmanager_timer_expired(CoreTimer **timer_head, CoreTimer *timer);
+TickType_t appmanager_timer_get_next_expiry(CoreTimer *timer_head);
 
 /* in appmanager_app.c */
 App *appmanager_get_app_by_name(char *app_name);

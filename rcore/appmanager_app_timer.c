@@ -18,17 +18,17 @@ void timer_init(void)
 }
 
 /* Timer util */
-TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread)
+TickType_t appmanager_timer_get_next_expiry(CoreTimer *timer_head)
 {
     TickType_t next_timer;
 
-    if (thread->timer_head) {
+    if (timer_head) {
         TickType_t curtime = xTaskGetTickCount();
-        if (curtime > thread->timer_head->when) {
+        if (curtime > timer_head->when) {
             next_timer = 0;
         }
         else
-            next_timer = thread->timer_head->when - curtime;
+            next_timer = timer_head->when - curtime;
     } else {
         next_timer = -1; /* Just block forever. */
     }
@@ -36,13 +36,11 @@ TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread)
     return next_timer;
 }
 
-void appmanager_timer_expired(app_running_thread *thread)
+void appmanager_timer_expired(CoreTimer **timer_head, CoreTimer *timer)
 {
     /* We woke up because we hit a timer expiry.  Dequeue first,
      * then invoke -- otherwise someone else could insert themselves
      * at the head, and we would wrongfully dequeue them!  */
-    assert(thread);
-    CoreTimer *timer = thread->timer_head;
     assert(timer);
 
     if (!timer->callback) {
@@ -50,11 +48,11 @@ void appmanager_timer_expired(app_running_thread *thread)
          * happen only once before when the app draw was happening while the
          * ovelay thread was coming up. The ov thread memory was memset to 0. */
         KERN_LOG("app", APP_LOG_LEVEL_ERROR, "Bad Callback!");
-        thread->timer_head = timer->next;
+        *timer_head = timer->next;
         return;
     }
 
-    thread->timer_head = timer->next;
+    *timer_head = timer->next;
     timer->callback(timer);
 }
 
@@ -63,9 +61,9 @@ void appmanager_timer_expired(app_running_thread *thread)
  * reasonable to do from the app thread: otherwise, you can race with the
  * check for the timer head.
  */
-void appmanager_timer_add(CoreTimer *timer, app_running_thread *thread)
+void appmanager_timer_add(CoreTimer **timer_head, CoreTimer *timer)
 {
-    CoreTimer **tnext = &thread->timer_head;
+    CoreTimer **tnext = timer_head;
 
     /* until either the next pointer is null (i.e., we have hit the end of
      * the list), or the thing that the next pointer points to is further in
@@ -80,9 +78,9 @@ void appmanager_timer_add(CoreTimer *timer, app_running_thread *thread)
     *tnext = timer;
 }
 
-void appmanager_timer_remove(CoreTimer *timer, app_running_thread *thread)
+void appmanager_timer_remove(CoreTimer **timer_head, CoreTimer *timer)
 {
-    CoreTimer **tnext = &thread->timer_head;
+    CoreTimer **tnext = timer_head;
 
     while (*tnext) {
         if (*tnext == timer) {
