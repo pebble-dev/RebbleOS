@@ -120,6 +120,11 @@ static ble_gap_adv_data_t _advdata = {
     .scan_rsp_data = { .p_data = _srdata_buf, .len = sizeof(_srdata_buf) },
 };
 
+static uint8_t _pebble_magic_data[] = {
+    0x00, 'C', '5', '5', '6', '4', '1', '6', 'A', '1', 'S', '0', 'B',
+    0x0e, 0x19, 0x04, 0x03, 0x00, 0x00
+};
+
 static void _advertising_init() {
     hw_bluetooth_advertising_visible(0);
 }
@@ -143,6 +148,9 @@ void hw_bluetooth_advertising_visible(int vis) {
     advdata.name_type = vis ? BLE_ADVDATA_FULL_NAME : BLE_ADVDATA_NO_NAME;
     advdata.include_appearance = vis ? 1 : 0;
     advdata.flags = BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE;
+    manufdata.company_identifier = 0x0154 /* Pebble Technology */;
+    manufdata.data.size = sizeof(_pebble_magic_data);
+    manufdata.data.p_data = _pebble_magic_data;
     rv = ble_advdata_encode(&advdata, _advdata.adv_data.p_data, &_advdata.adv_data.len);
     assert(rv == NRF_SUCCESS && "ble_advdata_encode(advdata)");
 
@@ -152,7 +160,8 @@ void hw_bluetooth_advertising_visible(int vis) {
     srdata.uuids_complete.uuid_cnt = sizeof(adv_uuids) / sizeof(adv_uuids[0]);
     srdata.uuids_complete.p_uuids = adv_uuids;
     manufdata.company_identifier = 0x0154 /* Pebble Technology */;
-    manufdata.data.size = 0;
+    manufdata.data.size = sizeof(_pebble_magic_data);
+    manufdata.data.p_data = _pebble_magic_data;
     srdata.p_manuf_specific_data = &manufdata;
     rv = ble_advdata_encode(&srdata, _advdata.scan_rsp_data.p_data, &_advdata.scan_rsp_data.len);
     assert(rv == NRF_SUCCESS && "ble_advdata_encode(srdata)");
@@ -188,6 +197,7 @@ static ble_gap_master_id_t _bt_peer_id;
 static uint8_t _bt_remote_name[64];
 static uint16_t _bt_remote_name_hnd = BLE_GATT_HANDLE_INVALID;
 static int _bt_remote_name_request_queued = 0;
+static int _bt_remote_name_request_desired = 0;
 
 static int _bt_conn_is_bonded = 0;
 
@@ -262,10 +272,8 @@ static void _pairing_handler(const ble_evt_t *evt, void *context) {
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote endpoint connected, bonded status %d", _bt_conn_is_bonded);
         _bt_conn = evt->evt.gap_evt.conn_handle;
         _bt_conn_is_bonded = 0;
-        
-        rv = ble_db_discovery_start(&_disc, _bt_conn);
-        assert(rv == NRF_SUCCESS && "ble_db_discovery_start");
-        
+        _bt_remote_name_request_desired = 0;
+
         /* Begin the pairing process. */
         sd_ble_gap_authenticate(_bt_conn, &_gap_sec_params);
         
@@ -293,15 +301,24 @@ static void _pairing_handler(const ble_evt_t *evt, void *context) {
     case BLE_GAP_EVT_AUTH_STATUS:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_AUTH_STATUS: bonded %d", evt->evt.gap_evt.params.auth_status.bonded);
         if (evt->evt.gap_evt.params.auth_status.bonded) {
-            _bt_remote_name_request_queued = 1;
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "  own  ediv %04x, rand %02x %02x", _bt_own_enc_key.master_id.ediv, _bt_own_enc_key.master_id.rand[0], _bt_own_enc_key.master_id.rand[1]);
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "  peer ediv %04x, rand %02x %02x", _bt_peer_enc_key.master_id.ediv, _bt_peer_enc_key.master_id.rand[0], _bt_peer_enc_key.master_id.rand[1]);
             memcpy(&_bt_peer_id, &_bt_own_enc_key.master_id, sizeof(_bt_peer_id));
-            _enqueue_remote_name_request();
+
+            _bt_remote_name_request_desired = 1;
         }
         break;
     case BLE_GAP_EVT_CONN_SEC_UPDATE:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_CONN_SEC_UPDATE");
+        
+        /* If we do this before the secure link comes up while we're
+         * bonded, we croak for some reason.  For some reason it's okay
+         * if the Central does it, just not if we do it...
+         */
+        _bt_remote_name_request_desired = 0;
+        rv = ble_db_discovery_start(&_disc, _bt_conn);
+        assert(rv == NRF_SUCCESS && "ble_db_discovery_start");
+        
         break;
     case BLE_GAP_EVT_PHY_UPDATE_REQUEST: {
         const ble_gap_phys_t phys = {
@@ -429,6 +446,10 @@ static void _ble_disc_handler(ble_db_discovery_evt_t *evt) {
             if (dbchar->characteristic.uuid.uuid == BLE_UUID_GAP_CHARACTERISTIC_DEVICE_NAME) {
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: found device name characteristic w/ value handle %04x", dbchar->characteristic.handle_value);
                 _bt_remote_name_hnd = dbchar->characteristic.handle_value;
+                if (_bt_remote_name_request_desired /* i.e., we came in from a pairing request */) {
+                    _bt_remote_name_request_queued = 1;
+                    _enqueue_remote_name_request();
+                }
             } else {
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: other characteristic uuid %04x value handle %04x, cccd handle %04x", dbchar->characteristic.uuid.uuid, dbchar->characteristic.handle_value, dbchar->cccd_handle);
             }
