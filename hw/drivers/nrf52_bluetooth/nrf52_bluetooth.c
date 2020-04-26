@@ -281,6 +281,7 @@ static void _pairing_handler(const ble_evt_t *evt, void *context) {
     case BLE_GAP_EVT_SEC_INFO_REQUEST:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_SEC_INFO_REQUEST");
         memcpy(&_bt_peer_id, &evt->evt.gap_evt.params.sec_info_request.master_id, sizeof(_bt_peer_id));
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "  asking about ediv %04x, rand %02x %02x", _bt_peer_id.ediv, _bt_peer_id.rand[0], _bt_peer_id.rand[1]);
         _bt_get_bond_data(&_bt_peer_id, sizeof(_bt_peer_id));
         break;
     case BLE_GAP_EVT_SEC_PARAMS_REQUEST:
@@ -292,6 +293,9 @@ static void _pairing_handler(const ble_evt_t *evt, void *context) {
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GAP_EVT_AUTH_STATUS: bonded %d", evt->evt.gap_evt.params.auth_status.bonded);
         if (evt->evt.gap_evt.params.auth_status.bonded) {
             _bt_remote_name_request_queued = 1;
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "  own  ediv %04x, rand %02x %02x", _bt_own_enc_key.master_id.ediv, _bt_own_enc_key.master_id.rand[0], _bt_own_enc_key.master_id.rand[1]);
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "  peer ediv %04x, rand %02x %02x", _bt_peer_enc_key.master_id.ediv, _bt_peer_enc_key.master_id.rand[0], _bt_peer_enc_key.master_id.rand[1]);
+            memcpy(&_bt_peer_id, &_bt_own_enc_key.master_id, sizeof(_bt_peer_id));
             _enqueue_remote_name_request();
         }
         break;

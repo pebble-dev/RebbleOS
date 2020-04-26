@@ -384,7 +384,7 @@ static int _bondreq_datalen;
 static void _get_bond_data(void *p) {
     struct rdb_database *db = rdb_open(RDB_ID_BLUETOOTH);
     struct rdb_iter it;
-    rdb_select_result_list head;
+    rdb_select_result_list head = LIST_HEAD(head);
     
     int rv = rdb_iter_start(db, &it);
     if (!rv) {
@@ -413,7 +413,7 @@ static void _get_bond_data(void *p) {
     uint8_t namelen = ((uint8_t *)res->result[0])[0] /* including terminating 0 */;
     uint8_t bondlen = ((uint8_t *)res->result[0])[1];
     
-    DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "found bond for device %s with len %d", ((uint8_t *)res->result[0]) + 2, bondlen);
+    DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "found bond (res %p, result %p) for device %s with len %d", res, res->result[0], ((uint8_t *)res->result[0]) + 2, bondlen);
     hw_bluetooth_bond_data_available((res->result[0]) + 2 + namelen, bondlen);
     
     rdb_select_free_all(&head);
@@ -461,7 +461,9 @@ void bluetooth_bond_acknowledge(int accepted) {
     free(p);
     
     if (rv != Blob_Success) {
-        DRV_LOG("btbond", APP_LOG_LEVEL_ERROR, "failed to insert into bondtab");
+        const char *pv = _bondreq_peer;
+        DRV_LOG("btbond", APP_LOG_LEVEL_ERROR, "failed to peer %02x%02x%02x%02x... (%d) insert into bondtab (%d)",
+            pv[0], pv[1], pv[2], pv[3], _bondreq_len, rv);
         hw_bluetooth_bond_acknowledge(0);
         return;
     }
