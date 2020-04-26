@@ -261,6 +261,7 @@ static void _pairing_handler(const ble_evt_t *evt, void *context) {
     case BLE_GAP_EVT_CONNECTED:
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote endpoint connected, bonded status %d", _bt_conn_is_bonded);
         _bt_conn = evt->evt.gap_evt.conn_handle;
+        _bt_conn_is_bonded = 0;
         
         rv = ble_db_discovery_start(&_disc, _bt_conn);
         assert(rv == NRF_SUCCESS && "ble_db_discovery_start");
