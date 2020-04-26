@@ -347,6 +347,7 @@ int rdb_select(struct rdb_iter *it, list_head/*<rdb_select_result>*/ *head, stru
                 if (!r)
                     break;
                 if (rdb_iter_read_data(it, 0, r, it->data_len) != it->data_len) {
+                    LOG_ERROR("short read in fully load");
                     free(r);
                     break;
                 }
@@ -473,14 +474,17 @@ int rdb_insert(const struct rdb_database *db, const uint8_t *key, uint16_t key_s
             continue;
         
         uint8_t rdkey[key_size];
-        if (rdb_iter_read_key(&it, rdkey) < key_size)
+        if (rdb_iter_read_key(&it, rdkey) < key_size) {
+            LOG_ERROR("short read on disk in key read");
             return Blob_GeneralFailure;
+        }
         
         /* XXX: Overwrite the dup key, rather than failing.  Do this by
          * writing a new one at the end, then marking this one as deleted. 
          * Special care needed if there are multiple interrupted overwrites.
          */
         if (memcmp(key, rdkey, key_size) == 0) {
+            LOG_ERROR("rdb overwrite not supported");
             return Blob_InvalidData;
         }
     }

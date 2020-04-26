@@ -102,6 +102,7 @@ def save_pbpack(fname, rsrcs):
     # First, turn the resource table into a list of entries, including
     # index, offset, size, and CRC.
     def mk_ent(data):
+        assert(len(data) > 0)
         ent = {"idx": mk_ent.idx, "offset": mk_ent.offset, "size": len(data), "crc": crc32(data), "data": data}
         mk_ent.offset += len(data)
         mk_ent.idx += 1
