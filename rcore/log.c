@@ -9,7 +9,7 @@
 #include "minilib.h"
 #include "rtoswrap.h"
 
-QUEUE_DEFINE(log, char, 512);
+QUEUE_DEFINE(log, char, 1536);
 static volatile int _log_isrunning = 0;
 static void _log_entry(void *arg) {
     QUEUE_CREATE(log);
