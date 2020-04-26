@@ -38,6 +38,7 @@
 #include <debug.h>
 #include "platform.h"
 #include "FreeRTOS.h"
+#include "service.h"
 #include "rebble_memory.h"
 #include "task.h" /* xTaskCreate */
 #include "queue.h" /* xQueueCreate */
@@ -53,23 +54,8 @@ enum ppogatt_cmd {
     PPOGATT_CMD_RESET_ACK = 3,
 };
 
-enum ppogatt_mgr_cmd {
-    PPOGATT_MGR_CMD_START = 0,
-    PPOGATT_MGR_CMD_STOP = 1,
-};
-
-#define STACK_SIZE_PPOGATT_MGR (configMINIMAL_STACK_SIZE + 100)
 #define STACK_SIZE_PPOGATT_RX (configMINIMAL_STACK_SIZE + 600)
 #define STACK_SIZE_PPOGATT_TX (configMINIMAL_STACK_SIZE + 600)
-
-static TaskHandle_t _task_ppogatt_mgr = 0;
-static StaticTask_t _task_ppogatt_mgr_tcb;
-static StackType_t  _task_ppogatt_mgr_stack[STACK_SIZE_PPOGATT_RX];
-
-#define PPOGATT_MGR_QUEUE_SIZE 4
-static QueueHandle_t _queue_ppogatt_mgr = 0;
-static StaticQueue_t _queue_ppogatt_mgr_qcb;
-static uint8_t       _queue_ppogatt_mgr_buf[PPOGATT_MGR_QUEUE_SIZE];
 
 static TaskHandle_t _task_ppogatt_rx = 0;
 static StaticTask_t _task_ppogatt_rx_tcb;
@@ -246,72 +232,44 @@ static void _ppogatt_start() {
     _task_ppogatt_tx = xTaskCreateStatic(_ppogatt_tx_main, "PPoGATT tx", STACK_SIZE_PPOGATT_TX, NULL, tskIDLE_PRIORITY + 4UL, _task_ppogatt_tx_stack, &_task_ppogatt_tx_tcb);
 }
 
-static void _ppogatt_callback_connected() {
+static void _ppogatt_callback_connected(void *ctx) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT connect");
 
-    uint8_t cmd = PPOGATT_MGR_CMD_START;
+    _ppogatt_start();
     
-    BaseType_t woken = pdFALSE;
-    (void) xQueueSendFromISR(_queue_ppogatt_mgr, &cmd, &woken);
-    portYIELD_FROM_ISR(woken);
+    /* Send a wakeup packet. */
+    static struct ppogatt_packet pkt;
+    
+    pkt.len = 2;
+    pkt.buf[0] = 0x02;
+    pkt.buf[1] = 0x00;
+    xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT start message enqueued");
+    
+    bluetooth_device_connected();
 }
 
-static void _ppogatt_callback_disconnected() {
+static void _ppogatt_callback_connected_isr() {
+    service_submit(_ppogatt_callback_connected, NULL);
+}
+
+static void _ppogatt_callback_disconnected(void *ctx) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT disconnect");
-
-    uint8_t cmd = PPOGATT_MGR_CMD_STOP;
-    
-    BaseType_t woken = pdFALSE;
-    (void) xQueueSendFromISR(_queue_ppogatt_mgr, &cmd, &woken);
-    portYIELD_FROM_ISR(woken);
+    _ppogatt_shutdown();
+    bluetooth_device_disconnected();
 }
 
-static void _ppogatt_mgr_main(void *param) {
-    uint8_t cmd;
-
-    while (1) {
-        xQueueReceive(_queue_ppogatt_mgr, &cmd, portMAX_DELAY); /* does not fail, since we wait forever */
-        
-        switch (cmd) {
-        case PPOGATT_MGR_CMD_START:
-            _ppogatt_start();
-            
-            /* Send a wakeup packet. */
-            static struct ppogatt_packet pkt;
-        
-            pkt.len = 2;
-            pkt.buf[0] = 0x02;
-            pkt.buf[1] = 0x00;
-            xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
-            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT start message enqueued");
-            
-            bluetooth_device_connected();
-            break;
-            
-        case PPOGATT_MGR_CMD_STOP:
-            _ppogatt_shutdown();
-            
-            bluetooth_device_disconnected();
-            break;
-        
-        default:
-            assert(0 && "invalid ppogatt mgr cmd");
-        }
-    }
+static void _ppogatt_callback_disconnected_isr() {
+    service_submit(_ppogatt_callback_disconnected, NULL);
 }
 
 /* Main entry for PPoGATT code, to be called at boot. */
 void ppogatt_init() {
-    /* We can't do queue and task management in interrupt context, so we
-     * create a manager thread to stop and start PPoGATT rx/tx threads.  */
-    _queue_ppogatt_mgr = xQueueCreateStatic(PPOGATT_MGR_QUEUE_SIZE, sizeof(uint8_t), (void *)_queue_ppogatt_mgr_buf, &_queue_ppogatt_mgr_qcb);
-    _task_ppogatt_mgr = xTaskCreateStatic(_ppogatt_mgr_main, "PPoGATT mgr", STACK_SIZE_PPOGATT_MGR, NULL, tskIDLE_PRIORITY + 4UL, _task_ppogatt_mgr_stack, &_task_ppogatt_mgr_tcb);
-    
     /* Point the ISRs at us. */
-    ble_ppogatt_set_callback_connected(_ppogatt_callback_connected);
+    ble_ppogatt_set_callback_connected(_ppogatt_callback_connected_isr);
     ble_ppogatt_set_callback_rx(_ppogatt_callback_rx);
     ble_ppogatt_set_callback_txready(_ppogatt_callback_txready);
-    ble_ppogatt_set_callback_disconnected(_ppogatt_callback_disconnected);
+    ble_ppogatt_set_callback_disconnected(_ppogatt_callback_disconnected_isr);
 }
 
 /*** PPoGATT <-> BT stack ***/
