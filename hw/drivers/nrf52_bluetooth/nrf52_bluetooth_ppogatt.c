@@ -94,8 +94,11 @@ static int _ppogatt_bond_complete = 0;
 
 void nrf52_ppogatt_bond_complete() {
     assert(!_ppogatt_bond_complete);
-    if (_ppogatt_is_ready)
+    _ppogatt_bond_complete = 1;
+    if (_ppogatt_is_ready) {
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: connected, because the bond is complete");
         _ppogatt_callback_connected();
+    }
 }
 
 static void _ppogatt_handler(const ble_evt_t *evt, void *context) {
@@ -140,7 +143,11 @@ static void _ppogatt_handler(const ble_evt_t *evt, void *context) {
             hname = "parameters value";
         else if (evtwr->handle == pebble_metadata_srv_parameters_hnd.cccd_handle)
             hname = "parameters CCCD";
-        if (evtwr->handle != ppogatt_srv_write_hnd.value_handle)
+        if (evtwr->handle != ppogatt_srv_write_hnd.value_handle && evtwr->len >= 2)
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "GATTS write evt: handle %04x %s, op %02x, auth req %u, offset %02x, len %d (%02x %02x)",
+                evtwr->handle, hname, evtwr->op, evtwr->auth_required, evtwr->offset, evtwr->len,
+                evtwr->data[0], evtwr->data[1]);
+        else
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "GATTS write evt: handle %04x %s, op %02x, auth req %u, offset %02x, len %d", evtwr->handle, hname, evtwr->op, evtwr->auth_required, evtwr->offset, evtwr->len);
         
         if (evtwr->handle == ppogatt_srv_write_hnd.value_handle && _ppogatt_bond_complete) {
@@ -148,8 +155,11 @@ static void _ppogatt_handler(const ble_evt_t *evt, void *context) {
         } else if (evtwr->handle == ppogatt_srv_notify_hnd.cccd_handle && evtwr->len <= 2) {
             memcpy(&ppogatt_srv_notify_cccd, evtwr->data, evtwr->len);
             if (ppogatt_srv_notify_cccd) {
-                if (!_ppogatt_is_ready && _ppogatt_bond_complete)
+                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: ready to connect, because the remote end set up HVX listens");
+                if (!_ppogatt_is_ready && _ppogatt_bond_complete) {
+                    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: and firing off connected callback");
                     _ppogatt_callback_connected();
+                }
                 _ppogatt_is_ready = 1;
             }
         }
@@ -206,8 +216,11 @@ void nrf52_ppogatt_discovery(ble_db_discovery_evt_t *evt) {
                 ret_code_t rv = sd_ble_gattc_write(_bt_conn, &params);
                 assert(rv == NRF_SUCCESS);
                 
-                if (!_ppogatt_is_ready && _ppogatt_bond_complete)
+                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: ready to connect, because we found the PPoGATT server characteristic");
+                if (!_ppogatt_is_ready && _ppogatt_bond_complete) {
+                    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: and firing off connected callback");
                     _ppogatt_callback_connected();
+                }
                 _ppogatt_is_ready = 1;
             } else {
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE remote service discovery: other characteristic uuid %04x value handle %04x, cccd handle %04x", dbchar->characteristic.uuid.uuid, dbchar->characteristic.handle_value, dbchar->cccd_handle);

@@ -83,7 +83,7 @@ static StackType_t  _task_ppogatt_tx_stack[STACK_SIZE_PPOGATT_TX];
  * packets by allocating from a variable-sized pool, so we don't waste a
  * whole queue entry when we potentially only need an ACK's worth of data */
 
-#define PPOGATT_MTU 128
+#define PPOGATT_MTU 256
 
 /* XXX: need to do MTU detection */
 #define PPOGATT_TX_MTU 20
