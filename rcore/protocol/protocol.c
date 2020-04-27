@@ -204,6 +204,11 @@ ProtocolTransportSender protocol_get_current_transport_sender()
     return _last_transport_used ? _last_transport_used : qemu_send_data;
 }
 
+void protocol_set_current_transport_sender(ProtocolTransportSender sender)
+{
+    _last_transport_used = sender;
+}
+
 /*
  * Parse a packet in the buffer. Will fill the given pbl_transport with
  * the parsed data
@@ -272,7 +277,7 @@ void protocol_send_packet(const RebblePacket packet)
     uint16_t len = packet_get_data_length(packet);
     uint16_t endpoint = packet_get_endpoint(packet);
 
-    LOG_DEBUG("TX protocol: e:%d l %d", endpoint, len);
+    LOG_DEBUG("TX protocol: e:%d l %d transport %p", endpoint, len, packet_get_transport(packet));
     _last_transport_used = packet_get_transport(packet);
 
     packet_send_to_transport(packet, endpoint, packet_get_data(packet), len);

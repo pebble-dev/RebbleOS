@@ -52,6 +52,7 @@ int protocol_rx_buffer_consume(uint16_t len);
 int protocol_rx_buffer_pointer_adjust(int howmuch);
 void protocol_rx_buffer_reset(void);
 ProtocolTransportSender protocol_get_current_transport_sender();
+void protocol_set_current_transport_sender(ProtocolTransportSender sender);
 int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport);
 
 /* API */
