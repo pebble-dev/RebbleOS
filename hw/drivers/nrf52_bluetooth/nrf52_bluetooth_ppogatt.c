@@ -76,13 +76,14 @@ static uint8_t ppogatt_srv_wr_buf[PPOGATT_MTU];
 static uint8_t ppogatt_srv_rd_buf[PPOGATT_MTU];
 
 static uint16_t pebble_metadata_srv_svc_hnd = BLE_GATT_HANDLE_INVALID;
-static uint8_t pebble_metadata_connectivity_buf[4] = { 0x00, 0x00, 0x00, 0x00 };
+static uint8_t pebble_metadata_connectivity_buf[4] = { 0x1f, 0x00, 0x00, 0x00 };
+static uint16_t pebble_metadata_connectivity_cccd = 0;
 static ble_gatts_char_handles_t pebble_metadata_srv_connectivity_hnd;
 static uint8_t pebble_metadata_pairing_buf[1] = { 0x00 };
 static ble_gatts_char_handles_t pebble_metadata_srv_pairing_hnd;
-static uint8_t pebble_metadata_mtu_buf[2] = { 0x00, 0x00 };
+static uint8_t pebble_metadata_mtu_buf[2] = { 0x80, 0x00 };
 static ble_gatts_char_handles_t pebble_metadata_srv_mtu_hnd;
-static uint8_t pebble_metadata_parameters_buf[7] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+static uint8_t pebble_metadata_parameters_buf[7] = { 0x00, 0x9c, 0x00, 0x00, 0x00, 0x58, 0x02 };
 static ble_gatts_char_handles_t pebble_metadata_srv_parameters_hnd;
 
 static ble_ppogatt_callback_connected_t _ppogatt_callback_connected;
@@ -161,6 +162,24 @@ static void _ppogatt_handler(const ble_evt_t *evt, void *context) {
                     _ppogatt_callback_connected();
                 }
                 _ppogatt_is_ready = 1;
+            }
+        } else if (evtwr->handle == pebble_metadata_srv_connectivity_hnd.cccd_handle && evtwr->len <= 2) {
+            memcpy(&pebble_metadata_connectivity_cccd, evtwr->data, evtwr->len);
+            if (pebble_metadata_connectivity_cccd) {
+                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "connectivity cccd: sending notify");
+                ble_gatts_hvx_params_t hvx;
+                uint16_t len16 = sizeof(pebble_metadata_connectivity_buf);
+            
+                memset(&hvx, 0, sizeof(hvx));
+                hvx.type = BLE_GATT_HVX_NOTIFICATION;
+                hvx.handle = pebble_metadata_srv_connectivity_hnd.value_handle;
+                hvx.p_data = pebble_metadata_connectivity_buf;
+                hvx.p_len = &len16;
+        
+                rv = sd_ble_gatts_hvx(_bt_conn, &hvx);
+                if (rv != NRF_SUCCESS) {
+                    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "failed to HVX for connectivity");
+                }
             }
         }
         break;
