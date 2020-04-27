@@ -104,6 +104,10 @@ static void _request_bond_isr(const void *peer, size_t len, const char *name, co
     #define BT_LOG NULL_LOG
 #endif
 
+#define MODULE_NAME "bt"
+#define MODULE_TYPE "SYS"
+#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_NONE
+
 /* Initialise the bluetooth module */
 uint8_t bluetooth_init(void)
 {
@@ -146,11 +150,17 @@ void bluetooth_init_complete(uint8_t state)
  */
 void bluetooth_data_rx(uint8_t *data, size_t len)
 {
-    RebblePacketDataHeader header;
-    protocol_rx_buffer_append(data, len);
-    RebblePacket packet = packet_create_with_data(0, data, len);
+    LOG_DEBUG("bluetooth_data_rx: %d bytes", len);
+    
+    if (protocol_rx_buffer_append(data, len) == PROTOCOL_BUFFER_FULL) {
+        LOG_ERROR("protocol buffer was full... dropping some data");
+        return;
+    }
+    
+    RebblePacket packet = packet_create_with_data(0, NULL, 0); /* data has no meaning here */
+    packet_set_transport(packet, bluetooth_send_data);
     assert(packet);
-    packet_recv(packet);
+    packet_recv(packet); /* kick the protocol thread into action */
 }
 
 /*
@@ -204,15 +214,13 @@ static void _bt_cmd_thread(void *pvParameters)
         
         if (pkt.packet_type == PACKET_TYPE_TX)
         {
-            BT_LOG("BT", APP_LOG_LEVEL_INFO, "TX %d byte", pkt.length);
-
             bt_device_request_tx(pkt.data, pkt.length);
             int rv = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(50));
             if(rv == 0)
                 BT_LOG("BT", APP_LOG_LEVEL_ERROR, "Timed out sending!");
 
             /* XXX ugh, should be using a better dynamic pool of memory not sys malloc */
-            free(pkt.data);
+            remote_free(pkt.data);
         }
     }
 }
@@ -265,6 +273,7 @@ inline uint8_t bluetooth_send(uint8_t *data, size_t len)
 void bluetooth_device_connected(void)
 {
     _connected = true;
+    protocol_set_current_transport_sender(bluetooth_send_data);
     connection_service_update(true);
 }
 
@@ -296,7 +305,6 @@ static uint8_t _bluetooth_tx(uint8_t *data, uint16_t len)
     uint32_t notif_value;
     
     xSemaphoreTake(_bt_tx_mutex, portMAX_DELAY);
-    BT_LOG("BT", APP_LOG_LEVEL_INFO, "_tx %d", len);
 
     /* We need to break the tx into chunks that fit into the MTU size
      * rfcomm also needs a little room for the header */
