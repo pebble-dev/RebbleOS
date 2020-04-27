@@ -231,11 +231,11 @@ static void _bt_cmd_thread(void *pvParameters)
 
 void bluetooth_send_data(uint16_t endpoint, uint8_t *data, uint16_t len)
 {
-    uint16_t ep = htons(endpoint);
-    uint16_t l = htons(len);
+    uint16_t preamble[2] = {
+        htons(len), htons(endpoint)
+    };
 
-    bluetooth_send((uint8_t *)&l, 2);
-    bluetooth_send((uint8_t *)&ep, 2);
+    bluetooth_send((uint8_t *)preamble, 4);
     bluetooth_send(data, len);
 }
 
