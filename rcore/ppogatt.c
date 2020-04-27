@@ -91,6 +91,9 @@ static StaticQueue_t         _queue_ppogatt_tx_qcb;
 static struct ppogatt_packet _queue_ppogatt_tx_buf[PPOGATT_TX_QUEUE_SIZE];
 
 static int pktslost = 0;
+static int seen_one_reset_ack = 0;
+
+static uint8_t txseq = 0;
 
 static void _ppogatt_rx_main(void *param) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: rx thread awake");
@@ -117,7 +120,7 @@ static void _ppogatt_rx_main(void *param) {
             /* Send an ACK (not that Gadgetbridge cares... */
             /* XXX: needs to be part of the Big Tx State Machine */
             pkt.len = 1;
-            pkt.buf[0] = seq | PPOGATT_CMD_ACK;
+            pkt.buf[0] = (seq << 3) | PPOGATT_CMD_ACK;
             xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
 
             break;
@@ -128,7 +131,11 @@ static void _ppogatt_rx_main(void *param) {
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: RESET REQ seq %d", seq);
             break;
         case PPOGATT_CMD_RESET_ACK:
-            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: RESET ACK seq %d", seq);
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: RESET ACK seq %d with len %d val %02x", seq, pkt.len, pkt.buf[1]);
+            if (!seen_one_reset_ack) {
+                seen_one_reset_ack = 1;
+                bluetooth_device_connected();
+            }
             break;
         }
     }
@@ -163,6 +170,7 @@ static void _ppogatt_tx_main(void *param) {
             if (rv == 0) {
                 DRV_LOG("bt", APP_LOG_LEVEL_ERROR, "warning: BLE stack did not notify TX ready?");
             }
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "tx: trying again...");
         }
 //        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "hw tx: did tx %d bytes, %02x %02x %02x...", pkt.len, pkt.buf[0], pkt.buf[1], pkt.buf[2]);
     }
@@ -241,12 +249,18 @@ static void _ppogatt_callback_connected(void *ctx) {
     static struct ppogatt_packet pkt;
     
     pkt.len = 2;
-    pkt.buf[0] = 0x02;
+    pkt.buf[0] = PPOGATT_CMD_RESET_REQ;
     pkt.buf[1] = 0x00;
     xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT start message enqueued");
     
-    bluetooth_device_connected();
+    pkt.len = 1;
+    pkt.buf[0] = PPOGATT_CMD_RESET_ACK;
+    xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
+    
+    txseq = 0;
+    
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT start message enqueued");
+    seen_one_reset_ack = 0;
 }
 
 static void _ppogatt_callback_connected_isr() {
@@ -274,13 +288,11 @@ void ppogatt_init() {
 
 /*** PPoGATT <-> BT stack ***/
 
-uint8_t txseq = 0;
-
 void bt_device_request_tx(uint8_t *data, uint16_t len) {
     /* XXX: needs to be part of the Big Tx State Machine */
     static struct ppogatt_packet pkt;
 
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "OS TX: OS wanted us to tx %d bytes", len);
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "OS TX: req sz %d", len);
     
     while (len > 0) {
         uint16_t thislen = (len > (PPOGATT_TX_MTU - 1)) ? (PPOGATT_TX_MTU - 1) : len;
@@ -290,7 +302,7 @@ void bt_device_request_tx(uint8_t *data, uint16_t len) {
         memcpy(pkt.buf + 1, data, thislen);
         xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
         
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "OS TX: did tx seq %d with %d bytes", txseq, thislen + 1);
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "OS TX: tx seq %d (sz %d)", txseq, thislen + 1);
         
         len -= thislen;
         data += thislen;
