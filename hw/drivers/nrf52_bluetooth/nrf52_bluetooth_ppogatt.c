@@ -93,12 +93,37 @@ static ble_ppogatt_callback_disconnected_t _ppogatt_callback_disconnected;
 
 static int _ppogatt_bond_complete = 0;
 
+static void _hvx_connectivity_update() {
+    if (pebble_metadata_connectivity_cccd) {
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "doing HVX for connectivity");
+        
+        ble_gatts_hvx_params_t hvx;
+        uint16_t len16 = sizeof(pebble_metadata_connectivity_buf);
+    
+        memset(&hvx, 0, sizeof(hvx));
+        hvx.type = BLE_GATT_HVX_NOTIFICATION;
+        hvx.handle = pebble_metadata_srv_connectivity_hnd.value_handle;
+        hvx.p_data = pebble_metadata_connectivity_buf;
+        hvx.p_len = &len16;
+     
+        ret_code_t rv = sd_ble_gatts_hvx(_bt_conn, &hvx);
+        if (rv != NRF_SUCCESS) {
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "failed to HVX for connectivity");
+        }
+    }
+}
+
+static void _start_connection() {
+    _hvx_connectivity_update();
+    _ppogatt_callback_connected();
+}
+
 void nrf52_ppogatt_bond_complete() {
     assert(!_ppogatt_bond_complete);
     _ppogatt_bond_complete = 1;
     if (_ppogatt_is_ready) {
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: connected, because the bond is complete");
-        _ppogatt_callback_connected();
+        _start_connection();
     }
 }
 
@@ -108,6 +133,7 @@ static void _ppogatt_handler(const ble_evt_t *evt, void *context) {
     switch (evt->header.evt_id) {
     case BLE_GAP_EVT_CONNECTED:
         ppogatt_srv_notify_cccd = 0;
+        pebble_metadata_connectivity_cccd = 0;
         _ppogatt_is_ready = 0;
         _ppogatt_bond_complete = 0;
         _bt_conn = evt->evt.gap_evt.conn_handle;
@@ -159,28 +185,14 @@ static void _ppogatt_handler(const ble_evt_t *evt, void *context) {
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: ready to connect, because the remote end set up HVX listens");
                 if (!_ppogatt_is_ready && _ppogatt_bond_complete) {
                     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: and firing off connected callback");
-                    _ppogatt_callback_connected();
+                    _start_connection();
                 }
                 _ppogatt_is_ready = 1;
             }
         } else if (evtwr->handle == pebble_metadata_srv_connectivity_hnd.cccd_handle && evtwr->len <= 2) {
             memcpy(&pebble_metadata_connectivity_cccd, evtwr->data, evtwr->len);
-            if (pebble_metadata_connectivity_cccd) {
-                DRV_LOG("bt", APP_LOG_LEVEL_INFO, "connectivity cccd: sending notify");
-                ble_gatts_hvx_params_t hvx;
-                uint16_t len16 = sizeof(pebble_metadata_connectivity_buf);
-            
-                memset(&hvx, 0, sizeof(hvx));
-                hvx.type = BLE_GATT_HVX_NOTIFICATION;
-                hvx.handle = pebble_metadata_srv_connectivity_hnd.value_handle;
-                hvx.p_data = pebble_metadata_connectivity_buf;
-                hvx.p_len = &len16;
-        
-                rv = sd_ble_gatts_hvx(_bt_conn, &hvx);
-                if (rv != NRF_SUCCESS) {
-                    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "failed to HVX for connectivity");
-                }
-            }
+            if (_ppogatt_bond_complete)
+                _hvx_connectivity_update();
         }
         break;
     }
@@ -238,7 +250,7 @@ void nrf52_ppogatt_discovery(ble_db_discovery_evt_t *evt) {
                 DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: ready to connect, because we found the PPoGATT server characteristic");
                 if (!_ppogatt_is_ready && _ppogatt_bond_complete) {
                     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT: and firing off connected callback");
-                    _ppogatt_callback_connected();
+                    _start_connection();
                 }
                 _ppogatt_is_ready = 1;
             } else {
