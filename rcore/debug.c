@@ -22,6 +22,12 @@ __attribute__((__noreturn__)) static void _panic(const char *s) {
     portDISABLE_INTERRUPTS();
     puts("*** PANIC ***");
     puts(s);
+
+    extern void log_onpanic_dump();
+    log_onpanic_dump();
+    
+    puts("*** PANIC COMPLETE ***");
+
     while (1)
         ;
     /* XXX: do something smarter here, like turn IRQs off and stop poking the watchdog */
