@@ -179,7 +179,8 @@ static void _ppogatt_tx_main(void *param) {
 static void _ppogatt_callback_txready() {
     BaseType_t woken = pdFALSE;
     
-    vTaskNotifyGiveFromISR(_task_ppogatt_tx, &woken);
+    if (_task_ppogatt_tx)
+        vTaskNotifyGiveFromISR(_task_ppogatt_tx, &woken);
     
     portYIELD_FROM_ISR(woken);
 }

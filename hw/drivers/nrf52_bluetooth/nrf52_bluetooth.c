@@ -233,17 +233,35 @@ static struct nrf52_peer_data _bt_pdata_buf;
 
 static void _enqueue_remote_name_request();
 
+static void _gatt_error_handler(uint32_t nrf_error, void *p_ctx, uint16_t conn_handle) {
+    DRV_LOG("bt", APP_LOG_LEVEL_ERROR, "gatt error handler: %d\n", nrf_error);
+}
+
 static void _svc_req_remote_name(void *p) {
     if (_bt_remote_name_hnd == BLE_GATT_HANDLE_INVALID)
         return;
     
-    ret_code_t rv = sd_ble_gattc_read(_bt_conn, _bt_remote_name_hnd, 0);
-    if (rv == NRF_ERROR_BUSY) {
+    nrf_ble_gq_req_t gq_req = {
+        .type = NRF_BLE_GQ_REQ_GATTC_READ,
+        .error_handler = {
+            .cb = _gatt_error_handler
+        },
+        .params = {
+            .gattc_read = {
+                .handle = _bt_remote_name_hnd,
+                .offset = 0
+            }
+        }
+    };
+    
+    ret_code_t rv = nrf_ble_gq_item_add(&_gatt_queue, &gq_req, _bt_conn);
+    if (rv == NRF_ERROR_NO_MEM) {
         DRV_LOG("bt", APP_LOG_LEVEL_INFO, "remote req busy, trying again");
         _bt_remote_name_request_queued = 1;
         return;
     }
     assert(rv == NRF_SUCCESS && "sd_ble_gattc_read(device name)");
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "ok, enqueued one");
 }
 
 static void _enqueue_remote_name_request() {
