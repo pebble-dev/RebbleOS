@@ -393,13 +393,13 @@ static void _pairing_handler(const ble_evt_t *evt, void *context) {
         rv = sd_ble_gatts_sys_attr_set(_bt_conn, NULL, 0, 0);
         assert(rv == NRF_SUCCESS && "sd_ble_gatts_sys_attr_set");
         break;
+    case BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE:
+    case BLE_GATTS_EVT_HVN_TX_COMPLETE:
     case BLE_GATTC_EVT_CHAR_DISC_RSP:
     case BLE_GATTC_EVT_DESC_DISC_RSP:
     case BLE_GATTC_EVT_PRIM_SRVC_DISC_RSP:
     case BLE_GATTC_EVT_CHAR_VAL_BY_UUID_READ_RSP:
     case BLE_GATTC_EVT_WRITE_RSP:
-    case BLE_GATTC_EVT_WRITE_CMD_TX_COMPLETE:
-    case BLE_GATTS_EVT_HVN_TX_COMPLETE:
     case BLE_GATTC_EVT_HVX:
     case BLE_GATTS_EVT_WRITE:
         break;
