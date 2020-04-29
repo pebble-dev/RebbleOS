@@ -24,6 +24,15 @@ static void _log_entry(void *arg) {
 }
 THREAD_DEFINE(log, 300, tskIDLE_PRIORITY + 10UL, _log_entry);
 
+void log_onpanic_dump() {
+    log_clock_enable();
+    char c;
+    BaseType_t woken = pdFALSE;
+    while (xQueueReceiveFromISR(QUEUE_HANDLE(log), &c, &woken)) {
+        printf("%c", c);
+    }
+}
+
 static void _logc(void *priv, char c) {
     if (!_log_isrunning) {
         log_clock_enable();
