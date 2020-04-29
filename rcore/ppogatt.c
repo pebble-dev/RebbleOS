@@ -264,7 +264,7 @@ static void _ppogatt_callback_connected(void *ctx) {
 }
 
 static void _ppogatt_callback_connected_isr() {
-    service_submit(_ppogatt_callback_connected, NULL);
+    service_submit(_ppogatt_callback_connected, NULL, 0);
 }
 
 static void _ppogatt_callback_disconnected(void *ctx) {
@@ -274,7 +274,7 @@ static void _ppogatt_callback_disconnected(void *ctx) {
 }
 
 static void _ppogatt_callback_disconnected_isr() {
-    service_submit(_ppogatt_callback_disconnected, NULL);
+    service_submit(_ppogatt_callback_disconnected, NULL, 0);
 }
 
 /* Main entry for PPoGATT code, to be called at boot. */
