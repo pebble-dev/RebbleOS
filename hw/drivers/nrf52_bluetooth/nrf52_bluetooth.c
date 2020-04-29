@@ -34,6 +34,7 @@
 
 NRF_BLE_GATT_DEF(_gatt);
 BLE_DB_DISCOVERY_DEF(_disc);
+NRF_BLE_GQ_DEF(_gatt_queue, NRF_SDH_BLE_PERIPHERAL_LINK_COUNT, NRF_BLE_GQ_QUEUE_SIZE);
 
 int sfmt(char *buf, unsigned int len, const char *ifmt, ...);
 static uint8_t _name_buf[] = "Pebble Asterix LE xxxx";
@@ -476,8 +477,12 @@ static void _pairing_init() {
     ble_uuid_t gap_uuid;
     gap_uuid.type = BLE_UUID_TYPE_BLE;
     gap_uuid.uuid = BLE_UUID_GAP;
+    
+    ble_db_discovery_init_t db_init = {};
+    db_init.evt_handler  = _ble_disc_handler;
+    db_init.p_gatt_queue = &_gatt_queue;
 
-    rv = ble_db_discovery_init(_ble_disc_handler);
+    rv = ble_db_discovery_init(&db_init);
     assert(rv == NRF_SUCCESS && "ble_db_discovery_init");
 
     rv = ble_db_discovery_evt_register(&gap_uuid);

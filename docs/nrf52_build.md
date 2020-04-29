@@ -2,7 +2,8 @@
 
 To build for nRF52-based devices, you need the
 [latest nRF52 SDK from Nordic's
-site](https://www.nordicsemi.com/Software-and-Tools/Software/nRF5-SDK). 
+site](https://www.nordicsemi.com/Software-and-Tools/Software/nRF5-SDK) (at
+least version 16.0.0).
 Download and unzip it; note the path to the folder that it unzips to.
 
 Additionally, you will need a newer build toolchain than that which is
@@ -15,12 +16,12 @@ Finally, to configure the RebbleOS build to use the nRF5 SDK and the newer
 toolchain, you need to create a `localconfig.mk`.  On my Linux system, with
 the toolchain installed from `apt`, this contains:
 
-    NRF52_SDK_PATH=/home/joshua/pebble/nRF5_SDK_15.3.0_59ac345
+    NRF52_SDK_PATH=/home/joshua/pebble/nRF5SDK160098a08e2
     PEBBLE_TOOLCHAIN_PATH=/usr/bin
 
 On my Mac, this contains:
 
-    NRF52_SDK_PATH=/Users/joshua/pebble-dev/hw/nRF5_SDK_15.2.0_9412b96
+    NRF52_SDK_PATH=/Users/joshua/pebble-dev/hw/nRF5SDK160098a08e2
     PEBBLE_TOOLCHAIN_PATH=/Users/joshua/pebble-dev/gcc-arm-none-eabi-7-2018-q2-update/bin
 
 You can then build for Asterix-family devices by running `make asterix` or
@@ -29,12 +30,14 @@ You can then build for Asterix-family devices by running `make asterix` or
 Here are commands to do some of these things:
 
     cd ~/pebble-dev
-    wget https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5/Binaries/nRF5SDK153059ac345.zip
-    unzip nRF5SDK153059ac345.zip
+    wget https://www.nordicsemi.com/-/media/Software-and-other-downloads/SDKs/nRF5/Binaries/nRF5SDK160098a08e2.zip
+    mkdir nRF5SDK160098a08e2; cd nRF5SDK160098a08e2
+    unzip ../nRF5SDK160098a08e2.zip
+    cd ..
     git clone https://github.com/pebble-dev/RebbleOS
     cd RebbleOS
     git checkout asterix
-    echo "NRF52_SDK_PATH=$HOME/pebble-dev/nRF5_SDK_15.3.0_59ac345" > localconfig.mk
+    echo "NRF52_SDK_PATH=$HOME/pebble-dev/nRF5SDK160098a08e2" > localconfig.mk
     echo "PEBBLE_TOOLCHAIN_PATH=/usr/bin" >> localconfig.mk
     git submodule update --init --recursive
     make asterix
@@ -88,13 +91,13 @@ asterix_vla_dvb1`.) First flash the softdevice, then flash the system image:
     reset halt
     target halted due to debug-request, current mode: Thread
     xPSR: 0x01000000 pc: 0x00000998 msp: 0x20000400
-    > program /PATH/TO/nRF5_SDK/components/softdevice/s140/hex/s140_nrf52_6.1.0_softdevice.hex
-    program /PATH/TO/nRF5_SDK/components/softdevice/s140/hex/s140_nrf52_6.1.0_softdevice.hex
+    > program /PATH/TO/nRF5_SDK/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex
+    program /PATH/TO/nRF5_SDK/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex
     [...]
     wrote 155648 bytes from file /PATH/TO/nRF5_SDK/components/softdevice/s140/hex/s140_nrf52_6.1.0_softdevice.hex in 6.273110s (24.230 KiB/s)
     ** Programming Finished **
-    > flash write_image erase build/asterix_vla_dvb1/tintin_fw.bin 0x26000
-    flash write_image erase build/asterix_vla_dvb1/tintin_fw.bin 0x26000
+    > flash write_image erase build/asterix_vla_dvb1/tintin_fw.bin 0x27000
+    flash write_image erase build/asterix_vla_dvb1/tintin_fw.bin 0x27000
     [...]
     wrote 335872 bytes from file build/asterix_vla_dvb1/tintin_fw.bin in 13.415920s (24.449 KiB/s)
     >
