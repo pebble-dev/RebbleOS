@@ -8,4 +8,4 @@
 typedef void (*service_callback_t)(void *ctx);
 
 void service_init();
-void service_submit(service_callback_t cbk, void *ctx);
+void service_submit(service_callback_t cbk, void *ctx, uint32_t when);

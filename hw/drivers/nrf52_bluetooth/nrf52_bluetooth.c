@@ -250,7 +250,7 @@ static void _enqueue_remote_name_request() {
     if (!_bt_remote_name_request_queued)
         return;
     _bt_remote_name_request_queued = 0;
-    service_submit(_svc_req_remote_name, NULL);
+    service_submit(_svc_req_remote_name, NULL, 0);
 }
 
 const ble_gap_sec_params_t _gap_sec_params = {

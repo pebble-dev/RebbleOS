@@ -451,7 +451,7 @@ static void _get_bond_data_isr(const void *peer, size_t len) {
     _bondreq_len = len;
     _bondreq_in_progress = 0;
     DRV_LOG("btbond", APP_LOG_LEVEL_INFO, "get bond data...");
-    service_submit(_get_bond_data, NULL);
+    service_submit(_get_bond_data, NULL, 0);
 }
 
 void bluetooth_bond_acknowledge(int accepted) {
@@ -514,5 +514,5 @@ static void _request_bond_isr(const void *peer, size_t len, const char *name, co
     _bondreq_data = data;
     _bondreq_datalen = datalen;
     _bondreq_in_progress = 1;
-    service_submit(_request_bond, NULL);
+    service_submit(_request_bond, NULL, 0);
 }
