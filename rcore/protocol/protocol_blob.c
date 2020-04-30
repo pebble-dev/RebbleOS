@@ -109,10 +109,14 @@ void protocol_process_blobdb(const RebblePacket packet)
     printf("Blob:  %d{\n", blob->blobdb.command);
     printf("  Token: %d,\n", blob->blobdb.token);
     printf("  DbId: %d,\n", blob->blobdb.database_id);
-    printf("  KeySize: %d,\n", blob->key_size);
-    printf("  Key: ");
-    printblock(&data[offsetof(pcol_blob_db_key, key)], blob->key_size);
-    printf(",\n  Command: ");
+    if (blob->blobdb.command == Blob_Insert ||
+        blob->blobdb.command == Blob_Delete) {
+        printf("  KeySize: %d,\n", blob->key_size);
+        printf("  Key: ");
+        printblock(&data[offsetof(pcol_blob_db_key, key)], blob->key_size);
+        printf(",\n");
+    }
+    printf("  Command: ");
 
     uint8_t ret = 0;
     switch(blob->blobdb.command) {
@@ -121,8 +125,15 @@ void protocol_process_blobdb(const RebblePacket packet)
             ret = blob_insert(blob);
             break;
         case Blob_Delete:
+            printf("  DELETE,\n");
+            ret = Blob_GeneralFailure;
+            break;
+        case Blob_Clear:
+            printf("  CLEAR,\n");
+            ret = Blob_Success;
             break;
         default:
+            printf("  unknown %d\n", blob->blobdb.command);
             break;
     }
     printf("}\n");

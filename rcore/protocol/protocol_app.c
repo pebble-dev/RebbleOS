@@ -131,4 +131,9 @@ void protocol_process_reorder(const RebblePacket packet) {
     
     int nuuids = data[1];
     LOG_INFO("app reorder: %d uuids", nuuids);
+    
+    char success = 0;
+    RebblePacket p = packet_create(WatchProtocol_AppReorder, sizeof(success));
+    packet_copy_data(p, &success, sizeof(success));
+    packet_send(p);
 }
