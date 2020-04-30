@@ -20,6 +20,8 @@ static int _panic_stack_top MEM_REGION_PANIC;
 __attribute__((__noreturn__)) static void _panic(const char *s) {
     in_panic = 1;
     portDISABLE_INTERRUPTS();
+    debug_init();
+    
     puts("*** PANIC ***");
     puts(s);
 
