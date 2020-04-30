@@ -37,6 +37,7 @@ const PebbleEndpoint pebble_endpoints[] =
     { .endpoint = WatchProtocol_MusicControl,       .handler  = protocol_music_message_process },
     { .endpoint = WatchProtocol_TimelineAction,     .handler  = protocol_process_timeline_action_response },
     { .endpoint = WatchProtocol_PutBytes,           .handler  = protocol_process_transfer },
+    { .endpoint = WatchProtocol_AppReorder,         .handler  = protocol_process_reorder },
     { .handler = NULL }
 };
 
