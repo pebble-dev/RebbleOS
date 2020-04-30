@@ -30,11 +30,17 @@ __attribute__((naked)) uint32_t get_msp()
     );
 }
 
+static int _did_init = 0;
+
 void debug_init() {
     nrfx_err_t err;
     
     nrfx_uart_config_t config = NRFX_UART_DEFAULT_CONFIG;
     config.pseltxd = BOARD_DEBUG_UART_TXD;
+    
+    if (_did_init)
+        nrfx_uart_uninit(&debug_uart);
+    _did_init = 1;
     
     err = nrfx_uart_init(&debug_uart, &config, NULL /* nonblocking event handler */);
     assert(err == NRFX_SUCCESS);
