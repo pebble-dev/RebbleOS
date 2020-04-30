@@ -12,6 +12,10 @@
 #include "protocol.h"
 #include "protocol_music.h"
 
+#define MODULE_NAME "appman"
+#define MODULE_TYPE "KERN"
+#define LOG_LEVEL RBL_LOG_LEVEL_ERROR //RBL_LOG_LEVEL_ERROR
+
 /*
  * Start an application by name
   * The message contains the app name
@@ -26,7 +30,11 @@ void appmanager_app_start(char *name)
 void appmanager_app_start_by_uuid(Uuid *uuid)
 {
     /* get app by uuid */
-    App * app = appmanager_get_app_by_uuid(uuid);   
+    App * app = appmanager_get_app_by_uuid(uuid);
+    if (!app) {
+        LOG_ERROR("appmanager was asked to start by uuid, but no such app existed");
+        return;
+    }
     assert(app);
     AppMessage am = (AppMessage) {
         .command = THREAD_MANAGER_APP_LOAD_ID,
