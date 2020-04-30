@@ -199,7 +199,6 @@ static void _ppogatt_handler(const ble_evt_t *evt, void *context) {
     case BLE_GATTC_EVT_HVX: {
         const ble_gattc_evt_hvx_t *evthvx = &evt->evt.gattc_evt.params.hvx;
 
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTC_EVT_HVX");
         if (evthvx->handle != ppogatt_cli_data_value_hnd) {
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "BLE_GATTC_EVT_HVX: unexpected handle %04x (hoping for %04x)?", evthvx->handle, ppogatt_cli_data_value_hnd);
             break;
