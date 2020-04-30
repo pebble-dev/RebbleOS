@@ -150,8 +150,6 @@ void bluetooth_init_complete(uint8_t state)
  */
 void bluetooth_data_rx(uint8_t *data, size_t len)
 {
-    LOG_DEBUG("bluetooth_data_rx: %d bytes", len);
-    
     if (protocol_rx_buffer_append(data, len) == PROTOCOL_BUFFER_FULL) {
         LOG_ERROR("protocol buffer was full... dropping some data");
         return;

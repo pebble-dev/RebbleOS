@@ -54,6 +54,8 @@ enum ppogatt_cmd {
     PPOGATT_CMD_RESET_ACK = 3,
 };
 
+// #define PPOGATT_NOISY
+
 #define STACK_SIZE_PPOGATT_RX (configMINIMAL_STACK_SIZE + 600)
 #define STACK_SIZE_PPOGATT_TX (configMINIMAL_STACK_SIZE + 600)
 
@@ -114,7 +116,9 @@ static void _ppogatt_rx_main(void *param) {
         
         switch (cmd) {
         case PPOGATT_CMD_DATA:
+#ifdef PPOGATT_NOISY
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: data seq %d", seq);
+#endif
             bluetooth_data_rx(pkt.buf + 1, pkt.len - 1);
             
             /* Send an ACK (not that Gadgetbridge cares... */
@@ -125,7 +129,9 @@ static void _ppogatt_rx_main(void *param) {
 
             break;
         case PPOGATT_CMD_ACK:
+#ifdef PPOGATT_NOISY
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: ack seq %d", seq);
+#endif
             break;
         case PPOGATT_CMD_RESET_REQ:
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: RESET REQ seq %d", seq);
@@ -172,7 +178,6 @@ static void _ppogatt_tx_main(void *param) {
             }
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "tx: trying again...");
         }
-//        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "hw tx: did tx %d bytes, %02x %02x %02x...", pkt.len, pkt.buf[0], pkt.buf[1], pkt.buf[2]);
     }
 }
 
@@ -293,7 +298,9 @@ void bt_device_request_tx(uint8_t *data, uint16_t len) {
     /* XXX: needs to be part of the Big Tx State Machine */
     static struct ppogatt_packet pkt;
 
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "OS TX: req sz %d", len);
+#ifdef PPOGATT_NOISY
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "ppogatt: TX: req sz %d", len);
+#endif
     
     while (len > 0) {
         uint16_t thislen = (len > (PPOGATT_TX_MTU - 1)) ? (PPOGATT_TX_MTU - 1) : len;
@@ -302,8 +309,10 @@ void bt_device_request_tx(uint8_t *data, uint16_t len) {
         pkt.buf[0] = (txseq << 3) | PPOGATT_CMD_DATA;
         memcpy(pkt.buf + 1, data, thislen);
         xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
-        
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "OS TX: tx seq %d (sz %d)", txseq, thislen + 1);
+
+#ifdef PPOGATT_NOISY
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "ppogatt: TX: tx seq %d (sz %d)", txseq, thislen + 1);
+#endif
         
         len -= thislen;
         data += thislen;
