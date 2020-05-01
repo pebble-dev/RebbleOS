@@ -2,11 +2,13 @@
 #include "rebbleos.h"
 #include "librebble.h"
 #include "graphics_wrapper.h"
+#include "libros_graphics.h"
 #include "battery_state_service.h"
+#include "inverter_layer.h"
+#include "storage_persist.h"
+#include "dictionary.h"
 
 GBitmap *gbitmap_create_with_resource_proxy(uint32_t resource_id);
-bool persist_exists(void);
-bool persist_exists(void) { return false; }
 
 typedef void (*VoidFunc)(void);
 typedef void (*UnimplFunc)(void);
@@ -59,39 +61,10 @@ UNIMPL(_clock_copy_time_string);
 UNIMPL(_data_logging_create);
 UNIMPL(_data_logging_finish);
 UNIMPL(_data_logging_log);
-UNIMPL(_dict_calc_buffer_size);
-UNIMPL(_dict_calc_buffer_size_from_tuplets);
-UNIMPL(_dict_find);
-UNIMPL(_dict_merge);
-UNIMPL(_dict_read_begin_from_buffer);
-UNIMPL(_dict_read_first);
-UNIMPL(_dict_read_next);
-UNIMPL(_dict_serialize_tuplets);
 UNIMPL(_dict_serialize_tuplets_to_buffer__deprecated);
-UNIMPL(_dict_serialize_tuplets_to_buffer_with_iter);
-UNIMPL(_dict_write_begin);
-UNIMPL(_dict_write_cstring);
-UNIMPL(_dict_write_data);
-UNIMPL(_dict_write_end);
-UNIMPL(_dict_write_int);
-UNIMPL(_dict_write_int16);
-UNIMPL(_dict_write_int32);
-UNIMPL(_dict_write_int8);
-UNIMPL(_dict_write_tuplet);
-UNIMPL(_dict_write_uint16);
-UNIMPL(_dict_write_uint32);
-UNIMPL(_dict_write_uint8);
 UNIMPL(_gmtime);
-UNIMPL(_gpath_draw_filled_legacy);
-UNIMPL(_graphics_context_set_fill_color_2bit);
-UNIMPL(_graphics_context_set_stroke_color_2bit);
-UNIMPL(_graphics_context_set_text_color_2bit);
 UNIMPL(_graphics_draw_round_rect);
 UNIMPL(_graphics_text_layout_get_max_used_size);
-UNIMPL(_window_set_background_color_2bit);
-UNIMPL(_inverter_layer_create);
-UNIMPL(_inverter_layer_destroy);
-UNIMPL(_inverter_layer_get_layer);
 UNIMPL(_layer_set_clips);
 UNIMPL(_light_enable);
 UNIMPL(_light_enable_interaction);
@@ -105,16 +78,9 @@ UNIMPL(_number_window_set_max);
 UNIMPL(_number_window_set_min);
 UNIMPL(_number_window_set_step_size);
 UNIMPL(_number_window_set_value);
-UNIMPL(_persist_delete);
-UNIMPL(_persist_get_size);
-UNIMPL(_persist_read_bool);
 UNIMPL(_persist_read_data__deprecated);
-UNIMPL(_persist_read_int);
 UNIMPL(_persist_read_string__deprecated);
-UNIMPL(_persist_write_bool);
 UNIMPL(_persist_write_data__deprecated);
-UNIMPL(_persist_write_int);
-UNIMPL(_persist_write_string);
 UNIMPL(_property_animation_legacy2_create);
 UNIMPL(_property_animation_legacy2_create_layer_frame);
 UNIMPL(_property_animation_legacy2_destroy);
@@ -142,11 +108,6 @@ UNIMPL(_app_message_register_inbox_received);
 UNIMPL(_app_message_register_outbox_failed);
 UNIMPL(_app_message_register_outbox_sent);
 UNIMPL(_app_message_set_context);
-UNIMPL(_dict_serialize_tuplets_to_buffer);
-UNIMPL(_persist_read_data);
-UNIMPL(_persist_read_string);
-UNIMPL(_persist_write_data);
-UNIMPL(_dict_size);
 UNIMPL(_graphics_text_layout_get_content_size);
 UNIMPL(_accel_data_service_subscribe);
 UNIMPL(_menu_layer_legacy2_set_callbacks);
@@ -166,8 +127,6 @@ UNIMPL(_compass_service_peek);
 UNIMPL(_compass_service_set_heading_filter);
 UNIMPL(_compass_service_subscribe);
 UNIMPL(_compass_service_unsubscribe);
-UNIMPL(_uuid_equal);
-UNIMPL(_uuid_to_string);
 UNIMPL(_animation_legacy2_set_custom_curve);
 UNIMPL(_watch_info_get_color);
 UNIMPL(_watch_info_get_firmware_version);
@@ -292,7 +251,30 @@ const VoidFunc sym[] = {
     [65]  = (VoidFunc)bluetooth_connection_service_unsubscribe,                                 // bluetooth_connection_service_unsubscribe@00000104
     [69]  = (VoidFunc)pbl_clock_is_24h_style,                                                   // clock_is_24h_style@00000114
     [70]  = (VoidFunc)cos_lookup,                                                               // cos_lookup@00000118
-          
+
+    [74]  = (VoidFunc)dict_calc_buffer_size,                                                    // dict_calc_buffer_size@00000128
+    [75]  = (VoidFunc)dict_calc_buffer_size_from_tuplets,                                       // dict_calc_buffer_size_from_tuplets@0000012c
+    [76]  = (VoidFunc)dict_find,                                                                // dict_find@00000130
+    [77]  = (VoidFunc)dict_merge,                                                               // dict_merge@00000134
+    [78]  = (VoidFunc)dict_read_begin_from_buffer,                                              // dict_read_begin_from_buffer@00000138
+    [79]  = (VoidFunc)dict_read_first,                                                          // dict_read_first@0000013c
+    [80]  = (VoidFunc)dict_read_next,                                                           // dict_read_next@00000140
+    [81]  = (VoidFunc)dict_serialize_tuplets,                                                   // dict_serialize_tuplets@00000144
+    
+    [83]  = (VoidFunc)dict_serialize_tuplets_to_buffer_with_iter,                               // dict_serialize_tuplets_to_buffer_with_iter@0000014c
+    [84]  = (VoidFunc)dict_write_begin,                                                         // dict_write_begin@00000150
+    [85]  = (VoidFunc)dict_write_cstring,                                                       // dict_write_cstring@00000154
+    [86]  = (VoidFunc)dict_write_data,                                                          // dict_write_data@00000158
+    [87]  = (VoidFunc)dict_write_end,                                                           // dict_write_end@0000015c
+    [88]  = (VoidFunc)dict_write_int,                                                           // dict_write_int@00000160
+    [89]  = (VoidFunc)dict_write_int16,                                                         // dict_write_int16@00000164
+    [90]  = (VoidFunc)dict_write_int32,                                                         // dict_write_int32@00000168
+    [91]  = (VoidFunc)dict_write_int8,                                                          // dict_write_int8@0000016c
+    [92]  = (VoidFunc)dict_write_tuplet,                                                        // dict_write_tuplet@00000170
+    [93]  = (VoidFunc)dict_write_uint16,                                                        // dict_write_uint16@00000174
+    [94]  = (VoidFunc)dict_write_uint32,                                                        // dict_write_uint32@00000178
+    [95]  = (VoidFunc)dict_write_uint8,                                                         // dict_write_uint8@0000017c
+
     [96]  = (VoidFunc)fonts_get_system_font,                                                    // fonts_get_system_font@00000180
     [97]  = (VoidFunc)fonts_load_custom_font_proxy,                                             // fonts_load_custom_font@00000184
     [98]  = (VoidFunc)fonts_unload_custom_font,                                                 // fonts_unload_custom_font@00000188
@@ -304,13 +286,15 @@ const VoidFunc sym[] = {
 
     [105] = (VoidFunc)n_gpath_create,                                                          // gpath_create@000001a4
     [106] = (VoidFunc)n_gpath_destroy,                                                         // gpath_destroy@000001a8
-
+    [107] = (VoidFunc)gpath_fill_app_legacy,                                                  // gpath_draw_filled_legacy@000001ac
     [108] = (VoidFunc)gpath_draw_app,                                                          // gpath_draw_outline@000001b0
     [109] = (VoidFunc)gpath_move_to_app,                                                       // gpath_move_to@000001b4
     [110] = (VoidFunc)gpath_rotate_to_app,                                                     // gpath_rotate_to@000001b8
     [111] = (VoidFunc)n_gpoint_equal,                                                          // gpoint_equal@000001bc
     [112] = (VoidFunc)n_graphics_context_set_compositing_mode,                                 // graphics_context_set_compositing_mode@000001c0
-    
+    [113] = (VoidFunc)graphics_context_set_fill_color_2bit,                                    // graphics_context_set_fill_color_2bit@000001c4
+    [114] = (VoidFunc)graphics_context_set_stroke_color_2bit,                                  // graphics_context_set_stroke_color_2bit@000001c8
+    [115] = (VoidFunc)graphics_context_set_text_color_2bit,                                    // graphics_context_set_text_color_2bit@000001cc
     [116] = (VoidFunc)graphics_draw_bitmap_in_rect,                                            // graphics_draw_bitmap_in_rect@000001d0
     [117] = (VoidFunc)graphics_draw_circle,                                                    // graphics_draw_circle@000001d4
     [118] = (VoidFunc)graphics_draw_line,                                                      // graphics_draw_line@000001d8
@@ -329,8 +313,9 @@ const VoidFunc sym[] = {
     [132] = (VoidFunc)n_grect_is_empty,                                                        // grect_is_empty@00000210
     [133] = (VoidFunc)grect_standardize,                                                       // grect_standardize@00000214
     [134] = (VoidFunc)n_gsize_equal,                                                           // gsize_equal@00000218
-                                                                                            
-                                                                                            
+    [135] = (VoidFunc)inverter_layer_create,                                                   // inverter_layer_create@0000021c
+    [136] = (VoidFunc)inverter_layer_destroy,                                                  // inverter_layer_destroy@00000220
+    [137] = (VoidFunc)inverter_layer_get_layer,                                                // inverter_layer_get_layer@00000224
     [138] = (VoidFunc)layer_add_child,                                                         // layer_add_child@00000228
     [139] = (VoidFunc)layer_create,                                                            // layer_create@0000022c
     [140] = (VoidFunc)layer_create_with_data,                                                  // layer_create_with_data@00000230
@@ -370,8 +355,18 @@ const VoidFunc sym[] = {
     [176] = (VoidFunc)menu_layer_set_click_config_onto_window,                                 // menu_layer_set_click_config_onto_window@000002c0
     [177] = (VoidFunc)menu_layer_set_selected_index,                                           // menu_layer_set_selected_index@000002c4
     [178] = (VoidFunc)menu_layer_set_selected_next,                                            // menu_layer_set_selected_next@000002c8
-                                                                                              
+    
+    [187] = (VoidFunc)persist_delete,                                                          // persist_delete@000002ec
     [188] = (VoidFunc)persist_exists,                                                          // persist_exists@000002f0
+    [189] = (VoidFunc)persist_get_size,                                                        // persist_get_size@000002f4
+    [190] = (VoidFunc)persist_read_bool,                                                       // persist_read_bool@000002f8                                                                 
+
+    [192] = (VoidFunc)persist_read_int,                                                        // persist_read_int@00000300
+
+    [194] = (VoidFunc)persist_write_bool,                                                      // persist_write_bool@00000308
+
+    [196] = (VoidFunc)persist_write_int,                                                       // persist_write_int@00000310
+    [197] = (VoidFunc)persist_write_string,                                                    // persist_write_string@00000314
 
     [205] = (VoidFunc)rand,                                                                    // rand@00000334
     [206] = (VoidFunc)resource_get_handle,                                                     // resource_get_handle@00000338
@@ -440,7 +435,7 @@ const VoidFunc sym[] = {
     [274] = (VoidFunc)window_get_fullscreen,                                                   // window_get_fullscreen@00000448
     [275] = (VoidFunc)window_get_root_layer,                                                   // window_get_root_layer@0000044c
     [276] = (VoidFunc)window_is_loaded,                                                        // window_is_loaded@00000450
-
+    [277] = (VoidFunc)window_set_background_color_2bit,                                        // window_set_background_color_2bit@00000454
     [278] = (VoidFunc)window_set_click_config_provider,                                        // window_set_click_config_provider@00000458
     [279] = (VoidFunc)window_set_click_config_provider_with_context,                           // window_set_click_config_provider_with_context@0000045c
     [280] = (VoidFunc)window_set_fullscreen,                                                   // window_set_fullscreen@00000460
@@ -463,7 +458,12 @@ const VoidFunc sym[] = {
     [307] = (VoidFunc)window_single_click_subscribe,                                           // window_single_click_subscribe@000004cc
     [308] = (VoidFunc)window_single_repeating_click_subscribe,                                 // window_single_repeating_click_subscribe@000004d0
     [309] = (VoidFunc)graphics_draw_text,                                                      // graphics_draw_text@000004d4
-
+    [310] = (VoidFunc)dict_serialize_tuplets_to_buffer,                                        // dict_serialize_tuplets_to_buffer@000004d8
+    [311] = (VoidFunc)persist_read_data,                                                       // persist_read_data@000004dc
+    [312] = (VoidFunc)persist_read_string,                                                     // persist_read_string@000004e0
+    [313] = (VoidFunc)persist_write_data,                                                      // persist_write_data@000004e4
+    [314] = (VoidFunc)dict_size,                                                               // dict_size@000004e8
+    
     [316] = (VoidFunc)simple_menu_layer_get_menu_layer,                                        // simple_menu_layer_get_menu_layer@000004f0
 
     [318] = (VoidFunc)app_calloc,                                                              // calloc@000004f8
@@ -473,6 +473,9 @@ const VoidFunc sym[] = {
     [323] = (VoidFunc)app_realloc,                                                             // realloc@0000050c
     [335] = (VoidFunc)app_heap_bytes_free,                                                     // heap_bytes_free@0000053c
     [336] = (VoidFunc)app_heap_bytes_used,                                                     // heap_bytes_used@00000540
+    
+    [341] = (VoidFunc)uuid_equal,                                                              // uuid_equal@00000554
+    [342] = (VoidFunc)uuid_to_string,                                                          // uuid_to_string@00000558
     [343] = (VoidFunc)gpath_fill_app,                                                          // gpath_draw_filled@0000055c
 
     [349] = (VoidFunc)graphics_frame_buffer_is_captured,                                       // graphics_frame_buffer_is_captured@00000574
@@ -729,39 +732,11 @@ const VoidFunc sym[] = {
     [71]  = (UnimplFunc)_data_logging_create,                                                  // data_logging_create@0000011c
     [72]  = (UnimplFunc)_data_logging_finish,                                                  // data_logging_finish@00000120
     [73]  = (UnimplFunc)_data_logging_log,                                                     // data_logging_log@00000124
-    [74]  = (UnimplFunc)_dict_calc_buffer_size,                                                // dict_calc_buffer_size@00000128
-    [75]  = (UnimplFunc)_dict_calc_buffer_size_from_tuplets,                                   // dict_calc_buffer_size_from_tuplets@0000012c
-    [76]  = (UnimplFunc)_dict_find,                                                            // dict_find@00000130
-    [77]  = (UnimplFunc)_dict_merge,                                                           // dict_merge@00000134
-    [78]  = (UnimplFunc)_dict_read_begin_from_buffer,                                          // dict_read_begin_from_buffer@00000138
-    [79]  = (UnimplFunc)_dict_read_first,                                                      // dict_read_first@0000013c
-    [80]  = (UnimplFunc)_dict_read_next,                                                       // dict_read_next@00000140
-    [81]  = (UnimplFunc)_dict_serialize_tuplets,                                               // dict_serialize_tuplets@00000144
     [82]  = (UnimplFunc)_dict_serialize_tuplets_to_buffer__deprecated,                         // dict_serialize_tuplets_to_buffer__deprecated@00000148
-    [83]  = (UnimplFunc)_dict_serialize_tuplets_to_buffer_with_iter,                           // dict_serialize_tuplets_to_buffer_with_iter@0000014c
-    [84]  = (UnimplFunc)_dict_write_begin,                                                     // dict_write_begin@00000150
-    [85]  = (UnimplFunc)_dict_write_cstring,                                                   // dict_write_cstring@00000154
-    [86]  = (UnimplFunc)_dict_write_data,                                                      // dict_write_data@00000158
-    [87]  = (UnimplFunc)_dict_write_end,                                                       // dict_write_end@0000015c
-    [88]  = (UnimplFunc)_dict_write_int,                                                       // dict_write_int@00000160
-    [89]  = (UnimplFunc)_dict_write_int16,                                                     // dict_write_int16@00000164
-    [90]  = (UnimplFunc)_dict_write_int32,                                                     // dict_write_int32@00000168
-    [91]  = (UnimplFunc)_dict_write_int8,                                                      // dict_write_int8@0000016c
-    [92]  = (UnimplFunc)_dict_write_tuplet,                                                    // dict_write_tuplet@00000170
-    [93]  = (UnimplFunc)_dict_write_uint16,                                                    // dict_write_uint16@00000174
-    [94]  = (UnimplFunc)_dict_write_uint32,                                                    // dict_write_uint32@00000178
-    [95]  = (UnimplFunc)_dict_write_uint8,                                                     // dict_write_uint8@0000017c
     [104] = (UnimplFunc)_gmtime,                                                               // gmtime@000001a0
-    [107] = (UnimplFunc)_gpath_draw_filled_legacy,                                             // gpath_draw_filled_legacy@000001ac
-    [113] = (UnimplFunc)_graphics_context_set_fill_color_2bit,                                 // graphics_context_set_fill_color_2bit@000001c4
-    [114] = (UnimplFunc)_graphics_context_set_stroke_color_2bit,                               // graphics_context_set_stroke_color_2bit@000001c8
-    [115] = (UnimplFunc)_graphics_context_set_text_color_2bit,                                 // graphics_context_set_text_color_2bit@000001cc
     [121] = (UnimplFunc)_graphics_draw_round_rect,                                             // graphics_draw_round_rect@000001e4
     [125] = (UnimplFunc)_graphics_text_layout_get_max_used_size,                               // graphics_text_layout_get_max_used_size@000001f4
     
-    [135] = (UnimplFunc)_inverter_layer_create,                                                // inverter_layer_create@0000021c
-    [136] = (UnimplFunc)_inverter_layer_destroy,                                               // inverter_layer_destroy@00000220
-    [137] = (UnimplFunc)_inverter_layer_get_layer,                                             // inverter_layer_get_layer@00000224
     [154] = (UnimplFunc)_layer_set_clips,                                                      // layer_set_clips@00000268
     [158] = (UnimplFunc)_light_enable,                                                         // light_enable@00000278
     [159] = (UnimplFunc)_light_enable_interaction,                                             // light_enable_interaction@0000027c
@@ -775,16 +750,10 @@ const VoidFunc sym[] = {
     [184] = (UnimplFunc)_number_window_set_min,                                                // number_window_set_min@000002e0
     [185] = (UnimplFunc)_number_window_set_step_size,                                          // number_window_set_step_size@000002e4
     [186] = (UnimplFunc)_number_window_set_value,                                              // number_window_set_value@000002e8
-    [187] = (UnimplFunc)_persist_delete,                                                       // persist_delete@000002ec
-    [189] = (UnimplFunc)_persist_get_size,                                                     // persist_get_size@000002f4
-    [190] = (UnimplFunc)_persist_read_bool,                                                    // persist_read_bool@000002f8
     [191] = (UnimplFunc)_persist_read_data__deprecated,                                        // persist_read_data__deprecated@000002fc
-    [192] = (UnimplFunc)_persist_read_int,                                                     // persist_read_int@00000300
+
     [193] = (UnimplFunc)_persist_read_string__deprecated,                                      // persist_read_string__deprecated@00000304
-    [194] = (UnimplFunc)_persist_write_bool,                                                   // persist_write_bool@00000308
-    [195] = (UnimplFunc)_persist_write_data__deprecated,                                       // persist_write_data__deprecated@0000030c
-    [196] = (UnimplFunc)_persist_write_int,                                                    // persist_write_int@00000310
-    [197] = (UnimplFunc)_persist_write_string,                                                 // persist_write_string@00000314
+    [195] = (UnimplFunc)_persist_write_data__deprecated,                                       // persist_write_data__deprecated@0000030c    
     [198] = (UnimplFunc)_property_animation_legacy2_create,                                    // property_animation_legacy2_create@00000318
     [199] = (UnimplFunc)_property_animation_legacy2_create_layer_frame,                        // property_animation_legacy2_create_layer_frame@0000031c
     [200] = (UnimplFunc)_property_animation_legacy2_destroy,                                   // property_animation_legacy2_destroy@00000320
@@ -799,7 +768,6 @@ const VoidFunc sym[] = {
     [214] = (UnimplFunc)_rot_bitmap_layer_set_corner_clip_color_2bit,                          // rot_bitmap_layer_set_corner_clip_color_2bit@00000358
     [215] = (UnimplFunc)_rot_bitmap_set_compositing_mode,                                      // rot_bitmap_set_compositing_mode@0000035c
     [216] = (UnimplFunc)_rot_bitmap_set_src_ic,                                                // rot_bitmap_set_src_ic@00000360
-    [277] = (UnimplFunc)_window_set_background_color_2bit,                                     // window_set_background_color_2bit@00000454
     [281] = (UnimplFunc)_window_set_status_bar_icon,                                           // window_set_status_bar_icon@00000464
     [289] = (UnimplFunc)_app_focus_service_subscribe,                                          // app_focus_service_subscribe@00000484
     [290] = (UnimplFunc)_app_focus_service_unsubscribe,                                        // app_focus_service_unsubscribe@00000488
@@ -813,11 +781,6 @@ const VoidFunc sym[] = {
     [300] = (UnimplFunc)_app_message_register_outbox_failed,                                   // app_message_register_outbox_failed@000004b0
     [301] = (UnimplFunc)_app_message_register_outbox_sent,                                     // app_message_register_outbox_sent@000004b4
     [302] = (UnimplFunc)_app_message_set_context,                                              // app_message_set_context@000004b8
-    [310] = (UnimplFunc)_dict_serialize_tuplets_to_buffer,                                     // dict_serialize_tuplets_to_buffer@000004d8
-    [311] = (UnimplFunc)_persist_read_data,                                                    // persist_read_data@000004dc
-    [312] = (UnimplFunc)_persist_read_string,                                                  // persist_read_string@000004e0
-    [313] = (UnimplFunc)_persist_write_data,                                                   // persist_write_data@000004e4
-    [314] = (UnimplFunc)_dict_size,                                                            // dict_size@000004e8
     [315] = (UnimplFunc)_graphics_text_layout_get_content_size,                                // graphics_text_layout_get_content_size@000004ec
     [317] = (UnimplFunc)_accel_data_service_subscribe,                                         // accel_data_service_subscribe@000004f4
     [320] = (UnimplFunc)_menu_layer_legacy2_set_callbacks,                                     // menu_layer_legacy2_set_callbacks@00000500
@@ -838,8 +801,6 @@ const VoidFunc sym[] = {
     [338] = (UnimplFunc)_compass_service_set_heading_filter,                                   // compass_service_set_heading_filter@00000548
     [339] = (UnimplFunc)_compass_service_subscribe,                                            // compass_service_subscribe@0000054c
     [340] = (UnimplFunc)_compass_service_unsubscribe,                                          // compass_service_unsubscribe@00000550
-    [341] = (UnimplFunc)_uuid_equal,                                                           // uuid_equal@00000554
-    [342] = (UnimplFunc)_uuid_to_string,                                                       // uuid_to_string@00000558
     [344] = (UnimplFunc)_animation_legacy2_set_custom_curve,                                   // animation_legacy2_set_custom_curve@00000560
     [345] = (UnimplFunc)_watch_info_get_color,                                                 // watch_info_get_color@00000564
     [346] = (UnimplFunc)_watch_info_get_firmware_version,                                      // watch_info_get_firmware_version@00000568

@@ -67,6 +67,7 @@ void *window_get_click_config_context(Window *window);
 void window_set_window_handlers(Window *window, WindowHandlers handlers);
 Layer *window_get_root_layer(Window *window);
 void window_set_background_color(Window *window, GColor background_color);
+void window_set_background_color_2bit(Window *window, int color_2bit);
 bool window_is_loaded(Window *window);
 void window_set_user_data(Window *window, void *data);
 void * window_get_user_data(const Window *window);

@@ -69,15 +69,12 @@ void appmanager_app_main_entry(void)
     
     /* Call into the apps main runtime */
     _this_thread->app->main();
+
+    /* App done */
     _this_thread->status = AppThreadUnloading;
     
-    AppMessage am = {
-        .thread_id = _this_thread->thread_type,
-        .command = THREAD_MANAGER_APP_QUIT_CLEAN,
-    };
-    
-    appmanager_post_generic_thread_message(&am, 100);
     LOG_DEBUG("App Finished.");
+    appmanager_app_quit_done();
     
     /* We are done with our app. Block until we are killed */
     vTaskDelay(portMAX_DELAY);
@@ -102,6 +99,11 @@ void rocky_event_loop_with_resource(uint16_t resource_id)
 
 static void _draw(uint8_t force_draw)
 {
+    app_running_thread *_this_thread = appmanager_get_current_thread();
+    GRect gr = GRect(0,0, DISPLAY_COLS, DISPLAY_ROWS);
+    graphics_context_set_fill_color(_this_thread->graphics_context, GColorBlack);
+    graphics_fill_rect(_this_thread->graphics_context, gr, 0, GCornerNone);
+    
     window_draw();
     
     appmanager_post_draw_update(1);
@@ -148,7 +150,7 @@ void app_event_loop(void)
     }
     
     TickType_t next_timer;
-    
+    TickType_t next_heartbeat;
     /* clear the queue of any work from the previous app
     * ... such as an errant quit */
     xQueueReset(_app_message_queue);
@@ -158,25 +160,33 @@ void app_event_loop(void)
     if (!booted)
     {
         event_service_post(EventServiceCommandAlert, "Welcome to RebbleOS", NULL);
-
         booted = true;
     }
 
+#define HEARTBEAT_INTERVAL pdMS_TO_TICKS(1000)
 
-    next_timer = portMAX_DELAY;
+    next_timer = HEARTBEAT_INTERVAL;
+    next_heartbeat = HEARTBEAT_INTERVAL;
+
     /* App is now fully initialised and inside the runloop. */
     for ( ;; )
     {
-        next_timer = appmanager_timer_get_next_expiry(_this_thread);
+        next_timer = appmanager_timer_get_next_expiry(_this_thread->timer_head);
 
         if (next_timer == 0)
         {
-            appmanager_timer_expired(_this_thread);
+            appmanager_timer_expired(&_this_thread->timer_head, _this_thread->timer_head);
             appmanager_post_draw_message(0);
-            next_timer = appmanager_timer_get_next_expiry(_this_thread);
+            next_timer = appmanager_timer_get_next_expiry(_this_thread->timer_head);
         }
         if (next_timer < 0)
-            next_timer = portMAX_DELAY;
+            next_timer = HEARTBEAT_INTERVAL;
+
+        next_timer = next_timer > HEARTBEAT_INTERVAL ? HEARTBEAT_INTERVAL : next_timer;
+
+        /* Post the app keepalive */
+        if (next_heartbeat + HEARTBEAT_INTERVAL < xTaskGetTickCount())
+            appmanager_app_heartbeat();
 
         /* we are inside the apps main loop event handler now */
         if (xQueueReceive(_app_message_queue, &data, next_timer))
@@ -203,26 +213,8 @@ void app_event_loop(void)
              */
             else if (data.command == AppMessageQuit)
             {
-                /* Set the shutdown time for this app. We will kill it then */
-                if (!appmanager_is_app_shutting_down())
-                {
-                    _this_thread->shutdown_at_tick = xTaskGetTickCount() + pdMS_TO_TICKS(5000);
-                    _this_thread->status = AppThreadUnloading;
-                }
-
-                /* remove all of the clck handlers */
-                button_unsubscribe_all();
-
-                /* remove the ticktimer service handler and stop it */
-                tick_timer_service_unsubscribe();
-                connection_service_unsubscribe();
-                event_service_unsubscribe_all();
-
                 _this_thread->status = AppThreadUnloading;
-//                 appmanager_app_quit();
-
                 LOG_INFO("App Quit");
-
                 /* app was quit, break out of this loop into the main handler */
                 break;
             }

@@ -25,8 +25,9 @@ static void _tick_timer_callback(CoreTimer *timer);
  * then add to the timer queue.  */
 static void _tick_timer_update_next(TickTimerState *state)
 {
+    app_running_thread *thread = appmanager_get_current_thread();
     if (state->onqueue) {
-        appmanager_timer_remove(&state->timer);
+        appmanager_timer_remove(&thread->timer_head, &state->timer);
     }
     
     /* Figure out the desired time. */
@@ -53,7 +54,7 @@ static void _tick_timer_update_next(TickTimerState *state)
         dtime = rcore_mktime(&nexttm);
     }
     uint32_t when = rcore_time_to_ticks(dtime, 0);
-TickType_t now = xTaskGetTickCount();
+    TickType_t now = xTaskGetTickCount();
     SYS_LOG("tick", APP_LOG_LEVEL_INFO, "dtime %ld, when %d, now %d", dtime, when, now);
     /* if it seems like we need to add no time, its likely becuase
      * this timer is slight ms offset with wall rtc time.
@@ -65,7 +66,7 @@ TickType_t now = xTaskGetTickCount();
         when = 2;
     state->timer.when = when;
     state->timer.callback = _tick_timer_callback;
-    appmanager_timer_add(&state->timer);
+    appmanager_timer_add(&thread->timer_head, &state->timer);
     state->onqueue = 1;
 }
 
@@ -117,9 +118,20 @@ void tick_timer_service_subscribe(TimeUnits tick_units, TickHandler handler)
 void tick_timer_service_unsubscribe(void)
 {
     TickTimerState *state = &_state;
-    
+    app_running_thread *thread = appmanager_get_current_thread();
+
     if (state->onqueue) {
-        appmanager_timer_remove(&state->timer);
+        appmanager_timer_remove(&thread->timer_head, &state->timer);
+        state->onqueue = 0;
+    }
+}
+
+void tick_timer_service_unsubscribe_thread(app_running_thread *thread)
+{
+    TickTimerState *state = &_state;
+
+    if (state->onqueue) {
+        appmanager_timer_remove(&thread->timer_head, &state->timer);
         state->onqueue = 0;
     }
 }

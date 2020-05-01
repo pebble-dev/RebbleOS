@@ -28,6 +28,7 @@ CFLAGS_all += -Irwatch/ui/animation
 CFLAGS_all += -Irwatch/input
 CFLAGS_all += -Irwatch/graphics
 CFLAGS_all += -Irwatch/event
+CFLAGS_all += -Irwatch/storage
 CFLAGS_all += -Ihw/platform/qemu
 CFLAGS_all += -DNGFX_IS_CORE -DREBBLEOS
 
@@ -142,6 +143,7 @@ SRCS_all += rwatch/ui/layer/scroll_layer.c
 SRCS_all += rwatch/ui/layer/action_bar_layer.c
 SRCS_all += rwatch/ui/layer/text_layer.c
 SRCS_all += rwatch/ui/layer/notification_layer.c
+SRCS_all += rwatch/ui/layer/inverter_layer.c
 SRCS_all += rwatch/ui/window.c
 SRCS_all += rwatch/ui/action_menu.c
 SRCS_all += rwatch/graphics/gbitmap.c
@@ -161,6 +163,8 @@ SRCS_all += rwatch/ui/notifications/mini_message.c
 SRCS_all += rwatch/ui/notifications/call_window.c
 SRCS_all += rwatch/ui/notifications/progress_window.c
 SRCS_all += rwatch/ui/vibes.c
+SRCS_all += rwatch/storage/storage_persist.c
+SRCS_all += rwatch/storage/dictionary.c
 
 SRCS_all += Watchfaces/simple.c
 SRCS_all += Watchfaces/nivz.c

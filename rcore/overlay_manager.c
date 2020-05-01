@@ -195,14 +195,14 @@ void overlay_window_stack_push_window(Window *window, bool animated)
 Window *overlay_window_stack_pop_window(bool animated)
 {
     Window *window = overlay_window_stack_get_top_window();
-    overlay_window_destroy_window(window);
+    overlay_window_destroy((OverlayWindow *)window);
 
     return window;
 }
 
 bool overlay_window_stack_remove(OverlayWindow *overlay_window, bool animated)
 {
-    _overlay_window_destroy(overlay_window, animated);
+    _overlay_window_destroy((OverlayWindow *)overlay_window, animated);
 
     overlay_window->window.is_render_scheduled = true;
     window_dirty(true);
@@ -362,16 +362,16 @@ static void _overlay_thread(void *pvParameters)
     
     while(1)
     {
-        TickType_t next_timer = appmanager_timer_get_next_expiry(_this_thread);
+        TickType_t next_timer = appmanager_timer_get_next_expiry(_this_thread->timer_head);
 
         if(next_timer == 0) 
         {
-            appmanager_timer_expired(_this_thread);
+            appmanager_timer_expired(&_this_thread->timer_head, _this_thread->timer_head);
             /* When we need to update draw, we post it to the main app. This way
              * we guarantee the background is drawn first.
              * App thread will then defer back to this thread to draw any overlays */
             appmanager_post_draw_message(1);
-            next_timer = appmanager_timer_get_next_expiry(_this_thread);
+            next_timer = appmanager_timer_get_next_expiry(_this_thread->timer_head);
         }
         if (next_timer < 0)
             next_timer = portMAX_DELAY;

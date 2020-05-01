@@ -23,3 +23,4 @@ void protocol_music_prev();
 void protocol_music_volup();
 void protocol_music_voldown();
 void protocol_music_message_send(uint8_t command_id);
+void protocol_music_get_current_track();

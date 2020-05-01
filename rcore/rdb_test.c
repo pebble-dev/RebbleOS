@@ -35,7 +35,8 @@ static int _insert(int key, int dsize) {
     return rv != Blob_Success;
 }
 
-static int _retrieve(int key, int dsize) {
+
+static int _retrieve(int key, int dsize, int  inverse) {
     struct rdb_database *db = rdb_open(RDB_ID_TEST);
     struct rdb_iter it;
     rdb_select_result_list head;
@@ -62,7 +63,7 @@ static int _retrieve(int key, int dsize) {
     
     struct rdb_select_result *res = rdb_select_result_head(&head);
     for (int i = 0; i < dsize; i++) {
-        uint8_t exp = (key & 0xFF) ^ i;
+        uint8_t exp = (key & 0xFF) ^ (inverse ? dsize - 1 - i : i);
         uint8_t rd = ((uint8_t *)res->result[0])[i];
         if (exp != rd) {
             LOG_ERROR("rdb_select incorrect readback key %d size %d ofs %d, should be %02x is %02x", key, dsize, i, exp, rd);
@@ -78,6 +79,26 @@ fail:
     rdb_close(db);
 
     return ret;
+}
+
+
+static int _update(int key, int dsize) {
+    struct rdb_database *db = rdb_open(RDB_ID_TEST);
+    
+    uint8_t *val = app_calloc(1, dsize);
+    for (int i = 0; i < dsize; i++)
+        val[i] = (key & 0xFF) ^ (dsize - 1 - i);
+    
+    int rv = rdb_update(db, (void *)&key, 4, val, dsize);
+    
+    app_free(val);
+    
+    rdb_close(db);
+    
+    if (_retrieve(key, dsize, 1))
+        return 1;
+    
+    return rv != Blob_Success;
 }
 
 static int _delete(int key) {
@@ -109,7 +130,7 @@ static int _delete(int key) {
 
 TEST(rdb_basic) {
     LOG_INFO("rdb_select(1) should fail");
-    if (_retrieve(1, 16) == 0) {
+    if (_retrieve(1, 16, 0) == 0) {
         LOG_ERROR("rdb_select(1) init state returned data");
         return TEST_FAIL;
     }
@@ -129,7 +150,7 @@ TEST(rdb_basic) {
         return TEST_FAIL;
     }
 
-    if (_retrieve(1, 16) != 0) {
+    if (_retrieve(1, 16, 0) != 0) {
         LOG_ERROR("rdb_retrieve(1) failed");
         return TEST_FAIL;
     }
@@ -139,13 +160,18 @@ TEST(rdb_basic) {
         return TEST_FAIL;
     }
     
-    if (_retrieve(1, 16) == 0) {
+    if (_retrieve(1, 16, 0) == 0) {
         LOG_ERROR("rdb_retrieve(1) succeeded after delete");
         return TEST_FAIL;
     }
 
-    if (_retrieve(2, 16) != 0) {
+    if (_retrieve(2, 16, 0) != 0) {
         LOG_ERROR("rdb_retrieve(2) failed");
+        return TEST_FAIL;
+    }
+    
+    if (_update(2, 16) != 0) {
+        LOG_ERROR("rdb_update(2) failed");
         return TEST_FAIL;
     }
     
@@ -165,7 +191,7 @@ TEST(rdb_fill) {
     
     int nents = i;
     for (i = 0; i < nents; i++)  {
-        if (_retrieve(i, 128) != 0) {
+        if (_retrieve(i, 128, 0) != 0) {
             LOG_ERROR("failure on retrieve(%d)", i);
             break;
         }
@@ -186,7 +212,7 @@ TEST(rdb_fill) {
     LOG_INFO("inserted to replace");
     
     for (i = 1; i <= nents; i++)  {
-        if (_retrieve(i, 128) != 0) {
+        if (_retrieve(i, 128, 0) != 0) {
             LOG_ERROR("failure on retrieve(%d)", i);
             break;
         }

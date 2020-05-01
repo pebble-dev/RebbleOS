@@ -16,7 +16,8 @@ static void _schedule_timer(StatusBarLayer* status_bar)
 {
     TickType_t delay = pdMS_TO_TICKS(1000 * (60 - status_bar->last_time.tm_sec));
     status_bar->timer.when = xTaskGetTickCount() + delay;
-    appmanager_timer_add(&status_bar->timer);
+    app_running_thread *thread = appmanager_get_current_thread();
+    appmanager_timer_add(&thread->timer_head, &status_bar->timer);
 }
 
 static void _timer_callback(CoreTimer* timer) {
