@@ -169,3 +169,7 @@ bool progress_layer_test_deinit(void);
 bool dialog_choice_test_init(Window *window);
 bool dialog_choice_test_exec(void);
 bool dialog_choice_test_deinit(void);
+
+bool pin_window_test_init(Window *window);
+bool pin_window_test_exec(void);
+bool pin_window_test_deinit(void);

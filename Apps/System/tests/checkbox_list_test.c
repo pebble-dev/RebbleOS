@@ -23,6 +23,9 @@ bool checkbox_test_exec(void)
     checkbox_add_selection(checkers, "baby hits");
     checkbox_add_selection(checkers, "88 MPH you're");
     checkbox_add_selection(checkers, "going to see");
+    checkbox_add_selection(checkers, "some serious");
+    checkbox_add_selection(checkers, "stuff!");
+
 
     set_checkbox_selection_colors(checkers, PBL_IF_COLOR_ELSE(GColorPurple, GColorBlack), GColorWhite);
 

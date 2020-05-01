@@ -12,3 +12,4 @@ SRCS_all += Apps/System/tests/checkbox_list_test.c
 SRCS_all += Apps/System/tests/radio_button_test.c
 SRCS_all += Apps/System/tests/progress_layer_test.c
 SRCS_all += Apps/System/tests/dialog_choice_test.c
+SRCS_all += Apps/System/tests/pin_window_test.c

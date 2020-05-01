@@ -9,10 +9,6 @@
 
 #include "radio_button_window.h"
 
-static int s_current_selection = 0;
-
-int radio_selection_labels_num = 4;
-
 struct RadiobuttonWindow
 {
   Window window;
@@ -21,6 +17,8 @@ struct RadiobuttonWindow
   GColor radiobutton_foreground_color;
   GColor radiobutton_background_color;
   char radiobutton_selections[10][14];
+
+  int current_selection;
   int selection_count;
 };
 
@@ -36,14 +34,16 @@ void set_radiobutton_selection_colors(RadiobuttonWindow *radio_star, GColor back
 }
 
 static uint16_t get_num_rows_callback(MenuLayer *menu_layer, uint16_t section_index, void *context) {
-  return radio_selection_labels_num + 1;
+  RadiobuttonWindow *radio_star = (RadiobuttonWindow *) context;
+
+  return radio_star->selection_count + 1;
 }
 
 static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_index, void *context) {
   
   RadiobuttonWindow *radio_star = (RadiobuttonWindow *) context;
   
-  if(cell_index->row == radio_selection_labels_num) {
+  if(cell_index->row == radio_star->selection_count) {
     // This is the submit item
     menu_cell_basic_draw(ctx, cell_layer, "Submit", NULL, NULL);
   } else {
@@ -53,19 +53,19 @@ static void draw_row_callback(GContext *ctx, Layer *cell_layer, MenuIndex *cell_
     menu_cell_basic_draw(ctx, cell_layer, s_buff, NULL, NULL);
 
     GRect bounds = layer_get_bounds(cell_layer);
-    GPoint p = GPoint(bounds.size.w - (3 * RADIO_BUTTON_WINDOW_RADIO_RADIUS), (bounds.size.h / 2));
+    GPoint p = GPoint((bounds.size.w - (3 * RADIO_BUTTON_WINDOW_RADIO_RADIUS)), (bounds.size.h/2)-62);
 
     // Selected?
     if(menu_cell_layer_is_highlighted(cell_layer)) {
-      graphics_context_set_stroke_color(ctx, GColorWhite);
-      graphics_context_set_fill_color(ctx, GColorWhite);
+      graphics_context_set_stroke_color(ctx, GColorBlack);
+      graphics_context_set_fill_color(ctx, GColorBlack);
     } else {
       graphics_context_set_fill_color(ctx, GColorBlack);
     }
 
     // Draw radio filled/empty
     graphics_draw_circle(ctx, p, RADIO_BUTTON_WINDOW_RADIO_RADIUS);
-    if(cell_index->row == s_current_selection) {
+    if(cell_index->row == radio_star->current_selection) {
       // This is the selection
       graphics_fill_circle(ctx, p, RADIO_BUTTON_WINDOW_RADIO_RADIUS - 3);
     }
@@ -80,13 +80,16 @@ static int16_t get_cell_height_callback(struct MenuLayer *menu_layer, MenuIndex 
 }
 
 static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *callback_context) {
-  if(cell_index->row == radio_selection_labels_num) {
+  RadiobuttonWindow *radio_star = (RadiobuttonWindow *) callback_context;
+
+  if(cell_index->row == radio_star->selection_count) {
     // Do something with user choice
-    APP_LOG(APP_LOG_LEVEL_INFO, "Submitted choice %d", s_current_selection);
+    //APP_LOG(APP_LOG_LEVEL_INFO, "Submitted choice %d", radio_star->current_selection);
+    APP_LOG("test",APP_LOG_LEVEL_DEBUG,"Submitted choice %d", radio_star->current_selection);
     window_stack_pop(true);
   } else {
     // Change selection
-    s_current_selection = cell_index->row;
+    radio_star->current_selection = cell_index->row;
     menu_layer_reload_data(menu_layer);
   }
 }
@@ -99,6 +102,8 @@ static void radiobutton_window_load(Window *window) {
   GRect bounds = layer_get_bounds(window_layer);
 
   radio_star->menu_layer = menu_layer_create(bounds);
+
+  menu_layer_set_highlight_colors(radio_star->menu_layer, radio_star->radiobutton_background_color, radio_star->radiobutton_foreground_color);
 
   menu_layer_set_click_config_onto_window(radio_star->menu_layer, window);
   menu_layer_set_callbacks(radio_star->menu_layer, radio_star, (MenuLayerCallbacks) {
@@ -135,6 +140,7 @@ RadiobuttonWindow *radiobutton_window_create(uint16_t max_items)
   radio_star->radiobutton_foreground_color = PBL_IF_COLOR_ELSE(GColorRed, GColorBlack);
   radio_star->radiobutton_background_color = GColorWhite;
   radio_star->selection_count = 0;
+  radio_star->current_selection = 0;
 
   return radio_star;
 }
