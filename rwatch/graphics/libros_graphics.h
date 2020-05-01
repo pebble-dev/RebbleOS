@@ -33,3 +33,8 @@ bool graphics_frame_buffer_is_captured(GContext * ctx);
 
 void grect_align(GRect *rect, const GRect *inside_rect, const GAlign alignment, const bool clip);
 void grect_standardize(GRect *rect);
+GColor graphics_gcolor_from_2bit(int color_2bit);
+void graphics_context_set_fill_color_2bit(GContext * ctx, int color);
+void graphics_context_set_stroke_color_2bit(GContext * ctx, int color);
+void gpath_fill_app_legacy(n_GContext * ctx, n_GPath * path);
+void graphics_context_set_text_color_2bit(GContext * ctx, int color);

@@ -20,8 +20,6 @@
 
 struct Window;
 
-#define MAX_APP_STR_LEN 32
-
 typedef struct CoreTimer
 {
     TickType_t when; /* ticks when this should fire, in ticks since boot */
@@ -45,52 +43,6 @@ typedef struct ButtonMessage
     void *context;
 } ButtonMessage;
 
-typedef void (*AppMainHandler)(void);
-
-
-typedef struct Version {
-  uint8_t major;
-  uint8_t minor;
-} __attribute__((__packed__)) Version;
-
-typedef struct ApplicationHeader {
-    char header[8];                   // PBLAPP
-    Version header_version;           // version of this header
-    Version sdk_version;              // sdk it was compiled against it seems
-    Version app_version;              // app version
-    uint16_t app_size;                // size of app binary + app header (but not reloc)
-    uint32_t offset;                  // beginning of the app binary
-    uint32_t crc;                     // data's crc?
-    char name[MAX_APP_STR_LEN];
-    char company[MAX_APP_STR_LEN];
-    uint32_t icon_resource_id;
-    uint32_t sym_table_addr;          // The system will poke the sdk's symbol table address into this field on load
-    uint32_t flags;
-    uint32_t reloc_entries_count;     // reloc list count
-    Uuid uuid;
-    uint32_t resource_crc;
-    uint32_t resource_timestamp;
-    uint16_t virtual_size;            // The total amount of memory used by the process (.text + .data + .bss)
-} __attribute__((__packed__)) ApplicationHeader;
-
-typedef enum {
-    ExecuteFromInternalFlash,
-    AppFilePresent,
-    ResourceFilePresent,
-} AppFlags;
-
-typedef struct App {
-    uint8_t type; // this will be in flags I presume <-- it is. TODO. Hook flags up
-    uint8_t flags;
-    struct file app_file;
-    struct file resource_file; // the file where we are keeping the resources for this app
-    char *name;
-    uint32_t id;
-    Uuid uuid;
-    ApplicationHeader *header;
-    AppMainHandler main; // A shortcut to main
-    list_node node; 
-} App;
 
 typedef struct AppTypeHeader {
     char at;
@@ -117,59 +69,16 @@ enum {
 
 /* Running App stuff */
 
-/* Are we loading? */
-typedef enum AppThreadState {
-    AppThreadUnloaded,
-    AppThreadLoading,
-    AppThreadLoaded,
-    AppThreadRunloop,
-    AppThreadUnloading,
-    AppThreadDownloading,
-} AppThreadState;
-
-/* We have App
- * we want an array of running threads
- * These will all be running at the same time
- * Here are the types
- */
-typedef enum AppThreadType {
-    AppThreadMainApp,
-    AppThreadWorker,
-    AppThreadOverlay,
-    MAX_APP_THREADS
-} AppThreadType;
-
-
 #define THREAD_MANAGER_APP_LOAD_ID           0
-#define THREAD_MANAGER_APP_QUIT_CLEAN        1
-#define THREAD_MANAGER_APP_DOWNLOAD_COMPLETE 2
-#define THREAD_MANAGER_APP_DOWNLOAD_PROGRESS 3
-#define THREAD_MANAGER_APP_DRAW              4
-
-/* This struct hold all information about the task that is executing
- * There are many runing apps, such as main app, worker or background.
- */
-typedef struct app_running_thread_t {
-    AppThreadType thread_type;
-    App *app;
-    AppThreadState status;
-    void *thread_entry;
-    TickType_t shutdown_at_tick;
-    const char *thread_name;    
-    uint8_t thread_priority;
-    TaskHandle_t task_handle;
-    StaticTask_t static_task;
-    size_t stack_size;
-    StackType_t *stack;
-    struct CoreTimer *timer_head;
-    struct mem_heap *heap;
-    struct n_GContext *graphics_context;
-} app_running_thread;
+#define THREAD_MANAGER_APP_QUIT_REQUEST      1
+#define THREAD_MANAGER_APP_TEARDOWN          2
+#define THREAD_MANAGER_APP_DOWNLOAD_COMPLETE 3
+#define THREAD_MANAGER_APP_DOWNLOAD_PROGRESS 4
+#define THREAD_MANAGER_APP_DRAW              5
+#define THREAD_MANAGER_APP_HEARTBEAT         6
 
 /* in appmanager.c */
 uint8_t appmanager_init(void);
-void appmanager_timer_add(CoreTimer *timer);
-void appmanager_timer_remove(CoreTimer *timer);
 void app_event_loop(void);
 bool appmanager_post_generic_thread_message(AppMessage *am, TickType_t timeout);
 app_running_thread *appmanager_get_current_thread(void);
@@ -197,14 +106,20 @@ void appmanager_post_window_load_click_config(struct Window *window);
 void appmanager_app_start(char *name);
 void appmanager_app_start_by_uuid(Uuid *uuid);
 void appmanager_app_quit(void);
+void appmanager_app_quit_request(void);
+void appmanager_app_quit_done(void);
+void appmanager_app_heartbeat(void);
 void appmanager_app_download_complete(void);
 void appmanager_app_display_done(void);
 bool appmanager_is_app_shutting_down(void);
 bool appmanager_is_app_running(void);
 
 bool appmanager_post_generic_app_message(AppMessage *am, TickType_t timeout);
-void appmanager_timer_expired(app_running_thread *thread);
-TickType_t appmanager_timer_get_next_expiry(app_running_thread *thread);
+
+void appmanager_timer_add(CoreTimer **timer_head, CoreTimer *timer);
+void appmanager_timer_remove(CoreTimer **timer_head, CoreTimer *timer);
+void appmanager_timer_expired(CoreTimer **timer_head, CoreTimer *timer);
+TickType_t appmanager_timer_get_next_expiry(CoreTimer *timer_head);
 
 /* in appmanager_app.c */
 App *appmanager_get_app_by_name(char *app_name);
@@ -212,7 +127,7 @@ App *appmanager_get_app_by_id(uint32_t id);
 App *appmanager_get_app_by_uuid(Uuid *uuid);
 void appmanager_app_loader_init(void);
 uint32_t appmanager_get_next_appid(void);
-
+void appmanager_app_loader_init_n();
 void rocky_event_loop_with_resource(uint16_t resource_id);
 
 void timer_init(void);

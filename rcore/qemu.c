@@ -28,7 +28,8 @@ static StackType_t _qemu_task_stack[STACK_SZ_QEMU];
 static StaticTask_t _qemu_task_buf;
 
 static void _qemu_thread(void *pvParameters);
-static bool _qemu_handle_packet();
+static int _qemu_handle_packet();
+static bool _qemu_process_all_messages(void);
 
 static StaticSemaphore_t _qemu_mutex_mem;
 static SemaphoreHandle_t _qemu_mutex;
@@ -44,12 +45,11 @@ uint8_t qemu_init(void)
     
     hw_qemu_init();
     _qemu_mutex = xSemaphoreCreateMutexStatic(&_qemu_mutex_mem);
+    _qemu_sem = xSemaphoreCreateBinaryStatic(&_qemu_sem_buf);
     _qemu_task = xTaskCreateStatic(_qemu_thread,
                                    "QEMU", STACK_SZ_QEMU, NULL,
-                                   tskIDLE_PRIORITY + 9UL,
+                                   tskIDLE_PRIORITY + 5UL,
                                    _qemu_task_stack, &_qemu_task_buf);
-    
-    _qemu_sem = xSemaphoreCreateBinaryStatic(&_qemu_sem_buf);
 
     return INIT_RESP_OK;
 }
@@ -139,26 +139,38 @@ void qemu_rx_started_isr(void)
 static void _qemu_thread(void *pvParameters)
 {
     mem_thread_set_heap(&mem_heaps[HEAP_LOWPRIO]);
-    
+    #define READ_SIZE 64
+    static uint8_t buf[READ_SIZE];
+
     for (;;)
     {
         xSemaphoreTake(_qemu_sem, portMAX_DELAY);
-        LOG_DEBUG("RX");
         bool done = false;
+        int invalid_count = 0;
         
         while(!done)
         {
-            uint8_t *buf = protocol_rx_buffer_request();
-            size_t lenr = hw_qemu_read(buf, 255);
-            protocol_rx_buffer_release(lenr);
-            
-            done = lenr == 0;
-            
-            if (_qemu_handle_packet())
-            {
-                /* more data incoming */
-                vTaskDelay(0);
-                done = false;
+            size_t lenr = hw_qemu_read(buf, READ_SIZE);
+
+            if (!lenr) {
+                break;
+            }
+
+            while(1) {
+                int rv = _qemu_handle_packet(buf, &lenr);
+                if (rv == PACKET_PROCESSED) { /* All data done */
+                    break;
+                } else if (rv == PACKET_MORE_DATA_REQD) {
+                    break;
+                } else if (rv == PACKET_INVALID) {
+                    LOG_ERROR("TI");
+                    if (invalid_count == 3) {
+                        protocol_rx_buffer_reset();
+                        done = true;
+                    }
+                    invalid_count++;
+                    break;
+                }
             }
         }
         hw_qemu_irq_enable();
@@ -167,61 +179,112 @@ static void _qemu_thread(void *pvParameters)
 
 static void _qemu_read_header(QemuCommChannelHeader *header)
 {
-    uint8_t *buf = protocol_get_rx_buffer();
-    QemuCommChannelHeader *raw_header = (QemuCommChannelHeader *)buf;
-    header->signature = ntohs(raw_header->signature);
-    header->protocol = ntohs(raw_header->protocol);
-    header->len = ntohs(raw_header->len);
+    //QemuCommChannelHeader *raw_header = (QemuCommChannelHeader *)buf;
+    header->signature = ntohs(header->signature);
+    header->protocol = ntohs(header->protocol);
+    header->len = ntohs(header->len);
 }
 
-static bool _qemu_handle_packet(void)
+static int _qemu_handle_packet(uint8_t *buf, size_t *len)
 {
-    QemuCommChannelHeader header;
-    _qemu_read_header(&header);
+    static QemuCommChannelHeader header;
+    static QemuCommChannelHeader footer;
+    static int idx = 0;
 
-    if (header.signature != QEMU_HEADER_SIGNATURE)
-    {
-        LOG_ERROR("Invalid header signature: %x", header.signature);
-        return false;
-    }
-    
-    if (header.len > QEMU_MAX_DATA_LEN)
-    {
-        LOG_ERROR("Invalid packet size: %d", header.len);
-        return false;
+    size_t processed = 0;
+    size_t sz = 0;
+    int buflen = *len;
+    int rv = 0;
+
+    if (idx < sizeof(QemuCommChannelHeader)) {
+        sz = buflen >= sizeof(QemuCommChannelHeader) 
+                ? sizeof(QemuCommChannelHeader) 
+                : buflen;
+        memcpy(((void *)(&header)) + idx, buf, sz);
+        idx += sz;
+        processed += sz;
+
+        if (idx < sizeof(QemuCommChannelHeader))
+            return PACKET_MORE_DATA_REQD;
+
+        _qemu_read_header(&header);
+
+        if (header.signature != QEMU_HEADER_SIGNATURE) {
+            LOG_ERROR("Invalid header signature: %x", header.signature);
+            rv = PACKET_INVALID;
+            goto error;
+        }
+
+        if (header.len > QEMU_MAX_DATA_LEN) {
+            LOG_ERROR("Invalid packet size: %d", header.len);
+            rv = PACKET_INVALID;
+            goto error;
+        }
     }
 
-    if (protocol_get_rx_buf_size() < header.len + sizeof(QemuCommChannelHeader) + sizeof(QemuCommChannelFooter))
-    {
-        LOG_INFO("More Data Required %d %d", header.len, protocol_get_rx_buf_size());
-        return false;
+    /* So far so good, we have at least a valid looking header */
+    if (buflen - processed == 0) {
+        return PACKET_MORE_DATA_REQD;
+    }
+    int total_len = header.len + sizeof(QemuCommChannelHeader);
+
+    if (idx < total_len) {
+        sz = total_len - idx > buflen - processed 
+                ? buflen - processed 
+                : total_len - idx;
+        /* start to chunk the data into the rx buffer */
+        if (protocol_rx_buffer_append(buf + processed, sz) != PROTOCOL_BUFFER_OK) {
+            rv = PACKET_INVALID;
+            goto error;
+        }
+        idx += sz;
+        processed += sz;
+        *len = buflen - processed;
     }
 
+    if (idx < total_len)
+        return PACKET_MORE_DATA_REQD;
+
+    /* We have the data now, just waiting for the footer */
+    sz = sizeof(QemuCommChannelFooter) > buflen - processed
+                ? buflen - processed
+                : sizeof(QemuCommChannelFooter);
+    memcpy(((void *)(&footer)) + idx - total_len, buf + processed, sz);
+    idx += sz;
+    processed += sz;
+
+    /* is there enough data for a footer? */
+    if (idx < total_len + sizeof(QemuCommChannelFooter))
+        return PACKET_MORE_DATA_REQD;
+
+    if (ntohs(footer.signature) != QEMU_FOOTER_SIGNATURE) {
+        LOG_ERROR("Invalid footer signature: %x", ntohs(footer.signature));
+        rv = PACKET_INVALID;
+        goto error;
+    }
+
+    /* we have a valid header, payload in the rx buffer and a footer */
     EndpointHandler handler = protocol_find_endpoint_handler(header.protocol, qemu_endpoints);
-    if (handler == NULL)
-    {
+    if (handler == NULL) {
         LOG_ERROR("Unknown protocol: %d", header.protocol);
+        rv = PACKET_INVALID;
+        goto error;
     }
 
-    size_t len = header.len;
-    uint8_t *buf = protocol_get_rx_buffer();
-    
-    QemuCommChannelFooter *footer = (QemuCommChannelFooter *)(buf + header.len + sizeof(QemuCommChannelHeader));
-    footer->signature = ntohs(footer->signature);
-    if (footer->signature != QEMU_FOOTER_SIGNATURE)
-    {
-        LOG_ERROR("Invalid footer signature: %x", footer->signature);
-        return false;
-    }
-
-    void *data = buf + sizeof(QemuCommChannelHeader);   
-    RebblePacket p = packet_create_with_data(0, data, header.len);
+    RebblePacket p = packet_create_with_data(0, protocol_get_rx_buffer(), header.len);
+    packet_set_transport(p, qemu_send_data);
     handler(p);
-    packet_destroy(p);
 
-    if (protocol_get_rx_buf_size() > 0)
-        return true; /* more work to do */
+    if (buflen - processed > 0) {
+        //memmove(buf, buf + processed, buflen - processed);
+        *len = buflen - processed;
+        return PACKET_BUFFER_HAS_DATA; /* more work to do */
+    }
     
     /* we are done */
-    return false;
+    rv = PACKET_PROCESSED;
+
+error:
+    idx = 0;
+    return rv;
 }
