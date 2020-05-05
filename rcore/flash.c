@@ -22,8 +22,12 @@ static StaticSemaphore_t _flash_wait_semaphore_buf;
 
 #include "rdb.h"
 
+#define KEYLEN 4
+
 static int _insert(int key, int dsize) {
     struct rdb_database *db = rdb_open(RDB_ID_TEST);
+
+    KERN_LOG("flash", APP_LOG_LEVEL_INFO, ">>> INSERT %d, %d", key, dsize);
     
     uint32_t *keyp = malloc(16);
     keyp[0] = key;
@@ -35,7 +39,7 @@ static int _insert(int key, int dsize) {
     for (int i = 0; i < dsize; i++)
         val[i] = (key & 0xFF) ^ i;
     
-    int rv = rdb_insert(db, keyp, 16, val, dsize);
+    int rv = rdb_insert(db, keyp, KEYLEN, val, dsize);
     
     app_free(val);
     app_free(keyp);
@@ -51,6 +55,8 @@ static int _retrieve(int key, int dsize, int  inverse) {
     struct rdb_iter it;
     rdb_select_result_list head;
     int ret = 0;
+
+    KERN_LOG("flash", APP_LOG_LEVEL_INFO, ">>> RETRIEVE %d, %d", key, dsize);
     
     list_init_head(&head);
     
@@ -67,7 +73,7 @@ static int _retrieve(int key, int dsize, int  inverse) {
     keyp[3] = key;
     
     struct rdb_selector selectors[] = {
-        { RDB_SELECTOR_OFFSET_KEY, 16, RDB_OP_EQ, keyp },
+        { RDB_SELECTOR_OFFSET_KEY, KEYLEN, RDB_OP_EQ, keyp },
         { 0, 0, RDB_OP_RESULT_FULLY_LOAD },
         { }
     };
@@ -117,7 +123,7 @@ static int _delete(int key) {
     keyp[3] = key;
 
     struct rdb_selector selectors[] = {
-        { RDB_SELECTOR_OFFSET_KEY, 16, RDB_OP_EQ, keyp },
+        { RDB_SELECTOR_OFFSET_KEY, KEYLEN, RDB_OP_EQ, keyp },
         { }
     };
     int n = rdb_select(&it, &head, selectors);
@@ -134,6 +140,28 @@ static int _delete(int key) {
     return 0;
 }
 
+struct write {
+    uint32_t addr;
+    uint32_t len;
+    char *data;
+};
+
+/* for i in write*; do echo '{' $(echo $i | sed -e 's/.*-//'), $(wc -c $i | cut -d' ' -f1), \"$(xxd -c 256 -p $i | sed -e 's/\(..\)/\\x\1/g')\" '}',; done */
+static struct write writes[] = {
+/*{ 2170880, 28, "\x01\x50\xfe\xff\xff\xff\xff\xff\x01\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" },
+{ 2162688, 76, "\x01\x50\xfc\xfa\xff\xff\xff\xff\x01\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x15\x9f\xd3\x8c\x00\x04\x00\x00\xfe\x0e\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" },
+{ 2162764, 14, "\x72\x65\x62\x62\x6c\x65\x2f\x72\x64\x62\x74\x65\x73\x74" },
+{ 2162776, 4, "\x73\x74\xff\xff" },
+{ 2162688, 76, "\x01\x50\xfc\xfa\xff\xff\xff\xff\x01\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x15\x9f\xd3\x8c\x00\x04\x00\x00\xfe\x0e\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" },
+{ 2162688, 76, "\x01\x50\xfc\xfa\xff\xff\xff\xff\x01\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x15\x9f\xd3\x8c\x00\x04\x00\x00\xfe\x0e\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff" },
+{ 2162778, 4, "\xff\x04\xbe\x00" },
+{ 2162778, 4, "\xfd\x04\xbe\x00" },
+{ 2162782, 4, "\x02\x00\x00\x00" },*/
+{ 2162786, 190, "\x02\x03\x00\x01\x06\x07\x04\x05\x0a\x0b\x08\x09\x0e\x0f\x0c\x0d\x12\x13\x10\x11\x16\x17\x14\x15\x1a\x1b\x18\x19\x1e\x1f\x1c\x1d\x22\x23\x20\x21\x26\x27\x24\x25\x2a\x2b\x28\x29\x2e\x2f\x2c\x2d\x32\x33\x30\x31\x36\x37\x34\x35\x3a\x3b\x38\x39\x3e\x3f\x3c\x3d\x42\x43\x40\x41\x46\x47\x44\x45\x4a\x4b\x48\x49\x4e\x4f\x4c\x4d\x52\x53\x50\x51\x56\x57\x54\x55\x5a\x5b\x58\x59\x5e\x5f\x5c\x5d\x62\x63\x60\x61\x66\x67\x64\x65\x6a\x6b\x68\x69\x6e\x6f\x6c\x6d\x72\x73\x70\x71\x76\x77\x74\x75\x7a\x7b\x78\x79\x7e\x7f\x7c\x7d\x82\x83\x80\x81\x86\x87\x84\x85\x8a\x8b\x88\x89\x8e\x8f\x8c\x8d\x92\x93\x90\x91\x96\x97\x94\x95\x9a\x9b\x98\x99\x9e\x9f\x9c\x9d\xa2\xa3\xa0\xa1\xa6\xa7\xa4\xa5\xaa\xab\xa8\xa9\xae\xaf\xac\xad\xb2\xb3\xb0\xb1\xb6\xb7\xb4\xb5\xba\xbb\xb8\xb9\xbe\xbf" },
+/*{ 2162778, 4, "\xfc\x04\xbe\x00" },*/
+{ 0 }
+};
+
 uint8_t flash_init()
 {
     // initialise device specific flash
@@ -148,21 +176,29 @@ uint8_t flash_init()
     fs_init();
     
     /* hack hack hack */
+#if 0
     for (int i = 0; i < 32; i++) {
         KERN_LOG("flash", APP_LOG_LEVEL_INFO, "*** ROUND %d ***", i);
-        assert(_insert(1, 31) == 0);
-        assert(_insert(2, 43) == 0);
-        assert(_retrieve(1, 31, 0) == 0);
-        assert(_retrieve(2, 43, 0) == 0);
-        assert(_delete(1) == 0);
-        assert(_insert(3, 129) == 0);
-        assert(_insert(4, 76) == 0);
-        assert(_retrieve(2, 43, 0) == 0);
+        assert(_insert(2, 190) == 0);
+        assert(_retrieve(2, 190, 0) == 0);
         assert(_delete(2) == 0);
-        assert(_retrieve(3, 129, 0) == 0);
-        assert(_delete(3) == 0);
-        assert(_retrieve(4, 76, 0) == 0);
-        assert(_delete(4) == 0);
+    }
+#endif
+    for (int i = 0; writes[i].addr; i++) {
+        void *ibuf = malloc(writes[i].len);
+        void *obuf = malloc(writes[i].len);
+        
+        memcpy(ibuf, writes[i].data, writes[i].len);
+        KERN_LOG("flash", APP_LOG_LEVEL_INFO, "WR %d -> %08x", writes[i].len, writes[i].addr);
+        flash_write_bytes(writes[i].addr, ibuf, writes[i].len);
+        
+        flash_read_bytes(0x210000, obuf, 2);
+        KERN_LOG("flash", APP_LOG_LEVEL_INFO, "version number is now %04x", *(uint16_t *)obuf);
+        //flash_read_bytes(writes[i].addr, obuf, writes[i].len);
+        //KERN_LOG("flash", APP_LOG_LEVEL_INFO, "rv %d", memcmp(ibuf, obuf, writes[i].len));
+        
+        free(ibuf);
+        free(obuf);
     }
     
     panic("done");
@@ -223,6 +259,8 @@ int flash_write_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
 {
     int rv = 0;
     
+    KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "write bytes 0x%08x: %d bytes", address, num_bytes);
+
     int unaligned = ((uint32_t)buffer) & (PLATFORM_FLASH_ALIGNMENT - 1);
     if (unaligned) {
         int nfix = PLATFORM_FLASH_ALIGNMENT - unaligned;
@@ -232,6 +270,7 @@ int flash_write_bytes(uint32_t address, uint8_t *buffer, size_t num_bytes)
         assert(PLATFORM_FLASH_ALIGNMENT <= 4);
         uint8_t extra[4] = {0xFF, 0xFF, 0xFF, 0xFF};
         memcpy(extra, buffer, nfix);
+        KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "fixing up unaligned write");
         rv |= flash_write_bytes(address, extra, PLATFORM_FLASH_ALIGNMENT);
         buffer += nfix;
         address += nfix;

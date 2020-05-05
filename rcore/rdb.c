@@ -268,7 +268,6 @@ static bool _compare(rdb_operator_t operator, uint8_t *where_prop, uint8_t *wher
             assert(!"bad operator for _compare");
     }
 
-    LOG_DEBUG("COMP: %d %c %d := %s", val1, type, val2, rval ? "true" : "false");
     return rval;
 }
 
@@ -407,7 +406,7 @@ int _rdb_gc_for_bytes(const struct rdb_database *db, struct fd *fd, int bytes) {
     LOG_INFO("gc: rdb %s will have %d/%d bytes used after, has %d/%d bytes used", db->filename, used, fsz, tlen, fsz);
     
     if (bytes >= (fsz - used)) {
-        LOG_ERROR("gc: which is not enough space for a %d byte entry, sadly");
+        LOG_ERROR("gc: which is not enough space for a %d byte entry, sadly", bytes);
         return 0;
     }
     

@@ -21,12 +21,12 @@ __attribute__((__noreturn__)) static void _panic(const char *s) {
     in_panic = 1;
     portDISABLE_INTERRUPTS();
     debug_init();
-    
-    puts("*** PANIC ***");
-    puts(s);
 
     extern void log_onpanic_dump();
     log_onpanic_dump();
+    
+    puts("*** PANIC ***");
+    puts(s);
     
     puts("*** PANIC COMPLETE ***");
 
