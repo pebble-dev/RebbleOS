@@ -20,6 +20,120 @@ static StaticSemaphore_t _flash_mutex_buf;
 static SemaphoreHandle_t _flash_wait_semaphore;
 static StaticSemaphore_t _flash_wait_semaphore_buf;
 
+#include "rdb.h"
+
+static int _insert(int key, int dsize) {
+    struct rdb_database *db = rdb_open(RDB_ID_TEST);
+    
+    uint32_t *keyp = malloc(16);
+    keyp[0] = key;
+    keyp[1] = key;
+    keyp[2] = key;
+    keyp[3] = key;
+    
+    uint8_t *val = app_calloc(1, dsize);
+    for (int i = 0; i < dsize; i++)
+        val[i] = (key & 0xFF) ^ i;
+    
+    int rv = rdb_insert(db, keyp, 16, val, dsize);
+    
+    app_free(val);
+    app_free(keyp);
+    
+    rdb_close(db);
+    
+    return rv != Blob_Success;
+}
+
+
+static int _retrieve(int key, int dsize, int  inverse) {
+    struct rdb_database *db = rdb_open(RDB_ID_TEST);
+    struct rdb_iter it;
+    rdb_select_result_list head;
+    int ret = 0;
+    
+    list_init_head(&head);
+    
+    int rv = rdb_iter_start(db, &it);
+    if (!rv) {
+        ret = 1;
+        goto fail;
+    }
+    
+    uint32_t *keyp = malloc(16);
+    keyp[0] = key;
+    keyp[1] = key;
+    keyp[2] = key;
+    keyp[3] = key;
+    
+    struct rdb_selector selectors[] = {
+        { RDB_SELECTOR_OFFSET_KEY, 16, RDB_OP_EQ, keyp },
+        { 0, 0, RDB_OP_RESULT_FULLY_LOAD },
+        { }
+    };
+    int n = rdb_select(&it, &head, selectors);
+    if (n != 1) {
+        ret = 2;
+        goto fail;
+    }
+    
+    free(keyp);
+    
+    struct rdb_select_result *res = rdb_select_result_head(&head);
+    for (int i = 0; i < dsize; i++) {
+        uint8_t exp = (key & 0xFF) ^ (inverse ? dsize - 1 - i : i);
+        uint8_t rd = ((uint8_t *)res->result[0])[i];
+        if (exp != rd) {
+            KERN_LOG("flash", APP_LOG_LEVEL_ERROR, "rdb_select incorrect readback key %d size %d ofs %d, should be %02x is %02x", key, dsize, i, exp, rd);
+            ret = 3;
+            goto fail;
+        }
+    }
+    
+    res = 0;
+    
+fail:
+    rdb_select_free_all(&head);
+    rdb_close(db);
+
+    return ret;
+}
+
+static int _delete(int key) {
+    struct rdb_database *db = rdb_open(RDB_ID_TEST);
+    struct rdb_iter it;
+    rdb_select_result_list head;
+    
+    list_init_head(&head);
+    
+    int rv = rdb_iter_start(db, &it);
+    if (!rv)
+        return 1;
+
+    uint32_t *keyp = malloc(16);
+    keyp[0] = key;
+    keyp[1] = key;
+    keyp[2] = key;
+    keyp[3] = key;
+
+    struct rdb_selector selectors[] = {
+        { RDB_SELECTOR_OFFSET_KEY, 16, RDB_OP_EQ, keyp },
+        { }
+    };
+    int n = rdb_select(&it, &head, selectors);
+    if (n != 1)
+        return 2;
+    
+    struct rdb_select_result *res = rdb_select_result_head(&head);
+    rdb_delete(&res->it);
+    
+    free(keyp);
+    
+    rdb_close(db);
+    
+    return 0;
+}
+
 uint8_t flash_init()
 {
     // initialise device specific flash
@@ -27,7 +141,31 @@ uint8_t flash_init()
     
     _flash_mutex = xSemaphoreCreateMutexStatic(&_flash_mutex_buf);
     _flash_wait_semaphore = xSemaphoreCreateBinaryStatic(&_flash_wait_semaphore_buf);
+    
+    /* hack hack hack */
+    fs_format();
+    
     fs_init();
+    
+    /* hack hack hack */
+    for (int i = 0; i < 32; i++) {
+        KERN_LOG("flash", APP_LOG_LEVEL_INFO, "*** ROUND %d ***", i);
+        assert(_insert(1, 31) == 0);
+        assert(_insert(2, 43) == 0);
+        assert(_retrieve(1, 31, 0) == 0);
+        assert(_retrieve(2, 43, 0) == 0);
+        assert(_delete(1) == 0);
+        assert(_insert(3, 129) == 0);
+        assert(_insert(4, 76) == 0);
+        assert(_retrieve(2, 43, 0) == 0);
+        assert(_delete(2) == 0);
+        assert(_retrieve(3, 129, 0) == 0);
+        assert(_delete(3) == 0);
+        assert(_retrieve(4, 76, 0) == 0);
+        assert(_delete(4) == 0);
+    }
+    
+    panic("done");
     
     return 0;
 }

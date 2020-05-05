@@ -115,6 +115,8 @@ int hw_flash_write_sync(uint32_t addr, uint8_t *buf, size_t len) {
     if (((uint32_t)buf) & 3) {
         DRV_LOG("flash", APP_LOG_LEVEL_ERROR, "HEY!  buf %p was not 4-byte aligned!", buf);
     }
+    
+    DRV_LOG("flash", APP_LOG_LEVEL_INFO, "writing %d bytes to %08x", len, addr);
 
     _flash_sync = 1;
     err = nrfx_qspi_write(buf, len, addr);

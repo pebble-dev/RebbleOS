@@ -501,6 +501,8 @@ int rdb_insert(const struct rdb_database *db, const uint8_t *key, uint16_t key_s
     struct rdb_hdr hdr;
     struct fd hfd = it.fd;
     
+    LOG_ERROR("rdb is writing a record starting at %d", hfd.offset);
+    
     hdr.flags = 0xFF;
     hdr.key_len = key_size;
     hdr.data_len = data_size;

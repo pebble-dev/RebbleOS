@@ -531,6 +531,7 @@ struct fd *fs_creat_replacing(struct fd *fd, const char *name, size_t bytes, con
     
         struct fs_page_hdr pagehdr;
         _fs_read_page_ofs(pg, 0, &pagehdr, sizeof(pagehdr));
+        assert(pagehdr.v_0x5001 == 0x5001);
         
         if (pgn == 0)
         {
