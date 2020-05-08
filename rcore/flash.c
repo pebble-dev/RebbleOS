@@ -149,12 +149,25 @@ static int _flash_write_paged(uint32_t addr, uint8_t *buf, size_t len) {
         int nfix = PLATFORM_FLASH_DMA_ALIGNMENT - unaligned;
         if (nfix > len)
             nfix = len;
+        
+        /* We know the input data lives entirely in one page, but for small
+         * writes, we can get ourselves into trouble here.  For instance, if
+         * we get called to do a 2-byte write, *and* we have to realign,
+         * *and* the bytes were the last two bytes of the page, then we
+         * could end up doing a 4-byte write, which breaks the invariant
+         * above.  So even though it "should be fine", since we're writing
+         * ones, we instead right-justify in such a case, like we do below.
+         */
+        int justify = 0;
+        if ((addr & ~PLATFORM_FLASH_PAGE_MASK) > (PLATFORM_FLASH_PAGE_SIZE / 2)) {
+            justify = PLATFORM_FLASH_DMA_ALIGNMENT - nfix;
+        }
 
         assert(PLATFORM_FLASH_DMA_ALIGNMENT <= 4);
         uint8_t extra[4] = {0xFF, 0xFF, 0xFF, 0xFF};
-        memcpy(extra, buf, nfix);
+        memcpy(extra + justify, buf, nfix);
 
-        rv |= _flash_write_aligned_paged(addr, extra, PLATFORM_FLASH_DMA_ALIGNMENT);
+        rv |= _flash_write_aligned_paged(addr - justify, extra, PLATFORM_FLASH_DMA_ALIGNMENT);
         buf += nfix;
         addr += nfix;
         len -= nfix;
