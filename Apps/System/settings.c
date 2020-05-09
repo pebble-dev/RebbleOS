@@ -92,7 +92,7 @@ static void _reset_menu_items(void);
 static void exit_to_watchface(struct Menu *menu, void *context)
 {
     /* Exit to watchface */
-    hw_bluetooth_advertising_visible(0);
+    bluetooth_advertising_visible(0);
     window_stack_pop(true);
 }
 
@@ -126,7 +126,7 @@ static void _reset_menu_items(void)
 
     MenuItems *items = menu_items_create(4);
     
-    menu_items_add(items, MenuItem("Discoverable", hw_bluetooth_name(), RESOURCE_ID_SPANNER, NULL));
+    menu_items_add(items, MenuItem("Discoverable", bluetooth_name(), RESOURCE_ID_SPANNER, NULL));
     menu_items_add(items, MenuItem("Format filesystem", "Time to die, sucker!", RESOURCE_ID_SPANNER, _wipe_fs));
     menu_items_add(items, MenuItem("Dummy BT pair", "Be a dummy", RESOURCE_ID_SPANNER, _dummy_bt));
     menu_items_add(items, MenuItem("Instapanic", "Oh no!", RESOURCE_ID_SPANNER, _do_panic));
@@ -158,7 +158,7 @@ static void _settings_window_load(Window *window)
     status_bar = status_bar_layer_create();
     layer_add_child(menu_get_layer(_menu), status_bar_layer_get_layer(status_bar));
 
-    hw_bluetooth_advertising_visible(1);
+    bluetooth_advertising_visible(1);
     event_service_subscribe(EventServiceCommandBluetoothPairRequest, _bluetooth_pair_request);
 }
 
@@ -166,7 +166,7 @@ static void _settings_window_unload(Window *window)
 {
     menu_destroy(_menu);
     status_bar_layer_destroy(status_bar);
-    hw_bluetooth_advertising_visible(0);
+    bluetooth_advertising_visible(0);
 }
 
 void settings_enter(void) {

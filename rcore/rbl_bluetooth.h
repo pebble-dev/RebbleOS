@@ -22,7 +22,8 @@ uint8_t hw_bluetooth_power_cycle(void);
 void hw_bluetooth_enable_cts_irq(void);
 void hw_bluetooth_disable_cts_irq(void);
 uint8_t hw_bluetooth_init(void);
-
+const char *hw_bluetooth_name();
+void hw_bluetooth_advertising_visible(int vis);
 
 void bluetooth_device_connected(void);
 void bluetooth_device_disconnected(void);
@@ -30,10 +31,8 @@ bool bluetooth_is_device_connected(void);
 void bluetooth_enable(void);
 bool bluetooth_is_enabled(void);
 void bluetooth_bond_acknowledge(int accepted);
-
-
-const char *hw_bluetooth_name();
-void hw_bluetooth_advertising_visible(int vis);
+void bluetooth_advertising_visible(int visible);
+const char *bluetooth_name();
 
 /* Bonding database access.
  *

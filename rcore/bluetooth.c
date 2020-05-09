@@ -217,7 +217,6 @@ static void _bt_cmd_thread(void *pvParameters)
             if(rv == 0)
                 BT_LOG("BT", APP_LOG_LEVEL_ERROR, "Timed out sending!");
 
-            /* XXX ugh, should be using a better dynamic pool of memory not sys malloc */
             remote_free(pkt.data);
         }
     }
@@ -274,15 +273,15 @@ void bluetooth_device_connected(void)
     protocol_set_current_transport_sender(bluetooth_send_data);
     connection_service_update(true);
     
-    /* Forge an rx ping to set the transport, and to transmit real data
-     * over the link (a pong).  */
+    /* Send an app-version request to start the connection. */
     static const uint8_t appversion_req[] = {
         0x00
     };
     RebblePacket pkt = packet_create_with_data(WatchProtocol_AppVersion, appversion_req, sizeof(appversion_req));
     packet_send(pkt);
 
-#if 0    
+#ifdef PLATFORM_SNOWY
+    /* Needed on Snowy but not on Asterix.  Why? */
     static const uint8_t legacyapp_data[] = {
         0x01, 0x02, 0x0c, 0x3c, 0xa0, 0xae, 0x90, 0x67, 0x47, 0x64, 0xaf, 0x92,
         0xbd, 0xca, 0xd1, 0xfb, 0x60, 0x84, 0x01, 0x01, 0x00, 0x00, 0x00, 0x02,
@@ -314,6 +313,16 @@ void bluetooth_enable(void)
     _enabled = true;
 }
 
+void bluetooth_advertising_visible(int visible)
+{
+    if (!_connected)
+        hw_bluetooth_advertising_visible(visible);
+}
+
+const char *bluetooth_name()
+{
+    return hw_bluetooth_name();
+}
 
 static uint8_t _bluetooth_tx(uint8_t *data, uint16_t len)
 {

@@ -8,6 +8,7 @@
 
 #include "ble_db_discovery.h"
 
+/* XXX: really needs to be in a platform config. */
 #define PPOGATT_MTU 256
 
 /* nrf52_bluetooth_ppogatt.c */
