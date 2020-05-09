@@ -35,7 +35,6 @@ void appmanager_app_start_by_uuid(Uuid *uuid)
         LOG_ERROR("appmanager was asked to start by uuid, but no such app existed");
         return;
     }
-    assert(app);
     AppMessage am = (AppMessage) {
         .command = THREAD_MANAGER_APP_LOAD_ID,
         .thread_id = AppThreadMainApp,
