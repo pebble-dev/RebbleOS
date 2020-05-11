@@ -441,6 +441,7 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
 {
     MenuLayer *menu_layer = (MenuLayer *) layer->container;
     GRect frame = layer_get_frame(layer);
+    GPoint scroll_offset = scroll_layer_get_content_offset(&menu_layer->scroll_layer);
     uint16_t cell_width = frame.size.w / menu_layer->column_count;
 
     if (menu_layer->is_reload_scheduled || menu_layer->reload_behaviour == MenuLayerReloadBehaviourOnRender)
@@ -449,7 +450,6 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
     // Draw background
     if (menu_layer->is_center_focus)
     {
-        GPoint scroll_offset = scroll_layer_get_content_offset(&menu_layer->scroll_layer);
         MenuCellSpan* focused_cell = _get_cell_span(menu_layer, &menu_layer->selected);
         GRect cursor_rect = GRect(focused_cell->x, (layer->frame.size.h / 2) - (focused_cell->h / 2) - scroll_offset.y,
                                   cell_width, focused_cell->h);
@@ -472,7 +472,6 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
         graphics_fill_rect(nGContext, cursor_rect, 0, GCornerNone);
     } else if (!menu_layer->callbacks.draw_background) {
         GRect ofsframe = layer_get_frame(layer);
-        GPoint scroll_offset = scroll_layer_get_content_offset(&menu_layer->scroll_layer);
         ofsframe.origin.y = -scroll_offset.y;
         graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
         graphics_fill_rect(nGContext, ofsframe, 0, GCornerNone);
@@ -481,11 +480,14 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
     // Draw cells
     for (size_t cell = 0; cell < menu_layer->cells_count; ++cell)
     {
-        // TODO: only draw visible cells based on layer frame/bounds
         MenuCellSpan *span = menu_layer->cells + cell;
         layer->callback_data = span;
         layer->frame = GRect(span->x, span->y, (span->header ? frame.size.w : cell_width), span->h);
         // TODO: update bounds
+        
+        if ((span->y > (frame.size.h - scroll_offset.y)) ||
+            ((span->y + span->h) < -scroll_offset.y))
+            continue;
 
         GRect offset = nGContext->offset;
         layer_apply_frame_offset(layer, nGContext);
