@@ -471,8 +471,11 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
         graphics_context_set_fill_color(nGContext, menu_layer->bg_hi_color);
         graphics_fill_rect(nGContext, cursor_rect, 0, GCornerNone);
     } else if (!menu_layer->callbacks.draw_background) {
+        GRect ofsframe = layer_get_frame(layer);
+        GPoint scroll_offset = scroll_layer_get_content_offset(&menu_layer->scroll_layer);
+        ofsframe.origin.y = -scroll_offset.y;
         graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
-        graphics_fill_rect(nGContext, frame, 0, GCornerNone);
+        graphics_fill_rect(nGContext, ofsframe, 0, GCornerNone);
     }
 
     // Draw cells
