@@ -14,6 +14,11 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext);
 #define MenuRow(section, row, x, y, h) ((MenuCellSpan){ (x), (y), (h), 0, false, MenuIndex((section), (row)) })
 #define MenuHeader(section, x, y, h) ((MenuCellSpan){ (x), (y), (h), 0, true, MenuIndex((section), 0) })
 
+#define SCROLL_REPEAT_IVL_MS 50
+#define SCROLL_REPEAT_START (750 / SCROLL_REPEAT_IVL_MS)
+#define SCROLL_REPEAT_INCR (100 / SCROLL_REPEAT_IVL_MS)
+#define SCROLL_REPEAT_MIN (200 / SCROLL_REPEAT_IVL_MS)
+
 #define BUTTON_REPEAT_INTERVAL_MS 600
 #define BUTTON_LONG_CLICK_DELAY_MS 500
 #define ANIMATE_ON_CLICK true
@@ -334,14 +339,33 @@ void menu_layer_set_click_config_provider(MenuLayer *menu_layer, ClickConfigProv
     menu_layer->click_config_provider = provider;
 }
 
-static void down_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
+static void menu_layer_scroll_repeat_prepare(MenuLayer *menu_layer)
 {
-    menu_layer_set_selected_next(menu_layer, false, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+    menu_layer->scroll_remaining = menu_layer->scroll_delay = SCROLL_REPEAT_START;
 }
 
-static void up_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
+static int menu_layer_scroll_repeat(MenuLayer *menu_layer)
 {
-    menu_layer_set_selected_next(menu_layer, true, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+    if (!--(menu_layer->scroll_remaining)) {
+        menu_layer->scroll_delay -= SCROLL_REPEAT_INCR;
+        if (menu_layer->scroll_delay < SCROLL_REPEAT_MIN)
+            menu_layer->scroll_delay = SCROLL_REPEAT_MIN;
+        menu_layer->scroll_remaining = menu_layer->scroll_delay;
+        return 1;
+    }
+    return 0;
+}
+
+static void scroll_click_handler(ClickRecognizerRef ref, MenuLayer *menu_layer)
+{
+    bool up = click_recognizer_get_button_id(ref) == BUTTON_ID_UP;
+    if (!click_recognizer_is_repeating(ref)) {
+        menu_layer_set_selected_next(menu_layer, up, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+        menu_layer_scroll_repeat_prepare(menu_layer);
+    } else {
+        if (menu_layer_scroll_repeat(menu_layer))
+            menu_layer_set_selected_next(menu_layer, up, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+    }
 }
 
 static void select_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
@@ -358,10 +382,10 @@ static void select_long_click_handler(ClickRecognizerRef _, MenuLayer *menu_laye
 
 static void menu_layer_click_config_provider(MenuLayer *menu_layer)
 {
-    window_single_repeating_click_subscribe(BUTTON_ID_DOWN, BUTTON_REPEAT_INTERVAL_MS,
-                                            (ClickHandler) down_single_click_handler);
-    window_single_repeating_click_subscribe(BUTTON_ID_UP, BUTTON_REPEAT_INTERVAL_MS,
-                                            (ClickHandler) up_single_click_handler);
+    window_single_repeating_click_subscribe(BUTTON_ID_DOWN, SCROLL_REPEAT_IVL_MS,
+                                            (ClickHandler) scroll_click_handler);
+    window_single_repeating_click_subscribe(BUTTON_ID_UP, SCROLL_REPEAT_IVL_MS,
+                                            (ClickHandler) scroll_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) select_single_click_handler);
     window_long_click_subscribe(BUTTON_ID_SELECT, BUTTON_LONG_CLICK_DELAY_MS, NULL,
                                 (ClickHandler) select_long_click_handler);

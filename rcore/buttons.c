@@ -155,13 +155,13 @@ static void _button_update(ButtonId button_id, uint8_t press)
         button->repeat_time = button->press_time;
             
         // send the raw keypress
+        button->state = BUTTON_STATE_PRESSED;
         if (button->click_config.raw.down_handler)
         {
             button_send_app_click(button, BUTTON_CLICK_THREAD_D_C, button->click_config.raw.down_handler,
-                NULL, // TODO
+                button,
                 button->click_config.context);
         }
-        button->state = BUTTON_STATE_PRESSED;
     }
     else
     {
@@ -187,7 +187,7 @@ static void _button_released(ButtonHolder *button)
         delta_ms < button->click_config.long_click.delay_ms))
     {
         button_send_app_click(button, BUTTON_CLICK_THREAD_S_C, button->click_config.click.handler,
-                NULL, // TODO
+                button,
                 button->click_config.context);
     }
     
@@ -197,7 +197,7 @@ static void _button_released(ButtonHolder *button)
     {
         // only trigger the release if we are over the repeat time
         button_send_app_click(button, BUTTON_CLICK_THREAD_L_C, button->click_config.long_click.release_handler,
-                NULL, // TODO
+                button,
                 button->click_config.context);
     }
     
@@ -206,7 +206,7 @@ static void _button_released(ButtonHolder *button)
     {
         //button->click_config.raw.up_handler(NULL, NULL);
         button_send_app_click(button, BUTTON_CLICK_THREAD_N_C, button->click_config.raw.up_handler,
-                NULL, // TODO
+                button,
                 button->click_config.context);
     }
     
@@ -250,7 +250,7 @@ static uint8_t _button_check_time(void)
             {
                 button->state = BUTTON_STATE_REPEATING;
                 button_send_app_click(button, BUTTON_CLICK_THREAD_S_C, button->click_config.click.handler,
-                        NULL, // TODO
+                        button,
                         button->click_config.context);
                 
                 // reset the time
@@ -266,7 +266,7 @@ static uint8_t _button_check_time(void)
             {
                 button->state = BUTTON_STATE_LONG;
                 button_send_app_click(button, BUTTON_CLICK_THREAD_L_C, button->click_config.long_click.handler,
-                        NULL, // TODO
+                        button,
                         button->click_config.context);
                 
                 // stop further processing
@@ -459,4 +459,14 @@ uint8_t button_short_click_is_subscribed(ButtonId button_id)
     ButtonHolder *holder = _button_holders[button_id];
     
     return holder->click_config.click.handler != NULL;
+}
+
+bool click_recognizer_is_repeating(ClickRecognizerRef recognizer)
+{
+    return ((ButtonHolder *)recognizer)->state == BUTTON_STATE_REPEATING;
+}
+
+ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer)
+{
+    return ((ButtonHolder *)recognizer)->button_id;
 }
