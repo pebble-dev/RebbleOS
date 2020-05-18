@@ -28,6 +28,12 @@
 #define FLASH_CMD_RESUME             0x0030
 #define FLASH_CMD_UNLOCK_BYPASS      0x0020
 #define FLASH_CMD_CFI_QUERY          0x0098
+#define FLASH_CMD_STATUS_READ        0x0070
+
+#define FLASH_STATUS_READY       0x80
+#define FLASH_STATUS_PROG_ERROR  0x20
+#define FLASH_STATUS_ERASE_ERROR 0x10
+
 
 #define SECTOR_START(address) (address & 0xFFFF0000)
 #define SECTOR_ADDRESS(sector) ((((sector) << 17) & 0xFFFF0000))
@@ -344,53 +350,50 @@ void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length)
     flash_operation_complete(0);
 }
 
+/* returns 0 if success, nonzero if error */
+int _flash_poll_complete(uint32_t address)
+{
+    uint16_t sr;
+    
+    do {
+        NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(address) + SHF(0x555), FLASH_CMD_STATUS_READ);
+        sr = *(__IO uint16_t *)(Bank1_NOR_ADDR + SECTOR_START(address));
+    } while (!(sr & FLASH_STATUS_READY));
+    
+    return sr & (FLASH_STATUS_PROG_ERROR | FLASH_STATUS_ERASE_ERROR);
+}
+
 int hw_flash_write_sync(uint32_t address, uint8_t *buffer, size_t length)
 {
     _nor_clock_request();
-    uint8_t rv = 0;
     int start_align = address % 2;
     int end_align = (address + length) % 2;
     uint32_t addr_aligned = address & ~1;
     uint32_t len_padded = length + start_align + end_align;
     assert((len_padded & 1) == 0);
+    assert((address & ~63) == ((address + length - 1) & ~63));
     
-    uint32_t rem = len_padded;
-    size_t bufpos = 0;
-    while(rem > 0)
-    {
-        int pg_left = 64 - (addr_aligned % 64);
-        int write_len = rem > 64 ? 64 : rem;
-        
-        if (pg_left - write_len > 64)
-            write_len = pg_left;        
-        
-        if (write_len > pg_left)
-            write_len = pg_left;
-    
-        NOR_WRITE(Bank1_NOR_ADDR + addr_aligned, FLASH_CMD_WRITE_BUFFER_LOAD);
-        NOR_WRITE(Bank1_NOR_ADDR + addr_aligned +  SHF(0x2AA), write_len / 2 - 1);
-        
-        for(size_t i = 0; i < write_len; i+=2)
-        {
-            uint8_t v[2];
-            v[0] = ((len_padded == (rem - i)) && start_align) ? 0xFF : buffer[bufpos++];
-            v[1] = (((rem - i)        == 2) && end_align  ) ? 0xFF : buffer[bufpos++];
-            NOR_WRITE(Bank1_NOR_ADDR + SHF((addr_aligned/2) + i/2),  *((uint16_t *)v));
-        }       
-        
-        NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(addr_aligned) + SHF(0x555), FLASH_CMD_WRITE_CONFIRM);
-        
-        // We automatically wait for completion using the WAIT signal.
-        (void)*(volatile uint16_t *)(Bank1_NOR_ADDR + SECTOR_START(addr_aligned));
+    NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(addr_aligned) + SHF(0x555), FLASH_CMD_WRITE_BUFFER_LOAD);
+    NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(addr_aligned) + SHF(0x2AA), len_padded / 2 - 1);
 
-        addr_aligned += write_len;
-        rem -= write_len;
-        _nor_reset_state();
-    }
+    for(size_t i = 0; i < len_padded; i+=2)
+    {
+        uint8_t v[2];
+        v[0] = ((i == 0)                && start_align) ? 0xFF : *(buffer++);
+        v[1] = ((i == (len_padded - 1)) && end_align  ) ? 0xFF : *(buffer++);
+        NOR_WRITE(Bank1_NOR_ADDR + addr_aligned + i, *((uint16_t *)v));
+    }       
+    
+    NOR_WRITE(Bank1_NOR_ADDR + SECTOR_START(addr_aligned) + SHF(0x555), FLASH_CMD_WRITE_CONFIRM);
+    
+    int err = _flash_poll_complete(addr_aligned);
+
+    // We automatically wait for completion using the WAIT signal.
+    _nor_reset_state();
     
     _nor_clock_release();
     //flash_operation_complete(ex);
-    return rv;
+    return err;
 }
 
 int hw_flash_erase_32k_sync(uint32_t address)
@@ -401,10 +404,12 @@ int hw_flash_erase_32k_sync(uint32_t address)
     NOR_WRITE(Bank1_NOR_ADDR + (address) + SHF(0x555), FLASH_CMD_ERASE_SETUP);
     NOR_WRITE(Bank1_NOR_ADDR + (address) + SHF(0x2AA), FLASH_CMD_SECTOR_ERASE);
         
+    int err = _flash_poll_complete(address);
+
     _nor_reset_state();
 
     _nor_clock_release();
-    return 0;
+    return err;
 }
 
 int hw_flash_erase_sync(uint32_t addr, uint32_t len) {
