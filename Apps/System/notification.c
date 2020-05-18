@@ -90,11 +90,6 @@ static void _notif_menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuInd
         return;
     }
     
-    APP_LOG("noty", APP_LOG_LEVEL_INFO, "rendering noty %d", (int)cell_index->row);
-
-    static char s_buff[16];
-    snprintf(s_buff, sizeof(s_buff), "Noty %d", (int)cell_index->row);
-    
     /* Find the noty. */
     int i = 0;
     struct rdb_select_result *res;
@@ -105,13 +100,92 @@ static void _notif_menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuInd
         i++;
     }
     assert(i == cell_index->row);
+    void *key = res->result[0];
     
-    uint8_t *uuid = res->result[0];
-    static char s_uuidbuf[16];
-    snprintf(s_uuidbuf, sizeof(s_uuidbuf), "%02x%02x%02x%02x",
-        uuid[0], uuid[1], uuid[2], uuid[3]);
+    /* Now that we have the key, go actually fully load the noty itself. */
+    struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
+    struct rdb_iter it;
+    rdb_select_result_list notif_result;
     
-    menu_cell_basic_draw(ctx, cell_layer, s_buff, s_uuidbuf, NULL);
+    list_init_head(&notif_result);
+    
+    if (!rdb_iter_start(db, &it)) {
+        rdb_close(db);
+        goto failed;
+    }
+    
+    struct rdb_selector selectors[] = {
+        { offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), RDB_OP_EQ, key },
+        { 0, 0, RDB_OP_RESULT_FULLY_LOAD },
+        { }
+    };
+    
+    if (rdb_select(&it, &notif_result, selectors) != 1) {
+        rdb_select_free_all(&notif_result);
+        rdb_close(db);
+        goto failed;
+    }
+    
+    rdb_close(db);
+    
+    /* Now we have one noty, loaded in memory!  Grab it from the list... */
+    void *item_data;
+    rdb_select_result_foreach(res, &notif_result) {
+        item_data = res->result[0];
+    }
+    
+    /* ... et voila.  Now just time to render it.  Prioritize what we show. */
+    rebble_notification *noty = timeline_item_process(item_data);
+    rebble_attribute *a;
+    const char *sender = NULL;
+    const char *subject = NULL;
+    const char *message = NULL;
+    
+    list_foreach(a, &noty->attributes, rebble_attribute, node) {
+        switch (a->timeline_attribute.attribute_id) {
+        case TimelineAttributeType_Sender:  sender  = (const char *) a->data; break;
+        case TimelineAttributeType_Subject: subject = (const char *) a->data; break;
+        case TimelineAttributeType_Message: message = (const char *) a->data; break;
+        default:
+            /* we don't care */
+            ;
+        }
+    }
+    
+    if (sender  && !strlen(sender )) sender  = NULL;
+    if (subject && !strlen(subject)) subject = NULL;
+    if (message && !strlen(message)) message = NULL;
+    
+    const char *title = NULL, *subtitle = NULL;
+    if (sender) {
+        title = sender;
+        if (subject) {
+            subtitle = subject;
+        } else if (message) {
+            subtitle = message;
+        }
+    } else if (subject) {
+        title = subject;
+        if (message) {
+            subtitle = message;
+        }
+    } else if (message) {
+        title = message;
+    } else {
+        title = "No title";
+    }
+
+    /* XXX: Retrieve an icon from flash by-app. */
+    menu_cell_basic_draw(ctx, cell_layer, title, subtitle, NULL);
+    
+    /* And clean up. */
+    timeline_destroy(noty);
+    rdb_select_free_all(&notif_result);
+    
+    return;
+    
+failed:
+    menu_cell_basic_draw(ctx, cell_layer, "Error", "Failed to load", NULL);
 }
 
 static int16_t _notif_menu_get_cell_height(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
