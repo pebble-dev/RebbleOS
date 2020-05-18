@@ -61,6 +61,9 @@
  */
 #define MEM_REGION_CCRAM __attribute__((section(".ccmram")))
 
+#define PLATFORM_FLASH_PAGE_MASK 0xFFFFFFC0
+#define PLATFORM_FLASH_PAGE_SIZE 64
+
 
 //Snowy uses OC1 for backlight
 #define BL_TIM_CH 1
