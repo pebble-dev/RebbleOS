@@ -351,7 +351,7 @@ void hw_flash_read_bytes(uint32_t address, uint8_t *buffer, size_t length)
 }
 
 /* returns 0 if success, nonzero if error */
-int _flash_poll_complete(uint32_t address)
+static int _flash_poll_complete(uint32_t address)
 {
     uint16_t sr;
     
@@ -388,7 +388,6 @@ int hw_flash_write_sync(uint32_t address, uint8_t *buffer, size_t length)
     
     int err = _flash_poll_complete(addr_aligned);
 
-    // We automatically wait for completion using the WAIT signal.
     _nor_reset_state();
     
     _nor_clock_release();
