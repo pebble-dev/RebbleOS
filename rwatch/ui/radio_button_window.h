@@ -17,8 +17,15 @@
 struct RadiobuttonWindow;
 typedef struct RadiobuttonWindow RadiobuttonWindow;
 
-void radio_button_window_push(RadiobuttonWindow *radio_star);
+typedef void (*RadiobuttonWindowComplete)(bool* s_selections, void *context);
 
-RadiobuttonWindow *radiobutton_window_create(uint16_t max_items);
+typedef struct RadiobuttonWindowCallbacks {
+  RadiobuttonWindowComplete radiobutton_complete;
+} RadiobuttonWindowCallbacks;
+
+RadiobuttonWindow *radiobutton_window_create(uint16_t max_items, RadiobuttonWindowCallbacks radiobutton_window_callbacks);
+void radio_button_window_push(RadiobuttonWindow *radio_star, bool animated);
+void radio_button_window_pop(RadiobuttonWindow *radio_star, bool animated);
+
 void radiobutton_add_selection(RadiobuttonWindow *radio_star, char *selection_label);
-void set_radiobutton_selection_colors(RadiobuttonWindow *radio_star, GColor background, GColor foreground);
+void radiobutton_set_selection_colors(RadiobuttonWindow *radio_star, GColor background, GColor foreground);

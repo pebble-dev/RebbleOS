@@ -18,8 +18,15 @@
 struct CheckboxWindow;
 typedef struct CheckboxWindow CheckboxWindow;
 
-void checkbox_window_push();
+typedef void (*CheckboxWindowComplete)(bool* s_selections, void *context);
 
-CheckboxWindow *checkbox_window_create(uint16_t max_items);
+typedef struct CheckboxWindowCallbacks {
+  CheckboxWindowComplete checkbox_complete;
+} CheckboxWindowCallbacks;
+
+CheckboxWindow *checkbox_window_create(uint16_t max_items, CheckboxWindowCallbacks checkbox_window_callbacks);
+void checkbox_window_push(CheckboxWindow *checkmate, bool animated);
+void checkbox_window_pop(CheckboxWindow *checkmate, bool animated);
+
 void checkbox_add_selection(CheckboxWindow *checkmate, char *selection_label);
-void set_checkbox_selection_colors(CheckboxWindow *checkmate, GColor background, GColor foreground);
+void checkbox_set_selection_colors(CheckboxWindow *checkmate, GColor background, GColor foreground);

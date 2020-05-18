@@ -15,6 +15,7 @@ struct CheckboxWindow
     Window window;
     MenuLayer *menu_layer;
     GBitmap *s_tick_black_bitmap, *s_tick_white_bitmap;
+    CheckboxWindowCallbacks callbacks;
     
     GColor checkbox_foreground_color;
     GColor checkbox_background_color;
@@ -30,7 +31,7 @@ void checkbox_add_selection(CheckboxWindow *checkmate, char *selection_label) {
   checkmate->selection_count++;
 }
 
-void set_checkbox_selection_colors(CheckboxWindow *checkmate, GColor background, GColor foreground) {
+void checkbox_set_selection_colors(CheckboxWindow *checkmate, GColor background, GColor foreground) {
   checkmate->checkbox_background_color = background;
   checkmate->checkbox_foreground_color = foreground;
 }
@@ -90,11 +91,7 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
   
   if(cell_index->row == checkmate->selection_count) {
     // Do something with choices made
-    for(int i = 0; i < checkmate->selection_count; i++) {
-      //APP_LOG(APP_LOG_LEVEL_INFO, "Option %d was %s", i, (checkmate->s_selections[i] ? "selected" : "not selected"));
-      APP_LOG("test",APP_LOG_LEVEL_DEBUG,"Option %d was %s", i, (checkmate->s_selections[i] ? "selected" : "not selected"));
-    }
-    window_stack_pop(true);
+    checkmate->callbacks.checkbox_complete(checkmate->s_selections, checkmate);
   } else {
     // Check/uncheck
     int row = cell_index->row;
@@ -131,24 +128,31 @@ static void checkbox_window_load(Window *window) {
 }
 
 static void checkbox_window_unload(Window *window) {
-  /*menu_layer_destroy(s_menu_layer);
 
-  gbitmap_destroy(s_tick_black_bitmap);
-  gbitmap_destroy(s_tick_white_bitmap);
+  CheckboxWindow *checkmate = (CheckboxWindow *)window;
 
-  window_destroy(window);
-  s_main_window = NULL;*/
+  menu_layer_destroy(checkmate->menu_layer);
+
+  gbitmap_destroy(checkmate->s_tick_black_bitmap);
+  gbitmap_destroy(checkmate->s_tick_white_bitmap);
+
+  window_destroy(&checkmate->window);
 }
 
-void checkbox_window_push(CheckboxWindow *checkmate) {
-  window_stack_push(&checkmate->window, true);
+void checkbox_window_push(CheckboxWindow *checkmate, bool animated) {
+  window_stack_push(&checkmate->window, animated);
 }
 
-CheckboxWindow *checkbox_window_create(uint16_t max_items)
+void checkbox_window_pop(CheckboxWindow *checkmate, bool animated) {
+  window_stack_remove(&checkmate->window, animated);
+}
+
+CheckboxWindow *checkbox_window_create(uint16_t max_items, CheckboxWindowCallbacks callbacks)
 {
   CheckboxWindow *checkmate = (CheckboxWindow *)app_calloc(1, sizeof(CheckboxWindow) + (sizeof(char[10]) * max_items));
 
   window_ctor(&checkmate->window);
+  checkmate->callbacks = callbacks;
   checkmate->window.user_data = checkmate;
     window_set_window_handlers(&checkmate->window, (WindowHandlers) {
         .load = checkbox_window_load,

@@ -13,6 +13,7 @@ struct RadiobuttonWindow
 {
   Window window;
   MenuLayer *menu_layer;
+  RadiobuttonWindowCallbacks callbacks;
 
   GColor radiobutton_foreground_color;
   GColor radiobutton_background_color;
@@ -28,7 +29,7 @@ void radiobutton_add_selection(RadiobuttonWindow *radio_star, char *selection_la
   radio_star->selection_count++;
 }
 
-void set_radiobutton_selection_colors(RadiobuttonWindow *radio_star, GColor background, GColor foreground) {
+void radiobutton_set_selection_colors(RadiobuttonWindow *radio_star, GColor background, GColor foreground) {
   radio_star->radiobutton_background_color = background;
   radio_star->radiobutton_foreground_color = foreground;
 }
@@ -84,9 +85,8 @@ static void select_callback(struct MenuLayer *menu_layer, MenuIndex *cell_index,
 
   if(cell_index->row == radio_star->selection_count) {
     // Do something with user choice
-    //APP_LOG(APP_LOG_LEVEL_INFO, "Submitted choice %d", radio_star->current_selection);
-    APP_LOG("test",APP_LOG_LEVEL_DEBUG,"Submitted choice %d", radio_star->current_selection);
-    window_stack_pop(true);
+    radio_star->callbacks.radiobutton_complete(radio_star->current_selection, radio_star);
+
   } else {
     // Change selection
     radio_star->current_selection = cell_index->row;
@@ -122,15 +122,20 @@ static void radiobutton_window_unload(Window *window) {
   s_main_window = NULL;*/
 }
 
-void radiobutton_window_push(RadiobuttonWindow *radio_star) {
-  window_stack_push(&radio_star->window, true);
+void radiobutton_window_push(RadiobuttonWindow *radio_star, bool animated) {
+  window_stack_push(&radio_star->window, animated);
 }
 
-RadiobuttonWindow *radiobutton_window_create(uint16_t max_items)
+void radiobutton_window_pop(RadiobuttonWindow *radio_star, bool animated) {
+  window_stack_remove(&radio_star->window, animated);
+}
+
+RadiobuttonWindow *radiobutton_window_create(uint16_t max_items, RadiobuttonWindowCallbacks callbacks)
 {
   RadiobuttonWindow *radio_star = (RadiobuttonWindow *)app_calloc(1, sizeof(RadiobuttonWindow) + (sizeof(char[10]) * max_items));
 
   window_ctor(&radio_star->window);
+  radio_star->callbacks = callbacks;
   radio_star->window.user_data = radio_star;
     window_set_window_handlers(&radio_star->window, (WindowHandlers) {
         .load = radiobutton_window_load,
