@@ -556,8 +556,11 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
         has_subtitle = true;
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
         GRect subtitle_rect;
+        uint8_t h = n_graphics_font_get_line_height(font);
+        if (frame.size.h < h)
+            h = frame.size.h;
         subtitle_rect = GRect(x, frame.size.h / 2 - 2,
-                              frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
+                              frame.size.w - x - MENU_CELL_PADDING, h);
         graphics_draw_text(ctx, subtitle, font, subtitle_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
@@ -565,8 +568,11 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
     if (title)
     {
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
+        uint8_t h = n_graphics_font_get_line_height(title_font);
+        if (frame.size.h < h)
+            h = frame.size.h;
         GRect title_rect = GRect(x, frame.size.h / 2 - ( has_subtitle ? 26 : 18 ),
-                                 frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
+                                 frame.size.w - x - MENU_CELL_PADDING, h);
         graphics_draw_text(ctx, title, title_font, title_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
