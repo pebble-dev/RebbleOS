@@ -20,8 +20,16 @@
 
 static NotificationLayer* _notif_layer;
 static Window* _notif_window;
-static Menu *s_menu;
+static MenuLayer *s_menu_layer;
 static Window *s_main_window;
+
+/* We store all the notification keys in a list, and lazy-load each
+ * notification to display on screen.  The special case is if there are no
+ * notifications at all, in which case we display a single "no
+ * notifications" menu list item.
+ */
+static rdb_select_result_list _notif_list;
+static int _notif_count = 0;
 
 static void _notif_window_load(Window *window);
 static void _notif_window_unload(Window *window);
@@ -66,8 +74,51 @@ static MenuItems* _msg_list_item_selected(const MenuItem *item)
 static void _notif_destroy_layer_cb(ClickRecognizerRef _, void *context)
 {
     notification_layer_destroy(_notif_layer);
-    menu_set_click_config_onto_window(s_menu, s_main_window);
     window_load_click_config(s_main_window);
+}
+
+static uint16_t _notif_menu_get_num_rows(MenuLayer *menu_layer, uint16_t section_index, void *context) {
+    if (_notif_count == 0)
+        return 1;
+    else
+        return _notif_count;
+}
+
+static void _notif_menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context) {
+    if (_notif_count == 0) {
+        menu_cell_basic_draw(ctx, cell_layer, "No notifications", "Asleep at the switch?", /* icon, GBitmap */ NULL);
+        return;
+    }
+    
+    APP_LOG("noty", APP_LOG_LEVEL_INFO, "rendering noty %d", (int)cell_index->row);
+
+    static char s_buff[16];
+    snprintf(s_buff, sizeof(s_buff), "Noty %d", (int)cell_index->row);
+    
+    /* Find the noty. */
+    int i = 0;
+    struct rdb_select_result *res;
+    rdb_select_result_foreach(res, &_notif_list) {
+        if (i == cell_index->row)
+            break;
+        
+        i++;
+    }
+    assert(i == cell_index->row);
+    
+    uint8_t *uuid = res->result[0];
+    static char s_uuidbuf[16];
+    snprintf(s_uuidbuf, sizeof(s_uuidbuf), "%02x%02x%02x%02x",
+        uuid[0], uuid[1], uuid[2], uuid[3]);
+    
+    menu_cell_basic_draw(ctx, cell_layer, s_buff, s_uuidbuf, NULL);
+}
+
+static int16_t _notif_menu_get_cell_height(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
+    return 44; /* hardcoded for basic_draw: can we get another one somewhere? */
+}
+
+static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
 }
 
 static void _notif_window_load(Window *window)
@@ -77,68 +128,49 @@ static void _notif_window_load(Window *window)
     MenuItems *items;
     
 #ifdef PBL_RECT
-    s_menu = menu_create(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16));
+    s_menu_layer = menu_layer_create(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16));
 #else
     // Let the menu draw behind the statusbar so it is perfectly centered
-    s_menu = menu_create(GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS));
+    s_menu_layer = menu_layer_create(GRect(0, 0, DISPLAY_COLS, DISPLAY_ROWS));
 #endif
-    menu_set_callbacks(s_menu, s_menu, (MenuCallbacks) {
-        .on_menu_exit = _exit_to_watchface
+
+    menu_layer_set_click_config_onto_window(s_menu_layer, window);
+    menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks) {
+        .get_num_rows = _notif_menu_get_num_rows,
+        .draw_row = _notif_menu_draw_row,
+        .get_cell_height = _notif_menu_get_cell_height,
+        .select_click = _notif_menu_select_click,
+        /* XXX: override back button, a la https://gist.github.com/sarfata/10574031 ... or just add a back-door API */
     });
-    layer_add_child(window_layer, menu_get_layer(s_menu));
+    layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
 
-    menu_set_click_config_onto_window(s_menu, window);
-
-    rdb_select_result_list head;
-    list_init_head(&head);
+    /* Load in the keys for all the notifications on the system. */
+    list_init_head(&_notif_list);
     
     struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
     struct rdb_iter it;
     if (rdb_iter_start(db, &it)) {
-        struct rdb_selector selectors[] = { { } };
-        int n = rdb_select(&it, &head, selectors);
-        APP_LOG("noty", APP_LOG_LEVEL_INFO, "%d items from select", n);
+        struct rdb_selector selectors[] = {
+            { offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), RDB_OP_RESULT },
+            { }
+        };
+        _notif_count = rdb_select(&it, &_notif_list, selectors);
+        APP_LOG("noty", APP_LOG_LEVEL_INFO, "%d items from select", _notif_count);
     }
 
-    int nmsgs = 0;
-    struct rdb_select_result *res;
-    rdb_select_result_foreach(res, &head) {
-        nmsgs++;
-    }
-
-    rdb_select_free_all(&head);
-
-    if (!nmsgs) {
-        items = menu_items_create(1);
-        menu_items_add(items, MenuItem("No Messages", NULL, RESOURCE_ID_SPEECH_BUBBLE, NULL));
-        menu_set_items(s_menu, items);
-        return;
-    }
-    
     rdb_close(db);
-
-    items = menu_items_create(nmsgs);
-//     rebble_notification *msg;
-//     cmd_phone_attribute_t *a;
-//     
-//     
-//     list_foreach(msg, message_head, rebble_notification, node)
-//     {
-//         list_foreach(a, &msg->attributes_list_head, cmd_phone_attribute_t, node)
-//         {
-//             MenuItem mi = MenuItem((char *)a->data, NULL, RESOURCE_ID_SPEECH_BUBBLE, _msg_list_item_selected);
-//             mi.context = msg;
-//             menu_items_add(items, mi);
-//         }
-//     }        
-    menu_set_items(s_menu, items);
     
+    menu_layer_reload_data(s_menu_layer);
+
     return;
     
 }
 
 static void _notif_window_unload(Window *window)
 {
+    rdb_select_free_all(&_notif_list);
+    menu_layer_destroy(s_menu_layer);
+
     if (_notif_layer)
     {
         notification_layer_destroy(_notif_layer);
