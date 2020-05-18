@@ -118,7 +118,7 @@ Menu* menu_create(GRect frame)
     Menu *menu = (Menu *) app_calloc(1, sizeof(Menu));
     menu->items = menu_items_create(0);
     menu->layer = menu_layer_create(frame);
-    menu_layer_set_highlight_colors(menu->layer, GColorRed, GColorWhite);
+    menu_layer_set_highlight_colors(menu->layer, PBL_IF_COLOR_ELSE(GColorRed, GColorBlack), GColorWhite);
     menu_layer_set_callbacks(menu->layer, menu, (MenuLayerCallbacks) {
         .get_num_rows = (MenuLayerGetNumberOfRowsInSectionsCallback) get_num_rows_callback,
         .draw_row = (MenuLayerDrawRowCallback) draw_row_callback,
