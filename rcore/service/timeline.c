@@ -27,12 +27,9 @@ static uint16_t _process_attribute(list_head *list, void *raw_data)
     memcpy(&r_attr->timeline_attribute, raw_data, sizeof(timeline_attribute));
     uint16_t len = sizeof(timeline_attribute) + r_attr->timeline_attribute.length;
 
-    if (r_attr->timeline_attribute.length > 0)
-    {
-        timeline_attribute *nattr = (timeline_attribute *)raw_data;
-        data = app_calloc(1, r_attr->timeline_attribute.length + 1);
-        memcpy(data, nattr->data, r_attr->timeline_attribute.length);
-    }
+    timeline_attribute *nattr = (timeline_attribute *)raw_data;
+    data = app_calloc(1, r_attr->timeline_attribute.length + 1);
+    memcpy(data, nattr->data, r_attr->timeline_attribute.length);
 
     r_attr->data = data;
     list_init_node(&r_attr->node);
