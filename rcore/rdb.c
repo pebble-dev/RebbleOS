@@ -144,7 +144,9 @@ static int _rdb_seek_valid(struct fd *fdp, struct rdb_hdr *hdrp, int next) {
         }
         
         /* Erased -- or skipping the first? */
-        if (FLAG_SET(hdr.flags, RDB_FLAG_ERASED) || next) {
+        if (FLAG_SET(hdr.flags, RDB_FLAG_ERASED) || 
+            !FLAG_SET(hdr.flags, RDB_FLAG_WRITTEN) ||
+            next) {
             next = 0;
             fs_seek(&fd, hdr.key_len + hdr.data_len, FS_SEEK_CUR);
             continue;
