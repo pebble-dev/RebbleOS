@@ -483,7 +483,7 @@ static void _music_window_load(Window *window) {
     // srand(time(NULL)); TODO time seed
     Layer *window_layer = window_get_root_layer(s_music_main_window);
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
-
+    window_set_background_color(window, GColorWhite);
     s_progress_pixels = 25;
     s_trackcounter = 2;
     _get_new_track();

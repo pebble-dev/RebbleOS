@@ -15,7 +15,6 @@
 #include "test_defs.h"
 #include "node_list.h"
 #include "rdb.h"
-#include "blobdb.h"
 #include "musicapp.h"
 
 static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint8_t type, void *entry_point, bool is_internal,
