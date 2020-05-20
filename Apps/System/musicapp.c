@@ -48,6 +48,8 @@
 #include "property_animation.h"
 #include "protocol.h"
 #include "protocol_music.h"
+#include "event_service.h"
+
 
 #define LERP(a, b)  ((a) + ((b) - (a)) * distance_normalized / ANIMATION_NORMALIZED_MAX)
 #define RECORD_CENTER_X 56
@@ -127,6 +129,26 @@ static void _setup_music_animation_arm(int32_t angle, uint32_t duration_ms);
 static void _setup_music_animation_record();
 static void _music_deinit(void);
 
+
+static MusicTrackInfo *_music_track;
+
+static void _music_info(EventServiceCommand command, void *data)
+{
+    if (_music_track)
+        app_free(_music_track);
+
+    MusicTrackInfo *amusic = protocol_music_decode(data);
+    _music_track = amusic;
+
+    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Title: %s", amusic->title);
+    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Artist: %s", amusic->artist);
+    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Album: %s", amusic->album);
+
+    s_artist = amusic->artist;
+    s_track = amusic->title;
+
+}
+
 uint32_t one_at_a_time_hash(const uint8_t* key, size_t length) {
   size_t i = 0;
   uint32_t hash = 0;
@@ -150,24 +172,10 @@ n_GColor8 songColor(unsigned char *str)
 }
 
 static void _get_new_track() {
-    s_trackcounter++;
-    if (s_trackcounter >= 3) {
-        s_trackcounter = 0;
-    }
-    s_artist = artists[s_trackcounter];
-    s_track = tracks[s_trackcounter];
-    s_length = length[s_trackcounter];
-    s_progress = 0;
+	protocol_music_get_current_track();
 }
 static void _get_last_track() {
-    s_trackcounter--;
-    if (s_trackcounter < 0) {
-        s_trackcounter = 2;
-    }
-    s_artist = artists[s_trackcounter];
-    s_track = tracks[s_trackcounter];
-    s_length = length[s_trackcounter];
-    s_progress = 0;
+	//protocol_music_get_last_track();
 }
 
 static void _music_tick(struct tm *tick_time, TimeUnits tick_units) {
@@ -486,7 +494,10 @@ static void _music_window_load(Window *window) {
     window_set_background_color(window, GColorWhite);
     s_progress_pixels = 25;
     s_trackcounter = 2;
-    _get_new_track();
+    //_get_new_track();
+    /* Music. Request the music track from the remote device */
+    protocol_music_get_current_track();
+    event_service_subscribe(EventServiceCommandMusic, _music_info);
     s_progress = 44;
     s_arm_angle = ARM_HOME_ANGLE;
     s_old_arm_angle = -1;
@@ -520,6 +531,8 @@ static void _music_window_load(Window *window) {
     
     layer_set_update_proc(s_music_main_layer, _main_layer_update_proc);
     tick_timer_service_subscribe(SECOND_UNIT, _music_tick);
+
+
 }
 
 static void _music_window_unload(Window *window) {
