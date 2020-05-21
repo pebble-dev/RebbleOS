@@ -100,8 +100,8 @@ static bool s_animating_disk_change;
 static bool s_animating_arm_change;
 static bool s_is_paused;
 static bool s_was_paused;
-static char *s_artist;
-static char *s_track;
+static char *s_artist = "Null";
+static char *s_track = "Null";
 static GBitmap *s_up_bitmap;
 static GBitmap *s_down_bitmap;
 static GBitmap *s_select_bitmap;
@@ -128,26 +128,8 @@ static void _skip_track(int32_t direction);
 static void _setup_music_animation_arm(int32_t angle, uint32_t duration_ms);
 static void _setup_music_animation_record();
 static void _music_deinit(void);
-
-
 static MusicTrackInfo *_music_track;
 
-static void _music_info(EventServiceCommand command, void *data)
-{
-    if (_music_track)
-        app_free(_music_track);
-
-    MusicTrackInfo *amusic = protocol_music_decode(data);
-    _music_track = amusic;
-
-    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Title: %s", amusic->title);
-    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Artist: %s", amusic->artist);
-    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Album: %s", amusic->album);
-
-    s_artist = amusic->artist;
-    s_track = amusic->title;
-
-}
 
 uint32_t one_at_a_time_hash(const uint8_t* key, size_t length) {
   size_t i = 0;
@@ -171,18 +153,27 @@ n_GColor8 songColor(unsigned char *str)
 	return GColorFromRGB(hash, hash >> 8, hash >> 16);
 }
 
-static void _get_new_track() {
-	protocol_music_get_current_track();
+void _music_info(EventServiceCommand command, void *data)
+{
+       if (_music_track)
+	        app_free(_music_track);
+
+	    MusicTrackInfo *amusic = protocol_music_decode(data);
+	    _music_track = amusic;
+
+	    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Title: %s", amusic->title);
+	    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Artist: %s", amusic->artist);
+	    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Album: %s", amusic->album);
+
+	    s_artist = (char *)amusic->artist;
+	    s_track = (char *)amusic->title;
+        
 }
-static void _get_last_track() {
-	//protocol_music_get_last_track();
-}
+
 
 static void _music_tick(struct tm *tick_time, TimeUnits tick_units) {
     if ((tick_units & SECOND_UNIT) && !s_is_paused) {
         if (s_progress >= s_length) {
-            _get_new_track();
-            _skip_track(SKIP_DIRECTION_NEXT);
             s_progress_pixels = 0;
         } else {
             s_progress++;
@@ -323,11 +314,10 @@ static void _skip_track(int32_t direction) {
       _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     }
     s_skip_value += direction;
-    // TODO REMOVE DEMO
     if (direction == SKIP_DIRECTION_NEXT)
-        _get_new_track();
+    	protocol_music_next();
     else
-        _get_last_track();
+    	protocol_music_prev();
 }
 
 /*******************
@@ -347,12 +337,13 @@ static void _down_click_handler(ClickRecognizerRef recognizer, void *context) {
 
 static void _select_click_handler(ClickRecognizerRef recognizer, void *context) {
     // TODO Toggle between toggling volume && skipping and play pause
-    // When paused, move arm to side
     s_is_paused = !s_is_paused;
     if (s_is_paused) {
+    	protocol_music_pause();
         tick_timer_service_subscribe(MINUTE_UNIT, _music_tick);
         _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     } else {
+    	protocol_music_play();
         tick_timer_service_subscribe(SECOND_UNIT, _music_tick);
         _setup_music_animation_arm(ARM_HOME_ANGLE, ARM_SKIP_SPEED);
     }
@@ -542,6 +533,7 @@ static void _music_window_unload(Window *window) {
     gbitmap_destroy(s_select_bitmap);
     animation_destroy(s_animation_record_ptr);
     animation_destroy(_s_animation_arm_ptr);
+    event_service_unsubscribe(EventServiceCommandMusic);
     _destroy_paths();
     tick_timer_service_unsubscribe();
 }
