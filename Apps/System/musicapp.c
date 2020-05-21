@@ -48,6 +48,7 @@
 #include "property_animation.h"
 #include "protocol.h"
 #include "protocol_music.h"
+#include "platform_res.h"
 #include "event_service.h"
 
 
@@ -164,10 +165,11 @@ void _music_info(EventServiceCommand command, void *data)
 	    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Title: %s", amusic->title);
 	    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Artist: %s", amusic->artist);
 	    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Album: %s", amusic->album);
+	    APP_LOG("music", APP_LOG_LEVEL_DEBUG,"Length: %s", amusic->track_length);
 
 	    s_artist = (char *)amusic->artist;
 	    s_track = (char *)amusic->title;
-        
+	    s_length = (char *)amusic->track_length;
 }
 
 
@@ -510,15 +512,15 @@ static void _music_window_load(Window *window) {
     //animation_set_curve(_s_animation_arm_ptr, AnimationCurveEaseInOut);
     
     s_music_action_bar = action_bar_layer_create();
-    s_up_bitmap = gbitmap_create_with_resource(21); //XXX
-    s_down_bitmap = gbitmap_create_with_resource(25); //XXX
-    s_select_bitmap = gbitmap_create_with_resource(22); //XXX
+    s_up_bitmap = gbitmap_create_with_resource(RESOURCE_ID_UNKNOWN); //TODO:Add actual icon
+    s_down_bitmap = gbitmap_create_with_resource(RESOURCE_ID_MUSIC_PLAY); //TODO:Add icon update when playing vs paused
+    s_select_bitmap = gbitmap_create_with_resource(RESOURCE_ID_UNKNOWN); //TODO:Add actual icon
     action_bar_layer_set_icon(s_music_action_bar, BUTTON_ID_UP, s_up_bitmap);
     action_bar_layer_set_icon(s_music_action_bar, BUTTON_ID_SELECT, s_down_bitmap);
     action_bar_layer_set_icon(s_music_action_bar, BUTTON_ID_DOWN, s_select_bitmap);
     action_bar_layer_set_click_config_provider(s_music_action_bar, _click_config_provider);
     action_bar_layer_add_to_window(s_music_action_bar, s_music_main_window);
-    action_bar_layer_set_background_color(s_music_action_bar, GColorLightGray);
+    action_bar_layer_set_background_color(s_music_action_bar, GColorRed);
     
     layer_set_update_proc(s_music_main_layer, _main_layer_update_proc);
     tick_timer_service_subscribe(SECOND_UNIT, _music_tick);
