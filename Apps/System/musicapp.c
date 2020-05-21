@@ -57,11 +57,11 @@
 #define RECORD_CENTER GPoint(RECORD_CENTER_X, RECORD_CENTER_Y)
 #define RECORD_SWOOSH_DISTANCE 130
 #define RECORD_SWOOSH_SPEED 250
-#define ARM_OFFSET_X 17
-#define ARM_OFFSET_Y 77
+#define ARM_OFFSET_X 90
+#define ARM_OFFSET_Y 30
 #define ARM_OFFSET GPoint(ARM_OFFSET_X, ARM_OFFSET_Y)
-#define ARM_OFFSET_ANGLE -31
-#define ARM_HOME_ANGLE 30
+#define ARM_OFFSET_ANGLE 60
+#define ARM_HOME_ANGLE 130
 #define ARM_SKIP_SPEED 200
 #define ARM_QUICK_SPEED 100
 #define SKIP_DIRECTION_PREV -1
@@ -83,15 +83,15 @@ static n_GPathInfo pathinfo_arm_base = {
 };
 static n_GPathInfo pathinfo_arm_1 = {
     .num_points = 2,
-    .points = (n_GPoint[]) {{0, -3}, {0, -3-19}}
+    .points = (n_GPoint[]) {{0, -3}, {0, -3-25}}
 };
 static n_GPathInfo pathinfo_arm_2 = {
     .num_points = 2,
-    .points = (n_GPoint[]) {{0, -3-19}, {19, -3-19-15}}
+    .points = (n_GPoint[]) {{0, -3-25}, {5, -3-25-15}}
 };
 static n_GPathInfo pathinfo_arm_head = {
     .num_points = 2,
-    .points = (n_GPoint[]) {{19, -3-19-14}, {19+9, -3-19-15-6}}
+    .points = (n_GPoint[]) {{5, -3-25-14}, {5+9, -3-25-15-6}}
 };
 
 static Animation *s_animation_record_ptr;
