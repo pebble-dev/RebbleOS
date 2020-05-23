@@ -177,6 +177,7 @@ SRCS_all += Apps/System/settings.c
 
 SRCS_all += Apps/System/widgettest.c
 SRCS_all += Apps/System/notification.c
+SRCS_all += Apps/System/musicapp.c
 
 SRCS_all += hw/platform/qemu/hw_qemu.c
 

@@ -86,6 +86,7 @@ static MenuItems* about_item_selected(const MenuItem *item)
 
 static MenuItems* music_item_selected(const MenuItem *item)
 {
+    appmanager_app_start("Music");
     return NULL;
 }
 
@@ -167,10 +168,10 @@ static void systemapp_window_load(Window *window)
 
     menu_set_click_config_onto_window(s_menu, window);
 
-    items = menu_items_create(7);
+    MenuItems *items = menu_items_create(7);
     menu_items_add(items, MenuItem("Watchfaces", "All your faces", RESOURCE_ID_CLOCK, watch_list_item_selected));
     menu_items_add(items, MenuItem("Apps", "Get appy", RESOURCE_ID_CLOCK, app_list_item_selected));
-    menu_items_add(items, MenuItem("Music", "No Music",  RESOURCE_ID_SPANNER, music_item_selected));
+    menu_items_add(items, MenuItem("Music", "No Music",  RESOURCE_ID_SPANNER, music_item_selected));// TODO: plumb now-playing data into this menu item
     menu_items_add(items, MenuItem("Settings", "Config", RESOURCE_ID_SPANNER, settings_item_selected));
     menu_items_add(items, MenuItem("Tests", NULL, RESOURCE_ID_CLOCK, run_test_item_selected));
     menu_items_add(items, MenuItem("Notifications", NULL, RESOURCE_ID_SPEECH_BUBBLE, notification_item_selected));
