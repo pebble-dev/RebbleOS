@@ -249,9 +249,8 @@ rebble_notification *timeline_get_notification(Uuid *uuid)
     
     struct rdb_select_result *res = rdb_select_result_head(&head);
     rebble_notification *notif = timeline_item_process(res->result[0]);
-    printblob(notif);
+
     rdb_select_free_all(&head);
-    
     rdb_close(db);
 
     return notif;
