@@ -9,6 +9,7 @@
 #include "rebbleos.h"
 #include "notification.h"
 #include "notification_layer.h"
+#include "single_notification_layer.h"
 #include "librebble.h"
 #include "bitmap_layer.h"
 #include "action_bar_layer.h"
@@ -19,9 +20,13 @@
 #include "rdb.h"
 
 static NotificationLayer* _notif_layer;
-static Window* _notif_window;
+static Window *_notif_window;
+static Window *_notifdetail_window;
 static MenuLayer *s_menu_layer;
 static Window *s_main_window;
+
+static rebble_notification *_notifdetail_noty;
+static SingleNotificationLayer _notifdetail_layer;
 
 /* We store all the notification keys in a list, and lazy-load each
  * notification to display on screen.  The special case is if there are no
@@ -33,19 +38,33 @@ static int _notif_count = 0;
 
 static void _notif_window_load(Window *window);
 static void _notif_window_unload(Window *window);
+static void _notifdetail_window_load(Window *window);
+static void _notifdetail_window_unload(Window *window);
 static void _exit_to_watchface(struct Menu *menu, void *context);
 static void _notif_destroy_layer_cb(ClickRecognizerRef _, void *context);
 
 void notif_init(void)
 {
     _notif_window = window_create();
+    _notifdetail_window = window_create();
 
     window_set_window_handlers(_notif_window, (WindowHandlers) {
         .load = _notif_window_load,
         .unload = _notif_window_unload,
     });
 
+    window_set_window_handlers(_notifdetail_window, (WindowHandlers) {
+        .load = _notifdetail_window_load,
+        .unload = _notifdetail_window_unload,
+    });
+
     window_stack_push(_notif_window, true);
+}
+
+void notif_deinit(void)
+{
+    window_destroy(_notif_window);
+    window_destroy(_notifdetail_window);
 }
 
 static MenuItems* _msg_list_item_selected(const MenuItem *item)
@@ -103,39 +122,12 @@ static void _notif_menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuInd
     void *key = res->result[0];
     
     /* Now that we have the key, go actually fully load the noty itself. */
-    struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
-    struct rdb_iter it;
-    rdb_select_result_list notif_result;
-    
-    list_init_head(&notif_result);
-    
-    if (!rdb_iter_start(db, &it)) {
-        rdb_close(db);
-        goto failed;
+    rebble_notification *noty = timeline_get_notification((Uuid *)key);
+    if (!noty) {
+        menu_cell_basic_draw(ctx, cell_layer, "Error", "Failed to load", NULL);
+        return;
     }
     
-    struct rdb_selector selectors[] = {
-        { offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), RDB_OP_EQ, key },
-        { 0, 0, RDB_OP_RESULT_FULLY_LOAD },
-        { }
-    };
-    
-    if (rdb_select(&it, &notif_result, selectors) != 1) {
-        rdb_select_free_all(&notif_result);
-        rdb_close(db);
-        goto failed;
-    }
-    
-    rdb_close(db);
-    
-    /* Now we have one noty, loaded in memory!  Grab it from the list... */
-    void *item_data;
-    rdb_select_result_foreach(res, &notif_result) {
-        item_data = res->result[0];
-    }
-    
-    /* ... et voila.  Now just time to render it.  Prioritize what we show. */
-    rebble_notification *noty = timeline_item_process(item_data);
     rebble_attribute *a;
     const char *sender = NULL;
     const char *subject = NULL;
@@ -180,12 +172,8 @@ static void _notif_menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuInd
     
     /* And clean up. */
     timeline_destroy(noty);
-    rdb_select_free_all(&notif_result);
     
     return;
-    
-failed:
-    menu_cell_basic_draw(ctx, cell_layer, "Error", "Failed to load", NULL);
 }
 
 static int16_t _notif_menu_get_cell_height(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
@@ -193,6 +181,25 @@ static int16_t _notif_menu_get_cell_height(struct MenuLayer *menu_layer, MenuInd
 }
 
 static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
+    /* Find the noty. */
+    int i = 0;
+    struct rdb_select_result *res;
+    rdb_select_result_foreach(res, &_notif_list) {
+        if (i == cell_index->row)
+            break;
+        
+        i++;
+    }
+    assert(i == cell_index->row);
+    void *key = res->result[0];
+    
+    APP_LOG("noty", APP_LOG_LEVEL_INFO, "click on row %d", i);
+    
+    /* Now that we have the key, go actually fully load the noty itself. */
+    _notifdetail_noty = timeline_get_notification((Uuid *)key);
+
+    if (_notifdetail_noty)
+        window_stack_push(_notifdetail_window, false);
 }
 
 static void _notif_window_load(Window *window)
@@ -235,9 +242,6 @@ static void _notif_window_load(Window *window)
     rdb_close(db);
     
     menu_layer_reload_data(s_menu_layer);
-
-    return;
-    
 }
 
 static void _notif_window_unload(Window *window)
@@ -252,10 +256,23 @@ static void _notif_window_unload(Window *window)
     }
 }
 
-void notif_deinit(void)
+static void _notifdetail_window_load(Window *window)
 {
-//     notification_window_destroy(notif_window);
-    window_destroy(_notif_window);
+    Layer *window_layer = window_get_root_layer(window);
+    GRect frame = layer_get_frame(window_layer);
+
+    APP_LOG("noty", APP_LOG_LEVEL_INFO, "window_load");
+    
+    single_notification_layer_ctor(&_notifdetail_layer, _notifdetail_noty, frame);
+    layer_add_child(window_layer, single_notification_layer_get_layer(&_notifdetail_layer));
+}
+
+static void _notifdetail_window_unload(Window *window)
+{
+    single_notification_layer_dtor(&_notifdetail_layer);
+    timeline_destroy(_notifdetail_noty);
+    
+    APP_LOG("noty", APP_LOG_LEVEL_INFO, "window_unload");
 }
 
 void notif_main(void)
