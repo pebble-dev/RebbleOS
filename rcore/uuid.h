@@ -1,5 +1,8 @@
 #pragma once
 
+#include <stdint.h>
+#include <stdbool.h>
+
 typedef struct __attribute__((__packed__)) {
   uint8_t byte0;
   uint8_t byte1;

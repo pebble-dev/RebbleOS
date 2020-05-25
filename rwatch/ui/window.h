@@ -12,6 +12,8 @@
 #include "rect.h"
 #include "size.h"
 #include "node_list.h"
+#include "layer.h"
+#include "click_config.h"
 
 struct Layer;
 typedef void (*WindowHandler)(struct Window *window);

@@ -8,8 +8,9 @@
 #pragma once
 #include "layer.h"
 #include "gbitmap.h"
+#include "timeline.h"
  
- typedef struct SingleNotificationLayer {
+typedef struct SingleNotificationLayer {
     Layer layer;
     char *title, *subtitle, *body;
     const char *source;
