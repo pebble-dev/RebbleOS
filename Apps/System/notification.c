@@ -157,11 +157,11 @@ static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *ce
     struct rdb_select_result *res;
     int i = 0;
     rdb_select_result_foreach(res, &_notif_list) {
-        uuids[i] = *(Uuid *)(res->result[0]);
+        uuids[_notif_count - i - 1] = *(Uuid *)(res->result[0]);
         i++;
     }
 
-    notification_window_set_notifications(&_notifdetail_window, uuids, _notif_count, _notif_count - cell_index->row - 1);
+    notification_window_set_notifications(&_notifdetail_window, uuids, _notif_count, cell_index->row);
     
     free(uuids);
 
