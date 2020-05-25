@@ -12,6 +12,7 @@
 #include "single_notification_layer.h"
 #include "librebble.h"
 #include "bitmap_layer.h"
+#include "status_bar_layer.h"
 #include "action_bar_layer.h"
 #include "platform_res.h"
 #include "menu.h"
@@ -21,6 +22,7 @@
 
 static NotificationLayer* _notif_layer;
 static Window *_notif_window;
+static StatusBarLayer *_notif_window_status;
 static MenuLayer *s_menu_layer;
 static Window *s_main_window;
 
@@ -214,6 +216,10 @@ static void _notif_window_load(Window *window)
     Layer *window_layer = window_get_root_layer(window);
     MenuItems *items;
     
+    _notif_window_status = status_bar_layer_create();
+    status_bar_layer_set_colors(_notif_window_status, GColorBlack, GColorWhite);
+    status_bar_layer_set_separator_mode(_notif_window_status, StatusBarLayerSeparatorModeDotted);
+    
 #ifdef PBL_RECT
     s_menu_layer = menu_layer_create(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16));
 #else
@@ -230,6 +236,7 @@ static void _notif_window_load(Window *window)
         /* XXX: override back button, a la https://gist.github.com/sarfata/10574031 ... or just add a back-door API */
     });
     layer_add_child(window_layer, menu_layer_get_layer(s_menu_layer));
+    layer_add_child(window_layer, status_bar_layer_get_layer(_notif_window_status));
 
     /* Load in the keys for all the notifications on the system. */
     list_init_head(&_notif_list);
@@ -254,6 +261,7 @@ static void _notif_window_unload(Window *window)
 {
     rdb_select_free_all(&_notif_list);
     menu_layer_destroy(s_menu_layer);
+    status_bar_layer_destroy(_notif_window_status);
 
     if (_notif_layer)
     {
