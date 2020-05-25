@@ -15,6 +15,7 @@
 #include "notification_manager.h"
 #include "platform_res.h"
 #include "single_notification_layer.h"
+#include "minilib.h"
 
 static void single_notification_layer_update_proc(Layer *layer, GContext *ctx);
 
@@ -98,8 +99,30 @@ extern void single_notification_layer_set_notification(SingleNotificationLayer *
         break;
     }
     
-    /* notif->timestamp */
-    l->timestamp = strdup("Just now");
+    time_t now = rcore_get_time();
+    time_t ts = notif->timeline_item.timestamp;
+    struct tm tm_ts;
+    rcore_localtime(&tm_ts, ts);
+    
+    char buf[32];
+    
+    if (ts > now)
+        l->timestamp = strdup("The future");
+    else if (ts > (now - 60 * 60)) {
+        sfmt(buf, sizeof(buf), "%d min ago", (ts - now) / 60);
+        l->timestamp = strdup(buf);
+    } else if (ts > (now - 24 * 60 * 60)) {
+        sfmt(buf, sizeof(buf), "%d hours ago", (ts - now) / (60 * 60));
+        l->timestamp = strdup(buf);
+    } else if (ts > (now - 7 * 24 * 60 * 60)) {
+        char *days[] = { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+        sfmt(buf, sizeof(buf), "%s, %02d:%02d", days[tm_ts.tm_mday], tm_ts.tm_hour, tm_ts.tm_min);
+        l->timestamp = strdup(buf);
+    } else {
+        char *mons[] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        sfmt(buf, sizeof(buf), "%s %d, %02d:%02d", mons[tm_ts.tm_mon], tm_ts.tm_mday, tm_ts.tm_hour, tm_ts.tm_min);
+        l->timestamp = strdup(buf);
+    }
     
     layer_mark_dirty(&l->layer);
 }
