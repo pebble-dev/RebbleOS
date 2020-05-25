@@ -60,23 +60,41 @@ int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoco
 void protocol_send_packet(const RebblePacket packet);
 
 typedef enum  {
-    Unknown = 0,
-    TintinBlack = 1,
-    TintinWhite = 2,
-    TintinRed = 3,
-    TintinOrange = 4,
-    TintinGrey = 5,
-    BiancaSilver = 6,
-    BiancaBlack = 7,
-    TintinBlue = 8,
-    TintinGreen = 9,
-    TintinPink = 10,
-    SnowyBlack = 11,
-    SnowyWhite = 12,
-    SnowyRed = 13,
-    BobbySilver = 14,
-    BobbyBlack = 15,
-    BobbyGold = 16,
+    Unknown          = 0x00,
+    TintinBlack      = 0x01,
+    TintinWhite      = 0x02,
+    TintinRed        = 0x03,
+    TintinOrange     = 0x04,
+    TintinGrey       = 0x05,
+    BiancaSilver     = 0x06,
+    BiancaBlack      = 0x07,
+    TintinBlue       = 0x08,
+    TintinGreen      = 0x09,
+    TintinPink       = 0x0a,
+    SnowyWhite       = 0x0b,
+    SnowyBlack       = 0x0c,
+    SnowyRed         = 0x0d,
+    BobbySilver      = 0x0e,
+    BobbyBlack       = 0x0f,
+    BobbyGold        = 0x10,
+    Bobby1           = 0x11,
+    Bobby2           = 0x12,
+    Unk0             = 0x13,
+    Unk1             = 0x14,
+    Unk2             = 0x15,
+    Unk3             = 0x16,
+    Unk4             = 0x17,
+    Unk5             = 0x18,
+    SilkBlack        = 0x19,
+    Unk6             = 0x1a,
+    Unk7             = 0x1b,
+    SilkRed          = 0x1c,
+    Unk8             = 0x1d,
+    Unk9             = 0x1e,
+    EndPebbleDevice  = 0x1f,
+
+    AsterixWhite     = 0x20,
+    EndDevices       = 0x21
 } WatchModel;
 
 #define WATCH_MODEL SnowyBlack
@@ -85,11 +103,17 @@ typedef enum  {
 
 void protocol_app_run_state(const RebblePacket packet);
 void protocol_app_fetch(const RebblePacket packet);
+void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id);
+
 void protocol_process_blobdb(const RebblePacket packet);
 void protocol_process_timeline_action_response(const RebblePacket packet);
+
 void protocol_process_transfer(const RebblePacket packet);
 void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id);
 void protocol_process_reorder(const RebblePacket packet);
+
+void protocol_process_appmessage(const RebblePacket *packet);
+
 
 uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf);
 uint8_t pascal_strlen(char *str);

@@ -113,17 +113,28 @@ void protocol_app_version(const RebblePacket packet)
 {
     app_version_response appv = {
         .command = 1,
-        .protocol_version = 0, // = Uint32()  # Unused as of v3.0
-        .session_caps = 0, // = Uint32()  # Unused as of v3.0
+        .protocol_version = 0,
+        .session_caps = 0,
         .platform_flags = 0,
-        .response_version = 2, // = Uint8(default=2)
-        .major_version = 0,
-        .minor_version = 0,
+        .response_version = 2,
+        .major_version = 0xc,
+        .minor_version = 0x3c,
         .bugfix_version = 0,
         .protocol_caps = 0,
     };
 
     packet_reply(packet, (void *)&appv, sizeof(app_version_response));
+}
+
+void protocol_app_phone_version_request(void)
+{
+    /* Forge an rx ping to set the transport, and to transmit real data
+     * over the link (a pong).  */
+    static const uint8_t appversion_req[] = {
+        0x00
+    };
+    RebblePacket pkt = packet_create_with_data(WatchProtocol_AppVersion, appversion_req, sizeof(appversion_req));
+    packet_send(pkt);
 }
 
 /* Time Command functions */

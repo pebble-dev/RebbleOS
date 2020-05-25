@@ -272,24 +272,7 @@ void bluetooth_device_connected(void)
     _connected = true;
     protocol_set_current_transport_sender(bluetooth_send_data);
     connection_service_update(true);
-    
-    /* Send an app-version request to start the connection. */
-    static const uint8_t appversion_req[] = {
-        0x00
-    };
-    RebblePacket pkt = packet_create_with_data(WatchProtocol_AppVersion, appversion_req, sizeof(appversion_req));
-    packet_send(pkt);
-
-#ifdef PLATFORM_SNOWY
-    /* Needed on Snowy but not on Asterix.  Why? */
-    static const uint8_t legacyapp_data[] = {
-        0x01, 0x02, 0x0c, 0x3c, 0xa0, 0xae, 0x90, 0x67, 0x47, 0x64, 0xaf, 0x92,
-        0xbd, 0xca, 0xd1, 0xfb, 0x60, 0x84, 0x01, 0x01, 0x00, 0x00, 0x00, 0x02,
-        0x04, 0x00, 0x01, 0x00, 0x00, 0x00
-    };
-    pkt = packet_create_with_data(0x31, legacyapp_data, sizeof(legacyapp_data));
-    packet_send(pkt);
-#endif
+    protocol_app_phone_version_request();
 }
 
 void bluetooth_device_disconnected(void)

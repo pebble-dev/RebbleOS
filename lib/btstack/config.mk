@@ -71,7 +71,7 @@ SRCS_bt += lib/btstack/btstack/src/ble/att_db.c
 # SRCS_bt += lib/btstack/btstack/src/ble/att_db_util.c
 SRCS_bt += lib/btstack/btstack/src/ble/att_dispatch.c
 SRCS_bt += lib/btstack/btstack/src/ble/att_server.c
-# SRCS_bt += lib/btstack/btstack/src/ble/gatt_client.c
+SRCS_bt += lib/btstack/btstack/src/ble/gatt_client.c
 SRCS_bt += lib/btstack/btstack/src/ble/le_device_db_memory.c
 # SRCS_bt += lib/btstack/btstack/src/ble/le_device_db_tlv.c
 SRCS_bt += lib/btstack/btstack/src/ble/sm.c
@@ -96,13 +96,21 @@ SRCS_bt += lib/btstack/btstack/src/ble/sm.c
 # SRCS_bt += lib/btstack/btstack/src/classic/avrcp_target.c
 # SRCS_bt += lib/btstack/btstack/src/classic/bnep.c
 # SRCS_bt += lib/btstack/btstack/src/classic/btstack_cvsd_plc.c
-SRCS_bt += lib/btstack/btstack/src/classic/btstack_link_key_db_memory.c
+
+#ifdef CLASSIC
+#SRCS_bt += lib/btstack/btstack/src/classic/btstack_link_key_db_memory.c
+#endif
+
 # SRCS_bt += lib/btstack/btstack/src/classic/btstack_link_key_db_static.c
 # SRCS_bt += lib/btstack/btstack/src/classic/btstack_link_key_db_tlv.c
 # SRCS_bt += lib/btstack/btstack/src/classic/btstack_sbc_encoder_bluedroid.c
 # SRCS_bt += lib/btstack/btstack/src/classic/btstack_sbc_decoder_bluedroid.c
 # SRCS_bt += lib/btstack/btstack/src/classic/btstack_sbc_plc.c
-# SRCS_bt += lib/btstack/btstack/src/classic/device_id_server.c
+
+#ifdef CLASSIC
+#SRCS_bt += lib/btstack/btstack/src/classic/device_id_server.c
+#endif
+
 # SRCS_bt += lib/btstack/btstack/src/classic/goep_client.c
 # SRCS_bt += lib/btstack/btstack/src/classic/hfp_ag.c
 # SRCS_bt += lib/btstack/btstack/src/classic/hfp.c
@@ -115,13 +123,18 @@ SRCS_bt += lib/btstack/btstack/src/classic/btstack_link_key_db_memory.c
 # SRCS_bt += lib/btstack/btstack/src/classic/obex_iterator.c
 # SRCS_bt += lib/btstack/btstack/src/classic/pan.c
 # SRCS_bt += lib/btstack/btstack/src/classic/pbap_client.c
-SRCS_bt += lib/btstack/btstack/src/classic/rfcomm.c
+
+#ifdef CLASSIC
+#SRCS_bt += lib/btstack/btstack/src/classic/rfcomm.c
+#SRCS_bt += lib/btstack/btstack/src/classic/sdp_server.c
+#SRCS_bt += lib/btstack/btstack/src/classic/sdp_util.c
+#SRCS_bt += lib/btstack/btstack/src/classic/spp_server.c
+#endif
+SRCS_bt += lib/btstack/btstack/src/btstack_crypto.c
+
 # SRCS_bt += lib/btstack/btstack/src/classic/sdp_client.c
 # SRCS_bt += lib/btstack/btstack/src/classic/sdp_client_rfcomm.c
 # SRCS_bt += lib/btstack/btstack/src/classic/sdp_client_rfcomm.h
-SRCS_bt += lib/btstack/btstack/src/classic/sdp_server.c
-SRCS_bt += lib/btstack/btstack/src/classic/sdp_util.c
-SRCS_bt += lib/btstack/btstack/src/classic/spp_server.c
 
 #btstack/3rd-party/micro-ecc/:
 #SRCS_bt += lib/btstack/btstack/3rd-party/micro-ecc/asm_arm.inc
