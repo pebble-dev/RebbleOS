@@ -147,6 +147,7 @@ SRCS_all += rwatch/ui/layer/single_notification_layer.c
 SRCS_all += rwatch/ui/layer/notification_layer.c
 SRCS_all += rwatch/ui/layer/inverter_layer.c
 SRCS_all += rwatch/ui/window.c
+SRCS_all += rwatch/ui/notification_window.c
 SRCS_all += rwatch/ui/action_menu.c
 SRCS_all += rwatch/graphics/gbitmap.c
 SRCS_all += rwatch/graphics/graphics.c

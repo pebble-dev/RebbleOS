@@ -211,6 +211,7 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx) {
     
     graphics_context_set_stroke_color(ctx, GColorBlack);
     graphics_context_set_stroke_width(ctx, 3);
+    /* XXX: make this a drawrect */
     graphics_draw_line(ctx,
         GPoint(szrect.origin.x, szrect.origin.y + 5),
         GPoint(szrect.origin.x + szrect.size.w, szrect.origin.y + 5));

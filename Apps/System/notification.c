@@ -19,6 +19,7 @@
 #include "timeline.h"
 #include "notification_manager.h"
 #include "rdb.h"
+#include "notification_window.h"
 
 static NotificationLayer* _notif_layer;
 static Window *_notif_window;
@@ -26,10 +27,7 @@ static StatusBarLayer *_notif_window_status;
 static MenuLayer *s_menu_layer;
 static Window *s_main_window;
 
-static Window *_notifdetail_window;
-static int _notifdetail_window_loaded = 0;
-static rebble_notification *_notifdetail_noty = NULL;
-static SingleNotificationLayer _notifdetail_layer;
+static NotificationWindow _notifdetail_window;
 
 /* We store all the notification keys in a list, and lazy-load each
  * notification to display on screen.  The special case is if there are no
@@ -41,24 +39,15 @@ static int _notif_count = 0;
 
 static void _notif_window_load(Window *window);
 static void _notif_window_unload(Window *window);
-static void _notifdetail_window_load(Window *window);
-static void _notifdetail_window_unload(Window *window);
-static void _exit_to_watchface(struct Menu *menu, void *context);
-static void _notif_destroy_layer_cb(ClickRecognizerRef _, void *context);
 
 void notif_init(void)
 {
     _notif_window = window_create();
-    _notifdetail_window = window_create();
+    notification_window_ctor(&_notifdetail_window);
 
     window_set_window_handlers(_notif_window, (WindowHandlers) {
         .load = _notif_window_load,
         .unload = _notif_window_unload,
-    });
-
-    window_set_window_handlers(_notifdetail_window, (WindowHandlers) {
-        .load = _notifdetail_window_load,
-        .unload = _notifdetail_window_unload,
     });
 
     window_stack_push(_notif_window, true);
@@ -67,36 +56,7 @@ void notif_init(void)
 void notif_deinit(void)
 {
     window_destroy(_notif_window);
-    window_destroy(_notifdetail_window);
-}
-
-static MenuItems* _msg_list_item_selected(const MenuItem *item)
-{
-    char *app = "RebbleOS";
-    char *title = "Message";
-    rebble_notification *msg = (rebble_notification *)item->context;
-
-    rebble_attribute *attr = list_elem(list_get_head(&msg->attributes), rebble_attribute, node);
-
-    Layer *layer = window_get_root_layer(s_main_window);
-    GRect bounds = layer_get_unobstructed_bounds(layer);
-    _notif_layer = notification_layer_create(bounds);
-//     Notification *notification = notification_create(app, title, (const char *)attr->data, gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE), GColorRed);
-    
-//     notification_layer_stack_push_notification(_notif_layer, notification);
-    notification_layer_configure_click_config(_notif_layer, s_main_window, _notif_destroy_layer_cb);
-    layer_add_child(layer, notification_layer_get_layer(_notif_layer));
-        
-    layer_mark_dirty(layer);
-    window_dirty(true);
-    
-    return NULL;
-}
-
-static void _notif_destroy_layer_cb(ClickRecognizerRef _, void *context)
-{
-    notification_layer_destroy(_notif_layer);
-    window_load_click_config(s_main_window);
+    notification_window_dtor(&_notifdetail_window);
 }
 
 static uint16_t _notif_menu_get_num_rows(MenuLayer *menu_layer, uint16_t section_index, void *context) {
@@ -189,16 +149,23 @@ static int16_t _notif_menu_get_cell_height(struct MenuLayer *menu_layer, MenuInd
 }
 
 static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
-    _notifdetail_noty = _noty_for_index(cell_index);
-
-    if (_notifdetail_noty) {
-        window_stack_push(_notifdetail_window, false);
-        if (_notifdetail_window_loaded)
-            single_notification_layer_set_notification(&_notifdetail_layer, _notifdetail_noty);
-    }
+    /* Build the list for the notification window. */
+    Uuid *uuids = malloc(sizeof(Uuid) * _notif_count);
+    if (!uuids)
+        return;
     
-    timeline_destroy(_notifdetail_noty);
-    _notifdetail_noty = NULL;
+    struct rdb_select_result *res;
+    int i = 0;
+    rdb_select_result_foreach(res, &_notif_list) {
+        uuids[i] = *(Uuid *)(res->result[0]);
+        i++;
+    }
+
+    notification_window_set_notifications(&_notifdetail_window, uuids, _notif_count, _notif_count - cell_index->row - 1);
+    
+    free(uuids);
+
+    window_stack_push(notification_window_get_window(&_notifdetail_window), false);
 }
 
 static void _notif_window_load(Window *window)
@@ -261,39 +228,9 @@ static void _notif_window_unload(Window *window)
     }
 }
 
-static void _notifdetail_window_load(Window *window)
-{
-    Layer *window_layer = window_get_root_layer(window);
-    GRect frame = layer_get_frame(window_layer);
-
-    APP_LOG("noty", APP_LOG_LEVEL_INFO, "window_load");
-    
-    single_notification_layer_ctor(&_notifdetail_layer, frame);
-    single_notification_layer_set_notification(&_notifdetail_layer, _notifdetail_noty);
-    layer_add_child(window_layer, single_notification_layer_get_layer(&_notifdetail_layer));
-    
-    _notifdetail_window_loaded = 1;
-}
-
-static void _notifdetail_window_unload(Window *window)
-{
-    single_notification_layer_dtor(&_notifdetail_layer);
-    timeline_destroy(_notifdetail_noty);
-    
-    _notifdetail_window_loaded = 0;
-    
-    APP_LOG("noty", APP_LOG_LEVEL_INFO, "window_unload");
-}
-
 void notif_main(void)
 {
     notif_init();
     app_event_loop();
     notif_deinit();
-}
-
-static void _exit_to_watchface(struct Menu *menu, void *context)
-{
-    // Exit to watchface
-    appmanager_app_start("Simple");
 }
