@@ -106,26 +106,31 @@ static uint16_t _notif_menu_get_num_rows(MenuLayer *menu_layer, uint16_t section
         return _notif_count;
 }
 
+static rebble_notification *_noty_for_index(MenuIndex *cell_index) {
+    /* Find the noty. */
+    int wantidx = _notif_count - cell_index->row - 1;
+    int i = 0;
+    struct rdb_select_result *res;
+    rdb_select_result_foreach(res, &_notif_list) {
+        if (i == wantidx)
+            break;
+        
+        i++;
+    }
+    assert(i == wantidx);
+    void *key = res->result[0];
+    
+    /* Now that we have the key, go actually fully load the noty itself. */
+    return timeline_get_notification((Uuid *)key);
+}
+
 static void _notif_menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context) {
     if (_notif_count == 0) {
         menu_cell_basic_draw(ctx, cell_layer, "No notifications", "Asleep at the switch?", /* icon, GBitmap */ NULL);
         return;
     }
     
-    /* Find the noty. */
-    int i = 0;
-    struct rdb_select_result *res;
-    rdb_select_result_foreach(res, &_notif_list) {
-        if (i == cell_index->row)
-            break;
-        
-        i++;
-    }
-    assert(i == cell_index->row);
-    void *key = res->result[0];
-    
-    /* Now that we have the key, go actually fully load the noty itself. */
-    rebble_notification *noty = timeline_get_notification((Uuid *)key);
+    rebble_notification *noty = _noty_for_index(cell_index);
     if (!noty) {
         menu_cell_basic_draw(ctx, cell_layer, "Error", "Failed to load", NULL);
         return;
@@ -184,22 +189,7 @@ static int16_t _notif_menu_get_cell_height(struct MenuLayer *menu_layer, MenuInd
 }
 
 static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
-    /* Find the noty. */
-    int i = 0;
-    struct rdb_select_result *res;
-    rdb_select_result_foreach(res, &_notif_list) {
-        if (i == cell_index->row)
-            break;
-        
-        i++;
-    }
-    assert(i == cell_index->row);
-    void *key = res->result[0];
-    
-    APP_LOG("noty", APP_LOG_LEVEL_INFO, "click on row %d", i);
-    
-    /* Now that we have the key, go actually fully load the noty itself. */
-    _notifdetail_noty = timeline_get_notification((Uuid *)key);
+    _notifdetail_noty = _noty_for_index(cell_index);
 
     if (_notifdetail_noty) {
         window_stack_push(_notifdetail_window, false);
@@ -208,6 +198,7 @@ static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *ce
     }
     
     timeline_destroy(_notifdetail_noty);
+    _notifdetail_noty = NULL;
 }
 
 static void _notif_window_load(Window *window)
