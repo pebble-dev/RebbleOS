@@ -22,7 +22,7 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx);
 
 #define APPNAME_HEIGHT 28
 #define APPNAME_PADDING 6
-#define ELEMENT_PADDING 6
+#define ELEMENT_PADDING 5
 #define APPNAME_FONT   FONT_KEY_GOTHIC_28_BOLD
 #define TITLE_FONT     FONT_KEY_GOTHIC_18_BOLD
 #define SUBTITLE_FONT  FONT_KEY_GOTHIC_18
@@ -88,8 +88,12 @@ extern void single_notification_layer_set_notification(SingleNotificationLayer *
         l->source = "SMS";
         l->icon = gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE);
         break;
+    case TimelineNotificationSource_Email:
+        l->source = "Email";
+        l->icon = gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE);
+        break;
     default:
-        l->source = "Unknown";
+        l->source = NULL;
         l->icon = gbitmap_create_with_resource(RESOURCE_ID_UNKNOWN);
         break;
     }
@@ -151,22 +155,36 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx) {
     szrect.origin.x += X_PADDING;
     szrect.size.w   -= X_PADDING * 2;
     
-    GRect tmpsz = szrect;
-    tmpsz.origin.x += 3;
-    tmpsz.origin.y += 3;
-    tmpsz.size.h = APPNAME_HEIGHT - 6;
-    tmpsz.size.w = APPNAME_HEIGHT - 6;
-    graphics_context_set_compositing_mode(ctx, GCompOpSet);
-    graphics_draw_bitmap_in_rect(ctx, l->icon, tmpsz);
+    if (l->source) {
+        GRect tmpsz = szrect;
+        tmpsz.origin.x += 3;
+        tmpsz.origin.y += 7;
+        tmpsz.size.h = APPNAME_HEIGHT - 6;
+        tmpsz.size.w = APPNAME_HEIGHT - 6;
+        graphics_context_set_compositing_mode(ctx, GCompOpSet);
+        graphics_draw_bitmap_in_rect(ctx, l->icon, tmpsz);
     
-    tmpsz = szrect;
-    tmpsz.size.h = APPNAME_HEIGHT;
-    tmpsz.size.w   -= APPNAME_HEIGHT + ELEMENT_PADDING;
-    tmpsz.origin.x += APPNAME_HEIGHT + ELEMENT_PADDING;
-    n_graphics_draw_text(ctx, l->source, fonts_get_system_font(APPNAME_FONT),
-        tmpsz, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
-    szrect.origin.y += APPNAME_HEIGHT;
-    szrect.size.h   -= APPNAME_HEIGHT;
+        tmpsz = szrect;
+        tmpsz.size.h = APPNAME_HEIGHT;
+        tmpsz.size.w   -= APPNAME_HEIGHT + ELEMENT_PADDING;
+        tmpsz.origin.x += APPNAME_HEIGHT + ELEMENT_PADDING;
+        n_graphics_draw_text(ctx, l->source, fonts_get_system_font(APPNAME_FONT),
+            tmpsz, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
+        szrect.origin.y += APPNAME_HEIGHT;
+        szrect.size.h   -= APPNAME_HEIGHT;
+    } else {
+        /* no source, just a centered icon */
+        GRect tmpsz = szrect;
+        tmpsz.origin.x += (tmpsz.size.w - APPNAME_HEIGHT - 6) / 2;
+        tmpsz.origin.y += 7;
+        tmpsz.size.h = APPNAME_HEIGHT - 6;
+        tmpsz.size.w = APPNAME_HEIGHT - 6;
+        graphics_context_set_compositing_mode(ctx, GCompOpSet);
+        graphics_draw_bitmap_in_rect(ctx, l->icon, tmpsz);
+
+        szrect.origin.y += APPNAME_HEIGHT;
+        szrect.size.h   -= APPNAME_HEIGHT;
+    }
     
     graphics_context_set_stroke_color(ctx, GColorBlack);
     graphics_context_set_stroke_width(ctx, 3);
