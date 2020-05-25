@@ -16,7 +16,8 @@ typedef struct NotificationWindow {
     
     size_t   curnotif;
     uint16_t curnotif_height;
-    uint16_t curnotif_scroll;
+    int16_t  curnotif_scroll;
+    int      curnotif_nudging;
     
     SingleNotificationLayer n1;
     SingleNotificationLayer n2;
