@@ -21,11 +21,12 @@
 
 static NotificationLayer* _notif_layer;
 static Window *_notif_window;
-static Window *_notifdetail_window;
 static MenuLayer *s_menu_layer;
 static Window *s_main_window;
 
-static rebble_notification *_notifdetail_noty;
+static Window *_notifdetail_window;
+static int _notifdetail_window_loaded = 0;
+static rebble_notification *_notifdetail_noty = NULL;
 static SingleNotificationLayer _notifdetail_layer;
 
 /* We store all the notification keys in a list, and lazy-load each
@@ -198,8 +199,13 @@ static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *ce
     /* Now that we have the key, go actually fully load the noty itself. */
     _notifdetail_noty = timeline_get_notification((Uuid *)key);
 
-    if (_notifdetail_noty)
+    if (_notifdetail_noty) {
         window_stack_push(_notifdetail_window, false);
+        if (_notifdetail_window_loaded)
+            single_notification_layer_set_notification(&_notifdetail_layer, _notifdetail_noty);
+    }
+    
+    timeline_destroy(_notifdetail_noty);
 }
 
 static void _notif_window_load(Window *window)
@@ -263,14 +269,19 @@ static void _notifdetail_window_load(Window *window)
 
     APP_LOG("noty", APP_LOG_LEVEL_INFO, "window_load");
     
-    single_notification_layer_ctor(&_notifdetail_layer, _notifdetail_noty, frame);
+    single_notification_layer_ctor(&_notifdetail_layer, frame);
+    single_notification_layer_set_notification(&_notifdetail_layer, _notifdetail_noty);
     layer_add_child(window_layer, single_notification_layer_get_layer(&_notifdetail_layer));
+    
+    _notifdetail_window_loaded = 1;
 }
 
 static void _notifdetail_window_unload(Window *window)
 {
     single_notification_layer_dtor(&_notifdetail_layer);
     timeline_destroy(_notifdetail_noty);
+    
+    _notifdetail_window_loaded = 0;
     
     APP_LOG("noty", APP_LOG_LEVEL_INFO, "window_unload");
 }

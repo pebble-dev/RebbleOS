@@ -29,9 +29,30 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx);
 #define BODY_FONT      FONT_KEY_GOTHIC_24_BOLD
 #define TIMESTAMP_FONT FONT_KEY_GOTHIC_14
 
-void single_notification_layer_ctor(SingleNotificationLayer *l, rebble_notification *notif, GRect frame) {
+void single_notification_layer_ctor(SingleNotificationLayer *l, GRect frame) {
     layer_ctor(&l->layer, frame);
     layer_set_update_proc(&l->layer, single_notification_layer_update_proc);
+    
+    l->title = l->subtitle = l->body = l->timestamp = NULL;
+    l->icon = NULL;
+}
+
+void single_notification_layer_dtor(SingleNotificationLayer *l) {
+    free(l->title);
+    free(l->subtitle);
+    free(l->body);
+    free(l->timestamp);
+    gbitmap_destroy(l->icon);
+    layer_dtor(&l->layer);
+}
+
+extern void single_notification_layer_set_notification(SingleNotificationLayer *l, rebble_notification *notif) {
+    free(l->title);
+    free(l->subtitle);
+    free(l->body);
+    free(l->timestamp);
+    if (l->icon)
+        gbitmap_destroy(l->icon);
     
     const char *sender = NULL, *subject = NULL, *message = NULL;
     uint32_t sourcetype = 0;
@@ -75,15 +96,8 @@ void single_notification_layer_ctor(SingleNotificationLayer *l, rebble_notificat
     
     /* notif->timestamp */
     l->timestamp = strdup("Just now");
-}
-
-void single_notification_layer_dtor(SingleNotificationLayer *l) {
-    free(l->title);
-    free(l->subtitle);
-    free(l->body);
-    free(l->timestamp);
-    gbitmap_destroy(l->icon);
-    layer_dtor(&l->layer);
+    
+    layer_mark_dirty(&l->layer);
 }
 
 Layer *single_notification_layer_get_layer(SingleNotificationLayer *l) {
