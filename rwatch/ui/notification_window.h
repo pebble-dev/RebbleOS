@@ -10,7 +10,7 @@
 #include "single_notification_layer.h"
 
 typedef struct NotificationWindow {
-    Window   window;
+    Window  *window;
     Uuid    *uuids;
     size_t   nuuids;
     
@@ -23,7 +23,7 @@ typedef struct NotificationWindow {
     SingleNotificationLayer n2;
 } NotificationWindow;
 
-void notification_window_ctor(NotificationWindow *w);
+void notification_window_ctor(NotificationWindow *nw, Window *w);
 void notification_window_dtor(NotificationWindow *w);
 void notification_window_set_notifications(NotificationWindow *w, Uuid *uuids, size_t count, size_t curnotif);
 void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid);

@@ -14,6 +14,7 @@
 #include "protocol_service.h"
 #include "event_service.h"
 #include "protocol_call.h"
+#include "notification_window.h"
 
 /* Configure Logging */
 #define MODULE_NAME "notym"
@@ -26,7 +27,7 @@ static void _notification_window_creating(OverlayWindow *overlay_window, Window 
 static void _notification_quit_click(ClickRecognizerRef _, void *context);
 extern bool battery_overlay_visible(void);
 extern bool notification_window_overlay_visible(void);
-extern NotificationLayer *notification_window_get_layer(void);
+extern NotificationWindow *notification_window_get(void);
 extern bool call_window_visible(void);
 extern bool progress_window_visible(void);
 extern void progress_window_update_arrived(notification_progress *progress);
@@ -52,8 +53,8 @@ void notification_arrived(EventServiceCommand command, void *data, void *context
    
     if (notification_window_overlay_visible())
     {
-        /* Free as much memory as we can for the message conversion */
-        notification_layer_message_arrived(notification_window_get_layer(), uuid);
+        assert(appmanager_get_current_thread()->thread_type == AppThreadOverlay);
+        notification_window_push_to_top(notification_window_get(), uuid);
         return;
     }
 
@@ -61,6 +62,7 @@ void notification_arrived(EventServiceCommand command, void *data, void *context
 
     notification_message *nmsg = app_calloc(1, sizeof(notification_message));
     nmsg->data.create_callback = &notification_message_display;
+    nmsg->data.destroy_callback = &notification_message_destroy;
     nmsg->uuid = app_calloc(1, sizeof(Uuid));
     memcpy(nmsg->uuid, uuid, sizeof(Uuid));
     nmsg->data.timeout_ms = 15000;
@@ -171,6 +173,8 @@ static void _notification_quit_click(ClickRecognizerRef _, void *context)
         return;
     }
     
+    if (nm->destroy_callback)
+        nm->destroy_callback(nm->overlay_window, &nm->overlay_window->window);
 
     overlay_window_destroy(nm->overlay_window);
     nm->overlay_window = NULL;

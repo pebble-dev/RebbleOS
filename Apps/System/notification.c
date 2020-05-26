@@ -8,7 +8,6 @@
 
 #include "rebbleos.h"
 #include "notification.h"
-#include "notification_layer.h"
 #include "single_notification_layer.h"
 #include "librebble.h"
 #include "bitmap_layer.h"
@@ -21,12 +20,12 @@
 #include "rdb.h"
 #include "notification_window.h"
 
-static NotificationLayer* _notif_layer;
 static Window *_notif_window;
 static StatusBarLayer *_notif_window_status;
 static MenuLayer *s_menu_layer;
 static Window *s_main_window;
 
+static Window _notifdetail_window_obj;
 static NotificationWindow _notifdetail_window;
 
 /* We store all the notification keys in a list, and lazy-load each
@@ -43,7 +42,8 @@ static void _notif_window_unload(Window *window);
 void notif_init(void)
 {
     _notif_window = window_create();
-    notification_window_ctor(&_notifdetail_window);
+    window_ctor(&_notifdetail_window_obj);
+    notification_window_ctor(&_notifdetail_window, &_notifdetail_window_obj);
 
     window_set_window_handlers(_notif_window, (WindowHandlers) {
         .load = _notif_window_load,
@@ -57,6 +57,7 @@ void notif_deinit(void)
 {
     window_destroy(_notif_window);
     notification_window_dtor(&_notifdetail_window);
+    window_dtor(&_notifdetail_window_obj);
 }
 
 static uint16_t _notif_menu_get_num_rows(MenuLayer *menu_layer, uint16_t section_index, void *context) {
@@ -220,12 +221,6 @@ static void _notif_window_unload(Window *window)
     rdb_select_free_all(&_notif_list);
     menu_layer_destroy(s_menu_layer);
     status_bar_layer_destroy(_notif_window_status);
-
-    if (_notif_layer)
-    {
-        notification_layer_destroy(_notif_layer);
-        _notif_layer = NULL;
-    }
 }
 
 void notif_main(void)

@@ -19,8 +19,10 @@ static void _notification_window_unload(Window *window);
 #define NUDGE_HEIGHT 40
 #define SCROLL_INCR 20
 
-void notification_window_ctor(NotificationWindow *w) {
-    window_ctor(&w->window);
+void notification_window_ctor(NotificationWindow *w, Window *win) {
+    w->window = win;
+    win->user_data = w; /* we use this because the noty / overlay subsystem uses context */
+
     GRect frame;
     frame.origin.x = 0;
     frame.origin.y = 0;
@@ -36,14 +38,13 @@ void notification_window_ctor(NotificationWindow *w) {
     single_notification_layer_ctor(&w->n1, frame);
     single_notification_layer_ctor(&w->n2, frame);
     
-    window_set_window_handlers(&w->window, (WindowHandlers) {
+    window_set_window_handlers(w->window, (WindowHandlers) {
         .load = _notification_window_load,
         .unload = _notification_window_unload
     });
 }
 
 void notification_window_dtor(NotificationWindow *w) {
-    window_dtor(&w->window);
     single_notification_layer_dtor(&w->n1);
     single_notification_layer_dtor(&w->n2);
 }
@@ -91,12 +92,22 @@ void notification_window_set_notifications(NotificationWindow *w, Uuid *uuids, s
 }
 
 void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid) {
+#if 0
     void *newuuids = realloc(w->uuids, (w->nuuids + 1) * sizeof(Uuid));
     if (!newuuids)
         return;
     w->uuids = newuuids;
     memmove(w->uuids + 1, w->uuids, w->nuuids * sizeof(Uuid));
+#else
+    Uuid *newuuids = malloc((w->nuuids + 1) * sizeof(Uuid));
+    if (!newuuids)
+        return;
+    memcpy(newuuids + 1, w->uuids, w->nuuids * sizeof(Uuid));
+    free(w->uuids);
+    w->uuids = newuuids;
+#endif
     *w->uuids = *uuid;
+    w->nuuids++;
     
     if (w->curnotif || w->curnotif_scroll) {
         w->curnotif++;
@@ -117,7 +128,7 @@ void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid) {
 }
 
 Window *notification_window_get_window(NotificationWindow *w) {
-    return &w->window;
+    return w->window;
 }
 
 static void _down_single_click_handler(ClickRecognizerRef _, void *_w) {
@@ -176,7 +187,7 @@ static void _down_single_click_handler(ClickRecognizerRef _, void *_w) {
         frame.origin.y = VIEWPORT_HEIGHT - NUDGE_HEIGHT;
         layer_set_frame(single_notification_layer_get_layer(&w->n2), frame);
 
-        layer_add_child(window_get_root_layer(&w->window), single_notification_layer_get_layer(&w->n2));
+        layer_add_child(window_get_root_layer(w->window), single_notification_layer_get_layer(&w->n2));
         
         frame = layer_get_frame(single_notification_layer_get_layer(&w->n1));
         frame.origin.y = -curnotif_nudge;
@@ -229,7 +240,7 @@ static void _up_single_click_handler(ClickRecognizerRef _, void *_w) {
         frame.origin.y = VIEWPORT_HEIGHT - NUDGE_HEIGHT;
         layer_set_frame(single_notification_layer_get_layer(&w->n2), frame);
         
-        layer_add_child(window_get_root_layer(&w->window), single_notification_layer_get_layer(&w->n2));
+        layer_add_child(window_get_root_layer(w->window), single_notification_layer_get_layer(&w->n2));
         w->curnotif_nudging = 1;
         
         /* Now load the previous one. */
@@ -271,7 +282,7 @@ static void _notification_window_click_config_provider(NotificationWindow *w) {
 }
 
 static void _notification_window_load(Window *window) {
-    NotificationWindow *w = container_of(window, NotificationWindow, window);
+    NotificationWindow *w = window->user_data;
     Layer *window_layer = window_get_root_layer(window);
     
     layer_add_child(window_layer, single_notification_layer_get_layer(&w->n1));
