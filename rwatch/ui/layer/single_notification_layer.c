@@ -87,11 +87,11 @@ extern void single_notification_layer_set_notification(SingleNotificationLayer *
     switch (sourcetype) {
     case TimelineNotificationSource_SMS:
         l->source = "SMS";
-        l->icon = gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE);
+        l->icon = gbitmap_create_with_resource(RESOURCE_ID_NOTIFICATION);
         break;
     case TimelineNotificationSource_Email:
         l->source = "Email";
-        l->icon = gbitmap_create_with_resource(RESOURCE_ID_SPEECH_BUBBLE);
+        l->icon = gbitmap_create_with_resource(RESOURCE_ID_NOTIFICATION);
         break;
     default:
         l->source = NULL;
@@ -183,10 +183,10 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx) {
     
     if (l->source) {
         GRect tmpsz = szrect;
-        tmpsz.origin.x += 3;
-        tmpsz.origin.y += 7;
-        tmpsz.size.h = APPNAME_HEIGHT - 6;
-        tmpsz.size.w = APPNAME_HEIGHT - 6;
+        tmpsz.origin.x += 1;
+        tmpsz.origin.y += 6;
+        tmpsz.size.h = 25;
+        tmpsz.size.w = 25;
         graphics_context_set_compositing_mode(ctx, GCompOpSet);
         graphics_draw_bitmap_in_rect(ctx, l->icon, tmpsz);
     
@@ -201,10 +201,10 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx) {
     } else {
         /* no source, just a centered icon */
         GRect tmpsz = szrect;
-        tmpsz.origin.x += (tmpsz.size.w - APPNAME_HEIGHT - 6) / 2;
-        tmpsz.origin.y += 7;
-        tmpsz.size.h = APPNAME_HEIGHT - 6;
-        tmpsz.size.w = APPNAME_HEIGHT - 6;
+        tmpsz.origin.x += (tmpsz.size.w - 25) / 2;
+        tmpsz.origin.y += 5;
+        tmpsz.size.h = 25;
+        tmpsz.size.w = 25;
         graphics_context_set_compositing_mode(ctx, GCompOpSet);
         graphics_draw_bitmap_in_rect(ctx, l->icon, tmpsz);
 
