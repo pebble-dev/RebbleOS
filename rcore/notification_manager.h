@@ -9,7 +9,6 @@
  * inject the relevant subcontent. 
  */
 #include "overlay_manager.h"
-#include "notification_layer.h"
 #include "protocol_notification.h"
 #include "protocol_call.h"
 #include "event_service.h"
@@ -52,6 +51,7 @@ void notification_load_click_config(Window *app_window);
 
 /* Internal implementation */
 void notification_message_display(OverlayWindow *overlay, Window *window);
+void notification_message_destroy(OverlayWindow *overlay, Window *window);
 void battery_overlay_display(OverlayWindow *overlay, Window *window);
 void battery_overlay_destroy(OverlayWindow *overlay, Window *window);
 void mini_message_overlay_display(OverlayWindow *overlay, Window *window);
@@ -73,7 +73,6 @@ typedef struct notification_data_t {
 
 typedef struct notification_message_t {
     notification_data data;
-    NotificationLayer *notification_layer;
     Uuid *uuid;
 } notification_message;
 
