@@ -175,6 +175,9 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx) {
     
     graphics_context_set_text_color(ctx, GColorBlack);
     
+    szrect.origin.x = 0;
+    szrect.origin.y = 0;
+    
     szrect.origin.x += X_PADDING;
     szrect.size.w   -= X_PADDING * 2;
     
@@ -191,7 +194,7 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx) {
         tmpsz.size.h = APPNAME_HEIGHT;
         tmpsz.size.w   -= APPNAME_HEIGHT + ELEMENT_PADDING;
         tmpsz.origin.x += APPNAME_HEIGHT + ELEMENT_PADDING;
-        n_graphics_draw_text(ctx, l->source, fonts_get_system_font(APPNAME_FONT),
+        graphics_draw_text(ctx, l->source, fonts_get_system_font(APPNAME_FONT),
             tmpsz, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0);
         szrect.origin.y += APPNAME_HEIGHT;
         szrect.size.h   -= APPNAME_HEIGHT;
@@ -219,28 +222,27 @@ static void single_notification_layer_update_proc(Layer *layer, GContext *ctx) {
     szrect.size.h   -= APPNAME_PADDING;
     
     if (l->title) {
-        n_graphics_draw_text_ex(ctx,
+        graphics_draw_text_ex(ctx,
             l->title, fonts_get_system_font(TITLE_FONT),
             szrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0, &outsz);
         szrect.origin.y += outsz.h + ELEMENT_PADDING;
         szrect.size.h   -= outsz.h + ELEMENT_PADDING;
     }
     if (l->subtitle) {
-        n_graphics_draw_text_ex(ctx,
+        graphics_draw_text_ex(ctx,
             l->subtitle, fonts_get_system_font(SUBTITLE_FONT),
             szrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0, &outsz);
         szrect.origin.y += outsz.h + ELEMENT_PADDING;
         szrect.size.h   -= outsz.h + ELEMENT_PADDING;
     }
     if (l->body) {
-        n_graphics_draw_text_ex(ctx,
+        graphics_draw_text_ex(ctx,
             l->body, fonts_get_system_font(BODY_FONT),
             szrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0, &outsz);
         szrect.origin.y += outsz.h + ELEMENT_PADDING;
         szrect.size.h   -= outsz.h + ELEMENT_PADDING;
-        APP_LOG("noty", APP_LOG_LEVEL_INFO, "body outsz %d", outsz.h);
     }
-    n_graphics_draw_text_ex(ctx,
+    graphics_draw_text_ex(ctx,
         l->timestamp, fonts_get_system_font(TIMESTAMP_FONT),
         szrect, GTextOverflowModeTrailingEllipsis, GTextAlignmentLeft, 0, &outsz);
     szrect.origin.y += outsz.h + ELEMENT_PADDING;

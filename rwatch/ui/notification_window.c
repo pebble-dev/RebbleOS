@@ -129,7 +129,9 @@ static void _down_single_click_handler(ClickRecognizerRef _, void *_w) {
         return;
     
     int16_t curnotif_maxscroll = w->curnotif_height - VIEWPORT_HEIGHT;
-    int16_t curnotif_nudge     = w->curnotif_height - VIEWPORT_HEIGHT + NUDGE_HEIGHT;
+    if (curnotif_maxscroll < 0)
+        curnotif_maxscroll = 0;
+    int16_t curnotif_nudge     = curnotif_maxscroll + NUDGE_HEIGHT;
     if (w->curnotif_nudging) {
         /* We are nudging and moving still scrolling down -- swap the
          * notifications to the next.  We can only be nudging if there is a
@@ -241,7 +243,10 @@ static void _up_single_click_handler(ClickRecognizerRef _, void *_w) {
         timeline_destroy(notif);
 
         w->curnotif_height = single_notification_layer_height(&w->n1);
-        w->curnotif_scroll = w->curnotif_height - VIEWPORT_HEIGHT + NUDGE_HEIGHT;
+        curnotif_maxscroll = w->curnotif_height - VIEWPORT_HEIGHT;
+        if (curnotif_maxscroll < 0)
+            curnotif_maxscroll = 0;
+        w->curnotif_scroll = curnotif_maxscroll + NUDGE_HEIGHT;
         
         frame = layer_get_frame(single_notification_layer_get_layer(&w->n1));
         frame.origin.y = -w->curnotif_scroll;
