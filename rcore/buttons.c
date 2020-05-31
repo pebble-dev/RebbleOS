@@ -26,17 +26,24 @@
 #define MODULE_NAME "buttons"
 #define MODULE_TYPE "KERN"
 
+/* Lower is higher priority. */
+enum button_owners {
+    OWNER_OVERLAY,
+    OWNER_APP,
+    OWNER_MAX
+};
+
 typedef struct ButtonHolder {
     uint8_t button_id;
-    ClickConfig click_config;
+    ClickConfig click_config[OWNER_MAX];
     uint8_t pressed:1;
     uint8_t did_long_click:1;
     uint8_t is_repeating:1;
     TickType_t last_transition;
     TickType_t last_repeat_time;
     TickType_t press_time;
-    uint8_t click_thread_affinity_bitfield; /* track which handler is on which thread. Not super ideal but memory efficient. */
 } ButtonHolder;
+
 
 /* Stack size is tuned with the assumption logging is on/present
  * Stack can be chopped with no logging enabled */
@@ -45,20 +52,12 @@ static void _button_thread(void *pvParameters);
 THREAD_DEFINE(button, configMINIMAL_STACK_SIZE, tskIDLE_PRIORITY + 5UL, _button_thread);
 
 static ButtonMessage _button_message;
-static ButtonHolder _button_holders[NUM_BUTTONS];
+static ButtonHolder _button_holders[NUM_BUTTONS] MEM_REGION_DISPLAY;
 
-void button_send_app_click(ButtonHolder *button, uint8_t bit, void *callback, void *recognizer, void *context);
+void button_send_app_click(ButtonHolder *button, enum button_owners owner, void *callback, void *recognizer, void *context);
 
 static void _button_isr(hw_button_t button_id);
 static uint8_t _button_pressed(ButtonId button_id);
-
-
-#define BUTTON_CLICK_THREAD_S_C (1 << 0)
-#define BUTTON_CLICK_THREAD_R_C (1 << 1)
-#define BUTTON_CLICK_THREAD_M_C (1 << 2)
-#define BUTTON_CLICK_THREAD_L_C (1 << 3)
-#define BUTTON_CLICK_THREAD_N_C (1 << 4)
-#define BUTTON_CLICK_THREAD_D_C (1 << 5)
 
 /*
  * Start the button processor
@@ -128,6 +127,22 @@ static void _button_thread(void *pvParameters)
         {
             ButtonHolder *btn = &_button_holders[btni];
             
+            /* Who's the owner of this button?  A thread owns a button if it
+             * has any handler installed for a button.  */
+            int owner = 0;
+            for (owner = 0; owner < OWNER_MAX; owner++) {
+                if (btn->click_config[owner].click.handler ||
+                    btn->click_config[owner].multi_click.handler ||
+                    btn->click_config[owner].long_click.handler ||
+                    btn->click_config[owner].raw.up_handler ||
+                    btn->click_config[owner].raw.down_handler) {
+                    break;
+                }
+            }
+            if (owner == OWNER_MAX) /* No owner. */
+                continue;
+            ClickConfig *cfg = &(btn->click_config[owner]);
+            
             /* Has something changed? */
             if ((btn->pressed != hw_button_pressed(btni)) && 
                 (xTaskGetTickCount() > (btn->last_transition + butDEBOUNCE_DELAY)))
@@ -140,41 +155,41 @@ static void _button_thread(void *pvParameters)
                     btn->press_time = btn->last_repeat_time = xTaskGetTickCount();
                     btn->did_long_click = 0;
                     btn->is_repeating = 0;
-                    LOG_DEBUG("PRESS: for button %d", btn->button_id);
+                    LOG_DEBUG("PRESS: for button %d, owner %d", btn->button_id, owner);
 
                     /* raw handlers happen, no matter what */
-                    if (btn->click_config.raw.down_handler) {
-                        LOG_DEBUG("CLICK: raw down for button %d", btn->button_id);
-                        button_send_app_click(btn, BUTTON_CLICK_THREAD_D_C, btn->click_config.raw.down_handler, btn, btn->click_config.context);
+                    if (cfg->raw.down_handler) {
+                        LOG_DEBUG("CLICK: raw down for button %d, owner %d", btn->button_id, owner);
+                        button_send_app_click(btn, owner, cfg->raw.down_handler, btn, cfg->context);
                     }
                     
                     /* we only greedy-trigger the single-click if we don't
                      * have to wait to decide if it was a long-click */
-                    if (btn->click_config.click.handler && !btn->click_config.long_click.handler) {
-                        LOG_DEBUG("CLICK: greedy single click for button %d", btn->button_id);
-                        button_send_app_click(btn, BUTTON_CLICK_THREAD_S_C, btn->click_config.click.handler, btn, btn->click_config.context);
+                    if (cfg->click.handler && !cfg->long_click.handler) {
+                        LOG_DEBUG("CLICK: greedy single click for button %d, owner %d", btn->button_id, owner);
+                        button_send_app_click(btn, owner, cfg->click.handler, btn, cfg->context);
                     }
                 } else /* pressed -> released */ {
-                    LOG_DEBUG("RELEASE: for button %d", btn->button_id);
+                    LOG_DEBUG("RELEASE: for button %d, owner %d", btn->button_id, owner);
 
                     /* raw handlers happen, no matter what */
-                    if (btn->click_config.raw.up_handler) {
-                        LOG_DEBUG("CLICK: raw up for button %d", btn->button_id);
-                        button_send_app_click(btn, BUTTON_CLICK_THREAD_N_C, btn->click_config.raw.up_handler, btn, btn->click_config.context);
+                    if (cfg->raw.up_handler) {
+                        LOG_DEBUG("CLICK: raw up for button %d, owner %d", btn->button_id, owner);
+                        button_send_app_click(btn, owner, cfg->raw.up_handler, btn, cfg->context);
                     }
                     
                     /* we need to send a long-click xor a short-click */
-                    if (btn->click_config.click.handler &&
-                        btn->click_config.long_click.handler &&
+                    if (cfg->click.handler &&
+                        cfg->long_click.handler &&
                         !btn->did_long_click) {
-                        LOG_DEBUG("CLICK: single click (for aborted long click) for button %d", btn->button_id);
-                        button_send_app_click(btn, BUTTON_CLICK_THREAD_S_C, btn->click_config.click.handler, btn, btn->click_config.context);
+                        LOG_DEBUG("CLICK: single click (for aborted long click) for button %d, owner %d", btn->button_id, owner);
+                        button_send_app_click(btn, owner, cfg->click.handler, btn, cfg->context);
                     }
                     
                     if (btn->did_long_click &&
-                        btn->click_config.long_click.release_handler) {
-                        LOG_DEBUG("CLICK: long click release for button %d", btn->button_id);
-                        button_send_app_click(btn, BUTTON_CLICK_THREAD_L_C, btn->click_config.long_click.release_handler, btn, btn->click_config.context);
+                        cfg->long_click.release_handler) {
+                        LOG_DEBUG("CLICK: long click release for button %d, owner %d", btn->button_id, owner);
+                        button_send_app_click(btn, owner, cfg->long_click.release_handler, btn, cfg->context);
                     }
                 }
             }
@@ -184,38 +199,38 @@ static void _button_thread(void *pvParameters)
              
             /* Waiting for a long press? */
             if (btn->pressed && !btn->did_long_click &&
-                btn->click_config.long_click.handler) {
+                cfg->long_click.handler) {
                 
-                TickType_t lc_wakeup = btn->press_time + pdMS_TO_TICKS(btn->click_config.long_click.delay_ms);
+                TickType_t lc_wakeup = btn->press_time + pdMS_TO_TICKS(cfg->long_click.delay_ms);
                 
                 if (xTaskGetTickCount() >= lc_wakeup) {
                     /* it's time */
                     btn->did_long_click = 1;
-                    LOG_DEBUG("CLICK: long click for button %d", btn->button_id);
-                    button_send_app_click(btn, BUTTON_CLICK_THREAD_L_C, btn->click_config.long_click.handler, btn, btn->click_config.context);
+                    LOG_DEBUG("CLICK: long click for button %d, owner %d", btn->button_id, owner);
+                    button_send_app_click(btn, owner, cfg->long_click.handler, btn, cfg->context);
                 } else if (lc_wakeup < next_wakeup) {
-                    LOG_DEBUG("next wakeup will be for %d msec long-click", btn->click_config.long_click.delay_ms);
+                    LOG_DEBUG("next wakeup will be for %d msec long-click", cfg->long_click.delay_ms);
                     next_wakeup = lc_wakeup;
                 }
             }
             
             /* Waiting for a repeat? */
             if (btn->pressed && 
-                btn->click_config.click.handler &&
-                btn->click_config.click.repeat_interval_ms) {
+                cfg->click.handler &&
+                cfg->click.repeat_interval_ms) {
                 
-                TickType_t repeat_wakeup = btn->last_repeat_time + pdMS_TO_TICKS(btn->click_config.click.repeat_interval_ms);
+                TickType_t repeat_wakeup = btn->last_repeat_time + pdMS_TO_TICKS(cfg->click.repeat_interval_ms);
                 if (xTaskGetTickCount() >= repeat_wakeup) {
                     /* time for a repeat */
                     btn->is_repeating = 1;
                     btn->last_repeat_time = xTaskGetTickCount();
-                    LOG_DEBUG("CLICK: repeat click for button %d", btn->button_id);
-                    button_send_app_click(btn, BUTTON_CLICK_THREAD_R_C, btn->click_config.click.handler, btn, btn->click_config.context);
-                    repeat_wakeup = btn->last_repeat_time + pdMS_TO_TICKS(btn->click_config.click.repeat_interval_ms);
+                    LOG_DEBUG("CLICK: repeat click for button %d, owner %d", btn->button_id, owner);
+                    button_send_app_click(btn, owner, cfg->click.handler, btn, cfg->context);
+                    repeat_wakeup = btn->last_repeat_time + pdMS_TO_TICKS(cfg->click.repeat_interval_ms);
                 }
                 
                 if (repeat_wakeup < next_wakeup) {
-                    LOG_DEBUG("next wakeup will be for %d msec repeat", btn->click_config.click.repeat_interval_ms);
+                    LOG_DEBUG("next wakeup will be for %d msec repeat", cfg->click.repeat_interval_ms);
                     next_wakeup = repeat_wakeup;
                 }
             }
@@ -226,7 +241,7 @@ static void _button_thread(void *pvParameters)
 /*
  * Convenience function to send a button click to the main application processor
  */
-void button_send_app_click(ButtonHolder *button, uint8_t bit, void *callback, void *recognizer, void *context)
+void button_send_app_click(ButtonHolder *button, enum button_owners owner, void *callback, void *recognizer, void *context)
 {   
     _button_message.callback = callback;
     _button_message.clickref = recognizer; // TODO
@@ -234,7 +249,7 @@ void button_send_app_click(ButtonHolder *button, uint8_t bit, void *callback, vo
 
     rcore_backlight_on(100, 3000);
 
-    if (button->click_thread_affinity_bitfield & bit)
+    if (owner == OWNER_APP)
         appmanager_post_button_message(&_button_message);
     else
         overlay_window_post_button_message(&_button_message);
@@ -246,26 +261,15 @@ void button_send_app_click(ButtonHolder *button, uint8_t bit, void *callback, vo
  */
 
 
-/* When a thread sets a callback, the thread type is tracked in a bitfield
- * this way we can later post it to the correct queue */
-void _button_set_is_app_thread_bit(ButtonHolder *button, uint8_t bit)
-{
-    if (appmanager_is_thread_app())
-        button->click_thread_affinity_bitfield |= bit;
-    else
-        button->click_thread_affinity_bitfield &= ~bit;
-}
-
 void button_single_click_subscribe(ButtonId button_id, ClickHandler handler)
 {
     if (button_id >= NUM_BUTTONS)
         return;
     
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    holder->click_config.click.handler = handler;
-    holder->click_config.click.repeat_interval_ms = 0;
-    
-    _button_set_is_app_thread_bit(holder, BUTTON_CLICK_THREAD_S_C);
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    cfg->click.handler = handler;
+    cfg->click.repeat_interval_ms = 0;
 }
 
 void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat_interval_ms, ClickHandler handler)
@@ -274,10 +278,9 @@ void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat
         return;
     
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    holder->click_config.click.handler = handler;
-    holder->click_config.click.repeat_interval_ms = repeat_interval_ms;
-    
-    _button_set_is_app_thread_bit(holder, BUTTON_CLICK_THREAD_R_C);
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    cfg->click.handler = handler;
+    cfg->click.repeat_interval_ms = repeat_interval_ms;
 }
 
 void button_multi_click_subscribe(ButtonId button_id, uint8_t min_clicks, uint8_t max_clicks, uint16_t timeout, bool last_click_only, ClickHandler handler)
@@ -294,11 +297,10 @@ void button_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHan
         return;
     
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    holder->click_config.long_click.handler = down_handler;
-    holder->click_config.long_click.release_handler = up_handler;
-    holder->click_config.long_click.delay_ms = delay_ms;
-    
-    _button_set_is_app_thread_bit(holder, BUTTON_CLICK_THREAD_L_C);
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    cfg->long_click.handler = down_handler;
+    cfg->long_click.release_handler = up_handler;
+    cfg->long_click.delay_ms = delay_ms;
 }
 
 void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, ClickHandler up_handler, void * context)
@@ -307,12 +309,11 @@ void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
         return;
     
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    holder->click_config.raw.up_handler = up_handler;
-    holder->click_config.raw.down_handler = down_handler;
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    cfg->raw.up_handler = up_handler;
+    cfg->raw.down_handler = down_handler;
     if (context != NULL)
-        holder->click_config.context = context;
-    
-    _button_set_is_app_thread_bit(holder, BUTTON_CLICK_THREAD_N_C);
+        cfg->context = context;
 }
 
 
@@ -321,8 +322,8 @@ void button_unsubscribe_all(void)
     for(uint8_t i = 0; i < NUM_BUTTONS; i++)
     {
         ButtonHolder *holder = &_button_holders[i]; // get the button
-        memset(holder, 0, sizeof(ButtonHolder));
-        holder->button_id = i;
+        ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+        memset(cfg, 0, sizeof(*cfg));
     }
 }
 
@@ -331,7 +332,9 @@ void button_set_click_context(ButtonId button_id, void *context)
     if (button_id >= NUM_BUTTONS)
         return;
 
-    _button_holders[button_id].click_config.context = context;
+    ButtonHolder *holder = &_button_holders[button_id]; // get the button
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    cfg->context = context;
 }
 
 uint8_t button_short_click_is_subscribed(ButtonId button_id)
@@ -341,7 +344,7 @@ uint8_t button_short_click_is_subscribed(ButtonId button_id)
     
     ButtonHolder *holder = &_button_holders[button_id];
     
-    return holder->click_config.click.handler != NULL;
+    return holder->click_config[OWNER_APP].click.handler != NULL;
 }
 
 bool click_recognizer_is_repeating(ClickRecognizerRef recognizer)
