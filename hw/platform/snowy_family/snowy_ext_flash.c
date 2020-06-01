@@ -380,7 +380,7 @@ int hw_flash_write_sync(uint32_t address, uint8_t *buffer, size_t length)
     {
         uint8_t v[2];
         v[0] = ((i == 0)                && start_align) ? 0xFF : *(buffer++);
-        v[1] = ((i == (len_padded - 1)) && end_align  ) ? 0xFF : *(buffer++);
+        v[1] = ((i == (len_padded - 2)) && end_align  ) ? 0xFF : *(buffer++);
         NOR_WRITE(Bank1_NOR_ADDR + addr_aligned + i, *((uint16_t *)v));
     }       
     
