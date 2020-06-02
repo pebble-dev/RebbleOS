@@ -543,7 +543,20 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
     if (icon)
     {
         GSize icon_size = icon->raw_bitmap_size;
+#ifdef PBL_BW
+        // XXX: Violates NeoGraphics's boundary here.  The goal is that we
+        // want to invert icons if the fill color is black -- i.e., if the
+        // cell's background is black.  It's not clear to me that we're
+        // actually using Clear and Set the right way, because we're using
+        // the palettized blitters after all, but yet, here we are.
+        if (n_gcolor_equal(ctx->fill_color, n_GColorBlack))
+            n_graphics_context_set_compositing_mode(ctx, n_GCompOpClear);
+        else
+            n_graphics_context_set_compositing_mode(ctx, n_GCompOpSet);
+#else
+        // On color, we have to be more careful here.
         n_graphics_context_set_compositing_mode(ctx, n_GCompOpSet);
+#endif
         graphics_draw_bitmap_in_rect(ctx, icon, GRect(x, (frame.size.h - icon_size.h) / 2, icon_size.w, icon_size.h));
         n_graphics_context_set_compositing_mode(ctx, n_GCompOpAssign);
         x += icon_size.w + MENU_CELL_PADDING;
