@@ -77,6 +77,10 @@ void notification_arrived(EventServiceCommand command, void *data, void *context
     {
         assert(appmanager_get_current_thread()->thread_type == AppThreadOverlay);
         notification_window_push_to_top(&_notif_window, uuid);
+        
+        notification_message *nmsg = (notification_message *) notification_window_get_window(&_notif_window)->context;
+        if (nmsg->data.timer)
+            app_timer_reschedule(nmsg->data.timer, 15000);
         return;
     }
 
