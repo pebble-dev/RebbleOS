@@ -279,6 +279,14 @@ static void _notification_window_click_config_provider(NotificationWindow *w) {
     window_single_repeating_click_subscribe(BUTTON_ID_UP  , 500, _up_single_click_handler  );
     window_set_click_context(BUTTON_ID_DOWN, w);
     window_set_click_context(BUTTON_ID_UP  , w);
+    
+    if (w->clickconfig)
+        w->clickconfig(w->clickconfigcontext);
+}
+
+void notification_window_set_click_config(NotificationWindow *w, ClickConfigProvider config, void *context) {
+    w->clickconfig = config;
+    w->clickconfigcontext = context;
 }
 
 static void _notification_window_load(Window *window) {

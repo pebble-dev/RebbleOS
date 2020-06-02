@@ -21,6 +21,9 @@ typedef struct NotificationWindow {
     
     SingleNotificationLayer n1;
     SingleNotificationLayer n2;
+    
+    ClickConfigProvider clickconfig;
+    void *clickconfigcontext;
 } NotificationWindow;
 
 void notification_window_ctor(NotificationWindow *nw, Window *w);
@@ -28,3 +31,4 @@ void notification_window_dtor(NotificationWindow *w);
 void notification_window_set_notifications(NotificationWindow *w, Uuid *uuids, size_t count, size_t curnotif);
 void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid);
 Window *notification_window_get_window(NotificationWindow *w);
+void notification_window_set_click_config(NotificationWindow *w, ClickConfigProvider config, void *context);
