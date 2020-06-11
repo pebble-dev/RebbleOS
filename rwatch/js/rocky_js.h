@@ -9,9 +9,12 @@
  */
 
 #include <stdint.h>
+//#include "window.h"
+//#include "rocky_lib.h"
 
 typedef struct {
     int fataled;
+    // TODO: Move eventList, window here.
 } rocky_thread_state;
 
 

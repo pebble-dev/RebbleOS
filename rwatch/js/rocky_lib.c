@@ -89,8 +89,8 @@ void rocky_lib_addWatchInfo(jerry_value_t rocky)
     jerry_value_t languageName = jerry_create_string("language");
     jerry_value_t language = jerry_create_string("en-US"); // TODO: Actually implement this, unlike Pebble
     jerry_set_property(object, languageName, language);
-    jerry_release_value(platformName);
-    jerry_release_value(platform);
+    jerry_release_value(languageName);
+    jerry_release_value(language);
 
     //jerry_value_t firmwareName = jerry_create_string("firmware");
     //jerry_value_t firmwareObject = jerry_create_object();

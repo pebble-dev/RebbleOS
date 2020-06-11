@@ -37,8 +37,8 @@ typedef struct
     list_node node;
 } rocky_eventListener;
 
-rocky_eventListener *rocky_eventRegister(char *type, jerry_value_t cb);
-rocky_eventListener *rocky_eventRemove(char *type, jerry_value_t cb);
-void rocky_eventHandle(rocky_eventListenerType type);
+rocky_eventListener *rocky_eventRegister(char *type, jerry_value_t callback);
+rocky_eventListener *rocky_eventRemove(char *type, jerry_value_t callback);
+void rocky_eventHandle(rocky_eventListenerType type, jerry_value_t arg);
 
 void rocky_lib_build();

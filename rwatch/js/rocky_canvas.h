@@ -10,6 +10,7 @@
  */
 
 #include "rebbleos.h"
+#include "node_list.h"
 
 typedef uint8_t RockyCanvasFontSize;
 
@@ -88,12 +89,10 @@ typedef struct
 typedef struct
 {
 	RockyCanvasPath path;
-
+	list_node node;
 } RockyCanvasState;
 
 typedef struct
 {
-	RockyCanvasState current;
-	uint8_t top;
-	RockyCanvasState saved[8]; // Do people even use canvas save/restore? Either way, 8 states should be enough.
-} RockyCanvasContext;
+	RockyCanvasState state;
+} RockyCanvas;
