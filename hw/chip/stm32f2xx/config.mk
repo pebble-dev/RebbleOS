@@ -1,5 +1,6 @@
 CFLAGS_stm32f2xx = $(CFLAGS_all)
 CFLAGS_stm32f2xx += -Ihw/chip/stm32f2xx/inc
+CFLAGS_stm32f2xx += -IFreeRTOS/portable/GCC/ARM_CM4F
 CFLAGS_stm32f2xx += -DUSE_STDPERIPH_DRIVER -DSTM32F2XX -mcpu=cortex-m3 -fsingle-precision-constant
 
 SRCS_stm32f2xx = $(SRCS_all)
@@ -48,6 +49,7 @@ SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_syscfg.c
 SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_tim.c
 SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_usart.c
 SRCS_stm32f2xx += hw/chip/stm32f2xx/stm32f2xx_wwdg.c
+SRCS_stm32f2xx += FreeRTOS/portable/GCC/ARM_CM4F/port.c
 
 LDFLAGS_stm32f2xx = $(LDFLAGS_all)
 LDFLAGS_stm32f2xx += -Wl,-Thw/chip/stm32f2xx/stm32f2xx.lds
