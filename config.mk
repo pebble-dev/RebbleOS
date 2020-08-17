@@ -1,7 +1,6 @@
 # Common source.
 CFLAGS_all += -IHardware
 CFLAGS_all += -IFreeRTOS/include
-CFLAGS_all += -IFreeRTOS/portable/GCC/ARM_CM4F
 CFLAGS_all += -IPlatform/CMSIS/Include
 CFLAGS_all += -Ilib/neographics/src/
 CFLAGS_all += -Ilib/neographics/src/draw_command
@@ -48,7 +47,6 @@ SRCS_all += FreeRTOS/list.c
 SRCS_all += FreeRTOS/queue.c
 SRCS_all += FreeRTOS/tasks.c
 SRCS_all += FreeRTOS/timers.c
-SRCS_all += FreeRTOS/portable/GCC/ARM_CM4F/port.c
 
 SRCS_all += lib/minilib/minilib.c
 SRCS_all += lib/minilib/dprint.c
