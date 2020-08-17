@@ -48,3 +48,6 @@ Portions of this codebase are instead made available under other licenses:
  * The Pebble SDK's PNG crushing routines, in
    Utilities/pebble_image_routines.py and Utilities/pebblepng.py, are taken
    from the Pebble SDK.
+
+ * The 'Simplicity' watchface is available under an MIT License (embedded
+   within that file).

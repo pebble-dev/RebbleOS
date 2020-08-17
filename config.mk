@@ -168,6 +168,7 @@ SRCS_all += rwatch/storage/storage_persist.c
 SRCS_all += rwatch/storage/dictionary.c
 
 SRCS_all += Watchfaces/simple.c
+SRCS_all += Watchfaces/simplicity.c
 SRCS_all += Watchfaces/nivz.c
 
 SRCS_all += Apps/System/systemapp.c

@@ -129,7 +129,7 @@ static MenuItems* app_list_item_selected(const MenuItem *item) {
 static void exit_to_watchface(struct Menu *menu, void *context)
 {
     // Exit to watchface
-    appmanager_app_start("Simple");
+    appmanager_app_start("Simplicity");
 }
 
 

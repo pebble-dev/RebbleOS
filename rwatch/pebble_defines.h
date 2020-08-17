@@ -10,8 +10,10 @@
 
 #ifdef PBL_RECT
 #define PBL_IF_RECT_ELSE(rct, round) (rct)
+#define PBL_IF_ROUND_ELSE(round, rct) (rct)
 #else
 #define PBL_IF_RECT_ELSE(rct, round) (round)
+#define PBL_IF_ROUND_ELSE(round, rct) (round)
 #endif
 
 #ifdef PBL_BW
