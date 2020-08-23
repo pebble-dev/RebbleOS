@@ -120,11 +120,17 @@ GBitmap *graphics_capture_frame_buffer(n_GContext *context)
     return &_fb_gbitmap;
 }
 
-GBitmap *graphics_capture_frame_buffer_format(n_GContext *context, GBitmap format)
+GBitmap *graphics_capture_frame_buffer_format(n_GContext *context, int format)
 {
     // rbl_lock_frame_buffer
     LOG_DEBUG("fb lock");
-    return (GBitmap *)display_get_buffer();
+#ifdef COLOR_BW
+    panic("graphics_capture_frame_buffer_format NYI on PBL_BW");
+#else
+    if (format != n_GBitmapFormat8Bit)
+        return NULL;
+    return graphics_capture_frame_buffer(context);
+#endif
 }
 
 void graphics_release_frame_buffer(n_GContext *context, GBitmap *bitmap)
