@@ -243,6 +243,15 @@ $(BUILD)/version.c:
 
 .PHONY: $(BUILD)/version.c
 
+# And some other deps.  But we don't really have a stamp for those.  This
+# also makes a mess -- at some point, this should go into $(BUILD).
+lib/tz/zic lib/tz/tzdata.zi: lib/tz/zic.c lib/tz/private.h lib/tz/tzfile.h
+	make -C lib/tz zic tzdata.zi
+
+$(BUILD)/tz: lib/tz/zic lib/tz/tzdata.zi
+	$(call SAY,ZIC tzdata.zi)
+	@lib/tz/zic -b slim -r @$(shell date +%s) -d $(BUILD)/tz lib/tz/tzdata.zi
+
 $(VIRTUALENV): Utilities/requirements.txt
 	$(call SAY,RM $@)
 	$(QUIET)rm -rf $@
