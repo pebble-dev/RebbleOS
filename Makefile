@@ -252,6 +252,13 @@ $(BUILD)/tz: lib/tz/zic lib/tz/tzdata.zi
 	$(call SAY,ZIC tzdata.zi)
 	@lib/tz/zic -b slim -r @$(shell date +%s) -d $(BUILD)/tz lib/tz/tzdata.zi
 
+$(BUILD)/tzdb: $(BUILD)/tz Utilities/tzcomp.py $(VIRTUALENV)
+	$(call SAY,TZCOMP $(BUILD)/tz)
+	@$(VIRTUALENV)/bin/python3 Utilities/tzcomp.py -i $< -o $@
+
+res/../%: %
+	@
+
 $(VIRTUALENV): Utilities/requirements.txt
 	$(call SAY,RM $@)
 	$(QUIET)rm -rf $@
