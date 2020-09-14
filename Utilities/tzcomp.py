@@ -13,10 +13,12 @@ and the offset from the long-form timezone string is used.
 The RebbleOS time zone file format is a packed binary database with a list
 of records.  A record can be:
 
-A byte, 0x01, followed by a 0-terminated string -- this is a folder name.
+A byte, 0x01, followed by a 1-byte length (including 0-terminator), followed
+by a 0-terminated string -- this is a folder name.
 
-A byte, 0x02, followed by a 0-terminated string -- this is a time zone name. 
-Following a time zone name is a time zone record:
+A byte, 0x02, followed by a 1-byte length (include 0-terminator), followed
+by a 0-terminated string -- this is a time zone name.  Following a time zone
+name is a time zone record:
 
   union tzrec {
     unsigned char hasdst;
@@ -226,7 +228,7 @@ tzpaths = [
 out = open(args.output[0], 'wb')
 for dir in tzpaths:
     dirpath = os.path.join(args.input[0], dir)
-    out.write(b'\x01' + dir.encode() + b'\x00')
+    out.write(b'\x01' + struct.pack('B', len(dir.encode()) + 1) + dir.encode() + b'\x00')
     fs = [f for f in os.listdir(dirpath)]
     fs.sort()
     for f in fs:
@@ -238,7 +240,7 @@ for dir in tzpaths:
             if len(tz.trntimes) != 1:
                 raise ValueError(f"unsupported timecnt {len(tz.trntimes)}")
             
-            out.write(b'\x02' + f.encode() + b'\x00')
+            out.write(b'\x02' + struct.pack('B', len(f.encode()) + 1) + f.encode() + b'\x00')
             
             if tz.dst is None:
                 out.write(struct.pack("<Bl", 0, tz.ofs))
