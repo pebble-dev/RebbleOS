@@ -39,7 +39,6 @@ bool _resource_is_sane(ResHandleFileHeader *res_handle)
     size_t sz = res_handle->size;
     app_running_thread *_this_thread = appmanager_get_current_thread();
     App *_running_app = _this_thread->app;
-    uint32_t app_heap_size = app_heap_bytes_free();
 
     if (sz <= 0)
     {
@@ -47,10 +46,14 @@ bool _resource_is_sane(ResHandleFileHeader *res_handle)
         return false;
     }
 
-    if (sz > app_heap_size)
-    {
-        LOG_ERROR("Res: Attempted to load resource that is larger than the remaining memory");
-        return false;
+    if (mem_thread_get_heap()) {
+        uint32_t app_heap_size = app_heap_bytes_free();
+        
+        if (sz > app_heap_size)
+        {
+            LOG_ERROR("Res: Attempted to load resource that is larger than the remaining memory");
+            return false;
+        }
     }
 
     return true;
