@@ -41,7 +41,7 @@ PFX ?= $(PEBBLE_TOOLCHAIN_PATH)/arm-none-eabi-
 
 CC = $(PFX)gcc
 LD = $(PFX)ld
-GDB = $(PFX)gdb
+GDB ?= $(PFX)gdb
 OBJCOPY = $(PFX)objcopy
 
 # Do not override this here!  Override this in localconfig.mk.
@@ -122,7 +122,7 @@ $(1)_runtest: $(BUILD)/$(1)_test/fw.qemu_flash.bin $(BUILD)/$(1)_test/fw.qemu_sp
 endif
 
 $(1)_gdb:
-	$(PFX)gdb -ex 'target remote localhost:63770' -ex "sym $(BUILD)/$(1)/tintin_fw.elf"
+	$(GDB) -ex 'target remote localhost:63770' -ex "sym $(BUILD)/$(1)/tintin_fw.elf"
 
 # List the resource header first to make sure it gets built first ...
 # otherwise we could get into trouble.
