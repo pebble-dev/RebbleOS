@@ -32,6 +32,8 @@ void rcore_time_init(void)
     _boot_time_t = rcore_mktime(tm);
     /* reset boot ticks ms to 0 same as wall time above (ugh!!)*/
     _boot_ticks = rcore_time_to_ticks(_boot_time_t, 0);
+    
+    tz_init();
 }
 
 time_t rcore_mktime(struct tm *tm)

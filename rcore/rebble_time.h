@@ -9,7 +9,6 @@
 #include "FreeRTOS.h"
 #include <time.h>
 
-
 //! Weekday values
 typedef enum {
   TODAY = 0,  //!< Today
@@ -55,3 +54,32 @@ time_t rcore_get_time(void);
 void rcore_set_tz_name(char *tz_name, uint8_t len);
 void rcore_set_time(time_t time);
 void rcore_set_utc_offset(uint8_t offset);
+
+/* Time zone routines from tz.c. */
+
+union tzrec {
+	uint8_t hasdst;
+	struct {
+		uint8_t hasdst;
+		int32_t offset;
+	} __attribute__((packed)) nodst;
+	struct {
+		uint8_t hasdst;
+		int32_t offset;
+		int32_t dstoffset;
+		uint8_t dst_start_mode;
+		uint16_t dst_start_param[3];
+		uint32_t dst_start_time;
+		uint8_t dst_end_mode;
+		uint16_t dst_end_param[3];
+		uint32_t dst_end_time;
+	} __attribute__((packed)) dst;
+};
+
+struct fd;
+
+void tz_init();
+void tz_db_open(struct fd *fd);
+int tz_db_nextdir(struct fd *fd, char *name, int nlen);
+int tz_db_nexttz(struct fd *fd, char *name, int nlen, union tzrec *tzrec);
+int tz_load(const char *dir, const char *name);
