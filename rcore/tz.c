@@ -161,3 +161,151 @@ int tz_load(const char *dir, const char *name) {
 	memcpy(&_curtz, &tzrec, sizeof(_curtz));
 	return 0;
 }
+
+/*
+** Given a year and a rule, calculate the offset from the start of the year
+** in which the rule takes effect.  (Adapted from transtime in localtime.c,
+** from the tz distribution.)
+*/
+
+#define MONSPERYEAR   12
+#define HOURSPERDAY   24
+#define SECSPERMIN    60
+#define MINSPERHOUR   60
+#define SECSPERHOUR   (SECSPERMIN * MINSPERHOUR)
+#define SECSPERDAY    ((int32_t) SECSPERHOUR * HOURSPERDAY)
+#define DAYSPERWEEK   7
+#define isleap(y) (((y) % 4) == 0 && (((y) % 100) != 0 || ((y) % 400) == 0))
+
+static const int	mon_lengths[2][MONSPERYEAR] = {
+	{ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 },
+	{ 31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 }
+};
+
+static int32_t
+_transtime(const int year, int mode, uint16_t *params)
+{
+	int	leapyear;
+	int32_t value;
+	int	i;
+	int	d, m1, yy0, yy1, yy2, dow;
+
+	leapyear = isleap(year);
+	switch (mode) {
+	case 0 /* MODE_JULIAN */:
+		/*
+		** Jn - Julian day, 1 == January 1, 60 == March 1 even in leap
+		** years.
+		** In non-leap years, or if the day number is 59 or less, just
+		** add SECSPERDAY times the day number-1 to the time of
+		** January 1, midnight, to get the day.
+		*/
+		value = (params[0] - 1) * SECSPERDAY;
+		if (leapyear && params[0] >= 60)
+			value += SECSPERDAY;
+		break;
+
+	case 1 /* MODE_JULIANZ */:
+		/*
+		** n - day of year.
+		** Just add SECSPERDAY times the day number to the time of
+		** January 1, midnight, to get the day.
+		*/
+		value = params[0] * SECSPERDAY;
+		break;
+
+	case 2 /* MONTH_NTH_DAY_OF_WEEK */:
+		/*
+		** Mm.n.d - nth "dth day" of month m.
+		*/
+
+		/*
+		** Use Zeller's Congruence to get day-of-week of first day of
+		** month.
+		*/
+		m1 = (params[0] /* mon */ + 9) % 12 + 1;
+		yy0 = (params[0] /* mon */ <= 2) ? (year - 1) : year;
+		yy1 = yy0 / 100;
+		yy2 = yy0 % 100;
+		dow = ((26 * m1 - 2) / 10 +
+			1 + yy2 + yy2 / 4 + yy1 / 4 - 2 * yy1) % 7;
+		if (dow < 0)
+			dow += DAYSPERWEEK;
+
+		/*
+		** "dow" is the day-of-week of the first day of the month. Get
+		** the day-of-month (zero-origin) of the first "dow" day of the
+		** month.
+		*/
+		d = params[2] /* day */ - dow;
+		if (d < 0)
+			d += DAYSPERWEEK;
+		for (i = 1; i < params[1] /* week */; ++i) {
+			if (d + DAYSPERWEEK >=
+				mon_lengths[leapyear][params[0] /* mon */ - 1])
+					break;
+			d += DAYSPERWEEK;
+		}
+
+		/*
+		** "d" is the day-of-month (zero-origin) of the day we want.
+		*/
+		value = d * SECSPERDAY;
+		for (i = 0; i < params[0] /* mon */ - 1; ++i)
+			value += mon_lengths[leapyear][i] * SECSPERDAY;
+		break;
+	}
+
+	/*
+	** "value" is the year-relative time of 00:00:00 UT on the day in
+	** question. To get the year-relative time of the specified local
+	** time on that day, add the transition time and the current offset
+	** from UT.
+	*/
+	return value;
+}
+
+time_t tz_utc_to_local(time_t utc, int *dst) {
+	if (!_curtz.hasdst) {
+		*dst = 0;
+		return utc + _curtz.nodst.offset;
+	}
+	
+	/* Figure out whether the time_t is within DST.  Start off by
+	 * figuring out what year it is, and when that year started...
+	 */
+	struct tm tm;
+	gmtime_r(&utc, &tm);
+	
+	int year = tm.tm_year + 1900;
+	
+	tm.tm_sec = 0;
+	tm.tm_min = 0;
+	tm.tm_hour = 0;
+	tm.tm_mday = 1;
+	tm.tm_mon = 0;
+	extern time_t timegm(struct tm *tm);
+	time_t tt_yearstart = timegm(&tm); /* a GNU extension, but we implement it in RebbleOS, too */
+	
+	/* Then figure out when DST starts and ends in that year... */
+	time_t tt_dststart  = tt_yearstart + _transtime(year, _curtz.dst.dst_start_mode, _curtz.dst.dst_start_param) + _curtz.dst.dst_start_time + _curtz.dst.   offset;
+	time_t tt_dstend    = tt_yearstart + _transtime(year, _curtz.dst.dst_end_mode  , _curtz.dst.dst_end_param  ) + _curtz.dst.dst_end_time   + _curtz.dst.dstoffset;
+	
+	*dst = utc >= tt_dststart && utc < tt_dstend;
+	
+	if (*dst)
+		return utc - _curtz.dst.dstoffset;
+	else
+		return utc - _curtz.dst.   offset;
+}
+
+time_t tz_local_to_utc(time_t local, int dst) {
+	if (!_curtz.hasdst)
+		return local + _curtz.nodst.offset;
+	
+	if (dst)
+		return local + _curtz.dst.dstoffset;
+	else
+		return local + _curtz.dst.offset;
+	/* Well, that was easy. */
+}
