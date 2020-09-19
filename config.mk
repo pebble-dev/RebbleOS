@@ -102,6 +102,7 @@ SRCS_all += rcore/power.c
 SRCS_all += rcore/rebbleos.c
 SRCS_all += rcore/smartstrap.c
 SRCS_all += rcore/rebble_time.c
+SRCS_all += rcore/tz.c
 SRCS_all += rcore/rebble_memory.c
 SRCS_all += rcore/vibrate.c
 SRCS_all += rcore/flash.c
