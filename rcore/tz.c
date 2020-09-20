@@ -24,8 +24,6 @@ void tz_init() {
 	/* Default to GMT. */
 	_curtz.hasdst = 0;
 	_curtz.nodst.offset = 0;
-	
-	tz_load("America", "Los_Angeles");
 }
 
 void tz_db_open(struct fd *fd) {
@@ -183,12 +181,15 @@ static const int	mon_lengths[2][MONSPERYEAR] = {
 };
 
 static int32_t
-_transtime(const int year, int mode, uint16_t *params)
+_transtime(const int year, int mode, void *paramsv)
 {
 	int	leapyear;
 	int32_t value;
 	int	i;
 	int	d, m1, yy0, yy1, yy2, dow;
+	uint16_t params[3]; /* paramsv is unaligned */
+	
+	memcpy(params, paramsv, sizeof(params));
 
 	leapyear = isleap(year);
 	switch (mode) {
@@ -302,6 +303,8 @@ time_t tz_utc_to_local(time_t utc, int *dst) {
 time_t tz_local_to_utc(time_t local, int dst) {
 	if (!_curtz.hasdst)
 		return local + _curtz.nodst.offset;
+	
+	/* XXX: Handle dst < 0 ("go figure it out yourself") mode. */
 	
 	if (dst)
 		return local + _curtz.dst.dstoffset;
