@@ -43,11 +43,12 @@ time_t rcore_mktime(struct tm *tm)
 
 void rcore_set_time(time_t time)
 {
-    struct tm *tma = rebble_time_get_tm();
-    time_t now = rcore_mktime(tma);
-
-    rcore_localtime(tma, time);
-    hw_set_time(tma);
+    time_t now;
+    struct tm tm;
+    
+    rcore_time_ms(&now, NULL);
+    localtime_r(&time, &tm);
+    hw_set_time(&tm);
 
     _boot_time_t -= (now - time);
 }
@@ -66,11 +67,6 @@ void rcore_set_tz_name(char *tz_name, uint8_t len)
 time_t rcore_get_time(void)
 {
     return pbl_time_t_deprecated(NULL);
-}
-
-void rcore_localtime(struct tm *tm, time_t time)
-{
-    localtime_r(&time, tm);
 }
 
 uint16_t rcore_time_ms(time_t *tutc, uint16_t *ms)
@@ -104,7 +100,7 @@ struct tm *rebble_time_get_tm(void)
 {
     time_t tm;
     rcore_time_ms(&tm, NULL);
-    rcore_localtime(&_global_tm, tm);
+    localtime_r(&tm, &_global_tm);
     return &_global_tm;
 }
 
@@ -128,7 +124,7 @@ time_t pbl_time_t_deprecated(time_t *tloc)
     time_t _tm;
     
     rcore_time_ms(&_tm, NULL);
-    rcore_localtime(&_global_tm, _tm);
+    localtime_r(&_tm, &_global_tm);
 
     if (tloc)
         *tloc = _tm;
