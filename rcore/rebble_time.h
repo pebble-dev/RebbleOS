@@ -35,7 +35,6 @@ typedef void(*TickHandler)(struct tm *tick_time, TimeUnits units_changed);
 
 void rcore_time_init(void);
 time_t rcore_mktime(struct tm *tm);
-void rcore_localtime(struct tm *tm, time_t time);
 struct tm *rcore_pbl_localtime(time_t *time);
 
 uint16_t rcore_time_ms(time_t *tutc, uint16_t *ms);
