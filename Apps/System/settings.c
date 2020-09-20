@@ -109,6 +109,51 @@ static struct MenuItems *_wipe_fs(const struct MenuItem *ctx) {
     return items;
 }
 
+static char **_tzdirs = NULL;
+
+/* XXX: This is very hokey, and should just be a lazy-loaded menu. */
+static struct MenuItems *_sel_tz_dir(const struct MenuItem *ctx) {
+    struct fd fd;
+    int ntzs = 0;
+    char tzbuf[32];
+    
+    /* How many items? */
+    tz_db_open(&fd);
+    while (tz_db_nextdir(&fd, tzbuf, sizeof(tzbuf)) >= 0)
+        ntzs++;
+    
+    /* Load their strings. */
+    if (!_tzdirs) {
+        _tzdirs = malloc(sizeof(char *) * (ntzs + 1));
+        if (!_tzdirs)
+            return NULL;
+        memset(_tzdirs, 0, sizeof(char *) * (ntzs + 1)); 
+        ntzs = 0;
+        tz_db_open(&fd);
+        while (tz_db_nextdir(&fd, tzbuf, sizeof(tzbuf)) >= 0) {
+            _tzdirs[ntzs] = malloc(strlen(tzbuf) + 1);
+            if (!_tzdirs[ntzs])
+                return NULL;
+            strcpy(_tzdirs[ntzs], tzbuf);
+            ntzs++;
+        }
+    }
+
+    /* Create their names. */
+    MenuItems *items = menu_items_create(ntzs);
+    for (int i = 0; i < ntzs; i++) {
+        menu_items_add(items, MenuItem(_tzdirs[i], NULL, -1, NULL));
+    }
+    
+    return items;
+}
+
+static struct MenuItems *_time_settings(const struct MenuItem *ctx) {
+    MenuItems *items = menu_items_create(1);
+    menu_items_add(items, MenuItem("Time zone", tz_name(), RESOURCE_ID_CLOCK, _sel_tz_dir));
+    return items;
+}
+
 static struct MenuItems *_dummy_bt(const struct MenuItem *ctx) {
     _bluetooth_pair_request(0, "Dummy phone name", NULL);
     return NULL;
@@ -127,7 +172,8 @@ static void _reset_menu_items(void)
     MenuItems *items = menu_items_create(4);
     
     menu_items_add(items, MenuItem("Discoverable", bluetooth_name(), RESOURCE_ID_SPANNER, NULL));
-    menu_items_add(items, MenuItem("Format filesystem", "Time to die, sucker!", RESOURCE_ID_SPANNER, _wipe_fs));
+    menu_items_add(items, MenuItem("Date & Time", "Later is fine", RESOURCE_ID_CLOCK, _time_settings));
+    menu_items_add(items, MenuItem("Format filesystem", "Time to die!", RESOURCE_ID_SPANNER, _wipe_fs));
     menu_items_add(items, MenuItem("Dummy BT pair", "Be a dummy", RESOURCE_ID_SPANNER, _dummy_bt));
     menu_items_add(items, MenuItem("Instapanic", "Oh no!", RESOURCE_ID_SPANNER, _do_panic));
     menu_set_items(_menu, items);
@@ -167,6 +213,12 @@ static void _settings_window_unload(Window *window)
     menu_destroy(_menu);
     status_bar_layer_destroy(status_bar);
     bluetooth_advertising_visible(0);
+    if (_tzdirs) {
+        for (char **_tzdir = _tzdirs; *_tzdir; _tzdir++)
+            free(*_tzdir);
+        free(_tzdirs);
+        _tzdirs = NULL;
+    }
 }
 
 void settings_enter(void) {

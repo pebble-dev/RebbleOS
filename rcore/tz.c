@@ -19,11 +19,14 @@
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
 static union tzrec _curtz;
+static char _curtzname[64];
 
 void tz_init() {
 	/* Default to GMT. */
 	_curtz.hasdst = 0;
 	_curtz.nodst.offset = 0;
+	
+	strcpy(_curtzname, "GMT");
 }
 
 void tz_db_open(struct fd *fd) {
@@ -157,7 +160,13 @@ int tz_load(const char *dir, const char *name) {
 	
 	LOG_DEBUG("found tz %s/%s", dir, name);
 	memcpy(&_curtz, &tzrec, sizeof(_curtz));
+	sfmt(_curtzname, sizeof(_curtzname), "%s/%s", dir, name);
+	
 	return 0;
+}
+
+const char *tz_name() {
+	return _curtzname;
 }
 
 /*

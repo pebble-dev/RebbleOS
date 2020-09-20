@@ -84,3 +84,4 @@ int tz_db_nexttz(struct fd *fd, char *name, int nlen, union tzrec *tzrec);
 int tz_load(const char *dir, const char *name);
 time_t tz_utc_to_local(time_t utc, int *dst);
 time_t tz_local_to_utc(time_t local, int dst);
+const char *tz_name();
