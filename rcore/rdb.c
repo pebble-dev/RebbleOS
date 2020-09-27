@@ -81,6 +81,11 @@ static struct rdb_database databases[] = {
         .id = RDB_ID_BLUETOOTH,
         .filename = "rebble/bluetooth",
         .def_db_size = 8192
+    },
+    {
+        .id = RDB_ID_PREFS,
+        .filename = "rebble/prefs",
+        .def_db_size = 8192
     }
 };
 

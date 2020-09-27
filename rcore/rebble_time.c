@@ -7,6 +7,7 @@
 
 #include "rebbleos.h"
 #include "strftime.h"
+#include "prefs.h"
 
 /* Configure Logging */
 #define MODULE_NAME "rtime"
@@ -21,6 +22,7 @@ static struct tm _global_tm;
 struct tm *boot_time_tm;
 static char _tz_name[8];
 static uint8_t _utc_offset;
+static int _time_is_24h = 1;
 
 void rcore_time_init(void)
 {
@@ -32,6 +34,8 @@ void rcore_time_init(void)
     _boot_time_t = rcore_mktime(tm);
     /* reset boot ticks ms to 0 same as wall time above (ugh!!)*/
     _boot_ticks = rcore_time_to_ticks(_boot_time_t, 0);
+    
+    (void) prefs_get(PREFS_KEY_IS24H, &_time_is_24h, sizeof(_time_is_24h));
     
     tz_init();
 }
@@ -134,11 +138,13 @@ time_t pbl_time_t_deprecated(time_t *tloc)
 
 int pbl_clock_is_24h_style()
 {
-    // XXX: Obviously, everybody wants 24h time.  Why would they use a
-    // developer operating system if not?
-    return 1;
+    return _time_is_24h;
 }
 
+void rcore_set_is_24h_style(int style_24h) {
+    _time_is_24h = !!style_24h;
+    prefs_put(PREFS_KEY_IS24H, &_time_is_24h, sizeof(_time_is_24h));
+}
 
 time_t clock_to_timestamp(WeekDay day, int hour, int minute)
 {

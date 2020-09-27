@@ -129,6 +129,7 @@ SRCS_all += rcore/protocol/protocol_transfer.c
 
 SRCS_all += rcore/rdb.c
 SRCS_all += rcore/rdb_test.c
+SRCS_all += rcore/prefs.c
 SRCS_all += rcore/service/protocol_service.c
 SRCS_all += rcore/service/timeline.c
 
