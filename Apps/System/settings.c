@@ -109,14 +109,25 @@ static struct MenuItems *_wipe_fs(const struct MenuItem *ctx) {
     return items;
 }
 
+static char _use_24h_str[16];
+
 static struct MenuItems *_sel_tz_dir(const struct MenuItem *ctx) {
     settings_tz_invoke();
     return NULL;
 }
 
+static struct MenuItems *_swap_24h_time(const struct MenuItem *ctx) {
+    rcore_set_is_24h_style(!pbl_clock_is_24h_style());
+    strcpy(_use_24h_str, pbl_clock_is_24h_style() ? "24-hour" : "12-hour");
+    return NULL;
+}
+
 static struct MenuItems *_time_settings(const struct MenuItem *ctx) {
-    MenuItems *items = menu_items_create(1);
+    strcpy(_use_24h_str, pbl_clock_is_24h_style() ? "24-hour" : "12-hour");
+
+    MenuItems *items = menu_items_create(2);
     menu_items_add(items, MenuItem("Time zone", tz_name(), RESOURCE_ID_CLOCK, _sel_tz_dir));
+    menu_items_add(items, MenuItem("Time format", _use_24h_str, RESOURCE_ID_CLOCK, _swap_24h_time));
     return items;
 }
 

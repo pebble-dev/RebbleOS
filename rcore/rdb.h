@@ -1,5 +1,6 @@
 #pragma once
 
+#include "node_list.h"
 #include "fs.h"
 
 enum {
@@ -41,6 +42,7 @@ enum {
     RDB_ID_APP_GLANCE = 11,
     RDB_ID_APP_PERSIST = 16,
     RDB_ID_BLUETOOTH = 128,
+    RDB_ID_PREFS = 129,
 };
 
 struct rdb_database;
