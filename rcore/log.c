@@ -9,7 +9,7 @@
 #include "minilib.h"
 #include "rtoswrap.h"
 
-QUEUE_DEFINE(log, char, 1536);
+QUEUE_DEFINE(log, char, 1536) MEM_REGION_PANIC;
 static volatile int _log_isrunning = 0;
 static void _log_entry(void *arg) {
     QUEUE_CREATE(log);
