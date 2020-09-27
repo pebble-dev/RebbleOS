@@ -15,6 +15,7 @@
 #include "test_defs.h"
 #include "node_list.h"
 #include "rdb.h"
+#include "musicapp.h"
 
 static App *_appmanager_create_app(char *name, Uuid *uuid, uint32_t app_id, uint8_t type, void *entry_point, bool is_internal,
                                    const struct file *app_file, const struct file *resource_file);
@@ -82,6 +83,7 @@ void appmanager_app_loader_init_n()
 /*
  * Load any pre-existing apps into the manifest, search for any new ones and then start up
  */
+
 void appmanager_app_loader_init()
 {
     struct file empty = { 0, 0, 0 }; /* TODO: make files optional in `App` to avoid this */
@@ -105,7 +107,10 @@ void appmanager_app_loader_init()
     _appmanager_add_to_manifest(_appmanager_create_app("TestApp", 
                                                        NULL, 9995, 
                                                        AppTypeSystem, testapp_main, true, &empty, &empty));
-    
+    _appmanager_add_to_manifest(_appmanager_create_app("Music", 
+                                                       NULL, 9996, 
+                                                       AppTypeSystem, music_main, true, &empty, &empty));
+  
     /* now load the ones on flash */
     _appmanager_flash_load_app_manifest();
     

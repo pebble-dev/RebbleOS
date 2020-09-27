@@ -38,6 +38,7 @@
 #include <debug.h>
 #include "platform.h"
 #include "FreeRTOS.h"
+#include "service.h"
 #include "rebble_memory.h"
 #include "task.h" /* xTaskCreate */
 #include "queue.h" /* xQueueCreate */
@@ -53,23 +54,10 @@ enum ppogatt_cmd {
     PPOGATT_CMD_RESET_ACK = 3,
 };
 
-enum ppogatt_mgr_cmd {
-    PPOGATT_MGR_CMD_START = 0,
-    PPOGATT_MGR_CMD_STOP = 1,
-};
+// #define PPOGATT_NOISY
 
-#define STACK_SIZE_PPOGATT_MGR (configMINIMAL_STACK_SIZE + 100)
 #define STACK_SIZE_PPOGATT_RX (configMINIMAL_STACK_SIZE + 600)
 #define STACK_SIZE_PPOGATT_TX (configMINIMAL_STACK_SIZE + 600)
-
-static TaskHandle_t _task_ppogatt_mgr = 0;
-static StaticTask_t _task_ppogatt_mgr_tcb;
-static StackType_t  _task_ppogatt_mgr_stack[STACK_SIZE_PPOGATT_RX];
-
-#define PPOGATT_MGR_QUEUE_SIZE 4
-static QueueHandle_t _queue_ppogatt_mgr = 0;
-static StaticQueue_t _queue_ppogatt_mgr_qcb;
-static uint8_t       _queue_ppogatt_mgr_buf[PPOGATT_MGR_QUEUE_SIZE];
 
 static TaskHandle_t _task_ppogatt_rx = 0;
 static StaticTask_t _task_ppogatt_rx_tcb;
@@ -83,7 +71,7 @@ static StackType_t  _task_ppogatt_tx_stack[STACK_SIZE_PPOGATT_TX];
  * packets by allocating from a variable-sized pool, so we don't waste a
  * whole queue entry when we potentially only need an ACK's worth of data */
 
-#define PPOGATT_MTU 128
+#define PPOGATT_MTU 256
 
 /* XXX: need to do MTU detection */
 #define PPOGATT_TX_MTU 20
@@ -105,6 +93,9 @@ static StaticQueue_t         _queue_ppogatt_tx_qcb;
 static struct ppogatt_packet _queue_ppogatt_tx_buf[PPOGATT_TX_QUEUE_SIZE];
 
 static int pktslost = 0;
+static int seen_one_reset_ack = 0;
+
+static uint8_t txseq = 0;
 
 static void _ppogatt_rx_main(void *param) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: rx thread awake");
@@ -125,24 +116,32 @@ static void _ppogatt_rx_main(void *param) {
         
         switch (cmd) {
         case PPOGATT_CMD_DATA:
+#ifdef PPOGATT_NOISY
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: data seq %d", seq);
+#endif
             bluetooth_data_rx(pkt.buf + 1, pkt.len - 1);
             
             /* Send an ACK (not that Gadgetbridge cares... */
             /* XXX: needs to be part of the Big Tx State Machine */
             pkt.len = 1;
-            pkt.buf[0] = seq | PPOGATT_CMD_ACK;
+            pkt.buf[0] = (seq << 3) | PPOGATT_CMD_ACK;
             xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
 
             break;
         case PPOGATT_CMD_ACK:
+#ifdef PPOGATT_NOISY
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: ack seq %d", seq);
+#endif
             break;
         case PPOGATT_CMD_RESET_REQ:
             DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: RESET REQ seq %d", seq);
             break;
         case PPOGATT_CMD_RESET_ACK:
-            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: RESET ACK seq %d", seq);
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "rx: RESET ACK seq %d with len %d val %02x", seq, pkt.len, pkt.buf[1]);
+            if (!seen_one_reset_ack) {
+                seen_one_reset_ack = 1;
+                bluetooth_device_connected();
+            }
             break;
         }
     }
@@ -177,15 +176,16 @@ static void _ppogatt_tx_main(void *param) {
             if (rv == 0) {
                 DRV_LOG("bt", APP_LOG_LEVEL_ERROR, "warning: BLE stack did not notify TX ready?");
             }
+            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "tx: trying again...");
         }
-//        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "hw tx: did tx %d bytes, %02x %02x %02x...", pkt.len, pkt.buf[0], pkt.buf[1], pkt.buf[2]);
     }
 }
 
 static void _ppogatt_callback_txready() {
     BaseType_t woken = pdFALSE;
     
-    vTaskNotifyGiveFromISR(_task_ppogatt_tx, &woken);
+    if (_task_ppogatt_tx)
+        vTaskNotifyGiveFromISR(_task_ppogatt_tx, &woken);
     
     portYIELD_FROM_ISR(woken);
 }
@@ -246,83 +246,61 @@ static void _ppogatt_start() {
     _task_ppogatt_tx = xTaskCreateStatic(_ppogatt_tx_main, "PPoGATT tx", STACK_SIZE_PPOGATT_TX, NULL, tskIDLE_PRIORITY + 4UL, _task_ppogatt_tx_stack, &_task_ppogatt_tx_tcb);
 }
 
-static void _ppogatt_callback_connected() {
+static void _ppogatt_callback_connected(void *ctx) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT connect");
 
-    uint8_t cmd = PPOGATT_MGR_CMD_START;
+    _ppogatt_start();
     
-    BaseType_t woken = pdFALSE;
-    (void) xQueueSendFromISR(_queue_ppogatt_mgr, &cmd, &woken);
-    portYIELD_FROM_ISR(woken);
+    /* Send a wakeup packet. */
+    static struct ppogatt_packet pkt;
+    
+    pkt.len = 2;
+    pkt.buf[0] = PPOGATT_CMD_RESET_REQ;
+    pkt.buf[1] = 0x00;
+    xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
+    
+    pkt.len = 1;
+    pkt.buf[0] = PPOGATT_CMD_RESET_ACK;
+    xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
+    
+    txseq = 0;
+    
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT start message enqueued");
+    seen_one_reset_ack = 0;
 }
 
-static void _ppogatt_callback_disconnected() {
+static void _ppogatt_callback_connected_isr() {
+    service_submit(_ppogatt_callback_connected, NULL, 0);
+}
+
+static void _ppogatt_callback_disconnected(void *ctx) {
     DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT disconnect");
-
-    uint8_t cmd = PPOGATT_MGR_CMD_STOP;
-    
-    BaseType_t woken = pdFALSE;
-    (void) xQueueSendFromISR(_queue_ppogatt_mgr, &cmd, &woken);
-    portYIELD_FROM_ISR(woken);
+    _ppogatt_shutdown();
+    bluetooth_device_disconnected();
 }
 
-static void _ppogatt_mgr_main(void *param) {
-    uint8_t cmd;
-
-    while (1) {
-        xQueueReceive(_queue_ppogatt_mgr, &cmd, portMAX_DELAY); /* does not fail, since we wait forever */
-        
-        switch (cmd) {
-        case PPOGATT_MGR_CMD_START:
-            _ppogatt_start();
-            
-            /* Send a wakeup packet. */
-            static struct ppogatt_packet pkt;
-        
-            pkt.len = 2;
-            pkt.buf[0] = 0x02;
-            pkt.buf[1] = 0x00;
-            xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
-            DRV_LOG("bt", APP_LOG_LEVEL_INFO, "PPoGATT start message enqueued");
-            
-            bluetooth_device_connected();
-            break;
-            
-        case PPOGATT_MGR_CMD_STOP:
-            _ppogatt_shutdown();
-            
-            bluetooth_device_disconnected();
-            break;
-        
-        default:
-            assert(0 && "invalid ppogatt mgr cmd");
-        }
-    }
+static void _ppogatt_callback_disconnected_isr() {
+    service_submit(_ppogatt_callback_disconnected, NULL, 0);
 }
 
 /* Main entry for PPoGATT code, to be called at boot. */
 void ppogatt_init() {
-    /* We can't do queue and task management in interrupt context, so we
-     * create a manager thread to stop and start PPoGATT rx/tx threads.  */
-    _queue_ppogatt_mgr = xQueueCreateStatic(PPOGATT_MGR_QUEUE_SIZE, sizeof(uint8_t), (void *)_queue_ppogatt_mgr_buf, &_queue_ppogatt_mgr_qcb);
-    _task_ppogatt_mgr = xTaskCreateStatic(_ppogatt_mgr_main, "PPoGATT mgr", STACK_SIZE_PPOGATT_MGR, NULL, tskIDLE_PRIORITY + 4UL, _task_ppogatt_mgr_stack, &_task_ppogatt_mgr_tcb);
-    
     /* Point the ISRs at us. */
-    ble_ppogatt_set_callback_connected(_ppogatt_callback_connected);
+    ble_ppogatt_set_callback_connected(_ppogatt_callback_connected_isr);
     ble_ppogatt_set_callback_rx(_ppogatt_callback_rx);
     ble_ppogatt_set_callback_txready(_ppogatt_callback_txready);
-    ble_ppogatt_set_callback_disconnected(_ppogatt_callback_disconnected);
+    ble_ppogatt_set_callback_disconnected(_ppogatt_callback_disconnected_isr);
 }
 
 /*** PPoGATT <-> BT stack ***/
-
-uint8_t txseq = 0;
 
 void bt_device_request_tx(uint8_t *data, uint16_t len) {
     /* XXX: needs to be part of the Big Tx State Machine */
     static struct ppogatt_packet pkt;
 
-    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "OS TX: OS wanted us to tx %d bytes", len);
+#ifdef PPOGATT_NOISY
+    DRV_LOG("bt", APP_LOG_LEVEL_INFO, "ppogatt: TX: req sz %d", len);
+#endif
     
     while (len > 0) {
         uint16_t thislen = (len > (PPOGATT_TX_MTU - 1)) ? (PPOGATT_TX_MTU - 1) : len;
@@ -331,8 +309,10 @@ void bt_device_request_tx(uint8_t *data, uint16_t len) {
         pkt.buf[0] = (txseq << 3) | PPOGATT_CMD_DATA;
         memcpy(pkt.buf + 1, data, thislen);
         xQueueSendToBack(_queue_ppogatt_tx, &pkt, portMAX_DELAY);
-        
-        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "OS TX: did tx seq %d with %d bytes", txseq, thislen + 1);
+
+#ifdef PPOGATT_NOISY
+        DRV_LOG("bt", APP_LOG_LEVEL_INFO, "ppogatt: TX: tx seq %d (sz %d)", txseq, thislen + 1);
+#endif
         
         len -= thislen;
         data += thislen;

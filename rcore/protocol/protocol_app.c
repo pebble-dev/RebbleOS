@@ -121,3 +121,19 @@ void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id)
     packet_copy_data(p, (void *)&req, sizeof(_app_fetch));
     packet_send(p);
 }
+
+void protocol_process_reorder(const RebblePacket packet) {
+    uint8_t *data = packet_get_data(packet);
+    
+    if (data[0] != 0x01) {
+        LOG_ERROR("unknown opcode 0x%02x for reorder packet", data[0]);
+    }
+    
+    int nuuids = data[1];
+    LOG_INFO("app reorder: %d uuids", nuuids);
+    
+    char success = 0;
+    RebblePacket p = packet_create(WatchProtocol_AppReorder, sizeof(success));
+    packet_copy_data(p, &success, sizeof(success));
+    packet_send(p);
+}

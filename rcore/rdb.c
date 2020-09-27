@@ -77,6 +77,11 @@ static struct rdb_database databases[] = {
         .filename = "rebble/apppersistdb",
         .def_db_size = 16384,
     },
+    {
+        .id = RDB_ID_BLUETOOTH,
+        .filename = "rebble/bluetooth",
+        .def_db_size = 8192
+    }
 };
 
 struct rdb_database *rdb_open(uint16_t database_id) {
@@ -139,7 +144,9 @@ static int _rdb_seek_valid(struct fd *fdp, struct rdb_hdr *hdrp, int next) {
         }
         
         /* Erased -- or skipping the first? */
-        if (FLAG_SET(hdr.flags, RDB_FLAG_ERASED) || next) {
+        if (FLAG_SET(hdr.flags, RDB_FLAG_ERASED) || 
+            !FLAG_SET(hdr.flags, RDB_FLAG_WRITTEN) ||
+            next) {
             next = 0;
             fs_seek(&fd, hdr.key_len + hdr.data_len, FS_SEEK_CUR);
             continue;
@@ -263,7 +270,6 @@ static bool _compare(rdb_operator_t operator, uint8_t *where_prop, uint8_t *wher
             assert(!"bad operator for _compare");
     }
 
-    LOG_DEBUG("COMP: %d %c %d := %s", val1, type, val2, rval ? "true" : "false");
     return rval;
 }
 
@@ -342,6 +348,7 @@ int rdb_select(struct rdb_iter *it, list_head/*<rdb_select_result>*/ *head, stru
                 if (!r)
                     break;
                 if (rdb_iter_read_data(it, 0, r, it->data_len) != it->data_len) {
+                    LOG_ERROR("short read in fully load");
                     free(r);
                     break;
                 }
@@ -401,7 +408,7 @@ int _rdb_gc_for_bytes(const struct rdb_database *db, struct fd *fd, int bytes) {
     LOG_INFO("gc: rdb %s will have %d/%d bytes used after, has %d/%d bytes used", db->filename, used, fsz, tlen, fsz);
     
     if (bytes >= (fsz - used)) {
-        LOG_ERROR("gc: which is not enough space for a %d byte entry, sadly");
+        LOG_ERROR("gc: which is not enough space for a %d byte entry, sadly", bytes);
         return 0;
     }
     
@@ -451,7 +458,7 @@ int rdb_create(const struct rdb_database *db)
     return Blob_Success;
 }
 
-int rdb_insert(const struct rdb_database *db, uint8_t *key, uint16_t key_size, uint8_t *data, uint16_t data_size)
+int rdb_insert(const struct rdb_database *db, const uint8_t *key, uint16_t key_size, const uint8_t *data, uint16_t data_size)
 {
     struct rdb_iter it;
     assert(db->locked);
@@ -468,14 +475,17 @@ int rdb_insert(const struct rdb_database *db, uint8_t *key, uint16_t key_size, u
             continue;
         
         uint8_t rdkey[key_size];
-        if (rdb_iter_read_key(&it, rdkey) < key_size)
+        if (rdb_iter_read_key(&it, rdkey) < key_size) {
+            LOG_ERROR("short read on disk in key read");
             return Blob_GeneralFailure;
+        }
         
         /* XXX: Overwrite the dup key, rather than failing.  Do this by
          * writing a new one at the end, then marking this one as deleted. 
          * Special care needed if there are multiple interrupted overwrites.
          */
         if (memcmp(key, rdkey, key_size) == 0) {
+            LOG_ERROR("rdb overwrite not supported");
             return Blob_InvalidData;
         }
     }

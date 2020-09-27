@@ -276,7 +276,8 @@ static void _overlay_window_destroy(OverlayWindow *overlay_window, bool animated
     app_free(overlay_window);
     
     Window *top_window = overlay_window_get_next_window_with_click_config();
-
+    
+    button_unsubscribe_all();
     if (top_window == NULL)
     {
         /* we are out of overlay windows, restore click 

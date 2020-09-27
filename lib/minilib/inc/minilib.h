@@ -19,6 +19,7 @@
 #endif
 
 /* minilib.c */
+#ifndef _STRING_H_
 extern void *memcpy(void *dest, const void *src, int bytes);
 extern void *memset(void *dest, int data, int bytes);
 extern void *memchr(const void *buf, int c, int maxlen);
@@ -38,6 +39,7 @@ extern unsigned short htons(unsigned short in);
 extern unsigned int htonl(unsigned int in);
 extern unsigned short ntohs(unsigned short in);
 extern unsigned int ntohl(unsigned int in);
+#endif
 
 /* crc32.c */
 extern void crc32_init();

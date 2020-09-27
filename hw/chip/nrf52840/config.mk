@@ -135,7 +135,8 @@ nrf52_sdk_inc_folders = \
 	components/libraries/stack_guard \
 	components/libraries/log/src \
 	components/libraries/cli/uart \
-	components/ble/ble_db_discovery
+	components/ble/ble_db_discovery \
+	components/ble/nrf_ble_gq
 
 CFLAGS_nrf52840 = $(CFLAGS_all)
 CFLAGS_nrf52840 += -Ihw/chip/nrf52840

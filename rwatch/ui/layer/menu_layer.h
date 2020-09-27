@@ -121,6 +121,9 @@ typedef struct MenuLayer
   bool is_center_focus;
   bool is_bottom_padding_enabled;
   bool is_reload_scheduled;
+  
+  int scroll_delay;
+  int scroll_remaining;
 } MenuLayer;
 
 void menu_layer_ctor(MenuLayer *mlayer, GRect frame);

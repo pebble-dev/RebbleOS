@@ -14,6 +14,7 @@
 #include "protocol_service.h"
 #include "event_service.h"
 #include "protocol_call.h"
+#include "notification_window.h"
 
 /* Configure Logging */
 #define MODULE_NAME "notym"
@@ -25,8 +26,6 @@ static void _notif_init(OverlayWindow *overlay_window);
 static void _notification_window_creating(OverlayWindow *overlay_window, Window *window);
 static void _notification_quit_click(ClickRecognizerRef _, void *context);
 extern bool battery_overlay_visible(void);
-extern bool notification_window_overlay_visible(void);
-extern NotificationLayer *notification_window_get_layer(void);
 extern bool call_window_visible(void);
 extern bool progress_window_visible(void);
 extern void progress_window_update_arrived(notification_progress *progress);
@@ -44,23 +43,52 @@ uint8_t notification_init(void)
     return 0;
 }
 
+static bool _notif_window_visible = false;
+static NotificationWindow _notif_window;
+
+static void _notif_window_click_config(void *context) {
+    Window *window = (Window *)context;
+    
+}
+
+static void _notif_window_create(OverlayWindow *overlay, Window *window) {
+    notification_window_ctor(&_notif_window, window);
+    
+    notification_message *msg = overlay->context;
+    notification_window_set_notifications(&_notif_window, (Uuid *)msg->uuid, 1, 0);
+    notification_window_set_click_config(&_notif_window, (ClickConfigProvider)notification_load_click_config, window);
+    
+    _notif_window_visible = true;
+}
+
+static void _notif_window_destroy(OverlayWindow *overlay, Window *window) {
+    notification_window_dtor(&_notif_window);
+    free(overlay->context);
+    _notif_window_visible = false;
+}
+
 void notification_arrived(EventServiceCommand command, void *data, void *context)
 {
     Uuid *uuid = (Uuid *)data;
     if (!uuid)
         return;
    
-    if (notification_window_overlay_visible())
+    if (_notif_window_visible)
     {
-        /* Free as much memory as we can for the message conversion */
-        notification_layer_message_arrived(notification_window_get_layer(), uuid);
+        assert(appmanager_get_current_thread()->thread_type == AppThreadOverlay);
+        notification_window_push_to_top(&_notif_window, uuid);
+        
+        notification_message *nmsg = (notification_message *) notification_window_get_window(&_notif_window)->context;
+        if (nmsg->data.timer)
+            app_timer_reschedule(nmsg->data.timer, 15000);
         return;
     }
 
     rebble_notification *rn;
 
     notification_message *nmsg = app_calloc(1, sizeof(notification_message));
-    nmsg->data.create_callback = &notification_message_display;
+    nmsg->data.create_callback = &_notif_window_create;
+    nmsg->data.destroy_callback = &_notif_window_destroy;
     nmsg->uuid = app_calloc(1, sizeof(Uuid));
     memcpy(nmsg->uuid, uuid, sizeof(Uuid));
     nmsg->data.timeout_ms = 15000;
@@ -171,6 +199,8 @@ static void _notification_quit_click(ClickRecognizerRef _, void *context)
         return;
     }
     
+    if (nm->destroy_callback)
+        nm->destroy_callback(nm->overlay_window, &nm->overlay_window->window);
 
     overlay_window_destroy(nm->overlay_window);
     nm->overlay_window = NULL;

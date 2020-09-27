@@ -18,7 +18,7 @@
 /* Configure Logging */
 #define MODULE_NAME "pcol"
 #define MODULE_TYPE "SYS"
-#define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_NONE
+#define LOG_LEVEL RBL_LOG_LEVEL_INFO //RBL_LOG_LEVEL_NONE
 
 
 const PebbleEndpoint pebble_endpoints[] =
@@ -37,6 +37,7 @@ const PebbleEndpoint pebble_endpoints[] =
     { .endpoint = WatchProtocol_MusicControl,       .handler  = protocol_music_message_process },
     { .endpoint = WatchProtocol_TimelineAction,     .handler  = protocol_process_timeline_action_response },
     { .endpoint = WatchProtocol_PutBytes,           .handler  = protocol_process_transfer },
+    { .endpoint = WatchProtocol_AppReorder,         .handler  = protocol_process_reorder },
     { .handler = NULL }
 };
 
@@ -92,7 +93,7 @@ static void _is_rx_buf_expired(void)
     if (!_buf_ptr)
         return;
     TickType_t now = xTaskGetTickCount();
-    if ((now - _last_rx) > pdMS_TO_TICKS(150))
+    if ((now - _last_rx) > pdMS_TO_TICKS(500))
     {
         LOG_ERROR("RX: Buffer timed out. Reset %d %d", now, _last_rx);
         _buf_ptr = 0;
@@ -204,6 +205,11 @@ ProtocolTransportSender protocol_get_current_transport_sender()
     return _last_transport_used ? _last_transport_used : qemu_send_data;
 }
 
+void protocol_set_current_transport_sender(ProtocolTransportSender sender)
+{
+    _last_transport_used = sender;
+}
+
 /*
  * Parse a packet in the buffer. Will fill the given pbl_transport with
  * the parsed data
@@ -228,7 +234,7 @@ int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoco
         goto done;
     }
 
-    LOG_INFO("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
+    LOG_DEBUG("RX: %d/%d bytes to endpoint %04x", _buf_ptr, pkt_length + 4, pkt_endpoint);
 
     /* done! (usually) */
     if (pkt_length == 0) {
@@ -244,12 +250,12 @@ int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, Protoco
     }
 
     if (_buf_ptr < pkt_length + 4) {
-        LOG_INFO("RX: Partial. Still waiting for %d bytes", (pkt_length + 4) - _buf_ptr);
+        LOG_DEBUG("RX: Partial. Still waiting for %d bytes", (pkt_length + 4) - _buf_ptr);
         rv = PACKET_MORE_DATA_REQD;
         goto done;
     }
 
-    LOG_INFO("RX: packet is complete %x", transport);
+    LOG_INFO("protocol: RX: endpoint %04x, len %d", pkt_endpoint, pkt_length);
 
     /* it's a valid packet. fill out passed packet and finish up */
     packet->length = pkt_length;
@@ -272,7 +278,7 @@ void protocol_send_packet(const RebblePacket packet)
     uint16_t len = packet_get_data_length(packet);
     uint16_t endpoint = packet_get_endpoint(packet);
 
-    LOG_DEBUG("TX protocol: e:%d l %d", endpoint, len);
+    LOG_INFO("protocol: TX: endpoint %04x len %d", endpoint, len);
     _last_transport_used = packet_get_transport(packet);
 
     packet_send_to_transport(packet, endpoint, packet_get_data(packet), len);

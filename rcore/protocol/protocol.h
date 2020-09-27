@@ -52,6 +52,7 @@ int protocol_rx_buffer_consume(uint16_t len);
 int protocol_rx_buffer_pointer_adjust(int howmuch);
 void protocol_rx_buffer_reset(void);
 ProtocolTransportSender protocol_get_current_transport_sender();
+void protocol_set_current_transport_sender(ProtocolTransportSender sender);
 int protocol_parse_packet(uint8_t *data, RebblePacketDataHeader *packet, ProtocolTransportSender transport);
 
 /* API */
@@ -88,6 +89,7 @@ void protocol_process_blobdb(const RebblePacket packet);
 void protocol_process_timeline_action_response(const RebblePacket packet);
 void protocol_process_transfer(const RebblePacket packet);
 void protocol_app_fetch_request(Uuid *uuid, uint32_t app_id);
+void protocol_process_reorder(const RebblePacket packet);
 
 uint8_t pascal_string_to_string(uint8_t *result_buf, uint8_t *source_buf);
 uint8_t pascal_strlen(char *str);

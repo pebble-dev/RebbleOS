@@ -117,6 +117,7 @@ SRCS_all += rcore/overlay_manager.c
 SRCS_all += rcore/rebble_util.c
 SRCS_all += rcore/qemu.c
 SRCS_all += rcore/qemu_endpoints.c
+SRCS_all += rcore/service.c
 
 SRCS_all += rcore/protocol/protocol_notification.c
 SRCS_all += rcore/protocol/protocol_system.c
@@ -145,8 +146,10 @@ SRCS_all += rwatch/ui/layer/text_layer.c
 SRCS_all += rwatch/ui/layer/notification_layer.c
 SRCS_all += rwatch/ui/layer/progress_layer.c
 SRCS_all += rwatch/ui/layer/selection_layer.c
+SRCS_all += rwatch/ui/layer/single_notification_layer.c
 SRCS_all += rwatch/ui/layer/inverter_layer.c
 SRCS_all += rwatch/ui/window.c
+SRCS_all += rwatch/ui/notification_window.c
 SRCS_all += rwatch/ui/action_menu.c
 SRCS_all += rwatch/ui/checkbox_window.c
 SRCS_all += rwatch/ui/radio_button_window.c
@@ -164,7 +167,6 @@ SRCS_all += rwatch/event/event_service.c
 SRCS_all += rwatch/ui/layer/status_bar_layer.c
 SRCS_all += rwatch/ui/animation/animation.c
 SRCS_all += rwatch/ui/animation/property_animation.c
-SRCS_all += rwatch/ui/notifications/notification_window.c
 SRCS_all += rwatch/ui/notifications/battery_overlay.c
 SRCS_all += rwatch/ui/notifications/mini_message.c
 SRCS_all += rwatch/ui/notifications/call_window.c
@@ -179,9 +181,11 @@ SRCS_all += Watchfaces/nivz.c
 SRCS_all += Apps/System/systemapp.c
 SRCS_all += Apps/System/menu.c
 SRCS_all += Apps/System/testapp.c
+SRCS_all += Apps/System/settings.c
 
 SRCS_all += Apps/System/widgettest.c
 SRCS_all += Apps/System/notification.c
+SRCS_all += Apps/System/musicapp.c
 
 SRCS_all += hw/platform/qemu/hw_qemu.c
 

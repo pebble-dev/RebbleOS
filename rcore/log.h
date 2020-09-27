@@ -56,6 +56,7 @@ typedef enum LogLevel {
     APP_LOG_LEVEL_DEBUG_VERBOSE
 } LogLevel;
 
+void log_init();
 
 void app_log_trace(uint8_t level, const char *filename, uint32_t f, const char *fmt, ...);
 
