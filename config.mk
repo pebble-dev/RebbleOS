@@ -174,6 +174,7 @@ SRCS_all += Apps/System/systemapp.c
 SRCS_all += Apps/System/menu.c
 SRCS_all += Apps/System/testapp.c
 SRCS_all += Apps/System/settings.c
+SRCS_all += Apps/System/settings_tz.c
 
 SRCS_all += Apps/System/widgettest.c
 SRCS_all += Apps/System/notification.c

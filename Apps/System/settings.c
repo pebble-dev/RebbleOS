@@ -109,43 +109,9 @@ static struct MenuItems *_wipe_fs(const struct MenuItem *ctx) {
     return items;
 }
 
-static char **_tzdirs = NULL;
-
-/* XXX: This is very hokey, and should just be a lazy-loaded menu. */
 static struct MenuItems *_sel_tz_dir(const struct MenuItem *ctx) {
-    struct fd fd;
-    int ntzs = 0;
-    char tzbuf[32];
-    
-    /* How many items? */
-    tz_db_open(&fd);
-    while (tz_db_nextdir(&fd, tzbuf, sizeof(tzbuf)) >= 0)
-        ntzs++;
-    
-    /* Load their strings. */
-    if (!_tzdirs) {
-        _tzdirs = malloc(sizeof(char *) * (ntzs + 1));
-        if (!_tzdirs)
-            return NULL;
-        memset(_tzdirs, 0, sizeof(char *) * (ntzs + 1)); 
-        ntzs = 0;
-        tz_db_open(&fd);
-        while (tz_db_nextdir(&fd, tzbuf, sizeof(tzbuf)) >= 0) {
-            _tzdirs[ntzs] = malloc(strlen(tzbuf) + 1);
-            if (!_tzdirs[ntzs])
-                return NULL;
-            strcpy(_tzdirs[ntzs], tzbuf);
-            ntzs++;
-        }
-    }
-
-    /* Create their names. */
-    MenuItems *items = menu_items_create(ntzs);
-    for (int i = 0; i < ntzs; i++) {
-        menu_items_add(items, MenuItem(_tzdirs[i], NULL, -1, NULL));
-    }
-    
-    return items;
+    settings_tz_invoke();
+    return NULL;
 }
 
 static struct MenuItems *_time_settings(const struct MenuItem *ctx) {
@@ -213,12 +179,6 @@ static void _settings_window_unload(Window *window)
     menu_destroy(_menu);
     status_bar_layer_destroy(status_bar);
     bluetooth_advertising_visible(0);
-    if (_tzdirs) {
-        for (char **_tzdir = _tzdirs; *_tzdir; _tzdir++)
-            free(*_tzdir);
-        free(_tzdirs);
-        _tzdirs = NULL;
-    }
 }
 
 void settings_enter(void) {
@@ -239,10 +199,13 @@ void settings_init(void)
         .load = _bt_pair_window_load,
         .unload = _bt_pair_window_unload,
     });
+    
+    settings_tz_init();
 }
 
 void settings_deinit(void)
 {
     window_destroy(_main_window);
     window_destroy(_bt_pair_window);
+    settings_tz_deinit();
 }
