@@ -52,7 +52,7 @@ TickType_t get_boot_tick(void);
 time_t rcore_get_time(void);
 void rcore_set_tz_name(char *tz_name, uint8_t len);
 void rcore_set_time(time_t time);
-void rcore_set_utc_offset(uint8_t offset);
+void rcore_set_utc_offset(int offset);
 void rcore_set_is_24h_style(int style_24h);
 
 /* Time zone routines from tz.c. */
@@ -82,6 +82,7 @@ void tz_init();
 void tz_db_open(struct fd *fd);
 int tz_db_nextdir(struct fd *fd, char *name, int nlen);
 int tz_db_nexttz(struct fd *fd, char *name, int nlen, union tzrec *tzrec);
+void tz_override(int utcofs);
 int tz_load(const char *dir, const char *name);
 time_t tz_utc_to_local(time_t utc, int *dst);
 time_t tz_local_to_utc(time_t local, int dst);

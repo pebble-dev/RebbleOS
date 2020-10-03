@@ -57,15 +57,29 @@ void rcore_set_time(time_t time)
     _boot_time_t -= (now - time);
 }
 
-void rcore_set_utc_offset(uint8_t offset)
+void rcore_set_utc_offset(int offset)
 {
-    _utc_offset = offset;
+    tz_override(offset);
 }
 
-void rcore_set_tz_name(char *tz_name, uint8_t len)
+void rcore_set_tz_name(char *tz_name_const, uint8_t len)
 {
-    memcpy(_tz_name, tz_name, len < 8 ? len : 8);
-    _tz_name[len] = 0;
+    char *tz_name = malloc(len+1);
+    tz_name[len] = 0;
+    memcpy(tz_name, tz_name_const, len);
+    
+    char *tzdir = tz_name;
+    char *tznam;
+    for (tznam = tzdir; *tznam && (*tznam != '/'); tznam++)
+        ;
+    if (*tznam == '/') {
+        *tznam = 0;
+        tznam++;
+    }
+    
+    tz_load(tzdir, tznam);
+    
+    free(tzdir);
 }
 
 time_t rcore_get_time(void)
