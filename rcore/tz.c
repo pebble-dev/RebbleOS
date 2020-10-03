@@ -132,6 +132,11 @@ int tz_db_nexttz(struct fd *fd, char *name, int nlen, union tzrec *tzrec) {
 	}
 }
 
+void tz_override(int utcofs) {
+	_curtz.hasdst = 0;
+	_curtz.nodst.offset = utcofs;
+}
+
 int tz_load(const char *dir, const char *name) {
 	struct fd fd;
 	
