@@ -79,6 +79,7 @@ static void _tzsel_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *ce
     
     _tzsel_seek(cell_index->row, tznam, NAMSIZ, &tzrec);
     tz_load(tzdirnam, tznam);
+    rcore_tz_prefs_save();
     
     window_stack_pop(false);
     window_stack_pop(false);

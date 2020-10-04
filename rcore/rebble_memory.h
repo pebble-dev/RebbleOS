@@ -10,8 +10,6 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "qalloc.h"
-#include <string.h>
-#include <stdlib.h>
 #include "stdbool.h"
 
 void rblos_memory_init(void);

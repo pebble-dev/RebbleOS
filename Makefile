@@ -108,7 +108,7 @@ endif
 $(1): $(BUILD)/$(1)/$(1).pbz
 
 $(1)_qemu: $(BUILD)/$(1)/fw.qemu_flash.bin $(BUILD)/$(1)/fw.qemu_spi.bin
-	$(QEMU) -rtc base=localtime -serial null -serial tcp::63771,server,nowait -serial stdio -gdb tcp::63770,server,nowait $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) $(BUILD)/$(1)/fw.qemu_spi.bin $(QEMUFLAGS)
+	$(QEMU) -rtc base=utc -serial null -serial tcp::63771,server,nowait -serial stdio -gdb tcp::63770,server,nowait $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) $(BUILD)/$(1)/fw.qemu_spi.bin $(QEMUFLAGS)
 
 ifneq ($(TESTABLE_$(1)),)
 # This is kind of cheesy.
