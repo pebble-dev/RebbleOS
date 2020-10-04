@@ -11,6 +11,8 @@
 #include "fs.h"
 #include "log.h"
 #include "rebble_time.h"
+#include "prefs.h"
+#include "rebble_memory.h"
 
 #include "platform_res.h"
 
@@ -18,15 +20,17 @@
 #define MODULE_TYPE "KERN"
 #define LOG_LEVEL RBL_LOG_LEVEL_DEBUG //RBL_LOG_LEVEL_ERROR
 
-static union tzrec _curtz;
-static char _curtzname[64];
+static struct {
+	union tzrec tz;
+	char name[64];
+} _tzinfo;
 
 void tz_init() {
 	/* Default to GMT. */
-	_curtz.hasdst = 0;
-	_curtz.nodst.offset = 0;
+	_tzinfo.tz.hasdst = 0;
+	_tzinfo.tz.nodst.offset = 0;
 	
-	strcpy(_curtzname, "GMT");
+	strcpy(_tzinfo.name, "GMT");
 }
 
 void tz_db_open(struct fd *fd) {
@@ -133,8 +137,8 @@ int tz_db_nexttz(struct fd *fd, char *name, int nlen, union tzrec *tzrec) {
 }
 
 void tz_override(int utcofs) {
-	_curtz.hasdst = 0;
-	_curtz.nodst.offset = utcofs;
+	_tzinfo.tz.hasdst = 0;
+	_tzinfo.tz.nodst.offset = utcofs;
 }
 
 int tz_load(const char *dir, const char *name) {
@@ -164,14 +168,14 @@ int tz_load(const char *dir, const char *name) {
 	}
 	
 	LOG_DEBUG("found tz %s/%s", dir, name);
-	memcpy(&_curtz, &tzrec, sizeof(_curtz));
-	sfmt(_curtzname, sizeof(_curtzname), "%s/%s", dir, name);
+	memcpy(&_tzinfo.tz, &tzrec, sizeof(_tzinfo.tz));
+	sfmt(_tzinfo.name, sizeof(_tzinfo.name), "%s/%s", dir, name);
 	
 	return 0;
 }
 
 const char *tz_name() {
-	return _curtzname;
+	return _tzinfo.name;
 }
 
 /*
@@ -281,9 +285,9 @@ _transtime(const int year, int mode, void *paramsv)
 }
 
 time_t tz_utc_to_local(time_t utc, int *dst) {
-	if (!_curtz.hasdst) {
+	if (!_tzinfo.tz.hasdst) {
 		*dst = 0;
-		return utc + _curtz.nodst.offset;
+		return utc + _tzinfo.tz.nodst.offset;
 	}
 	
 	/* Figure out whether the time_t is within DST.  Start off by
@@ -303,26 +307,59 @@ time_t tz_utc_to_local(time_t utc, int *dst) {
 	time_t tt_yearstart = timegm(&tm); /* a GNU extension, but we implement it in RebbleOS, too */
 	
 	/* Then figure out when DST starts and ends in that year... */
-	time_t tt_dststart  = tt_yearstart + _transtime(year, _curtz.dst.dst_start_mode, _curtz.dst.dst_start_param) + _curtz.dst.dst_start_time + _curtz.dst.   offset;
-	time_t tt_dstend    = tt_yearstart + _transtime(year, _curtz.dst.dst_end_mode  , _curtz.dst.dst_end_param  ) + _curtz.dst.dst_end_time   + _curtz.dst.dstoffset;
+	time_t tt_dststart  = tt_yearstart + _transtime(year, _tzinfo.tz.dst.dst_start_mode, _tzinfo.tz.dst.dst_start_param) + _tzinfo.tz.dst.dst_start_time + _tzinfo.tz.dst.   offset;
+	time_t tt_dstend    = tt_yearstart + _transtime(year, _tzinfo.tz.dst.dst_end_mode  , _tzinfo.tz.dst.dst_end_param  ) + _tzinfo.tz.dst.dst_end_time   + _tzinfo.tz.dst.dstoffset;
 	
 	*dst = utc >= tt_dststart && utc < tt_dstend;
 	
 	if (*dst)
-		return utc - _curtz.dst.dstoffset;
+		return utc - _tzinfo.tz.dst.dstoffset;
 	else
-		return utc - _curtz.dst.   offset;
+		return utc - _tzinfo.tz.dst.   offset;
 }
 
 time_t tz_local_to_utc(time_t local, int dst) {
-	if (!_curtz.hasdst)
-		return local + _curtz.nodst.offset;
+	if (!_tzinfo.tz.hasdst)
+		return local + _tzinfo.tz.nodst.offset;
 	
 	/* XXX: Handle dst < 0 ("go figure it out yourself") mode. */
 	
 	if (dst)
-		return local + _curtz.dst.dstoffset;
+		return local + _tzinfo.tz.dst.dstoffset;
 	else
-		return local + _curtz.dst.offset;
+		return local + _tzinfo.tz.dst.offset;
 	/* Well, that was easy. */
+}
+
+/*** rcore API implementations ***/
+
+void rcore_set_tz_name(char *tz_name_const, uint8_t len) {
+	char *tz_name = malloc(len+1);
+	tz_name[len] = 0;
+	memcpy(tz_name, tz_name_const, len);
+	
+	char *tzdir = tz_name;
+	char *tznam;
+	for (tznam = tzdir; *tznam && (*tznam != '/'); tznam++)
+		;
+	if (*tznam == '/') {
+		*tznam = 0;
+		tznam++;
+	}
+	
+	tz_load(tzdir, tznam);
+	
+	free(tzdir);
+}
+
+void rcore_set_utc_offset(int offset) {
+	tz_override(offset);
+}
+
+void rcore_tz_prefs_save() {
+	(void) prefs_put(PREFS_KEY_TZ, &_tzinfo, sizeof(_tzinfo));
+}
+
+void rcore_tz_prefs_load() {
+	(void) prefs_get(PREFS_KEY_TZ, &_tzinfo, sizeof(_tzinfo));
 }

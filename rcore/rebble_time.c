@@ -38,6 +38,7 @@ void rcore_time_init(void)
     (void) prefs_get(PREFS_KEY_IS24H, &_time_is_24h, sizeof(_time_is_24h));
     
     tz_init();
+    rcore_tz_prefs_load();
 }
 
 time_t rcore_mktime(struct tm *tm)
@@ -55,31 +56,6 @@ void rcore_set_time(time_t time)
     hw_set_time(&tm);
 
     _boot_time_t -= (now - time);
-}
-
-void rcore_set_utc_offset(int offset)
-{
-    tz_override(offset);
-}
-
-void rcore_set_tz_name(char *tz_name_const, uint8_t len)
-{
-    char *tz_name = malloc(len+1);
-    tz_name[len] = 0;
-    memcpy(tz_name, tz_name_const, len);
-    
-    char *tzdir = tz_name;
-    char *tznam;
-    for (tznam = tzdir; *tznam && (*tznam != '/'); tznam++)
-        ;
-    if (*tznam == '/') {
-        *tznam = 0;
-        tznam++;
-    }
-    
-    tz_load(tzdir, tznam);
-    
-    free(tzdir);
 }
 
 time_t rcore_get_time(void)
