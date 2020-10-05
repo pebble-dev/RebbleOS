@@ -28,6 +28,10 @@
 #define PBL_PLATFORM_SWITCH(tintin, snowy, chalk, diorite, emery) (snowy)
 #elif defined REBBLE_PLATFORM_CHALK
 #define PBL_PLATFORM_SWITCH(tintin, snowy, chalk, diorite, emery) (chalk)
+#elif defined REBBLE_PLATFORM_DIORITE
+#define PBL_PLATFORM_SWITCH(tintin, snowy, chalk, diorite, emery) (diorite)
+#elif defined REBBLE_PLATFORM_EMERY
+#define PBL_PLATFORM_SWITCH(tintin, snowy, chalk, diorite, emery) (emery)
 #else
 #error Add the new platform to PBL_PLATFORM_SWITCH in pebble_defines.h
 #endif
