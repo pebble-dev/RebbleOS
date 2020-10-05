@@ -337,6 +337,7 @@ void rcore_set_tz_name(char *tz_name_const, uint8_t len) {
 	char *tz_name = malloc(len+1);
 	tz_name[len] = 0;
 	memcpy(tz_name, tz_name_const, len);
+	strncpy(_tzinfo.name, tz_name, sizeof(_tzinfo.name));
 	
 	char *tzdir = tz_name;
 	char *tznam;

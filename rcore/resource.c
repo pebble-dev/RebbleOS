@@ -108,13 +108,6 @@ void resource_file(struct file *file, ResHandle hnd)
         ResHandleFileHeader hdr;
         
         flash_read_bytes(hnd, (uint8_t *)&hdr, sizeof(hdr));
-        
-        if (!_resource_is_sane(&hdr)) {
-            LOG_ERROR("resource_file: system resource is not sane (!!; sz %d); returning nothing", hdr.size);
-            memset(file, 0, sizeof(*file));
-            return;
-        }
-        
         fs_file_from_flash(file, REGION_RES_START + RES_START + hdr.offset, hdr.size);
     }
 }
