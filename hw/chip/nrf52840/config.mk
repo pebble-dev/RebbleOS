@@ -139,7 +139,6 @@ nrf52_sdk_inc_folders = \
 	components/ble/nrf_ble_gq \
 	external/freertos/portable/CMSIS/nrf52
 
-CFLAGS_nrf52840 = $(CFLAGS_all)
 CFLAGS_nrf52840 += -Ihw/chip/nrf52840
 CFLAGS_nrf52840 += $(addprefix -I$(NRF52_SDK_PATH)/,$(nrf52_sdk_inc_folders))
 CFLAGS_nrf52840 += \
@@ -154,7 +153,6 @@ CFLAGS_nrf52840 += \
 	-D__START=main \
 	-mcpu=cortex-m4 -mthumb -mabi=aapcs -mfloat-abi=hard -mfpu=fpv4-sp-d16
 
-SRCS_nrf52840 = $(SRCS_all)
 SRCS_nrf52840 += modules/nrfx/mdk/gcc_startup_nrf52840.S
 SRCS_nrf52840 += modules/nrfx/mdk/system_nrf52840.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_uart.c
@@ -172,7 +170,4 @@ SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_clock.c
 SRCS_nrf52840 += hw/chip/nrf52840/fault_handlers.c
 SRCS_nrf52840 += hw/chip/nrf52840/debug.c
 
-LDFLAGS_nrf52840 = $(LDFLAGS_all)
 LDFLAGS_nrf52840 += -Wl,-Thw/chip/nrf52840/nrf52840.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk
-
-LIBS_nrf52840 = $(LIBS_all)

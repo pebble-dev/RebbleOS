@@ -1,10 +1,10 @@
-CFLAGS_stm32f4xx = $(CFLAGS_all)
+CFLAGS_stm32f4xx = $(CFLAGS_rebbleos)
 CFLAGS_stm32f4xx += -Ihw/chip/stm32f4xx/inc
 CFLAGS_stm32f4xx += -DUSE_STDPERIPH_DRIVER -DSTM32F4XX -DSTM32F429_439xx -D__FPU_PRESENT=1 -D__FPU_USED=0 -DARM_MATH_CM4 -mcpu=cortex-m4 -mfloat-abi=soft -fsingle-precision-constant
 CFLAGS_stm32f4xx += -IFreeRTOS/portable/GCC/ARM_CM4F
 #-mfpu=fpv4-sp-d16
 
-SRCS_stm32f4xx = $(SRCS_all)
+SRCS_stm32f4xx = $(SRCS_rebbleos)
 SRCS_stm32f4xx += hw/chip/stm32f4xx/startup_stm32f4xx.s
 SRCS_stm32f4xx += hw/chip/stm32f4xx/system_stm32f4xx.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/misc.c
@@ -51,7 +51,7 @@ SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_usart.c
 SRCS_stm32f4xx += hw/chip/stm32f4xx/stm32f4xx_wwdg.c
 SRCS_stm32f4xx += FreeRTOS/portable/GCC/ARM_CM4F/port.c
 
-LDFLAGS_stm32f4xx = $(LDFLAGS_all)
+LDFLAGS_stm32f4xx = $(LDFLAGS_rebbleos)
 LDFLAGS_stm32f4xx += -Wl,-Thw/chip/stm32f4xx/stm32f4xx.lds
 
-LIBS_stm32f4xx = $(LIBS_all)
+LIBS_stm32f4xx = $(LIBS_rebbleos)

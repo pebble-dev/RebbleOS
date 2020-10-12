@@ -1,5 +1,4 @@
 -include localconfig.mk
-include config.mk
 
 ###########################################################################
 #
@@ -49,6 +48,21 @@ PYTHON3 ?= python3
 
 # Do not override this here!  Override this in localconfig.mk.
 QEMU ?= qemu-pebble
+
+####################################
+# Set up macros to define platforms.
+define platform_define
+$$(eval PLATFORMS += $(1))
+endef
+
+define platform_include
+$(foreach var, \
+	CFLAGS SRCS LDFLAGS LIBS QEMUFLAGS QEMUSPITYPE QEMUPACKSIZE QEMUPACKOFS QEMUSPINAME HWREV, \
+	$$(eval $(var)_$(1) += $($(var)_$(2))) \
+	)
+endef
+
+include config.mk
 
 # output directory
 BUILD = build
