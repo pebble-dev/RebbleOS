@@ -9,6 +9,7 @@
 #include "rebbleos.h"
 #include "service.h"
 #include "nrf_sdh.h"
+#include "nrf_sdm.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_ble_gatt.h"
 #include "ble_advdata.h"

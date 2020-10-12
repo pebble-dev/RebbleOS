@@ -1,13 +1,18 @@
 #include "minilib.h"
 #include <stdarg.h>
 #include "platform.h"
+#include "core_cm4.h"
+#include "nrf_sdm.h"
 
 extern int printf(const char *, ...);
 extern int vprintf(const char *ifmt, va_list ap);
 extern void delay_us(uint32_t us);
 
+#define SECONDARY_START 0x30000
+
+volatile int display_is_done = 0;
 void display_done_isr(int cmd) {
-	hw_display_process_isr();
+	display_is_done = hw_display_process_isr();
 }
 
 void flash_operation_complete_isr(int cmd) {
@@ -40,7 +45,6 @@ void ghost(uint32_t err) {
 	uint8_t *dispbuf = hw_display_get_buffer();
 	for (int y = 0; y < DISPLAY_ROWS; y++)
 		memcpy(dispbuf + y * 20, rghost_bw + y * 18, 18);
-	hw_display_start_frame(0, 0);
 	
 	for (int c = 0; c < 8; c++) {
 		uint8_t nybble = (err >> ((7 - c) * 4)) & 0xF;
@@ -48,8 +52,10 @@ void ghost(uint32_t err) {
 		for (int y = 0; y < 8; y++)
 			dispbuf[20 * (140 + y) + 5 + c] = font[nybble * 8 + y];
 	}
-	
-	while(1)
+
+	display_is_done = 0;
+	hw_display_start_frame(0, 0);
+	while (!display_is_done)
 		;
 }
 
@@ -59,11 +65,24 @@ void main() {
 	hw_watchdog_init();
 	hw_watchdog_reset();
 	
-	printf("RebbleOS bootloader\n\n");
+	printf("\nRebbleOS bootloader\n\n");
 	
 	hw_display_init();
 
 	ghost(0xEA80E0B3);
+	
+	printf("Booting OS:\n");
+	printf("  stack top = %08lx\n", *(uint32_t *)0x30000);
+	printf("  reset = %08lx\n", *(uint32_t *)0x30004);
+	
+	/* XXX: Asterix- and nRF52-specific right now. */
+	sd_softdevice_vector_table_base_set(0x30000);
+	
+	asm volatile(
+	"mov sp, %0\n"
+	"bx %1\n"
+	: : "r"(*(uint32_t *)0x30000), "r"(*(uint32_t *)0x30004)
+	);
 	
 	while(1)
 		;

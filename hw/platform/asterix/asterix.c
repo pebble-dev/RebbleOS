@@ -10,6 +10,7 @@
 #include "nrf_delay.h"
 #include "nrfx_uart.h"
 #include "nrfx_twi.h"
+#include "nrfx_wdt.h"
 #include "nrf_gpio.h"
 
 #include "board_config.h"
@@ -78,10 +79,29 @@ void platform_init_late() {
 
 /*** watchdog timer ***/
 
+static nrfx_wdt_channel_id _wdtchan;
+
 void hw_watchdog_init() {
+    nrfx_err_t err;
+    nrfx_wdt_config_t config = {
+        .behaviour = NRF_WDT_BEHAVIOUR_RUN_SLEEP,
+        .reload_value = 5000 /* ms! */
+    };
+    
+    err = nrfx_wdt_init(&config, NULL);
+    assert(err == NRFX_SUCCESS);
+    
+    err = nrfx_wdt_channel_alloc(&_wdtchan);
+    assert(err == NRFX_SUCCESS);
+    
+    nrfx_wdt_enable();
 }
 
 void hw_watchdog_reset() {
+    if (hw_button_pressed(HW_BUTTON_BACK))
+        return;
+
+    nrfx_wdt_channel_feed(_wdtchan);
 }
 
 /*** ambient light sensor ***/

@@ -36,7 +36,7 @@ CFLAGS_all += -O0 -ggdb -Wall -ffunction-sections -fdata-sections -mthumb -mlitt
 # CFLAGS_all += -Wno-implicit-function-declaration
 CFLAGS_all += -Wno-unused-variable -Wno-unused-function
 
-LDFLAGS_all += -nostartfiles -nostdlib
+LDFLAGS_all += -nostartfiles -nostdlib -Wl,--gc-sections
 LIBS_all += -lgcc
 
 SRCS_all += build/version.c

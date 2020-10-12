@@ -15,6 +15,7 @@ SRCS_asterix_common += hw/platform/asterix/asterix.c
 
 $(eval $(call platform_include,asterix_boot_common,boot))
 $(eval $(call platform_include,asterix_boot_common,nrf52840))
+$(eval $(call platform_include,asterix_boot_common,nrf52840_boot))
 $(eval $(call platform_include,asterix_boot_common,driver_nrf52_buttons))
 $(eval $(call platform_include,asterix_boot_common,driver_nrf52_ls013b7dh05))
 $(eval $(call platform_include,asterix_boot_common,driver_nrf52_qspi_flash))
