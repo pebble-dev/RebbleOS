@@ -194,6 +194,7 @@ SRCS_boot += lib/minilib/minilib.c
 SRCS_boot += lib/minilib/fmt.c
 SRCS_boot += lib/minilib/dprint.c
 SRCS_boot += boot/boot.c
+SRCS_boot += boot/gfxbw.c
 $(eval $(call platform_include,boot,all))
 
 include hw/chip/stm32f4xx/config.mk
