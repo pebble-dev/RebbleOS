@@ -169,6 +169,7 @@ void *strcpy(char *a2, const char *a1)
 	return origa2;
 }
 
+#ifndef BOOT
 char *strdup(const char *s)
 {
 	extern void *malloc(size_t len);
@@ -177,6 +178,7 @@ char *strdup(const char *s)
 		strcpy(s2, s);
 	return s2;
 }
+#endif
 
 char *strncpy(char *a2, const char *a1, size_t len)
 {

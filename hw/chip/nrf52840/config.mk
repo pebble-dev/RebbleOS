@@ -159,15 +159,15 @@ SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_uart.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_qspi.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_spim.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_twi.c
-SRCS_nrf52840 += components/libraries/util/app_util_platform.c # needed by softdevice
-SRCS_nrf52840 += components/libraries/experimental_section_vars/nrf_section_iter.c # needed by softdevice
-SRCS_nrf52840 += external/freertos/portable/GCC/nrf52/port.c
-SRCS_nrf52840 += external/freertos/portable/CMSIS/nrf52/port_cmsis.c
-SRCS_nrf52840 += external/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c
-SRCS_nrf52840 += integration/nrfx/legacy/nrf_drv_clock.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_clock.c
-
 SRCS_nrf52840 += hw/chip/nrf52840/fault_handlers.c
 SRCS_nrf52840 += hw/chip/nrf52840/debug.c
 
 LDFLAGS_nrf52840 += -Wl,-Thw/chip/nrf52840/nrf52840.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk
+
+SRCS_nrf52840_os += components/libraries/util/app_util_platform.c # needed by softdevice
+SRCS_nrf52840_os += components/libraries/experimental_section_vars/nrf_section_iter.c # needed by softdevice
+SRCS_nrf52840_os += external/freertos/portable/GCC/nrf52/port.c
+SRCS_nrf52840_os += external/freertos/portable/CMSIS/nrf52/port_cmsis.c
+SRCS_nrf52840_os += external/freertos/portable/CMSIS/nrf52/port_cmsis_systick.c
+SRCS_nrf52840_os += integration/nrfx/legacy/nrf_drv_clock.c

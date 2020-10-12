@@ -189,6 +189,13 @@ $(eval $(call platform_include,rebbleos,all))
 CFLAGS_testing += -DREBBLEOS_TESTING
 SRCS_testing += rcore/test.c
 
+CFLAGS_boot += -DBOOT
+SRCS_boot += lib/minilib/minilib.c
+SRCS_boot += lib/minilib/fmt.c
+SRCS_boot += lib/minilib/dprint.c
+SRCS_boot += boot/boot.c
+$(eval $(call platform_include,boot,all))
+
 include hw/chip/stm32f4xx/config.mk
 include hw/chip/stm32f2xx/config.mk
 include hw/drivers/stm32_dma/config.mk

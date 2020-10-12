@@ -11,6 +11,18 @@
 
 #include "platform.h"
 #include <minilib.h>
+
+#ifdef BOOT
+
+static int _lock() {
+	return 1;
+}
+
+static void _unlock() {
+}
+
+#else
+
 #include "FreeRTOS.h"
 #include "semphr.h"
 #include "task.h"
@@ -65,6 +77,8 @@ static void _unlock() {
 	
 	xSemaphoreGive(_dprint_lock);
 }
+
+#endif
 
 int putchar(int c) {
 	unsigned char _c = c;
