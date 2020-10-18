@@ -7,6 +7,7 @@ MEMORY
 {
   FLASH (rx) : ORIGIN = 0x30000, LENGTH = 0xd0000
   RAM (rwx) :  ORIGIN = 0x20002300, LENGTH = 0x3dd00
+  BOOTBITS (rwx) : ORIGIN = 0x2003FF00, LENGTH = 0x100
 }
 
 SECTIONS
@@ -43,6 +44,11 @@ SECTIONS
     KEEP(*(SORT(.log_filter_data*)))
     PROVIDE(__stop_log_filter_data = .);
   } > RAM
+
+  .bootbits (NOLOAD) :
+  {
+    KEEP(*(.bootbits))
+  } > BOOTBITS
 
 } INSERT AFTER .data;
 

@@ -3,6 +3,7 @@
 #include "platform.h"
 #include "core_cm4.h"
 #include "nrf_sdm.h"
+#include "platform_bootbits.h"
 
 extern int printf(const char *, ...);
 extern int vprintf(const char *ifmt, va_list ap);
@@ -36,7 +37,7 @@ void delay_ms(uint32_t ms) {
 	delay_us(ms * 1000);
 }
 
-void ghost(uint32_t err) {
+void draw_ghost(uint32_t err) {
 	extern const uint8_t rghost_bw[];
 	extern const uint8_t font[];
 	
@@ -59,6 +60,12 @@ void ghost(uint32_t err) {
 		;
 }
 
+void panic_ghost(uint32_t err) {
+	draw_ghost(err);
+	while (1) {
+	}
+}
+
 void main() {
 	platform_init();
 	debug_init();
@@ -68,8 +75,13 @@ void main() {
 	printf("\nRebbleOS bootloader\n\n");
 	
 	hw_display_init();
+	
+	if (hw_bootbits_test(BOOT_FORCE_SADWATCH)) {
+		hw_bootbits_clear(BOOT_FORCE_SADWATCH);
+		panic_ghost(0xFE504503);
+	}
 
-	ghost(0xEA80E0B3);
+	draw_ghost(0xEA80E0B3);
 	
 	printf("Booting OS:\n");
 	printf("  stack top = %08lx\n", *(uint32_t *)0x30000);

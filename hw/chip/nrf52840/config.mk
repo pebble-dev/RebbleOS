@@ -163,6 +163,7 @@ SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_clock.c
 SRCS_nrf52840 += modules/nrfx/drivers/src/nrfx_wdt.c
 SRCS_nrf52840 += hw/chip/nrf52840/fault_handlers.c
 SRCS_nrf52840 += hw/chip/nrf52840/debug.c
+SRCS_nrf52840 += hw/chip/nrf52840/bootbits.c
 SRCS_nrf52840 += components/libraries/util/app_util_platform.c # needed by softdevice
 
 LDFLAGS_nrf52840_boot += -Wl,-Thw/chip/nrf52840/nrf52840_boot.lds -L$(NRF52_SDK_PATH)/modules/nrfx/mdk
