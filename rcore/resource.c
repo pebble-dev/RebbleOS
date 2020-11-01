@@ -28,10 +28,31 @@ typedef struct ResHandleFileHeader
     uint32_t crc;
 } ResHandleFileHeader;
 
+static uint32_t _res_region;
 
 uint8_t resource_init()
 {
-    return 0;
+    extern unsigned long respack_crc;
+    uint32_t crc;
+    
+    flash_read_bytes(REGION_RES_START + 4, (void *)&crc, 4);
+    if (crc == respack_crc) {
+        _res_region = REGION_RES_START;
+        return 0;
+    }
+    LOG_ERROR("res: res A partition has crc %08x, want crc %08x\n", crc, respack_crc);
+
+#ifdef PLATFORM_HAS_AB_RESOURCES
+    flash_read_bytes(REGION_RES_B_START + 4, (void *)&crc, 4);
+    if (crc == respack_crc) {
+        _res_region = REGION_RES_B_START;
+        return 0;
+    }
+    LOG_ERROR("res: res B partition has crc %08x, want crc %08x\n", crc, respack_crc);
+#endif
+    
+    panic("no viable resource partition found");
+    return -1;
 }
 
 bool _resource_is_sane(ResHandleFileHeader *res_handle)
@@ -68,7 +89,7 @@ bool _resource_is_sane(ResHandleFileHeader *res_handle)
 
 ResHandle resource_get_handle_system(uint16_t resource_id)
 {
-    return REGION_RES_START + RES_TABLE_START + ((resource_id - 1) * sizeof(ResHandleFileHeader));
+    return _res_region + RES_TABLE_START + ((resource_id - 1) * sizeof(ResHandleFileHeader));
 }
 
 ResHandle resource_get_handle(uint32_t resource_id)
@@ -98,7 +119,7 @@ void resource_file_from_file_handle(struct file *file, const struct file *appres
 
 void resource_file(struct file *file, ResHandle hnd) 
 {
-    if (hnd < REGION_RES_START)
+    if (hnd < _res_region)
     {
         App *app = appmanager_get_current_app();
         assert(app && "resource_to_file on app resource without running app");
@@ -108,7 +129,7 @@ void resource_file(struct file *file, ResHandle hnd)
         ResHandleFileHeader hdr;
         
         flash_read_bytes(hnd, (uint8_t *)&hdr, sizeof(hdr));
-        fs_file_from_flash(file, REGION_RES_START + RES_START + hdr.offset, hdr.size);
+        fs_file_from_flash(file, _res_region + RES_START + hdr.offset, hdr.size);
     }
 }
 

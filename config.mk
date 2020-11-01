@@ -39,7 +39,7 @@ CFLAGS_all += -Wno-unused-variable -Wno-unused-function
 LDFLAGS_all += -nostartfiles -nostdlib -Wl,--gc-sections
 LIBS_all += -lgcc
 
-SRCS_all += build/version.c
+# version.c is added as part of the makefile, since it's per platform
 
 CFLAGS_rebbleos += -DREBBLEOS
 

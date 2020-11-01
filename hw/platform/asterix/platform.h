@@ -10,20 +10,23 @@
 #define PLATFORM_FLASH_PAGE_MASK 0xFFFFFF00
 #define PLATFORM_FLASH_PAGE_SIZE 256
 
+#define PLATFORM_HAS_AB_RESOURCES
+
 #ifdef ASTERIX_BOARD_ASTERIX
 
 /* Asterix has 16MB of flash. */
 
-/* Bootloader private area: 1MB */
-#define REGION_BOOTLOADER_START 0x0
-#define REGION_BOOTLOADER_SIZE  0x100000
+/* Update staging area: 1MB */
+#define REGION_UPDATE_START 0x0
+#define REGION_UPDATE_SIZE  0x100000
 
-/* Reflash staging area: 1MB ROM, 1MB resources */
-#define REGION_STAGING_START 0x100000
-#define REGION_STAGING_SIZE  0x200000
+/* Recovery staging area: 1MB */
+#define REGION_RECOVERY_START 0x100000
+#define REGION_RECOVERY_SIZE  0x100000
 
-/* System resources: 1MB */
+/* System resources A and B: 1MB */
 #define REGION_RES_START 0x300000
+#define REGION_RES_B_START 0x400000
 #define REGION_RES_SIZE  0x100000
 
 /* The rest of the filesystem: 12MB */
@@ -36,13 +39,18 @@
 
 /* Asterix-VLA has 8MB of flash. */
 
-/* Bootloader private area: 1MB */
-#define REGION_BOOTLOADER_START 0x0
-#define REGION_BOOTLOADER_SIZE  0x100000
+/* Update staging area: 512 kB */
+#define REGION_UPDATE_START 0x0
+#define REGION_UPDATE_SIZE  0x80000
 
-/* System resources: 1MB */
-#define REGION_RES_START 0x100000
-#define REGION_RES_SIZE  0x100000
+/* Recovery staging area: 512 kB */
+#define REGION_RECOVERY_START 0x80000
+#define REGION_RECOVERY_SIZE  0x80000
+
+/* System resources A and B: 512KB */
+#define REGION_RES_START   0x100000
+#define REGION_RES_B_START 0x180000
+#define REGION_RES_SIZE    0x80000
 
 /* The rest of the filesystem: 6MB */
 #define REGION_FS_START         0x200000

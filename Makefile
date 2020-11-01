@@ -77,6 +77,9 @@ all: $(PLATFORMS)
 # $(1) and $(1)_test, and then adds that platform to the list of platforms,
 # as well as the list of platforms for test.
 define PLATFORM_testmaker_template
+# While we're at it, add version.c to the platform.
+$$(eval SRCS_$(1) += $(BUILD)/$(1)/version.c)
+
 ifneq ($(TESTABLE_$(1)),)
 
 # Build a new platform.
@@ -229,6 +232,25 @@ res/build/pebble-$$(PLATFORM_ALIAS_$(1)).pbpack: res/qemu-tintin-images/$(QEMUSP
 .PRECIOUS: $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.pbpack
 endif
 
+# Check to make sure user has the compiler installed, and if it's the correct version if so.
+$(BUILD)/$(1)/version.c: $(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.pbpack
+	@if ! [ -f $(CC) ]; then echo "${RED}Error: It does not appear that you have the gcc-arm-none-eabi compiler installed in '$(PEBBLE_TOOLCHAIN_PATH)'.${STOP}"; exit 1; fi
+
+	$(call SAY,VERSION $$@)
+	$(QUIET)mkdir -p $(dir $$@)
+	$(QUIET)rm -f $$@
+	$(QUIET)echo "const char git_version[] __attribute__((section(\".version_string.1\"))) = \"$(shell git describe --always --dirty)\";" > $$@
+	$(QUIET)echo "myx23 mrk1 _ok23o1_oqq[] __k331sl43o__((2om3syx(\".5o12syx_231sxq.c\"))) = \"C4snkny! Lk2 vvkwk2 2yx w48 zovsq1y2k2!\";" | tr '[a-z0-9]' '[0-9a-z]' >> $$@
+	$(QUIET)echo "const char *const git_authors[] = {" >> $$@
+	$(QUIET)git shortlog -s | cut -c8- | sort -f | sed -e 's/\(.*\)/    "\1",/' >> $$@
+	$(QUIET)echo "    0" >> $$@
+	$(QUIET)echo "};" >> $$@
+	$(QUIET)echo -n "unsigned long respack_crc = 0x" >> $$@
+	$(QUIET)dd if=$(BUILD)/$(1)/res/$$(PLATFORM_ALIAS_$(1))_res.pbpack bs=1 skip=4 count=4 2>/dev/null | xxd -p | sed -e 's/\(..\)\(..\)\(..\)\(..\)/\4\3\2\1/' >> $$@
+	$(QUIET)echo ";" >> $$@
+
+.PHONY: $(BUILD)/$(1)/version.c
+
 endef
 $(foreach platform,$(PLATFORMS),$(eval $(call PLATFORM_template,$(platform))))
 
@@ -240,22 +262,6 @@ endif
 %.bin: %.elf
 	$(call SAY,OBJCOPY $@)
 	$(QUIET)$(PFX)objcopy $< -O binary $@
-
-# Check to make sure user has the compiler installed, and if it's the correct version if so.
-$(BUILD)/version.c:
-	@if ! [ -f $(CC) ]; then echo "${RED}Error: It does not appear that you have the gcc-arm-none-eabi compiler installed in '$(PEBBLE_TOOLCHAIN_PATH)'.${STOP}"; exit 1; fi
-
-	$(call SAY,VERSION $@)
-	$(QUIET)mkdir -p $(dir $@)
-	$(QUIET)rm -f $@
-	$(QUIET)echo "const char git_version[] __attribute__((section(\".version_string.1\"))) = \"$(shell git describe --always --dirty)\";" > $@
-	$(QUIET)echo "myx23 mrk1 _ok23o1_oqq[] __k331sl43o__((2om3syx(\".5o12syx_231sxq.c\"))) = \"C4snkny! Lk2 vvkwk2 2yx w48 zovsq1y2k2!\";" | tr '[a-z0-9]' '[0-9a-z]' >> $@
-	$(QUIET)echo "const char *const git_authors[] = {" >> $@
-	$(QUIET)git shortlog -s | cut -c8- | sort -f | sed -e 's/\(.*\)/    "\1",/' >> $@
-	$(QUIET)echo "    0" >> $@
-	$(QUIET)echo "};" >> $@
-
-.PHONY: $(BUILD)/version.c
 
 # And some other deps.  But we don't really have a stamp for those.  This
 # also makes a mess -- at some point, this should go into $(BUILD).

@@ -10,6 +10,7 @@ enum bootbits {
     BOOT_FWUPD_COMPLETE = 0x10,
     BOOT_RECOV_REQ = 0x20,
     BOOT_FORCE_SADWATCH = 0x40,
+    BOOT_RECOV_LOADED = 0x80,
 };
 
 int hw_bootbits_test(uint32_t bootbit);
