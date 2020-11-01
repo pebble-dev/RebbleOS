@@ -40,7 +40,7 @@ uint8_t resource_init()
         _res_region = REGION_RES_START;
         return 0;
     }
-    LOG_ERROR("res: res A partition has crc %08x, want crc %08x\n", crc, respack_crc);
+    LOG_ERROR("res: res A partition has crc %08x, want crc %08x", crc, respack_crc);
 
 #ifdef PLATFORM_HAS_AB_RESOURCES
     flash_read_bytes(REGION_RES_B_START + 4, (void *)&crc, 4);
@@ -48,7 +48,7 @@ uint8_t resource_init()
         _res_region = REGION_RES_B_START;
         return 0;
     }
-    LOG_ERROR("res: res B partition has crc %08x, want crc %08x\n", crc, respack_crc);
+    LOG_ERROR("res: res B partition has crc %08x, want crc %08x", crc, respack_crc);
 #endif
     
     panic("no viable resource partition found");

@@ -20,6 +20,8 @@
 #define MEMORY_SIZE_WORKER_HEAP   MEMORY_SIZE_WORKER - (MEMORY_SIZE_WORKER_STACK * 4)
 #define MEMORY_SIZE_OVERLAY_HEAP  MEMORY_SIZE_OVERLAY - (MEMORY_SIZE_OVERLAY_STACK * 4)
 
+#define PLATFORM_HAS_AB_RESOURCES
+
 // flash regions
 #define REGION_PRF_START        0x200000
 #define REGION_PRF_SIZE         0x1000000
@@ -27,8 +29,10 @@
 #define REGION_MFG_START        0xE0000
 #define REGION_MFG_SIZE         0x20000
 // Resource start
-#define REGION_RES_START        0x380000
+#define REGION_RES_START        0x300000
 #define REGION_RES_SIZE         0x7D000 // TODO
+// Resource start
+#define REGION_RES_B_START      0x380000
 
 
 #define REGION_FS_START         0x400000
