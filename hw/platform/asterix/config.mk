@@ -19,6 +19,7 @@ $(eval $(call platform_include,asterix_boot_common,nrf52840_boot))
 $(eval $(call platform_include,asterix_boot_common,driver_nrf52_buttons))
 $(eval $(call platform_include,asterix_boot_common,driver_nrf52_ls013b7dh05))
 $(eval $(call platform_include,asterix_boot_common,driver_nrf52_qspi_flash))
+$(eval $(call platform_include,asterix_boot_common,driver_nrf52_microflash))
 
 CFLAGS_asterix_boot_common += -Ihw/platform/asterix
 CFLAGS_asterix_boot_common += -DREBBLE_PLATFORM=asterix -DREBBLE_PLATFORM_TINTIN -DPBL_BW

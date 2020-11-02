@@ -48,6 +48,8 @@
 #endif
 // <h> nRF_BLE 
 
+#define NRFX_NVMC_ENABLED 1
+
 #define NRF_BLE_GQ_ENABLED 1
 #define NRF_BLE_GQ_QUEUE_SIZE 4
 // <o> NRF_BLE_GQ_DATAPOOL_ELEMENT_SIZE - Default size of a single element in the pool of memory objects.
