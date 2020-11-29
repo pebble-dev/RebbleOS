@@ -6,7 +6,6 @@
  */
 
 #include <debug.h>
-#include "rebbleos.h"
 #include "nrf_delay.h"
 #include "nrfx_uart.h"
 #include "board_config.h"

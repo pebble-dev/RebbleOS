@@ -7,7 +7,7 @@
  */
 
 #include "FreeRTOS.h"
-#include "rebbleos.h"
+// not ideal. TODO reorg
 #include "librebble.h"
 
 #define butDEBOUNCE_DELAY       ( pdMS_TO_TICKS(2) )

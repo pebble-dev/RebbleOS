@@ -1,4 +1,4 @@
-#include "rebbleos.h"
+#include "display.h"
 #include "systemapp.h"
 #include "menu.h"
 #include "status_bar_layer.h"

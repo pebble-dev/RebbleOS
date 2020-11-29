@@ -10,14 +10,19 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-#include "rebbleos.h"
+#include <stdint.h>
 #include "protocol_system.h"
 #include "protocol_service.h"
 #include "pebble_protocol.h"
 #include "timeline.h"
 #include "FreeRTOS.h"
 #include "rtoswrap.h"
+#include "rebble_memory.h"
 #include "qemu.h"
+#include <string.h>
+#include <stdlib.h>
+#include "log.h"
+#include "qalloc.h"
 
 /* Configure Logging */
 #define MODULE_NAME "pcolsvc"

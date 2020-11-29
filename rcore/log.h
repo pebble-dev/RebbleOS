@@ -6,6 +6,7 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 
+#include <stdint.h>
 #include <stdarg.h>
 
 #define NULL_LOG(module_, lvl_, fmt_, ...) {;}

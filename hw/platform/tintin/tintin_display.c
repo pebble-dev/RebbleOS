@@ -16,7 +16,6 @@
 #include <stm32f2xx_rcc.h>
 #include <stm32f2xx_syscfg.h>
 #include <misc.h>
-#include "rebbleos.h"
 #include "stm32_power.h"
 #include "stm32_spi.h"
 

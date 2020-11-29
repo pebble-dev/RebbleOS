@@ -5,7 +5,7 @@
  * Author: Barry Carter <barry.carter@gmail.com>
  */
 #include <stdlib.h>
-#include "rebbleos.h"
+#include "main.h"
 #include "endpoint.h"
 #include "protocol.h"
 #include "pebble_protocol.h"

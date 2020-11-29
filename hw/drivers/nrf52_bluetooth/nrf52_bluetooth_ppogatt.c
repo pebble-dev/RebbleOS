@@ -4,9 +4,10 @@
  *
  * Author: Joshua Wise <joshua@joshuawise.com>
  */
-
+#define BLUETOOTH_IS_BLE 1
 #include <debug.h>
-#include "rebbleos.h"
+#include "log.h"
+#include "rbl_bluetooth.h"
 #include "nrf_sdh.h"
 #include "nrf_sdh_ble.h"
 #include "nrf_ble_gatt.h"

@@ -4,7 +4,8 @@
  * 
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
-#include "rebbleos.h"
+#include <stdint.h>
+#include "main.h"
 #include "platform_res.h"
 #include "notification_manager.h"
 

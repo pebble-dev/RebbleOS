@@ -4,10 +4,12 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-#include "rebbleos.h"
+#include <stdint.h>
+#include "log.h"
 #include "protocol.h"
 #include "pebble_protocol.h"
 #include "protocol_service.h"
+#include "rebble_memory.h"
 #include "event_service.h"
 
 /* Configure Logging */

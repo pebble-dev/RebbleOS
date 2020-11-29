@@ -4,11 +4,12 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
+#include "main.h"
 #include <stdbool.h>
 #include "power.h"
-#include "rebbleos.h"
 #include "notification_manager.h"
 #include "battery_state_service.h"
+#include "flash.h"
 
 static uint8_t _charge_mode_prev = 0;
 static uint8_t _charge_mode = 0;

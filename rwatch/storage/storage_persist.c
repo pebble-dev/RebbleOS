@@ -4,10 +4,12 @@
  *
  * Authors: Barry Carter <barry.carter@gmail.com>
  */
-#include "rebbleos.h"
 #include "rdb.h"
-#include "storage_persist.h"
 #include "appmanager_thread.h"
+#include "log.h"
+#include <stdlib.h>
+#include <string.h>
+#include "storage_persist.h"
 
 #define MODULE_NAME "stor"
 #define MODULE_TYPE "RWAT"

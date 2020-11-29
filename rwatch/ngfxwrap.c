@@ -4,7 +4,7 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
+#include "main.h"
 #include "context.h"
 #include "appmanager.h"
 #include "display.h"

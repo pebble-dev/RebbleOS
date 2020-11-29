@@ -22,7 +22,7 @@
  * Window creation happens in a callback so we can delegate the work to our thread
  * and constrain memory and runtime of the window
  */
-#include "rebbleos.h"
+#include "overlay_manager.h"
 
 /* NOT USED YET */
 typedef enum OverlayMode {

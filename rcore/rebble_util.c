@@ -1,4 +1,4 @@
-#include "rebbleos.h"
+#include "display.h"
 #include "librebble.h"
 #include "uuid.h"
 

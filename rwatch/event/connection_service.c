@@ -9,6 +9,7 @@
 #include "event_service.h"
 #include "event_service.h"
 #include "connection_service.h"
+#include "rebble_util.h"
 
 
 static void _connection_service_cb(EventServiceCommand command, void *data, void *context)

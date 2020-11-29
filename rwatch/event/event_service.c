@@ -4,7 +4,9 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-#include "rebbleos.h"
+#include <stdint.h>
+#include "main.h"
+#include "rebble_util.h"
 #include "protocol.h"
 #include "pebble_protocol.h"
 #include "overlay_manager.h"

@@ -24,6 +24,7 @@
  */
 
 #include "FreeRTOS.h"
+#include "librebble.h"
 #include "task.h" /* xTaskCreate */
 #include "timers.h" /* xTimerCreate */
 #include "queue.h" /* xQueueCreate */
@@ -32,7 +33,7 @@
 #include "backlight.h"
 #include "ambient.h"
 #include "rebble_memory.h"
-#include "rebbleos.h"
+#include "init.h"
 #include "rbl_bluetooth.h"
 #include "pebble_protocol.h"
 #include "stdarg.h"
@@ -41,6 +42,7 @@
 #include "protocol_service.h"
 #include "service.h"
 #include "rdb.h"
+#include <string.h>
 
 /* Stack sizes of the threads */
 #define STACK_SZ_CMD configMINIMAL_STACK_SIZE + 600

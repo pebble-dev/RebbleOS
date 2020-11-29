@@ -5,8 +5,7 @@
  *
  * Author: Barry Carter <barry.carter@gmail.com>
  */
-
-#include "rebbleos.h"
+#include "main.h"
 
 /* Configure Logging */
 #define MODULE_NAME "mem"

@@ -11,7 +11,11 @@
   probably should be a status header  
 */
 
-#include "rebbleos.h"
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <stdint.h>
+#include <stdbool.h>
 #include "dictionary.h"
 
 uint32_t dict_calc_buffer_size(const uint8_t tuple_count, ...)

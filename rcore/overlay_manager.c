@@ -4,7 +4,8 @@
  * 
  * Author: Barry Carter <barry.carter@gmail.com>.
  */
-#include "rebbleos.h"
+#include "main.h"
+#include "init.h"
 #include "ngfxwrap.h"
 #include "overlay_manager.h"
 #include "protocol.h"

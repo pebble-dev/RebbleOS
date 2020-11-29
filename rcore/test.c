@@ -1,5 +1,6 @@
 #include "test.h"
-#include "rebbleos.h"
+#include "main.h"
+#include "init.h"
 #include "protocol.h"
 #include "protocol_service.h"
 #include "rtoswrap.h"

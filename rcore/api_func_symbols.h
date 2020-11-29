@@ -1,5 +1,4 @@
 #include "common.h"
-#include "rebbleos.h"
 #include "librebble.h"
 #include "graphics_wrapper.h"
 #include "libros_graphics.h"

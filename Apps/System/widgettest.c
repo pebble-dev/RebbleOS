@@ -4,8 +4,7 @@
  *
  * Author: Carson Katri <me@carsonkatri.com>
  */
-
-#include "rebbleos.h"
+#include "display.h"
 #include "test.h"
 #include "librebble.h"
 #include "bitmap_layer.h"
@@ -18,7 +17,7 @@ const char * const test_name = "Test";
 static Window *s_main_window;
 
 ActionBarLayer *action_bar;
-StatusBarLayer *status_bar;
+static StatusBarLayer *status_bar;
 
 typedef struct {
     uint8_t hours;

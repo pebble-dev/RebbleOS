@@ -7,7 +7,7 @@
  */
 
 #include <stdlib.h>
-#include "rebbleos.h"
+#include "display.h"
 #include "appmanager.h"
 #include "systemapp.h"
 #include "widgettest.h"

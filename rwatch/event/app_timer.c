@@ -4,7 +4,7 @@
  *
  * Author: Joshua Wise <joshua@joshuawise.com>
  */
-#include "rebbleos.h"
+#include "main.h"
 #include "app_timer.h"
 #include "appmanager.h"
 #include "task.h"
