@@ -14,6 +14,11 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext);
 #define MenuRow(section, row, x, y, h) ((MenuCellSpan){ (x), (y), (h), 0, false, MenuIndex((section), (row)) })
 #define MenuHeader(section, x, y, h) ((MenuCellSpan){ (x), (y), (h), 0, true, MenuIndex((section), 0) })
 
+#define SCROLL_REPEAT_IVL_MS 50
+#define SCROLL_REPEAT_START (750 / SCROLL_REPEAT_IVL_MS)
+#define SCROLL_REPEAT_INCR (100 / SCROLL_REPEAT_IVL_MS)
+#define SCROLL_REPEAT_MIN (200 / SCROLL_REPEAT_IVL_MS)
+
 #define BUTTON_REPEAT_INTERVAL_MS 600
 #define BUTTON_LONG_CLICK_DELAY_MS 500
 #define ANIMATE_ON_CLICK true
@@ -334,14 +339,33 @@ void menu_layer_set_click_config_provider(MenuLayer *menu_layer, ClickConfigProv
     menu_layer->click_config_provider = provider;
 }
 
-static void down_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
+static void menu_layer_scroll_repeat_prepare(MenuLayer *menu_layer)
 {
-    menu_layer_set_selected_next(menu_layer, false, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+    menu_layer->scroll_remaining = menu_layer->scroll_delay = SCROLL_REPEAT_START;
 }
 
-static void up_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
+static int menu_layer_scroll_repeat(MenuLayer *menu_layer)
 {
-    menu_layer_set_selected_next(menu_layer, true, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+    if (!--(menu_layer->scroll_remaining)) {
+        menu_layer->scroll_delay -= SCROLL_REPEAT_INCR;
+        if (menu_layer->scroll_delay < SCROLL_REPEAT_MIN)
+            menu_layer->scroll_delay = SCROLL_REPEAT_MIN;
+        menu_layer->scroll_remaining = menu_layer->scroll_delay;
+        return 1;
+    }
+    return 0;
+}
+
+static void scroll_click_handler(ClickRecognizerRef ref, MenuLayer *menu_layer)
+{
+    bool up = click_recognizer_get_button_id(ref) == BUTTON_ID_UP;
+    if (!click_recognizer_is_repeating(ref)) {
+        menu_layer_set_selected_next(menu_layer, up, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+        menu_layer_scroll_repeat_prepare(menu_layer);
+    } else {
+        if (menu_layer_scroll_repeat(menu_layer))
+            menu_layer_set_selected_next(menu_layer, up, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+    }
 }
 
 static void select_single_click_handler(ClickRecognizerRef _, MenuLayer *menu_layer)
@@ -358,10 +382,10 @@ static void select_long_click_handler(ClickRecognizerRef _, MenuLayer *menu_laye
 
 static void menu_layer_click_config_provider(MenuLayer *menu_layer)
 {
-    window_single_repeating_click_subscribe(BUTTON_ID_DOWN, BUTTON_REPEAT_INTERVAL_MS,
-                                            (ClickHandler) down_single_click_handler);
-    window_single_repeating_click_subscribe(BUTTON_ID_UP, BUTTON_REPEAT_INTERVAL_MS,
-                                            (ClickHandler) up_single_click_handler);
+    window_single_repeating_click_subscribe(BUTTON_ID_DOWN, SCROLL_REPEAT_IVL_MS,
+                                            (ClickHandler) scroll_click_handler);
+    window_single_repeating_click_subscribe(BUTTON_ID_UP, SCROLL_REPEAT_IVL_MS,
+                                            (ClickHandler) scroll_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) select_single_click_handler);
     window_long_click_subscribe(BUTTON_ID_SELECT, BUTTON_LONG_CLICK_DELAY_MS, NULL,
                                 (ClickHandler) select_long_click_handler);
@@ -441,6 +465,7 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
 {
     MenuLayer *menu_layer = (MenuLayer *) layer->container;
     GRect frame = layer_get_frame(layer);
+    GPoint scroll_offset = scroll_layer_get_content_offset(&menu_layer->scroll_layer);
     uint16_t cell_width = frame.size.w / menu_layer->column_count;
 
     if (menu_layer->is_reload_scheduled || menu_layer->reload_behaviour == MenuLayerReloadBehaviourOnRender)
@@ -449,7 +474,6 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
     // Draw background
     if (menu_layer->is_center_focus)
     {
-        GPoint scroll_offset = scroll_layer_get_content_offset(&menu_layer->scroll_layer);
         MenuCellSpan* focused_cell = _get_cell_span(menu_layer, &menu_layer->selected);
         GRect cursor_rect = GRect(focused_cell->x, (layer->frame.size.h / 2) - (focused_cell->h / 2) - scroll_offset.y,
                                   cell_width, focused_cell->h);
@@ -471,18 +495,23 @@ static void menu_layer_update_proc(Layer *layer, GContext *nGContext)
         graphics_context_set_fill_color(nGContext, menu_layer->bg_hi_color);
         graphics_fill_rect(nGContext, cursor_rect, 0, GCornerNone);
     } else if (!menu_layer->callbacks.draw_background) {
+        GRect ofsframe = layer_get_frame(layer);
+        ofsframe.origin.y = -scroll_offset.y;
         graphics_context_set_fill_color(nGContext, menu_layer->bg_color);
-        graphics_fill_rect(nGContext, frame, 0, GCornerNone);
+        graphics_fill_rect(nGContext, ofsframe, 0, GCornerNone);
     }
 
     // Draw cells
     for (size_t cell = 0; cell < menu_layer->cells_count; ++cell)
     {
-        // TODO: only draw visible cells based on layer frame/bounds
         MenuCellSpan *span = menu_layer->cells + cell;
         layer->callback_data = span;
         layer->frame = GRect(span->x, span->y, (span->header ? frame.size.w : cell_width), span->h);
         // TODO: update bounds
+        
+        if ((span->y > (frame.size.h - scroll_offset.y)) ||
+            ((span->y + span->h) < -scroll_offset.y))
+            continue;
 
         GRect offset = nGContext->offset;
         layer_apply_frame_offset(layer, nGContext);
@@ -514,7 +543,20 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
     if (icon)
     {
         GSize icon_size = icon->raw_bitmap_size;
+#ifdef PBL_BW
+        // XXX: Violates NeoGraphics's boundary here.  The goal is that we
+        // want to invert icons if the fill color is black -- i.e., if the
+        // cell's background is black.  It's not clear to me that we're
+        // actually using Clear and Set the right way, because we're using
+        // the palettized blitters after all, but yet, here we are.
+        if (n_gcolor_equal(ctx->fill_color, n_GColorBlack))
+            n_graphics_context_set_compositing_mode(ctx, n_GCompOpClear);
+        else
+            n_graphics_context_set_compositing_mode(ctx, n_GCompOpSet);
+#else
+        // On color, we have to be more careful here.
         n_graphics_context_set_compositing_mode(ctx, n_GCompOpSet);
+#endif
         graphics_draw_bitmap_in_rect(ctx, icon, GRect(x, (frame.size.h - icon_size.h) / 2, icon_size.w, icon_size.h));
         n_graphics_context_set_compositing_mode(ctx, n_GCompOpAssign);
         x += icon_size.w + MENU_CELL_PADDING;
@@ -525,14 +567,13 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
     if (subtitle)
     {
         has_subtitle = true;
-        #ifdef PBL_BW
-        GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD);
-        #else
         GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_18);
-        #endif
         GRect subtitle_rect;
+        uint8_t h = n_graphics_font_get_line_height(font);
+        if (frame.size.h < h)
+            h = frame.size.h;
         subtitle_rect = GRect(x, frame.size.h / 2 - 2,
-                              frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
+                              frame.size.w - x - MENU_CELL_PADDING, h);
         graphics_draw_text(ctx, subtitle, font, subtitle_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }
@@ -540,8 +581,11 @@ void menu_cell_basic_draw_ex(GContext *ctx, GRect frame, const char *title,
     if (title)
     {
         GFont title_font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
+        uint8_t h = n_graphics_font_get_line_height(title_font);
+        if (frame.size.h < h)
+            h = frame.size.h;
         GRect title_rect = GRect(x, frame.size.h / 2 - ( has_subtitle ? 26 : 18 ),
-                                 frame.size.w - x - MENU_CELL_PADDING, frame.size.h);
+                                 frame.size.w - x - MENU_CELL_PADDING, h);
         graphics_draw_text(ctx, title, title_font, title_rect,
                                GTextOverflowModeTrailingEllipsis, align, 0);
     }

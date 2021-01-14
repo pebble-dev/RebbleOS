@@ -41,7 +41,7 @@ PFX ?= $(PEBBLE_TOOLCHAIN_PATH)/arm-none-eabi-
 
 CC = $(PFX)gcc
 LD = $(PFX)ld
-GDB = $(PFX)gdb
+GDB ?= $(PFX)gdb
 OBJCOPY = $(PFX)objcopy
 
 # Do not override this here!  Override this in localconfig.mk.
@@ -108,7 +108,7 @@ endif
 $(1): $(BUILD)/$(1)/$(1).pbz
 
 $(1)_qemu: $(BUILD)/$(1)/fw.qemu_flash.bin $(BUILD)/$(1)/fw.qemu_spi.bin
-	$(QEMU) -rtc base=localtime -serial null -serial tcp::63771,server,nowait -serial stdio -gdb tcp::63770,server,nowait $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) $(BUILD)/$(1)/fw.qemu_spi.bin $(QEMUFLAGS)
+	$(QEMU) -rtc base=utc -serial null -serial tcp::63771,server,nowait -serial stdio -gdb tcp::63770,server,nowait $(QEMUFLAGS_$(1)) -pflash $(BUILD)/$(1)/fw.qemu_flash.bin -$(QEMUSPITYPE_$(1)) $(BUILD)/$(1)/fw.qemu_spi.bin $(QEMUFLAGS)
 
 ifneq ($(TESTABLE_$(1)),)
 # This is kind of cheesy.
@@ -122,7 +122,7 @@ $(1)_runtest: $(BUILD)/$(1)_test/fw.qemu_flash.bin $(BUILD)/$(1)_test/fw.qemu_sp
 endif
 
 $(1)_gdb:
-	$(PFX)gdb -ex 'target remote localhost:63770' -ex "sym $(BUILD)/$(1)/tintin_fw.elf"
+	$(GDB) -ex 'target remote localhost:63770' -ex "sym $(BUILD)/$(1)/tintin_fw.elf"
 
 # List the resource header first to make sure it gets built first ...
 # otherwise we could get into trouble.
@@ -242,6 +242,22 @@ $(BUILD)/version.c:
 	$(QUIET)echo "};" >> $@
 
 .PHONY: $(BUILD)/version.c
+
+# And some other deps.  But we don't really have a stamp for those.  This
+# also makes a mess -- at some point, this should go into $(BUILD).
+lib/tz/zic lib/tz/tzdata.zi: lib/tz/zic.c lib/tz/private.h lib/tz/tzfile.h
+	make -C lib/tz zic tzdata.zi
+
+$(BUILD)/tz: lib/tz/zic lib/tz/tzdata.zi
+	$(call SAY,ZIC tzdata.zi)
+	@lib/tz/zic -b slim -r @$(shell date +%s) -d $(BUILD)/tz lib/tz/tzdata.zi
+
+$(BUILD)/tzdb: $(BUILD)/tz Utilities/tzcomp.py $(VIRTUALENV)
+	$(call SAY,TZCOMP $(BUILD)/tz)
+	@$(VIRTUALENV)/bin/python3 Utilities/tzcomp.py -i $< -o $@
+
+res/../%: %
+	@
 
 $(VIRTUALENV): Utilities/requirements.txt
 	$(call SAY,RM $@)

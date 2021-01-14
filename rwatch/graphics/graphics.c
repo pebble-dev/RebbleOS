@@ -68,15 +68,24 @@ void graphics_draw_text(
     const n_GTextOverflowMode overflow_mode, const n_GTextAlignment alignment,
     n_GTextAttributes * text_attributes)
 {
-    LOG_DEBUG("text");
     n_graphics_draw_text(ctx, text, font, _jimmy_layer_offset(ctx, box),
                             overflow_mode, alignment,
                             text_attributes);
 }
 
+void graphics_draw_text_ex(
+    n_GContext * ctx, const char * text, n_GFont const font, const n_GRect box,
+    const n_GTextOverflowMode overflow_mode, const n_GTextAlignment alignment,
+    n_GTextAttributes * text_attributes, n_GSize *outsz)
+{
+    n_graphics_draw_text_ex(ctx, text, font, _jimmy_layer_offset(ctx, box),
+                            overflow_mode, alignment,
+                            text_attributes, outsz);
+}
+
+
 void graphics_draw_bitmap_in_rect(GContext *ctx, const GBitmap *bitmap, GRect rect)
 {
-    LOG_DEBUG("gbir");
     GRect offsetted = _jimmy_layer_offset(ctx, rect);
     n_graphics_draw_bitmap_in_rect(ctx, bitmap, offsetted);
 }
@@ -111,11 +120,17 @@ GBitmap *graphics_capture_frame_buffer(n_GContext *context)
     return &_fb_gbitmap;
 }
 
-GBitmap *graphics_capture_frame_buffer_format(n_GContext *context, GBitmap format)
+GBitmap *graphics_capture_frame_buffer_format(n_GContext *context, int format)
 {
     // rbl_lock_frame_buffer
     LOG_DEBUG("fb lock");
-    return (GBitmap *)display_get_buffer();
+#ifdef COLOR_BW
+    panic("graphics_capture_frame_buffer_format NYI on PBL_BW");
+#else
+    if (format != n_GBitmapFormat8Bit)
+        return NULL;
+    return graphics_capture_frame_buffer(context);
+#endif
 }
 
 void graphics_release_frame_buffer(n_GContext *context, GBitmap *bitmap)

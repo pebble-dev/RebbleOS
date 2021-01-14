@@ -41,7 +41,7 @@ static void _tick_timer_update_next(TickTimerState *state)
     } else if (state->units & MINUTE_UNIT) {
         dtime = dtime + 60;
 
-        rcore_localtime(&nexttm, dtime);
+        localtime_r(&dtime, &nexttm);
         nexttm.tm_sec = 0;
         dtime = rcore_mktime(&nexttm);
     } else if (state->units & (HOUR_UNIT | DAY_UNIT | MONTH_UNIT | YEAR_UNIT)) {
@@ -49,7 +49,7 @@ static void _tick_timer_update_next(TickTimerState *state)
          * later if it wasn't requested.  */
         dtime = dtime + 60 * 60;
 
-        rcore_localtime(&nexttm, dtime);
+        localtime_r(&dtime, &nexttm);
         nexttm.tm_min = nexttm.tm_sec = 0;
         dtime = rcore_mktime(&nexttm);
     }
@@ -80,7 +80,7 @@ static void _tick_timer_callback(CoreTimer *timer)
     state->onqueue = 0;
     
     rcore_time_ms(&time, NULL);
-    rcore_localtime(&tm, time);
+    localtime_r(&time, &tm);
     
     TimeUnits units = 0;
     /* XXX: Does a real pebbleos return a bitmask, or only the MSB? */
@@ -107,7 +107,7 @@ void tick_timer_service_subscribe(TimeUnits tick_units, TickHandler handler)
     time_t time;
     
     rcore_time_ms(&time, NULL);
-    rcore_localtime(&state->lasttm, time);
+    localtime_r(&time, &state->lasttm);
     
     state->units = tick_units;
     state->handler = handler;

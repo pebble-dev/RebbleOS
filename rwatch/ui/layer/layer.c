@@ -39,6 +39,8 @@ Layer *layer_create_with_data(GRect frame, size_t data_size)
 void layer_ctor(Layer* layer, GRect frame)
 {
     layer->bounds = frame;
+    layer->bounds.origin.x = 0;
+    layer->bounds.origin.y = 0;
     layer->clip = false;
     layer->frame = frame;
     layer->child = NULL;

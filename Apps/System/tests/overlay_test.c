@@ -11,14 +11,12 @@
 #include "status_bar_layer.h"
 #include "test_defs.h"
 #include "overlay_manager.h"
-#include "notification_layer.h"
 #include "platform_res.h"
 
 static Window *_main_window;
 static Layer *_test_layer;
 static Layer *_overlay_layer;
 static Layer *_overlay_layer2;
-static NotificationLayer *_notif_layer;
 static OverlayWindow *_overlay_window;
 static OverlayWindow *_overlay_window2;
 static OverlayWindow *_overlay_window3;
@@ -112,7 +110,7 @@ bool _test_overlay_notif()
 }
 
 
-bool _test_notif_destroy_test(NotificationLayer **ol, OverlayWindow **ow, GPoint point, GColor color)
+bool _test_notif_destroy_test(OverlayWindow **ow, GPoint point, GColor color)
 {
      switch(_sub_stage) {
         case 0:
@@ -142,7 +140,7 @@ bool _test_overlay_notif_destroy()
             return false;
         case 1:
             
-            if (_test_notif_destroy_test(&_notif_layer, &_overlay_window3, GPoint(10, 60), _genned_color))
+            if (_test_notif_destroy_test(&_overlay_window3, GPoint(10, 60), _genned_color))
             {
                 ss = 0;
                 return true;
@@ -401,5 +399,4 @@ static void _notif_test_window_load(Window *window)
 
 static void _notif_test_window_unload(Window *window)
 {
-    notification_layer_destroy(_notif_layer);
 }

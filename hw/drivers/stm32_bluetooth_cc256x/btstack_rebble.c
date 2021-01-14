@@ -480,3 +480,17 @@ static void packet_handler(uint8_t packet_type, uint16_t channel, uint8_t *packe
             break;
     }
 }
+
+const char *hw_bluetooth_name() {
+    return BLUETOOTH_MODULE_GAP_NAME;
+}
+
+void hw_bluetooth_advertising_visible(int vis) {
+    /* XXX: not yet implemented */
+    SYS_LOG("BT", APP_LOG_LEVEL_ERROR, "NYI: hw_bluetooth_advertising_visible(%d)", vis);
+}
+
+void bt_set_callback_get_bond_data(bt_callback_get_bond_data_t cbk) { }
+void bt_set_callback_request_bond(bt_callback_request_bond_t cbk) { }
+void hw_bluetooth_bond_data_available(const void *data, size_t datalen) { }
+void hw_bluetooth_bond_acknowledge(int accepted) { }

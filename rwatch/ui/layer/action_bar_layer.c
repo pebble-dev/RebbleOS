@@ -97,8 +97,10 @@ static void draw(Layer *layer, GContext *context)
     GRect full_bounds = layer_get_bounds(layer);
     
     // Draw the background
-    GColor background_color = (GColor) action_bar->background_color;
+    GColor background_color = action_bar->background_color;
     graphics_context_set_fill_color(context, background_color);
+    full_bounds.origin.x = 0;
+    full_bounds.origin.y = 0;
 #ifdef PBL_RECT
     graphics_fill_rect(context, full_bounds, 0, GCornerNone);
 #else
@@ -110,6 +112,7 @@ static void draw(Layer *layer, GContext *context)
     int increment = 168 / NUM_ACTION_BAR_ITEMS;
     y = increment;
     
+    graphics_context_set_compositing_mode(context, GCompOpAssign);
     for (int i = 1; i <= NUM_ACTION_BAR_ITEMS; i+=1)
     {
         if (action_bar->icons[i] != NULL) {

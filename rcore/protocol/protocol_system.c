@@ -166,10 +166,13 @@ void protocol_time(const RebblePacket packet)
     }
     else if (data[0] == SetUTC)
     {
-        cmd_set_time_utc *utc = (cmd_set_time_utc *)&data[1];
+        cmd_set_time_utc *utc = (cmd_set_time_utc *)&data[0];
+        utc->utc_offset = ntohs(utc->utc_offset);
+        SYS_LOG("FWPKT", APP_LOG_LEVEL_INFO, "Set UTC time with backup offset %d", utc->utc_offset);
         rcore_set_time(ntohl(utc->unix_time));
-        rcore_set_utc_offset(utc->utc_offset);
+        rcore_set_utc_offset(((int)utc->utc_offset) * 60);
         rcore_set_tz_name(utc->tz_name, utc->pstr_len);
+        rcore_tz_prefs_save();
     }
     else
         assert(!"Invalid time request!");

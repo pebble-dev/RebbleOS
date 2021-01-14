@@ -62,7 +62,6 @@ UNIMPL(_data_logging_create);
 UNIMPL(_data_logging_finish);
 UNIMPL(_data_logging_log);
 UNIMPL(_dict_serialize_tuplets_to_buffer__deprecated);
-UNIMPL(_gmtime);
 UNIMPL(_graphics_draw_round_rect);
 UNIMPL(_graphics_text_layout_get_max_used_size);
 UNIMPL(_layer_set_clips);
@@ -283,7 +282,7 @@ const VoidFunc sym[] = {
     [101] = (VoidFunc)gbitmap_create_with_data,                                                // gbitmap_create_with_data@00000194
     [102] = (VoidFunc)gbitmap_create_with_resource_proxy,                                      // gbitmap_create_with_resource@00000198
     [103] = (VoidFunc)gbitmap_destroy,                                                         // gbitmap_destroy@0000019c
-
+    [104] = gmtime,                                                                            // gmtime@000001a0
     [105] = (VoidFunc)n_gpath_create,                                                          // gpath_create@000001a4
     [106] = (VoidFunc)n_gpath_destroy,                                                         // gpath_destroy@000001a8
     [107] = (VoidFunc)gpath_fill_app_legacy,                                                  // gpath_draw_filled_legacy@000001ac
@@ -733,7 +732,6 @@ const VoidFunc sym[] = {
     [72]  = (UnimplFunc)_data_logging_finish,                                                  // data_logging_finish@00000120
     [73]  = (UnimplFunc)_data_logging_log,                                                     // data_logging_log@00000124
     [82]  = (UnimplFunc)_dict_serialize_tuplets_to_buffer__deprecated,                         // dict_serialize_tuplets_to_buffer__deprecated@00000148
-    [104] = (UnimplFunc)_gmtime,                                                               // gmtime@000001a0
     [121] = (UnimplFunc)_graphics_draw_round_rect,                                             // graphics_draw_round_rect@000001e4
     [125] = (UnimplFunc)_graphics_text_layout_get_max_used_size,                               // graphics_text_layout_get_max_used_size@000001f4
     

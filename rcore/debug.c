@@ -15,24 +15,42 @@
 int in_panic = 0;
 
 static StackType_t _panic_stack[PANIC_STACK_SIZE] MEM_REGION_PANIC;
+static int _panic_stack_top MEM_REGION_PANIC;
 
 __attribute__((__noreturn__)) static void _panic(const char *s) {
     in_panic = 1;
     portDISABLE_INTERRUPTS();
+    debug_init();
+
+    extern void log_onpanic_dump();
+    log_onpanic_dump();
+    
     puts("*** PANIC ***");
     puts(s);
+    
+    puts("*** PANIC COMPLETE ***");
+
     while (1)
         ;
     /* XXX: do something smarter here, like turn IRQs off and stop poking the watchdog */
 }
 
- __attribute__((__noreturn__))void panic(const char *s) {
-    asm volatile(
-        "mov sp, %[stacktop]\n"
-        "mov r0, %[s]\n"
-        "b _panic" :
-        :
-        [stacktop]"r" (_panic_stack + PANIC_STACK_SIZE),
-        [s]"r" (s) );
-    __builtin_unreachable();
-}
+extern __attribute__((__noreturn__)) void panic(const char *s);
+asm(
+".global panic\n"
+".thumb_func\n"
+".type panic, %function\n"
+"panic:\n"
+"	.cfi_startproc\n"
+"	push {r7, lr}\n"
+"	.cfi_def_cfa_offset 8\n"
+"	.cfi_offset 7, -8\n"
+"	.cfi_offset 14, -4\n"
+"	mov r7, sp\n"
+"	adr r1, _panic_stack_top\n"
+"	mov r1, sp\n"
+"	.cfi_register 13, 7\n"
+/* r0 stays the same -- was s, will continue to be s */
+"	bl _panic\n"
+"	.cfi_endproc\n" /* "lol" */
+);
