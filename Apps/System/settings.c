@@ -109,6 +109,28 @@ static struct MenuItems *_wipe_fs(const struct MenuItem *ctx) {
     return items;
 }
 
+static char _use_24h_str[16];
+
+static struct MenuItems *_sel_tz_dir(const struct MenuItem *ctx) {
+    settings_tz_invoke();
+    return NULL;
+}
+
+static struct MenuItems *_swap_24h_time(const struct MenuItem *ctx) {
+    rcore_set_is_24h_style(!pbl_clock_is_24h_style());
+    strcpy(_use_24h_str, pbl_clock_is_24h_style() ? "24-hour" : "12-hour");
+    return NULL;
+}
+
+static struct MenuItems *_time_settings(const struct MenuItem *ctx) {
+    strcpy(_use_24h_str, pbl_clock_is_24h_style() ? "24-hour" : "12-hour");
+
+    MenuItems *items = menu_items_create(2);
+    menu_items_add(items, MenuItem("Time zone", tz_name(), RESOURCE_ID_CLOCK, _sel_tz_dir));
+    menu_items_add(items, MenuItem("Time format", _use_24h_str, RESOURCE_ID_CLOCK, _swap_24h_time));
+    return items;
+}
+
 static struct MenuItems *_dummy_bt(const struct MenuItem *ctx) {
     _bluetooth_pair_request(0, "Dummy phone name", NULL);
     return NULL;
@@ -127,7 +149,8 @@ static void _reset_menu_items(void)
     MenuItems *items = menu_items_create(4);
     
     menu_items_add(items, MenuItem("Discoverable", bluetooth_name(), RESOURCE_ID_SPANNER, NULL));
-    menu_items_add(items, MenuItem("Format filesystem", "Time to die, sucker!", RESOURCE_ID_SPANNER, _wipe_fs));
+    menu_items_add(items, MenuItem("Date & Time", "Later is fine", RESOURCE_ID_CLOCK, _time_settings));
+    menu_items_add(items, MenuItem("Format filesystem", "Time to die!", RESOURCE_ID_SPANNER, _wipe_fs));
     menu_items_add(items, MenuItem("Dummy BT pair", "Be a dummy", RESOURCE_ID_SPANNER, _dummy_bt));
     menu_items_add(items, MenuItem("Instapanic", "Oh no!", RESOURCE_ID_SPANNER, _do_panic));
     menu_set_items(_menu, items);
@@ -187,10 +210,13 @@ void settings_init(void)
         .load = _bt_pair_window_load,
         .unload = _bt_pair_window_unload,
     });
+    
+    settings_tz_init();
 }
 
 void settings_deinit(void)
 {
     window_destroy(_main_window);
     window_destroy(_bt_pair_window);
+    settings_tz_deinit();
 }

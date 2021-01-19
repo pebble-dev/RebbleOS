@@ -1,7 +1,6 @@
 # Common source.
 CFLAGS_all += -IHardware
 CFLAGS_all += -IFreeRTOS/include
-CFLAGS_all += -IFreeRTOS/portable/GCC/ARM_CM4F
 CFLAGS_all += -IPlatform/CMSIS/Include
 CFLAGS_all += -Ilib/neographics/src/
 CFLAGS_all += -Ilib/neographics/src/draw_command
@@ -48,7 +47,6 @@ SRCS_all += FreeRTOS/list.c
 SRCS_all += FreeRTOS/queue.c
 SRCS_all += FreeRTOS/tasks.c
 SRCS_all += FreeRTOS/timers.c
-SRCS_all += FreeRTOS/portable/GCC/ARM_CM4F/port.c
 
 SRCS_all += lib/minilib/minilib.c
 SRCS_all += lib/minilib/dprint.c
@@ -104,6 +102,7 @@ SRCS_all += rcore/power.c
 SRCS_all += rcore/rebbleos.c
 SRCS_all += rcore/smartstrap.c
 SRCS_all += rcore/rebble_time.c
+SRCS_all += rcore/tz.c
 SRCS_all += rcore/rebble_memory.c
 SRCS_all += rcore/vibrate.c
 SRCS_all += rcore/flash.c
@@ -130,6 +129,7 @@ SRCS_all += rcore/protocol/protocol_transfer.c
 
 SRCS_all += rcore/rdb.c
 SRCS_all += rcore/rdb_test.c
+SRCS_all += rcore/prefs.c
 SRCS_all += rcore/service/protocol_service.c
 SRCS_all += rcore/service/timeline.c
 
@@ -175,12 +175,14 @@ SRCS_all += rwatch/storage/storage_persist.c
 SRCS_all += rwatch/storage/dictionary.c
 
 SRCS_all += Watchfaces/simple.c
+SRCS_all += Watchfaces/simplicity.c
 SRCS_all += Watchfaces/nivz.c
 
 SRCS_all += Apps/System/systemapp.c
 SRCS_all += Apps/System/menu.c
 SRCS_all += Apps/System/testapp.c
 SRCS_all += Apps/System/settings.c
+SRCS_all += Apps/System/settings_tz.c
 
 SRCS_all += Apps/System/widgettest.c
 SRCS_all += Apps/System/notification.c

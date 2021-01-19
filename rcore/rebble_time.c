@@ -7,6 +7,7 @@
 
 #include "rebbleos.h"
 #include "strftime.h"
+#include "prefs.h"
 
 /* Configure Logging */
 #define MODULE_NAME "rtime"
@@ -21,6 +22,7 @@ static struct tm _global_tm;
 struct tm *boot_time_tm;
 static char _tz_name[8];
 static uint8_t _utc_offset;
+static int _time_is_24h = 1;
 
 void rcore_time_init(void)
 {
@@ -32,6 +34,11 @@ void rcore_time_init(void)
     _boot_time_t = rcore_mktime(tm);
     /* reset boot ticks ms to 0 same as wall time above (ugh!!)*/
     _boot_ticks = rcore_time_to_ticks(_boot_time_t, 0);
+    
+    (void) prefs_get(PREFS_KEY_IS24H, &_time_is_24h, sizeof(_time_is_24h));
+    
+    tz_init();
+    rcore_tz_prefs_load();
 }
 
 time_t rcore_mktime(struct tm *tm)
@@ -41,34 +48,19 @@ time_t rcore_mktime(struct tm *tm)
 
 void rcore_set_time(time_t time)
 {
-    struct tm *tma = rebble_time_get_tm();
-    time_t now = rcore_mktime(tma);
-
-    rcore_localtime(tma, time);
-    hw_set_time(tma);
+    time_t now;
+    struct tm tm;
+    
+    rcore_time_ms(&now, NULL);
+    localtime_r(&time, &tm);
+    hw_set_time(&tm);
 
     _boot_time_t -= (now - time);
-}
-
-void rcore_set_utc_offset(uint8_t offset)
-{
-    _utc_offset = offset;
-}
-
-void rcore_set_tz_name(char *tz_name, uint8_t len)
-{
-    memcpy(_tz_name, tz_name, len < 8 ? len : 8);
-    _tz_name[len] = 0;
 }
 
 time_t rcore_get_time(void)
 {
     return pbl_time_t_deprecated(NULL);
-}
-
-void rcore_localtime(struct tm *tm, time_t time)
-{
-    localtime_r(&time, tm);
 }
 
 uint16_t rcore_time_ms(time_t *tutc, uint16_t *ms)
@@ -102,7 +94,7 @@ struct tm *rebble_time_get_tm(void)
 {
     time_t tm;
     rcore_time_ms(&tm, NULL);
-    rcore_localtime(&_global_tm, tm);
+    localtime_r(&tm, &_global_tm);
     return &_global_tm;
 }
 
@@ -126,7 +118,7 @@ time_t pbl_time_t_deprecated(time_t *tloc)
     time_t _tm;
     
     rcore_time_ms(&_tm, NULL);
-    rcore_localtime(&_global_tm, _tm);
+    localtime_r(&_tm, &_global_tm);
 
     if (tloc)
         *tloc = _tm;
@@ -136,11 +128,13 @@ time_t pbl_time_t_deprecated(time_t *tloc)
 
 int pbl_clock_is_24h_style()
 {
-    // XXX: Obviously, everybody wants 24h time.  Why would they use a
-    // developer operating system if not?
-    return 1;
+    return _time_is_24h;
 }
 
+void rcore_set_is_24h_style(int style_24h) {
+    _time_is_24h = !!style_24h;
+    prefs_put(PREFS_KEY_IS24H, &_time_is_24h, sizeof(_time_is_24h));
+}
 
 time_t clock_to_timestamp(WeekDay day, int hour, int minute)
 {

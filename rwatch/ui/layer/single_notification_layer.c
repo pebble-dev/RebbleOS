@@ -102,7 +102,7 @@ extern void single_notification_layer_set_notification(SingleNotificationLayer *
     time_t now = rcore_get_time();
     time_t ts = notif->timeline_item.timestamp;
     struct tm tm_ts;
-    rcore_localtime(&tm_ts, ts);
+    localtime_r(&ts, &tm_ts);
     
     char buf[32];
     

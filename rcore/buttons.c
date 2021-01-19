@@ -267,7 +267,7 @@ void button_single_click_subscribe(ButtonId button_id, ClickHandler handler)
         return;
     
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_overlay() ? OWNER_OVERLAY : OWNER_APP]);
     cfg->click.handler = handler;
     cfg->click.repeat_interval_ms = 0;
 }
@@ -278,7 +278,7 @@ void button_single_repeating_click_subscribe(ButtonId button_id, uint16_t repeat
         return;
     
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_overlay() ? OWNER_OVERLAY : OWNER_APP]);
     cfg->click.handler = handler;
     cfg->click.repeat_interval_ms = repeat_interval_ms;
 }
@@ -297,7 +297,7 @@ void button_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHan
         return;
     
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_overlay() ? OWNER_OVERLAY : OWNER_APP]);
     cfg->long_click.handler = down_handler;
     cfg->long_click.release_handler = up_handler;
     cfg->long_click.delay_ms = delay_ms;
@@ -309,7 +309,7 @@ void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, C
         return;
     
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_overlay() ? OWNER_OVERLAY : OWNER_APP]);
     cfg->raw.up_handler = up_handler;
     cfg->raw.down_handler = down_handler;
     if (context != NULL)
@@ -322,7 +322,7 @@ void button_unsubscribe_all(void)
     for(uint8_t i = 0; i < NUM_BUTTONS; i++)
     {
         ButtonHolder *holder = &_button_holders[i]; // get the button
-        ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+        ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_overlay() ? OWNER_OVERLAY : OWNER_APP]);
         memset(cfg, 0, sizeof(*cfg));
     }
 }
@@ -333,7 +333,7 @@ void button_set_click_context(ButtonId button_id, void *context)
         return;
 
     ButtonHolder *holder = &_button_holders[button_id]; // get the button
-    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_app() ? OWNER_APP : OWNER_OVERLAY]);
+    ClickConfig *cfg = &(holder->click_config[appmanager_is_thread_overlay() ? OWNER_OVERLAY : OWNER_APP]);
     cfg->context = context;
 }
 
