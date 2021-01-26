@@ -14,7 +14,7 @@
 
 static Window *s_main_window;
 static Menu *s_menu;
-StatusBarLayer *status_bar;
+static StatusBarLayer *status_bar;
 
 static void testapp_exec_window_unload(Window *window);
 static void _reset_menu_items(void);
