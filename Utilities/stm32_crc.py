@@ -9,7 +9,7 @@ def process_word(data, crc=0xffffffff):
         for x in range(0, 4 - len(data)):
             d_array.insert(0,0)
         d_array.reverse()
-        data = d_array.tostring()
+        data = d_array.tobytes()
 
     d = array.array('I', data)[0]
     crc = crc ^ d
