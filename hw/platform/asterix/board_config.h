@@ -81,6 +81,8 @@
 
 #define BOARD_BACKLIGHT_PIN     NRF_GPIO_PIN_MAP(1,4)
 
+#define BOARD_DISPLAY_ROT180
+
 #else
 
 #error unknown Asterix board

@@ -12,7 +12,13 @@
 
 #define DISPLAY_LINES_PER_CHUNK 18 /* 8 chunks per frame */
 
+#ifdef BOARD_QSPI_SHARED_DISPLAY
+extern void nrf52_spi_lock();
+extern void nrf52_spi_unlock();
+#endif
+
 static void _spi_handler(const nrfx_spim_evt_t *p_event, void *p_context) {
+    nrf52_spi_unlock();
     display_done_isr(0);
 }
 
@@ -78,6 +84,7 @@ uint8_t hw_display_process_isr() {
     _dispbuf[p++] = 0;
 
     _spi_desc.tx_length = p;
+    nrf52_spi_lock(); /* handled in _spi_handler */
     err = nrfx_spim_xfer(&_display_spi, &_spi_desc, 0);
     assert(err == NRFX_SUCCESS);
     
