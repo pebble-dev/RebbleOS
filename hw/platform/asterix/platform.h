@@ -50,6 +50,23 @@
 #define REGION_FS_N_PAGES       ((0x7E0000 - REGION_FS_START) / REGION_FS_PAGE_SIZE)
 #define REGION_FS_ERASE_SIZE    (64*1024)
 
+#elif defined(ASTERIX_BOARD_VLA_DVB2)
+
+/* Asterix-VLA has 8MB of flash. */
+
+/* Bootloader private area: 1MB */
+#define REGION_BOOTLOADER_START 0x0
+#define REGION_BOOTLOADER_SIZE  0x100000
+
+/* System resources: 1MB */
+#define REGION_RES_START 0x100000
+#define REGION_RES_SIZE  0x100000
+
+/* The rest of the filesystem: 6MB */
+#define REGION_FS_START         0x200000
+#define REGION_FS_PAGE_SIZE     0x2000
+#define REGION_FS_N_PAGES       ((0x7E0000 - REGION_FS_START) / REGION_FS_PAGE_SIZE)
+#define REGION_FS_ERASE_SIZE    (64*1024)
 #else
 
 #error incorrect board
