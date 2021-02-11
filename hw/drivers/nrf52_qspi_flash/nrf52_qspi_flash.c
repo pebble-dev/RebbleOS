@@ -7,16 +7,14 @@
 
 #include <debug.h>
 #include "rebbleos.h"
+#include "nrf_gpio.h"
 #include "nrfx_qspi.h"
 
 /* Asterix has 128Mbit (16MB) of QSPI flash -- a W25Q128JV. */
 #define QSPI_JEDEC_ID_W25Q128JV 0xEF4018
 
-/* Asterix-Vla-dvb1 has 64Mbit (8MB) of QSPI flash - a XT25F64B. */
+/* Asterix-Vla-dvb1 and -dvb2 have 64Mbit (8MB) of QSPI flash - a XT25F64B. */
 #define QSPI_JEDEC_ID_XT25F64B 0x0B4017
-
-/* Asterix-Vla-dvb2 has 64Mbit (8MB) of QSPI flash - a MX25L64 . */
-#define QSPI_JEDEC_ID_MX25L64  0xc22017 // this may be the wrong code.
 
 #include "board_config.h"
 
