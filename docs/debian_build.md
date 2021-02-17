@@ -34,7 +34,7 @@ directory for the SDK using the following.
     pip install virtualenv
     pip install --upgrade pip
     cd ~/pebble-dev/pebble-sdk-4.5-linux64
-    virtualenv .env
+    virtualenv --python=python2.7 .env
     source .env/bin/activate
     pip install -r requirements.txt
     deactivate
