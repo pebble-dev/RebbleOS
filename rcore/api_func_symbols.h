@@ -160,7 +160,6 @@ UNIMPL(_gbitmap_sequence_restart);
 UNIMPL(_gbitmap_sequence_set_play_count);
 UNIMPL(_gbitmap_sequence_update_bitmap_by_elapsed);
 UNIMPL(_graphics_draw_rotated_bitmap);
-UNIMPL(_gcolor_legible_over);
 UNIMPL(_app_focus_service_subscribe_handlers);
 UNIMPL(_action_menu_set_result_window);
 UNIMPL(_dictation_session_create);
@@ -636,6 +635,7 @@ const VoidFunc sym[] = {
     [530] = (VoidFunc)status_bar_layer_set_separator_mode,                                     // status_bar_layer_set_separator_mode@00000848
     [532] = (VoidFunc)rcore_time_ms,                                                           // time_ms@00000850
                                                                                                
+    [533] = (VoidFunc)gcolor_legible_over,                                                     // gcolor_legible_over@00000854
     [534] = (VoidFunc)property_animation_update_gcolor8,                                       // property_animation_update_gcolor8@00000858
                                                                                                
     [536] = (VoidFunc)action_menu_close,                                                       // action_menu_close@00000860
@@ -836,7 +836,6 @@ const VoidFunc sym[] = {
     [443] = (UnimplFunc)_gbitmap_sequence_set_play_count,                                      // gbitmap_sequence_set_play_count@000006ec
     [457] = (UnimplFunc)_gbitmap_sequence_update_bitmap_by_elapsed,                            // gbitmap_sequence_update_bitmap_by_elapsed@00000724
     [460] = (UnimplFunc)_graphics_draw_rotated_bitmap,                                         // graphics_draw_rotated_bitmap@00000730
-    [533] = (UnimplFunc)_gcolor_legible_over,                                                  // gcolor_legible_over@00000854
     [535] = (UnimplFunc)_app_focus_service_subscribe_handlers,                                 // app_focus_service_subscribe_handlers@0000085c
     [548] = (UnimplFunc)_action_menu_set_result_window,                                        // action_menu_set_result_window@00000890
     [550] = (UnimplFunc)_dictation_session_create,                                             // dictation_session_create@00000898
