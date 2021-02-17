@@ -175,5 +175,14 @@
 
 
 #define GCornerNone n_GCornerNone
+#define GCornerTopLeft n_GCornerTopLeft
+#define GCornerTopRight n_GCornerTopRight
+#define GCornerBottomLeft n_GCornerBottomLeft
+#define GCornerBottomRight n_GCornerBottomRight
+#define GCornersAll n_GCornersAll
+#define GCornersTop n_GCornersTop
+#define GCornersBottom n_GCornersBottom
+#define GCornersLeft n_GCornersLeft
+#define GCornersRight n_GCornersRight
 
 #include "gbitmap.h"
