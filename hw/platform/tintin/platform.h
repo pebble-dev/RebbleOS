@@ -24,6 +24,10 @@
 #define REGION_APP_RES_START    0xB3A000
 #define REGION_APP_RES_SIZE     0x7D000
 
+// XXX TODO this from Snowy. Possibly NOT correct
+#define REGION_FS_ERASE_SIZE    (32*1024)
+#define HCI_ACL_PAYLOAD_SIZE 52 
+
 // XXX TODO these are from Snowy. NOT correct
 /* App slots are a chunk of flash that holds the information.
     Seems to be paged
