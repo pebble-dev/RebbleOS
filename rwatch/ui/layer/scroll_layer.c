@@ -147,6 +147,10 @@ void scroll_layer_set_content_offset(ScrollLayer *scroll_layer, GPoint offset, b
         animation_set_duration(anim, 100);
         animation_schedule(anim);
     }
+    else
+    {
+        layer_set_frame(&scroll_layer->content_sublayer, scroll_layer->scroll_offset);
+    }
 }
 
 GPoint scroll_layer_get_content_offset(ScrollLayer *scroll_layer)
