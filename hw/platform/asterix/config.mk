@@ -47,11 +47,14 @@ PLATFORMS += asterix_vla_dvb1
 CFLAGS_asterix_vla_dvb2 = $(CFLAGS_asterix_common)
 CFLAGS_asterix_vla_dvb2 += $(CFLAGS_driver_nrf52_ls013b7dh05)
 SRCS_asterix_vla_dvb2 = $(SRCS_asterix_common)
+SRCS_asterix_vla_dvb2 += external/segger_rtt/SEGGER_RTT_Syscalls_GCC.c
+SRCS_asterix_vla_dvb2 += external/segger_rtt/SEGGER_RTT.c
+SRCS_asterix_vla_dvb2 += external/segger_rtt/SEGGER_RTT_printf.c
 SRCS_asterix_vla_dvb2 += $(SRCS_driver_nrf52_ls013b7dh05)
 LDFLAGS_asterix_vla_dvb2 = $(LDFLAGS_asterix_common)
 LIBS_asterix_vla_dvb2 = $(LIBS_asterix_common)
 HWREV_asterix_vla_dvb2 = asterix_vla_dvb2
 
-CFLAGS_asterix_vla_dvb2 += -DASTERIX_BOARD_VLA_DVB2
+CFLAGS_asterix_vla_dvb2 += -DASTERIX_BOARD_VLA_DVB2 -DNRF_DEBUG_SEGGER_RTT
 
 PLATFORMS += asterix_vla_dvb2
