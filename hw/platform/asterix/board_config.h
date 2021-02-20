@@ -83,6 +83,8 @@
 
 #define BOARD_DISPLAY_ROT180
 
+#define NRF_DEBUG_SEGGER_RTT
+
 #else
 
 #error unknown Asterix board
