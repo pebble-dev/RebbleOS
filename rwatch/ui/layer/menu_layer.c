@@ -107,8 +107,19 @@ static MenuIndex get_next_index(MenuLayer *menu_layer, bool up)
     MenuIndex index = menu_layer->selected;
 
     if (!has_next_index(menu_layer, &index, up))
+    {
+        if(index.row == 0)
+        {
+            index.row = get_num_rows(menu_layer, index.section) - (uint16_t) 1;
+            return index;
+        }
+        if(index.row == get_num_rows(menu_layer, index.section) - (uint16_t) 1)
+        {
+            index.row = 0;
+            return index;
+        }
         return index;
-
+    }
     if (up && index.row == 0)
     {
         --index.section;
