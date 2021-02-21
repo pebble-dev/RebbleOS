@@ -151,7 +151,7 @@ typedef enum
   MenuRowAlignBottom,
 } MenuRowAlign;
 
-void menu_layer_set_selected_next(MenuLayer *menu_layer, bool up, MenuRowAlign scroll_align,
+void menu_layer_set_selected_next(MenuLayer *menu_layer,ClickRecognizerRef ref, bool up, MenuRowAlign scroll_align,
                                   bool animated);
 
 void menu_layer_set_selected_index(MenuLayer *menu_layer, MenuIndex index,

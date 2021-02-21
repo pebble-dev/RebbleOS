@@ -84,12 +84,12 @@ static void _menu_select_callback(ClickRecognizerRef recognizer, void *context)
 
 static void _menu_next_callback(ClickRecognizerRef recognizer, void *context)
 {
-    menu_layer_set_selected_next(s_menu_layer, false, s_row_align, true);
+    menu_layer_set_selected_next(s_menu_layer, recognizer, false, s_row_align, true);
 }
 
 static void _menu_prev_callback(ClickRecognizerRef recognizer, void *context)
 {
-    menu_layer_set_selected_next(s_menu_layer, true, s_row_align, true);
+    menu_layer_set_selected_next(s_menu_layer, recognizer, true, s_row_align, true);
 }
 
 static void _menu_exit_callback(ClickRecognizerRef recognizer, void* context)

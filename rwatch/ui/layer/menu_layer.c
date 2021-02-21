@@ -102,12 +102,16 @@ static bool has_next_index(const MenuLayer *menu_layer, const MenuIndex *index, 
            || (!up && (index->section < menu_layer->end_index.section || index->row < menu_layer->end_index.row - 1));
 }
 
-static MenuIndex get_next_index(MenuLayer *menu_layer, bool up)
+static MenuIndex get_next_index(MenuLayer *menu_layer, ClickRecognizerRef ref, bool up)
 {
     MenuIndex index = menu_layer->selected;
 
     if (!has_next_index(menu_layer, &index, up))
     {
+        if (click_recognizer_is_repeating(ref))
+        {
+            return index;
+        }   
         if(index.row == 0)
         {
             index.row = get_num_rows(menu_layer, index.section) - (uint16_t) 1;
@@ -135,9 +139,9 @@ static MenuIndex get_next_index(MenuLayer *menu_layer, bool up)
     return index;
 }
 
-void menu_layer_set_selected_next(MenuLayer *menu_layer, bool up, MenuRowAlign scroll_align, bool animated)
+void menu_layer_set_selected_next(MenuLayer *menu_layer, ClickRecognizerRef ref, bool up, MenuRowAlign scroll_align, bool animated)
 {
-    menu_layer_set_selected_index(menu_layer, get_next_index(menu_layer, up), scroll_align, animated);
+    menu_layer_set_selected_index(menu_layer, get_next_index(menu_layer, ref, up), scroll_align, animated);
 }
 
 static MenuCellSpan *_get_cell_span(MenuLayer *menu_layer, const MenuIndex *index)
@@ -371,11 +375,11 @@ static void scroll_click_handler(ClickRecognizerRef ref, MenuLayer *menu_layer)
 {
     bool up = click_recognizer_get_button_id(ref) == BUTTON_ID_UP;
     if (!click_recognizer_is_repeating(ref)) {
-        menu_layer_set_selected_next(menu_layer, up, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+        menu_layer_set_selected_next(menu_layer, ref, up, MenuRowAlignCenter, ANIMATE_ON_CLICK);
         menu_layer_scroll_repeat_prepare(menu_layer);
     } else {
         if (menu_layer_scroll_repeat(menu_layer))
-            menu_layer_set_selected_next(menu_layer, up, MenuRowAlignCenter, ANIMATE_ON_CLICK);
+            menu_layer_set_selected_next(menu_layer, ref, up, MenuRowAlignCenter, ANIMATE_ON_CLICK);
     }
 }
 

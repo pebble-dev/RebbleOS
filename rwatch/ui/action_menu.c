@@ -219,14 +219,14 @@ static void _action_menu_select_prev(ClickRecognizerRef recognizer, void *contex
 {
     ActionMenu *action_menu = (ActionMenu*)context;
     if (!action_menu->is_frozen)
-        menu_layer_set_selected_next(action_menu->menu_layer, true, MenuRowAlignCenter, true);
+        menu_layer_set_selected_next(action_menu->menu_layer, recognizer, true, MenuRowAlignCenter, true);
 }
 
 static void _action_menu_select_next(ClickRecognizerRef recognizer, void *context)
 {
     ActionMenu *action_menu = (ActionMenu*)context;
     if (!action_menu->is_frozen)
-        menu_layer_set_selected_next(action_menu->menu_layer, false, MenuRowAlignCenter, true);
+        menu_layer_set_selected_next(action_menu->menu_layer, recognizer, false, MenuRowAlignCenter, true);
 }
 
 static void _action_menu_activate_item(ClickRecognizerRef recognizer, void *context)
