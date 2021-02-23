@@ -15,6 +15,7 @@
 #include "protocol.h"
 #include "protocol_music.h"
 #include "event_service.h"
+#include "watchface.h"
 
 /* Configure Logging */
 #define MODULE_NAME "sysapp"
@@ -56,6 +57,17 @@ static MenuItems* watch_list_item_selected(const MenuItem *item);
 static MenuItems* app_item_selected(const MenuItem *item)
 {
     appmanager_app_start(item->text);
+    return NULL;
+}
+
+static MenuItems* watchface_selected(const MenuItem *item)
+{
+    App * app = appmanager_get_app_by_name(item->text);
+    assert(app);
+
+    watchface_set_pref_by_uuid(&app->uuid);
+    watchface_enter();
+
     return NULL;
 }
 
@@ -103,7 +115,7 @@ static MenuItems* watch_list_item_selected(const MenuItem *item) {
         {
             continue;
         }
-        menu_items_add(items, MenuItem(app->name, NULL, RESOURCE_ID_CLOCK, app_item_selected));
+        menu_items_add(items, MenuItem(app->name, NULL, RESOURCE_ID_CLOCK, watchface_selected));
     }
     return items;
 }
@@ -129,9 +141,8 @@ static MenuItems* app_list_item_selected(const MenuItem *item) {
 static void exit_to_watchface(struct Menu *menu, void *context)
 {
     // Exit to watchface
-    appmanager_app_start("Simplicity");
+    watchface_enter();
 }
-
 
 static MusicTrackInfo *_music_track;
 static MenuItems *items;
@@ -308,6 +319,7 @@ void systemapp_init(void)
 
     window_stack_push(s_main_window, true);
     settings_init();
+    watchface_init();
 }
 
 extern void settings_deinit();
