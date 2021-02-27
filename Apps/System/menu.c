@@ -171,7 +171,7 @@ static void back_single_click_handler(ClickRecognizerRef _, Menu *menu)
         MenuItems *prev = menu->items;
         menu->items = prev->back;
         menu_layer_reload_data(menu->layer);
-        menu_layer_set_selected_index(menu->layer, prev->back_index, MenuRowAlignTop, false);
+        menu_layer_set_selected_index(menu->layer, prev->back_index, MenuRowAlignCenter, false);
         prev->back = NULL; // so we don't free that
         menu_items_destroy(prev);
     }
