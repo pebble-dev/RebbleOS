@@ -8,19 +8,11 @@
 #include <debug.h>
 #include "rebbleos.h"
 #include "nrf_delay.h"
-#include "nrfx_uart.h"
 #include "board_config.h"
 
 void delay_us(int us) {
     nrf_delay_us(us);
 }
-
-/* We use UART, instead of UARTE, because we could be writing from flash,
- * which would cause the EasyDMA engine to lock up, and that would be bad. 
- * So we just take the performance hit and run a UART engine in PIO mode. 
- * So it goes.  */
-
-static nrfx_uart_t debug_uart = NRFX_UART_INSTANCE(0);
 
 __attribute__((naked)) uint32_t get_msp()
 {
@@ -30,8 +22,28 @@ __attribute__((naked)) uint32_t get_msp()
     );
 }
 
+#ifdef NRF_DEBUG_SEGGER_RTT
+#include "SEGGER_RTT.h"
+void debug_init() {
+    SEGGER_RTT_Init();
+}
+
+void debug_write(const unsigned char *p, size_t len) {
+    SEGGER_RTT_Write(0, p, len);
+}
+
+#else
+
+#include "nrfx_uart.h"
+
 static int _did_init = 0;
 
+/* We use UART, instead of UARTE, because we could be writing from flash,
+ * which would cause the EasyDMA engine to lock up, and that would be bad. 
+ * So we just take the performance hit and run a UART engine in PIO mode. 
+ * So it goes.  */
+
+static nrfx_uart_t debug_uart = NRFX_UART_INSTANCE(0);
 void debug_init() {
     nrfx_err_t err;
     
@@ -65,6 +77,8 @@ void debug_write(const unsigned char *p, size_t len) {
         p++;
     }
 }
+
+#endif
 
 void ss_debug_write(const unsigned char *p, size_t len)
 {
