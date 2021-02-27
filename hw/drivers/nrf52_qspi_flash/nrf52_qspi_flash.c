@@ -7,15 +7,63 @@
 
 #include <debug.h>
 #include "rebbleos.h"
+#include "nrf_gpio.h"
 #include "nrfx_qspi.h"
+#include "rtoswrap.h"
 
 /* Asterix has 128Mbit (16MB) of QSPI flash -- a W25Q128JV. */
 #define QSPI_JEDEC_ID_W25Q128JV 0xEF4018
 
-/* Asterix-Vla has 64Mbit (8MB) of QSPI flash - a XT25F64B. */
+/* Asterix-Vla-dvb1 and -dvb2 have 64Mbit (8MB) of QSPI flash - a XT25F64B. */
 #define QSPI_JEDEC_ID_XT25F64B 0x0B4017
 
 #include "board_config.h"
+
+#if BOARD_QSPI_SHARED_DISPLAY
+/* XXX: abstraction violation: would be nice not to call into rtoswrap stuff
+ * in HAL */
+static StaticSemaphore_t _nrf52_spi_lock_buf;
+static SemaphoreHandle_t _nrf52_spi_lock;
+
+void nrf52_spi_lock() {
+    xSemaphoreTake(_nrf52_spi_lock, portMAX_DELAY);
+}
+
+void nrf52_spi_unlock() {
+    if (xPortIsInsideInterrupt()) {
+        BaseType_t woken = pdFALSE;
+        
+        xSemaphoreGiveFromISR(_nrf52_spi_lock, &woken);
+        portYIELD_FROM_ISR(woken);
+        
+        return;
+    }
+    
+    xSemaphoreGive(_nrf52_spi_lock);
+}
+
+static void _qspi_prepare() {
+    nrf52_spi_lock();
+    nrf_qspi_enable(NRF_QSPI);
+}
+
+static void _qspi_teardown() {
+    nrf_qspi_disable(NRF_QSPI);
+    nrf52_spi_unlock();
+}
+#else
+void nrf52_spi_lock() {
+}
+
+void nrf52_spi_unlock() {
+}
+
+static void _qspi_prepare() {
+}
+
+static void _qspi_teardown() {
+}
+#endif
 
 #define QSPI_INSTR_JEDEC_ID 0x9F
 
@@ -26,6 +74,7 @@ volatile static int _flash_sync = 0;
 static void _flash_handler(nrfx_qspi_evt_t event, void *ctx) {
     assert(event == NRFX_QSPI_EVENT_DONE);
     
+    _qspi_teardown();
     if (_flash_sync) {
         _flash_sync = 0;
         return;
@@ -34,6 +83,11 @@ static void _flash_handler(nrfx_qspi_evt_t event, void *ctx) {
 }
 
 void hw_flash_init() {
+#if BOARD_QSPI_SHARED_DISPLAY
+    _nrf52_spi_lock = xSemaphoreCreateBinaryStatic(&_nrf52_spi_lock_buf);
+    nrf52_spi_unlock();
+#endif
+
     nrfx_qspi_config_t config = NRFX_QSPI_DEFAULT_CONFIG;
     config.phy_if.sck_freq = NRF_QSPI_FREQ_32MDIV1;
     config.pins.sck_pin = BOARD_QSPI_SCK_PIN;
@@ -61,6 +115,9 @@ void hw_flash_init() {
         
         nrf_qspi_cinstr_conf_t instr = NRFX_QSPI_DEFAULT_CINSTR(QSPI_INSTR_JEDEC_ID, 4);
         uint8_t buf[16];
+        
+        /* We are single-threaded at this stage, so we do not need to
+         * nrf52_spi_lock().  */
         err = nrfx_qspi_cinstr_xfer(&instr, NULL, buf);
         assert(err == NRFX_SUCCESS && "QSPI JEDEC ID read failed");
 
@@ -78,6 +135,7 @@ void hw_flash_init() {
 void hw_flash_read_bytes(uint32_t addr, uint8_t *buf, size_t len) {
     nrfx_err_t err;
     
+    _qspi_prepare(); /* unlocked in ISR */
     err = nrfx_qspi_read(buf, len, addr);
     assert(err == NRFX_SUCCESS);
 }
@@ -86,14 +144,17 @@ void hw_flash_erase_64k_sync(uint32_t addr) {
     nrfx_err_t err;
     
     _flash_sync = 1;
+    _qspi_prepare(); /* unlocked in ISR */
     err = nrfx_qspi_erase(NRF_QSPI_ERASE_LEN_64KB, addr);
     assert(err == NRFX_SUCCESS);
 
     while (_flash_sync)
         ;
     
+    _qspi_prepare();
     while (nrfx_qspi_mem_busy_check() != NRFX_SUCCESS)
         ;
+    _qspi_teardown();
 }
 
 int hw_flash_erase_sync(uint32_t addr, uint32_t len) {
@@ -115,14 +176,17 @@ int hw_flash_write_sync(uint32_t addr, uint8_t *buf, size_t len) {
     assert((((uint32_t)buf) & 3) == 0);
 
     _flash_sync = 1;
+    _qspi_prepare(); /* unlocked in ISR */
     err = nrfx_qspi_write(buf, len, addr);
     assert(err == NRFX_SUCCESS);
 
     while (_flash_sync)
         ;
     
+    _qspi_prepare();
     while (nrfx_qspi_mem_busy_check() != NRFX_SUCCESS)
         ;
+    _qspi_teardown();
     
     return 0;
 }

@@ -43,3 +43,13 @@ HWREV_asterix_vla_dvb1 = asterix_vla_dvb1
 CFLAGS_asterix_vla_dvb1 += -DASTERIX_BOARD_VLA_DVB1
 
 PLATFORMS += asterix_vla_dvb1
+
+CFLAGS_asterix_vla_dvb2 = $(CFLAGS_asterix_common)
+SRCS_asterix_vla_dvb2 = $(SRCS_asterix_common)
+LDFLAGS_asterix_vla_dvb2 = $(LDFLAGS_asterix_common)
+LIBS_asterix_vla_dvb2 = $(LIBS_asterix_common)
+HWREV_asterix_vla_dvb2 = asterix_vla_dvb2
+
+CFLAGS_asterix_vla_dvb2 += -DASTERIX_BOARD_VLA_DVB2
+
+PLATFORMS += asterix_vla_dvb2
