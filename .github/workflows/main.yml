@@ -22,3 +22,5 @@ jobs:
       run: docker run rebbleos make snowy
     - name: Build asterix
       run: docker run rebbleos make asterix
+    - name: Build asterix dvb2
+      run: docker run rebbleos make asterix_vla_dvb2
