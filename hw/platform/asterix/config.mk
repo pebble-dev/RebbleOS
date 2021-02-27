@@ -2,6 +2,7 @@
 
 CFLAGS_asterix_common = $(CFLAGS_nrf52840)
 CFLAGS_asterix_common += $(CFLAGS_driver_nrf52_buttons)
+CFLAGS_asterix_common += $(CFLAGS_driver_nrf52_ls013b7dh05)
 CFLAGS_asterix_common += $(CFLAGS_driver_nrf52_qspi_flash)
 CFLAGS_asterix_common += $(CFLAGS_driver_nrf52_bluetooth)
 CFLAGS_asterix_common += -Ihw/platform/asterix
@@ -9,6 +10,7 @@ CFLAGS_asterix_common += -DREBBLE_PLATFORM=asterix -DREBBLE_PLATFORM_TINTIN -DPB
 
 SRCS_asterix_common = $(SRCS_nrf52840)
 SRCS_asterix_common += $(SRCS_driver_nrf52_buttons)
+SRCS_asterix_common += $(SRCS_driver_nrf52_ls013b7dh05)
 SRCS_asterix_common += $(SRCS_driver_nrf52_qspi_flash)
 SRCS_asterix_common += $(SRCS_driver_nrf52_bluetooth)
 SRCS_asterix_common += hw/platform/asterix/asterix.c
