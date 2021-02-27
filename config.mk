@@ -209,7 +209,6 @@ else
 include hw/chip/nrf52840/config.mk
 include hw/drivers/nrf52_buttons/config.mk
 include hw/drivers/nrf52_ls013b7dh05/config.mk
-include hw/drivers/nrf52_ls013b7dh03/config.mk
 include hw/drivers/nrf52_qspi_flash/config.mk
 include hw/drivers/nrf52_bluetooth/config.mk
 include hw/platform/asterix/config.mk
