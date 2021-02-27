@@ -18,7 +18,7 @@ const char * const test_name = "Test";
 static Window *s_main_window;
 
 ActionBarLayer *action_bar;
-StatusBarLayer *status_bar;
+static StatusBarLayer *status_bar;
 
 typedef struct {
     uint8_t hours;
