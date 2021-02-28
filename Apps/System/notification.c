@@ -215,7 +215,6 @@ static void _notif_window_load(Window *window)
     
     _notif_window_status = status_bar_layer_create();
     status_bar_layer_set_colors(_notif_window_status, GColorBlack, GColorWhite);
-    status_bar_layer_set_separator_mode(_notif_window_status, StatusBarLayerSeparatorModeDotted);
     
 #ifdef PBL_RECT
     s_menu_layer = menu_layer_create(GRect(0, 16, DISPLAY_COLS, DISPLAY_ROWS - 16));
@@ -225,6 +224,7 @@ static void _notif_window_load(Window *window)
 #endif
 
     menu_layer_set_click_config_onto_window(s_menu_layer, window);
+    menu_layer_set_highlight_colors(s_menu_layer, PBL_IF_COLOR_ELSE(GColorRed, GColorBlack), GColorWhite);
     menu_layer_set_callbacks(s_menu_layer, NULL, (MenuLayerCallbacks) {
         .get_num_rows = _notif_menu_get_num_rows,
         .draw_row = _notif_menu_draw_row,
