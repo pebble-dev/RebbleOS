@@ -39,6 +39,17 @@ static int _notif_count = 0;
 static void _notif_window_load(Window *window);
 static void _notif_window_unload(Window *window);
 
+static void _notif_get_all() {
+    _notif_count = notifications_get_all(&_notif_list);
+    menu_layer_reload_data(s_menu_layer);
+}
+
+static void _notif_clear_all() {
+    notifications_dismiss_all(&_notif_list);
+    _notif_count = 0;
+    menu_layer_reload_data(s_menu_layer);
+}
+
 void notif_init(void)
 {
     _notif_window = window_create();
@@ -64,12 +75,13 @@ static uint16_t _notif_menu_get_num_rows(MenuLayer *menu_layer, uint16_t section
     if (_notif_count == 0)
         return 1;
     else
-        return _notif_count;
+        /* Add additional row for "Clear All" */
+        return _notif_count + 1;
 }
 
-static rebble_notification *_noty_for_index(MenuIndex *cell_index) {
+static rebble_notification *_noty_for_index(int notif_index) {
     /* Find the noty. */
-    int wantidx = _notif_count - cell_index->row - 1;
+    int wantidx = _notif_count - notif_index - 1;
     int i = 0;
     struct rdb_select_result *res;
     rdb_select_result_foreach(res, &_notif_list) {
@@ -91,7 +103,26 @@ static void _notif_menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuInd
         return;
     }
     
-    rebble_notification *noty = _noty_for_index(cell_index);
+    if (cell_index->row == 0) {
+        GSize size = layer_get_frame(cell_layer).size;
+        n_GFont font = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
+        uint8_t line_height = n_graphics_font_get_line_height(font);
+
+        graphics_draw_text(
+            ctx,
+            "Clear All",
+            font,
+            GRect(0, (size.h - line_height - 2 * MENU_CELL_PADDING) / 2, size.w, line_height),
+            n_GTextOverflowModeFill,
+            GTextAlignmentCenter,
+            NULL);
+
+        return;
+    }
+
+    int noty_index = cell_index->row - 1;
+    rebble_notification *noty = _noty_for_index(noty_index);
+
     if (!noty) {
         menu_cell_basic_draw(ctx, cell_layer, "Error", "Failed to load", NULL);
         return;
@@ -150,6 +181,13 @@ static int16_t _notif_menu_get_cell_height(struct MenuLayer *menu_layer, MenuInd
 }
 
 static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *cell_index, void *context) {
+    if (cell_index->row == 0) {
+        _notif_clear_all();
+        return;
+    }
+
+    int noty_index = cell_index->row - 1;
+
     /* Build the list for the notification window. */
     Uuid *uuids = malloc(sizeof(Uuid) * _notif_count);
     if (!uuids)
@@ -162,7 +200,7 @@ static void _notif_menu_select_click(struct MenuLayer *menu_layer, MenuIndex *ce
         i++;
     }
 
-    notification_window_set_notifications(&_notifdetail_window, uuids, _notif_count, cell_index->row);
+    notification_window_set_notifications(&_notifdetail_window, uuids, _notif_count, noty_index);
     
     free(uuids);
 
@@ -200,20 +238,7 @@ static void _notif_window_load(Window *window)
     /* Load in the keys for all the notifications on the system. */
     list_init_head(&_notif_list);
     
-    struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
-    struct rdb_iter it;
-    if (rdb_iter_start(db, &it)) {
-        struct rdb_selector selectors[] = {
-            { offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), RDB_OP_RESULT },
-            { }
-        };
-        _notif_count = rdb_select(&it, &_notif_list, selectors);
-        APP_LOG("noty", APP_LOG_LEVEL_INFO, "%d items from select", _notif_count);
-    }
-
-    rdb_close(db);
-    
-    menu_layer_reload_data(s_menu_layer);
+    _notif_get_all();
 }
 
 static void _notif_window_unload(Window *window)
