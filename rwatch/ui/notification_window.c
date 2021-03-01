@@ -17,15 +17,14 @@ static void _notification_window_unload(Window *window);
 static StatusBarLayer *_notif_window_status;
 
 #ifndef PBL_RECT
-#error notification_window not implemented on round Pebble
+#  error notification_window not implemented on round Pebble
 #endif
 
 #define VIEWPORT_HEIGHT DISPLAY_ROWS
 #define NUDGE_HEIGHT 40
 #define SCROLL_INCR 20
 
-void notification_window_ctor(NotificationWindow *w, Window *win)
-{
+void notification_window_ctor(NotificationWindow *w, Window *win) {
     w->window = win;
     win->user_data = w; /* we use this because the noty / overlay subsystem uses context */
 
@@ -38,32 +37,30 @@ void notification_window_ctor(NotificationWindow *w, Window *win)
     w->uuids = NULL;
     w->nuuids = 0;
 
-    w->curnotif = (size_t)-1;
+    w->curnotif = (size_t) -1;
     w->curnotif_nudging = 0;
 
     single_notification_layer_ctor(&w->n1, frame);
     single_notification_layer_ctor(&w->n2, frame);
 
     window_set_window_handlers(w->window, (WindowHandlers){
-                                              .load = _notification_window_load,
-                                              .unload = _notification_window_unload});
+        .load = _notification_window_load,
+        .unload = _notification_window_unload
+    });
 }
 
-void notification_window_dtor(NotificationWindow *w)
-{
+void notification_window_dtor(NotificationWindow *w) {
     single_notification_layer_dtor(&w->n1);
     single_notification_layer_dtor(&w->n2);
 }
 
-void notification_window_set_notifications(NotificationWindow *w, Uuid *uuids, size_t count, size_t curnotif)
-{
+void notification_window_set_notifications(NotificationWindow *w, Uuid *uuids, size_t count, size_t curnotif) {
     void *newuuids = realloc(w->uuids, count * sizeof(Uuid));
-    if (!newuuids)
-    {
+    if (!newuuids) {
         free(w->uuids);
         w->nuuids = 0;
         w->uuids = NULL;
-        w->curnotif = (size_t)-1;
+        w->curnotif = (size_t) -1;
         return;
     }
     w->uuids = newuuids;
@@ -71,9 +68,9 @@ void notification_window_set_notifications(NotificationWindow *w, Uuid *uuids, s
     memcpy(w->uuids, uuids, count * sizeof(Uuid));
     w->nuuids = count;
 
-    if (curnotif >= count)
-    {
-        w->curnotif = (size_t)-1;
+    if (curnotif >= count) {
+        w->curnotif = (size_t) -1;
+
         return;
     }
 
@@ -90,9 +87,9 @@ void notification_window_set_notifications(NotificationWindow *w, Uuid *uuids, s
     w->curnotif = curnotif;
 
     rebble_notification *notif = timeline_get_notification(w->uuids + curnotif);
-    if (!notif)
-    {
+    if (!notif) {
         w->curnotif = (size_t)-1;
+
         return;
     }
     single_notification_layer_set_notification(&w->n1, notif);
@@ -101,8 +98,7 @@ void notification_window_set_notifications(NotificationWindow *w, Uuid *uuids, s
     w->curnotif_height = single_notification_layer_height(&w->n1);
 }
 
-void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid)
-{
+void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid) {
 #if 0
     void *newuuids = realloc(w->uuids, (w->nuuids + 1) * sizeof(Uuid));
     if (!newuuids)
@@ -120,8 +116,7 @@ void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid)
     *w->uuids = *uuid;
     w->nuuids++;
 
-    if (w->curnotif || w->curnotif_scroll)
-    {
+    if (w->curnotif || w->curnotif_scroll) {
         w->curnotif++;
         return;
     }
@@ -129,9 +124,9 @@ void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid)
     /* We're the top notification and haven't scrolled, so we reset the
      * notification to view the new one.  */
     rebble_notification *notif = timeline_get_notification(w->uuids);
-    if (!notif)
-    {
-        w->curnotif = (size_t)-1;
+    if (!notif) {
+        w->curnotif = (size_t) -1;
+
         return;
     }
     single_notification_layer_set_notification(&w->n1, notif);
@@ -140,13 +135,11 @@ void notification_window_push_to_top(NotificationWindow *w, Uuid *uuid)
     w->curnotif_height = single_notification_layer_height(&w->n1);
 }
 
-Window *notification_window_get_window(NotificationWindow *w)
-{
+Window *notification_window_get_window(NotificationWindow *w) {
     return w->window;
 }
 
-static void _down_single_click_handler(ClickRecognizerRef _, void *_w)
-{
+static void _down_single_click_handler(ClickRecognizerRef _, void *_w) {
     NotificationWindow *w = _w;
 
     w->curnotif_scroll += SCROLL_INCR;
@@ -158,8 +151,7 @@ static void _down_single_click_handler(ClickRecognizerRef _, void *_w)
     if (curnotif_maxscroll < 0)
         curnotif_maxscroll = 0;
     int16_t curnotif_nudge = curnotif_maxscroll + NUDGE_HEIGHT;
-    if (w->curnotif_nudging)
-    {
+    if (w->curnotif_nudging) {
         /* We are nudging and moving still scrolling down -- swap the
          * notifications to the next.  We can only be nudging if there is a
          * next notification, so we're good on that front.  */
@@ -168,9 +160,8 @@ static void _down_single_click_handler(ClickRecognizerRef _, void *_w)
         w->curnotif_nudging = 0;
 
         rebble_notification *notif = timeline_get_notification(w->uuids + w->curnotif);
-        if (!notif)
-        {
-            w->curnotif = (size_t)-1;
+        if (!notif) {
+            w->curnotif = (size_t) -1;
             return;
         }
         single_notification_layer_set_notification(&w->n1, notif);
@@ -183,9 +174,7 @@ static void _down_single_click_handler(ClickRecognizerRef _, void *_w)
         layer_set_frame(single_notification_layer_get_layer(&w->n1), frame);
 
         w->curnotif_height = single_notification_layer_height(&w->n1);
-    }
-    else if ((w->curnotif_scroll > curnotif_maxscroll) && !w->curnotif_nudging && ((w->curnotif + 1) < w->nuuids))
-    {
+    } else if ((w->curnotif_scroll > curnotif_maxscroll) && !w->curnotif_nudging && ((w->curnotif + 1) < w->nuuids)) {
         /* We're moving down and about to run out, and there's another
          * notification ready.  Load it into the nudge box at the bottom. 
          */
@@ -194,9 +183,8 @@ static void _down_single_click_handler(ClickRecognizerRef _, void *_w)
 
         /* Load the next one in place. */
         rebble_notification *notif = timeline_get_notification(w->uuids + w->curnotif + 1);
-        if (!notif)
-        {
-            w->curnotif = (size_t)-1;
+        if (!notif) {
+            w->curnotif = (size_t) -1;
             return;
         }
         single_notification_layer_set_notification(&w->n2, notif);
@@ -211,9 +199,7 @@ static void _down_single_click_handler(ClickRecognizerRef _, void *_w)
         frame = layer_get_frame(single_notification_layer_get_layer(&w->n1));
         frame.origin.y = -curnotif_nudge;
         layer_set_frame(single_notification_layer_get_layer(&w->n1), frame);
-    }
-    else
-    {
+    } else {
         if (w->curnotif_scroll > curnotif_maxscroll)
             w->curnotif_scroll = curnotif_maxscroll;
 
@@ -223,21 +209,19 @@ static void _down_single_click_handler(ClickRecognizerRef _, void *_w)
     }
 }
 
-static void _up_single_click_handler(ClickRecognizerRef _, void *_w)
-{
+static void _up_single_click_handler(ClickRecognizerRef _, void *_w) {
     NotificationWindow *w = _w;
 
     int16_t curnotif_maxscroll = w->curnotif_height - VIEWPORT_HEIGHT;
     if (curnotif_maxscroll < 0)
         curnotif_maxscroll = 0;
 
-    if (w->curnotif == (size_t)-1)
+    if (w->curnotif == (size_t) -1)
         return;
 
     w->curnotif_scroll -= SCROLL_INCR;
 
-    if (w->curnotif_nudging)
-    {
+    if (w->curnotif_nudging) {
         /* Un-nudge. */
         w->curnotif_scroll = curnotif_maxscroll;
         GRect frame = layer_get_frame(single_notification_layer_get_layer(&w->n1));
@@ -246,15 +230,12 @@ static void _up_single_click_handler(ClickRecognizerRef _, void *_w)
 
         w->curnotif_nudging = 0;
         layer_remove_from_parent(single_notification_layer_get_layer(&w->n2));
-    }
-    else if (w->curnotif_scroll == -SCROLL_INCR && w->curnotif > 0)
-    {
+    } else if (w->curnotif_scroll == -SCROLL_INCR && w->curnotif > 0) {
         /* Kick ourselves to the bottom of the screen, make the previous one
          * active.  Load ourselves first.  */
         rebble_notification *notif = timeline_get_notification(w->uuids + w->curnotif);
-        if (!notif)
-        {
-            w->curnotif = (size_t)-1;
+        if (!notif) {
+            w->curnotif = (size_t) -1;
             return;
         }
         single_notification_layer_set_notification(&w->n2, notif);
@@ -270,8 +251,7 @@ static void _up_single_click_handler(ClickRecognizerRef _, void *_w)
         /* Now load the previous one. */
         w->curnotif--;
         notif = timeline_get_notification(w->uuids + w->curnotif);
-        if (!notif)
-        {
+        if (!notif) {
             w->curnotif = (size_t)-1;
             return;
         }
@@ -287,9 +267,7 @@ static void _up_single_click_handler(ClickRecognizerRef _, void *_w)
         frame = layer_get_frame(single_notification_layer_get_layer(&w->n1));
         frame.origin.y = -w->curnotif_scroll;
         layer_set_frame(single_notification_layer_get_layer(&w->n1), frame);
-    }
-    else
-    {
+    } else {
         /* Normal scroll. */
         if (w->curnotif_scroll < 0)
             w->curnotif_scroll = 0;
@@ -300,8 +278,7 @@ static void _up_single_click_handler(ClickRecognizerRef _, void *_w)
     }
 }
 
-static void _notification_window_click_config_provider(NotificationWindow *w)
-{
+static void _notification_window_click_config_provider(NotificationWindow *w) {
     window_single_repeating_click_subscribe(BUTTON_ID_DOWN, 500, _down_single_click_handler);
     window_single_repeating_click_subscribe(BUTTON_ID_UP, 500, _up_single_click_handler);
     window_set_click_context(BUTTON_ID_DOWN, w);
@@ -311,14 +288,12 @@ static void _notification_window_click_config_provider(NotificationWindow *w)
         w->clickconfig(w->clickconfigcontext);
 }
 
-void notification_window_set_click_config(NotificationWindow *w, ClickConfigProvider config, void *context)
-{
+void notification_window_set_click_config(NotificationWindow *w, ClickConfigProvider config, void *context) {
     w->clickconfig = config;
     w->clickconfigcontext = context;
 }
 
-static void _notification_window_load(Window *window)
-{
+static void _notification_window_load(Window *window) {
     NotificationWindow *w = window->user_data;
     Layer *window_layer = window_get_root_layer(window);
 
@@ -327,8 +302,8 @@ static void _notification_window_load(Window *window)
     _notif_window_status = status_bar_layer_create();
     // By defauld, keep the status bar with these colors.
     status_bar_layer_set_colors(_notif_window_status,
-                                GColorWhite /* Get the color of the notification window. Until now, it's just white. w->n1.layer.sibling->window->background_color */,
-                                GColorBlack);
+        GColorWhite, /* Get the color of the notification window. Until now, it's just white. w->n1.layer.sibling->window->background_color */
+        GColorBlack);
     status_bar_layer_set_separator_mode(_notif_window_status, StatusBarLayerSeparatorModeNone);
 
     layer_add_child(window_layer, status_bar_layer_get_layer(_notif_window_status));
@@ -336,6 +311,6 @@ static void _notification_window_load(Window *window)
     window_set_click_config_provider_with_context(window, (ClickConfigProvider)_notification_window_click_config_provider, w);
 }
 
-static void _notification_window_unload(Window *window)
-{
+static void _notification_window_unload(Window *window) {
+
 }
