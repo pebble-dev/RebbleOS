@@ -62,6 +62,8 @@ void call_window_overlay_destroy(OverlayWindow *overlay, Window *window);
 void progress_window_overlay_display(OverlayWindow *overlay, Window *window);
 void progress_window_overlay_destroy(OverlayWindow *overlay, Window *window);
 
+int notifications_get_all(rdb_select_result_list *notif_list);
+void notifications_dismiss_all(rdb_select_result_list *notif_list);
 
 typedef struct notification_data_t {
     OverlayCreateCallback create_callback;

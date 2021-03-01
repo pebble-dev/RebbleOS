@@ -273,3 +273,37 @@ void notification_show_progress(EventServiceCommand command, void *data, void *c
     overlay_window_create_with_context(_notification_window_creating, (void *)nmsg);
 }
 
+int notifications_get_all(rdb_select_result_list *notif_list)
+{
+    struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
+    struct rdb_iter it;
+
+    int notif_count = 0;
+
+    if (rdb_iter_start(db, &it)) {
+        struct rdb_selector selectors[] = {
+            { offsetof(timeline_item, uuid), FIELD_SIZEOF(timeline_item, uuid), RDB_OP_RESULT },
+            { }
+        };
+        notif_count = rdb_select(&it, notif_list, selectors);
+    }
+
+    rdb_close(db);
+
+    return notif_count;
+}
+
+void notifications_dismiss_all(rdb_select_result_list *notif_list)
+{
+    struct rdb_database *db = rdb_open(RDB_ID_NOTIFICATION);
+    struct rdb_select_result *res;
+
+    rdb_select_result_foreach(res, notif_list) {
+        rdb_delete(&res->it);
+    }
+
+    rdb_close(db);
+
+    rdb_select_free_all(notif_list);
+    list_init_head(notif_list);
+}
