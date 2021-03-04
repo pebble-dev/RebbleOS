@@ -12,12 +12,14 @@ static int8_t s_string_index = 0;
 
 static char *s_test_strings[] =
 {
-    /* Two lines            */  "Press Select to Change Alignment",
-    /* One line             */  "Hello, World!",
-    /* Three lines          */  "This is a String Spanning More Than Three Lines",
-    /* Hyphenated word      */  "Pneumonoultramicroscopicsilicovolcanoconiosis",
-    /* Really long sentence */  "Buffalo buffalo Buffalo bufallo buffalo buffalo Buffalo buffalo.",
-    /* User-defined breaks  */  "A world of dew,\nAnd within every dewdrop\nA world of struggle."
+    /* Two lines                                */  "Press Select to Change Alignment",
+    /* One line                                 */  "Hello, World!",
+    /* Three lines                              */  "The quick brown fox jumped over the lazy dog.",
+    /* Really long sentence                     */  "Buffalo buffalo Buffalo bufallo buffalo buffalo Buffalo buffalo.",
+    /* Single codepoint lengths w/o breakables  */  "Pneumonoultramicroscopicsilicovolcanoconiosis",
+    /* User-defined breaks                      */  "A world of dew,\nAnd within every dewdrop\nA world of struggle.",
+    /* Mixed codepoint lengths w/ postbreakables*/ "I want to visit 東京, Αθήνα, मुंबई, القاهرة, and 서울시. 😊",
+    /* Mixed codepoint lengths w/o breakables   */ "😊😊😊😊😊😊😊😊😊😊😊😊😊😊😊😊😊",
 };
 
 static void select_click_handler(ClickRecognizerRef recognizer, void *context)
@@ -26,6 +28,17 @@ static void select_click_handler(ClickRecognizerRef recognizer, void *context)
 
     text_layer_set_text_alignment(s_multiline_label_layer, s_text_alignment);
 
+    layer_mark_dirty(window_get_root_layer(s_test_layer));
+}
+
+static void up_click_handler(ClickRecognizerRef recognizer, void *context)
+{
+    s_string_index--;
+
+    if (s_string_index < 0)
+        s_string_index = (int)(sizeof(s_test_strings) / sizeof(s_test_strings[0])) - 1;
+
+    text_layer_set_text(s_multiline_label_layer, s_test_strings[s_string_index]);
     layer_mark_dirty(window_get_root_layer(s_test_layer));
 }
 
@@ -39,7 +52,9 @@ static void down_click_handler(ClickRecognizerRef recognizer, void *context)
 static void click_config_provider(void *context)
 {
     window_single_click_subscribe(BUTTON_ID_DOWN, down_click_handler);
+    window_single_click_subscribe(BUTTON_ID_UP, up_click_handler);
     window_single_click_subscribe(BUTTON_ID_SELECT, select_click_handler);
+
 }
 
 bool text_alignment_test_init(Window *window)
