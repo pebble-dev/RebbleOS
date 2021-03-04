@@ -10,34 +10,42 @@
 #include "action_bar_layer.h"
 #include "bitmap_layer.h"
 
+void action_bar_layer_ctor(ActionBarLayer *mlayer, GRect frame)
+{
+    layer_ctor(&mlayer->layer, frame);
+    mlayer->layer.container = mlayer;
+
+    mlayer->context = mlayer;
+    mlayer->background_color = GColorBlack;
+
+    layer_set_update_proc(&mlayer->layer, action_bar_layer_update_proc);
+}
+
+void action_bar_layer_dtor(ActionBarLayer *action_bar)
+{
+    layer_dtor(&action_bar->layer);
+}
+
 ActionBarLayer *action_bar_layer_create()
 {
-    ActionBarLayer *action_bar = (ActionBarLayer*)app_calloc(1, sizeof(ActionBarLayer));
+    ActionBarLayer *mlayer = (ActionBarLayer*)app_calloc(1, sizeof(ActionBarLayer));
     
     GRect frame = GRect(DISPLAY_COLS-ACTION_BAR_WIDTH, 0, ACTION_BAR_WIDTH, DISPLAY_ROWS);
+    action_bar_layer_ctor(mlayer, frame);
     
-    Layer* layer = layer_create(frame);
-    // give the layer a reference back to us
-    layer->container = action_bar;
-    action_bar->layer = layer;
-    action_bar->context = action_bar;
-    action_bar->background_color = GColorBlack;
-
-    layer_set_update_proc(layer, draw);
-    
-    return action_bar;
+    return mlayer;
 }
 
 void action_bar_layer_destroy(ActionBarLayer *action_bar)
 {
-    layer_destroy((Layer *)action_bar);
+    action_bar_layer_dtor(action_bar);
     
     app_free(action_bar);
 }
 
 Layer *action_bar_layer_get_layer(ActionBarLayer *action_bar)
 {
-    return action_bar->layer;
+    return &action_bar->layer;
 }
 
 void action_bar_layer_set_context(ActionBarLayer *action_bar, void *context)
@@ -68,17 +76,17 @@ void action_bar_layer_clear_icon(ActionBarLayer *action_bar, ButtonId button_id)
 void action_bar_layer_add_to_window(ActionBarLayer *action_bar, struct Window *window)
 {
     Layer *window_layer = window_get_root_layer(window);
-    layer_add_child(window_layer, action_bar->layer);
+    layer_add_child(window_layer, &action_bar->layer);
     window_set_click_config_provider_with_context(window, (ClickConfigProvider) action_bar->click_config_provider,
                                                   action_bar);
     
     GRect bounds = layer_get_unobstructed_bounds(window_layer);
-    action_bar->layer->frame = GRect(bounds.size.w - ACTION_BAR_WIDTH, 0, ACTION_BAR_WIDTH, bounds.size.h);
+    (&action_bar->layer)->frame = GRect(bounds.size.w - ACTION_BAR_WIDTH, 0, ACTION_BAR_WIDTH, bounds.size.h);
 }
 
 void action_bar_layer_remove_from_window(ActionBarLayer *action_bar)
 {
-    layer_remove_from_parent(action_bar->layer);
+    layer_remove_from_parent(&action_bar->layer);
 }
 
 void action_bar_layer_set_background_color(ActionBarLayer *action_bar, GColor background_color)
@@ -91,7 +99,7 @@ void action_bar_layer_set_icon_press_animation(ActionBarLayer *action_bar, Butto
     
 }
 
-static void draw(Layer *layer, GContext *context)
+static void action_bar_layer_update_proc(Layer *layer, GContext *context)
 {
     ActionBarLayer *action_bar = (ActionBarLayer *) layer->container;
     
