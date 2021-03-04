@@ -10,9 +10,15 @@
 
  #include "librebble.h"
 
-struct DialogchoiceWindow;
-typedef struct DialogchoiceWindow DialogchoiceWindow;
+struct DialogChoiceWindow;
+typedef struct DialogChoiceWindow DialogChoiceWindow;
 
-void dialog_choice_window_push(DialogchoiceWindow *dial);
-void dialogchoice_window_set_message(DialogchoiceWindow *dial, char dialogchoice_window_message);
-DialogchoiceWindow *dialogchoice_window_create();
+typedef void (*DialogChoiceWindowComplete)(bool* s_selections, void *context);
+
+typedef struct DialogChoiceWindowCallbacks {
+  DialogChoiceWindowComplete dialog_choice_complete;
+} DialogChoiceWindowCallbacks;
+
+void dialog_choice_window_push(DialogChoiceWindow *dial, bool animated);
+void dialogchoice_window_set_message(DialogChoiceWindow *dial, char dialogchoice_window_message);
+DialogChoiceWindow *dialogchoice_window_create(DialogChoiceWindowCallbacks dialog_choice_window_callbacks);

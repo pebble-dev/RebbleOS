@@ -11,25 +11,26 @@
 #include "action_bar_layer.h"
 #include "platform_res.h"
 
-struct DialogchoiceWindow
+struct DialogChoiceWindow
 {
   Window window;
   TextLayer *s_label_layer;
   BitmapLayer *s_icon_layer;
   ActionBarLayer *s_action_bar_layer;
+  DialogChoiceWindowCallbacks callbacks;
 
-  char choice_window_message[10];
+  char choice_window_message[30];
   GBitmap *s_icon_bitmap, *s_tick_bitmap, *s_cross_bitmap;
 };
 
-void dialogchoice_window_set_message(DialogchoiceWindow *dial, char dialogchoice_window_message) {
+void dialogchoice_window_set_message(DialogChoiceWindow *dial, char dialogchoice_window_message) {
   strcpy(dial->choice_window_message, dialogchoice_window_message);
 }
 
 
 static void dial_window_load(Window *window) {
 
-  DialogchoiceWindow *dial = (DialogchoiceWindow *)window;
+  DialogChoiceWindow *dial = (DialogChoiceWindow *)window;
 
   Layer *window_layer = window_get_root_layer(window);
   GRect bounds = layer_get_bounds(window_layer);
@@ -61,7 +62,7 @@ static void dial_window_load(Window *window) {
 
 static void dial_window_unload(Window *window) {
 
-  DialogchoiceWindow *dial = (DialogchoiceWindow *)window;
+  DialogChoiceWindow *dial = (DialogChoiceWindow *)window;
 
   text_layer_destroy(dial->s_label_layer);
   action_bar_layer_destroy(dial->s_action_bar_layer);
@@ -75,14 +76,19 @@ static void dial_window_unload(Window *window) {
   window = NULL;
 }
 
-void dialog_choice_window_push(DialogchoiceWindow *dial) {
-  window_stack_push(&dial->window, true);
+void dialog_choice_window_push(DialogChoiceWindow *dial, bool animated) {
+  window_stack_push(&dial->window, animated);
 }
 
-DialogchoiceWindow *dialogchoice_window_create() {
-  DialogchoiceWindow *dial = (DialogchoiceWindow *)app_calloc(1, sizeof(DialogchoiceWindow));
+void dialog_choice_window_pop(CheckboxWindow *checkmate, bool animated) {
+  window_stack_remove(&dial->window, animated);
+}
+
+DialogChoiceWindow *dialogchoice_window_create(DialogChoiceWindowCallbacks dialog_choice_window_callbacks) {
+  DialogChoiceWindow *dial = (DialogChoiceWindow *)app_calloc(1, sizeof(DialogChoiceWindow));
 
   window_ctor(&dial->window);
+  dial->callbacks = dialog_choice_window_callbacks;
   dial->window.user_data = dial;
     window_set_window_handlers(&dial->window, (WindowHandlers) {
         .load = dial_window_load,

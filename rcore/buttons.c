@@ -39,6 +39,7 @@ typedef struct ButtonHolder {
     uint8_t pressed:1;
     uint8_t did_long_click:1;
     uint8_t is_repeating:1;
+    uint8_t click_amount;
     TickType_t last_transition;
     TickType_t last_repeat_time;
     TickType_t press_time;
@@ -243,6 +244,10 @@ static void _button_thread(void *pvParameters)
  */
 void button_send_app_click(ButtonHolder *button, enum button_owners owner, void *callback, void *recognizer, void *context)
 {   
+
+    /* Increase button click amount by 1 */
+    button->click_amount += 1;
+
     _button_message.callback = callback;
     _button_message.clickref = recognizer; // TODO
     _button_message.context  = context;
@@ -355,4 +360,9 @@ bool click_recognizer_is_repeating(ClickRecognizerRef recognizer)
 ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer)
 {
     return ((ButtonHolder *)recognizer)->button_id;
+}
+
+uint8_t click_number_of_clicks_counted(ClickRecognizerRef recognizer)
+{
+    return ((ButtonHolder *)recognizer)->click_amount;
 }

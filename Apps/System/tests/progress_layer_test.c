@@ -22,8 +22,6 @@ bool progress_layer_test_exec(void)
 
     progresslayer_window_push(prog);
 
-    //progress_layer_window_push();
-
     return true;
 }
 

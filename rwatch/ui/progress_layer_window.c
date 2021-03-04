@@ -84,9 +84,9 @@ ProgressLayerWindow *progresslayer_window_create()
         .unload = progresslayer_window_unload,
     });
 
-  /*prog->checkbox_foreground_color = PBL_IF_COLOR_ELSE(GColorRed, GColorBlack);
-  prog->checkbox_background_color = GColorWhite;
-  prog->selection_count = 0;*/
+  // prog->checkbox_foreground_color = PBL_IF_COLOR_ELSE(GColorRed, GColorBlack);
+  // prog->checkbox_background_color = GColorWhite;
+  // prog->selection_count = 0;
 
   return prog;
 }

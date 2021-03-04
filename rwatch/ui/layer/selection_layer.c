@@ -411,7 +411,7 @@ static void prv_run_slide_animation(Layer *layer) {
 void prv_up_click_handler(ClickRecognizerRef recognizer, void *context) {
   Layer *layer = (Layer*)context;
   SelectionLayerData *data = layer_get_data(layer);
-/*
+
   if (data->is_active) {
     if (click_recognizer_is_repeating(recognizer)) {
       // Don't animate if the button is being held down. Just update the text
@@ -422,13 +422,13 @@ void prv_up_click_handler(ClickRecognizerRef recognizer, void *context) {
       prv_run_value_change_animation(layer);
     }
   }
-  */
+  
 }
 
 void prv_down_click_handler(ClickRecognizerRef recognizer, void *context) {
   Layer *layer = (Layer*)context;
   SelectionLayerData *data = layer_get_data(layer);
-/*
+
   if (data->is_active) {
     if (click_recognizer_is_repeating(recognizer)) {
       // Don't animate if the button is being held down. Just update the text
@@ -439,7 +439,7 @@ void prv_down_click_handler(ClickRecognizerRef recognizer, void *context) {
       prv_run_value_change_animation(layer);
     }
   }
-  */
+  
 }
 
 void prv_select_click_handler(ClickRecognizerRef recognizer, void *context) {

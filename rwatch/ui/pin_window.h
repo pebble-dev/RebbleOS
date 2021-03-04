@@ -10,24 +10,14 @@ typedef struct {
   int digits[PIN_WINDOW_NUM_CELLS];
 } PIN;
 
+struct PinWindow;
+typedef struct PinWindow PinWindow;
+
 typedef void (*PinWindowComplete)(PIN pin, void *context);
 
 typedef struct PinWindowCallbacks {
     PinWindowComplete pin_complete;
 } PinWindowCallbacks;
-
-typedef struct {
-  Window *window;
-  TextLayer *main_text, *sub_text;
-  Layer *selection;
-  GColor highlight_color;
-  StatusBarLayer *status;
-  PinWindowCallbacks callbacks;
-
-  PIN pin;
-  char field_buffs[PIN_WINDOW_NUM_CELLS][2];
-  int8_t field_selection;
-} PinWindow;
 
 /*
  * Creates a new PinWindow in memory but does not push it into view
@@ -68,3 +58,6 @@ bool pin_window_get_topmost_window(PinWindow *pin_window);
  *  color: the GColor to set the highlight to
  */
 void pin_window_set_highlight_color(PinWindow *pin_window, GColor color);
+
+void pin_window_set_pin_amount(PinWindow *pin_window, int pin_amount);
+void pin_window_set_pin_max_value(PinWindow *pin_window, int max_value);

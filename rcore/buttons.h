@@ -28,7 +28,12 @@ void button_long_click_subscribe(ButtonId button_id, uint16_t delay_ms, ClickHan
 void button_raw_click_subscribe(ButtonId button_id, ClickHandler down_handler, ClickHandler up_handler, void * context);
 void button_unsubscribe_all(void);
 
-
+/**
+ * Click configs
+ */
+uint8_t click_number_of_clicks_counted(ClickRecognizerRef recognizer);
+ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer);
+bool click_recognizer_is_repeating(ClickRecognizerRef recognizer);
 
 void button_set_click_context(ButtonId button_id, void *context);
 

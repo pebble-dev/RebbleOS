@@ -55,8 +55,6 @@ UNIMPL(_app_sync_set);
 UNIMPL(_atan2_lookup);
 UNIMPL(_atol);
 UNIMPL(_bitmap_layer_set_background_color_2bit);
-UNIMPL(_click_number_of_clicks_counted);
-UNIMPL(_click_recognizer_get_button_id);
 UNIMPL(_clock_copy_time_string);
 UNIMPL(_data_logging_create);
 UNIMPL(_data_logging_finish);
@@ -248,6 +246,8 @@ const VoidFunc sym[] = {
     [63]  = (VoidFunc)bluetooth_connection_service_peek,                                        // bluetooth_connection_service_peek@000000fc
     [64]  = (VoidFunc)bluetooth_connection_service_subscribe,                                   // bluetooth_connection_service_subscribe@00000100
     [65]  = (VoidFunc)bluetooth_connection_service_unsubscribe,                                 // bluetooth_connection_service_unsubscribe@00000104
+    [66]  = (VoidFunc)click_number_of_clicks_counted,                                           // click_number_of_clicks_counted@00000108
+    [67]  = (VoidFunc)click_recognizer_get_button_id,                                        // click_recognizer_get_button_id@0000010c
     [69]  = (VoidFunc)pbl_clock_is_24h_style,                                                   // clock_is_24h_style@00000114
     [70]  = (VoidFunc)cos_lookup,                                                               // cos_lookup@00000118
 
@@ -470,6 +470,7 @@ const VoidFunc sym[] = {
                                                                                                
     [321] = (VoidFunc)window_get_click_config_context,                                         // window_get_click_config_context@00000504
     [323] = (VoidFunc)app_realloc,                                                             // realloc@0000050c
+    [325] = (VoidFunc)click_recognizer_is_repeating,                                           // click_recognizer_is_repeating@00000514
     [335] = (VoidFunc)app_heap_bytes_free,                                                     // heap_bytes_free@0000053c
     [336] = (VoidFunc)app_heap_bytes_used,                                                     // heap_bytes_used@00000540
     
@@ -725,8 +726,6 @@ const VoidFunc sym[] = {
     [52]  = (UnimplFunc)_atol,                                                                 // atol@000000d0
     [60]  = (UnimplFunc)_bitmap_layer_set_background_color_2bit,                               // bitmap_layer_set_background_color_2bit@000000f0
 
-    [66]  = (UnimplFunc)_click_number_of_clicks_counted,                                       // click_number_of_clicks_counted@00000108
-    [67]  = (UnimplFunc)_click_recognizer_get_button_id,                                       // click_recognizer_get_button_id@0000010c
     [68]  = (UnimplFunc)_clock_copy_time_string,                                               // clock_copy_time_string@00000110
     [71]  = (UnimplFunc)_data_logging_create,                                                  // data_logging_create@0000011c
     [72]  = (UnimplFunc)_data_logging_finish,                                                  // data_logging_finish@00000120
@@ -785,7 +784,6 @@ const VoidFunc sym[] = {
     [322] = (UnimplFunc)_number_window_get_window,                                             // number_window_get_window@00000508
         
     [324] = (UnimplFunc)_gbitmap_create_blank_2bit,                                            // gbitmap_create_blank_2bit@00000510
-    [325] = (UnimplFunc)_click_recognizer_is_repeating,                                        // click_recognizer_is_repeating@00000514
     [326] = (UnimplFunc)_accel_raw_data_service_subscribe,                                     // accel_raw_data_service_subscribe@00000518
     [327] = (UnimplFunc)_app_worker_is_running,                                                // app_worker_is_running@0000051c
     [328] = (UnimplFunc)_app_worker_kill,                                                      // app_worker_kill@00000520

@@ -60,9 +60,9 @@ typedef struct ClickConfig
 
 typedef void (*ClickConfigProvider)(void *context);
 
-uint8_t click_number_of_clicks_counted(ClickRecognizerRef recognizer);
-ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer);
-bool click_recognizer_is_repeating(ClickRecognizerRef recognizer);
+// uint8_t click_number_of_clicks_counted(ClickRecognizerRef recognizer);
+// ButtonId click_recognizer_get_button_id(ClickRecognizerRef recognizer);
+// bool click_recognizer_is_repeating(ClickRecognizerRef recognizer);
 
 // TODO move me
 
