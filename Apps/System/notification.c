@@ -99,7 +99,11 @@ static rebble_notification *_noty_for_index(int notif_index) {
 
 static void _notif_menu_draw_row(GContext *ctx, const Layer *cell_layer, MenuIndex *cell_index, void *context) {
     if (_notif_count == 0) {
-        menu_cell_basic_draw(ctx, cell_layer, "No notifications", "Asleep at the switch?", /* icon, GBitmap */ NULL);
+        graphics_context_set_fill_color(ctx, GColorDarkGray);
+        graphics_fill_rect(ctx, n_GRect(0,0,__SCREEN_WIDTH, __SCREEN_HEIGHT),0,n_GCornerNone);
+        graphics_draw_text(ctx,"No notifications", fonts_get_system_font(FONT_KEY_GOTHIC_18),
+            n_GRect(0,__SCREEN_HEIGHT/3,__SCREEN_WIDTH, __SCREEN_HEIGHT), 
+            GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, 0);
         return;
     }
     
