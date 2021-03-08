@@ -21,7 +21,8 @@ ActionBarLayer *action_bar_layer_create()
     layer->container = action_bar;
     action_bar->layer = layer;
     action_bar->context = action_bar;
-    
+    action_bar->background_color = GColorBlack;
+
     layer_set_update_proc(layer, draw);
     
     return action_bar;
