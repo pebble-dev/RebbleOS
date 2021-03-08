@@ -12,11 +12,12 @@ cd ~/pebble-dev
 
 ## Install Dependencies
 
-This will install python, node, gawk and a couple of required libraries
+This will install curl, python, node, gawk and a couple of required libraries
 
 ```sh
+sudo apt install -y curl
 curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-sudo apt install nodejs python-pip python3-pip python2.7-dev python-gevent gawk libsdl1.2debian libfdt1 libpixman-1-0
+sudo apt install -y nodejs python-pip python3-pip python2.7-dev python-gevent gawk libsdl1.2debian libfdt1 libpixman-1-0
 ```
 
 We're also going to need a cross compiler
@@ -26,10 +27,10 @@ wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/10-2020q4/gcc-arm-
 tar jxf gcc-arm-none-eabi-10-2020-q4-major-x86_64-linux.tar.bz2
 rm gcc-arm-none-eabi-10-2020-q4-major-x86_64-linux.tar.bz2
 
-cd gcc-arm-none-eabi-10-2020-q4-major-x86_64-linux
+cd gcc-arm-none-eabi-10-2020-q4-major
 sudo cp -R * /usr/
 cd ~/pebble-dev
-rm -rf gcc-arm-none-eabi-10-2020-q4-major-x86_64-linux
+rm -rf gcc-arm-none-eabi-10-2020-q4-major
 ```
 
 To make sure the cross compiler is working run
@@ -67,7 +68,7 @@ echo 'export PATH=~/pebble-dev/pebble-sdk-4.5-linux64/bin:$PATH' >> ~/.profile
 Install virtualenv.
 
 ```sh
-pip3 install virtualenv
+sudo pip3 install virtualenv
 ```
 
 Install PebbleSDK.
@@ -113,7 +114,7 @@ cd ~/pebble-dev
 Make sure `git` is installed.
 
 ```sh
-sudo apt install git
+sudo apt install -y git
 ```
 
 Clone the RebbleOS repository, and install its dependencies.
