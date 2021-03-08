@@ -18,16 +18,27 @@
 
 #ifdef PBL_BW
 #define PBL_IF_COLOR_ELSE(color, bw) (bw)
+#define PBL_IF_BW_ELSE(bw, color) (bw)
 #else
 #define PBL_IF_COLOR_ELSE(color, bw) (color)
+#define PBL_IF_BW_ELSE(bw, color) (color)
 #endif
 
 #if defined REBBLE_PLATFORM_TINTIN
 #define PBL_PLATFORM_SWITCH(tintin, snowy, chalk, diorite, emery) (tintin)
+#define PBL_IF_MICROPHONE_ELSE(mic, nomic) (nomic)
+#define PBL_IF_SMARTSTRAP_ELSE(smart, nosmart) (nosmart)
+#define PBL_IF_HEALTH_ELSE(health, nohealth) (nohealth)
 #elif defined REBBLE_PLATFORM_SNOWY
 #define PBL_PLATFORM_SWITCH(tintin, snowy, chalk, diorite, emery) (snowy)
+#define PBL_IF_MICROPHONE_ELSE(mic, nomic) (mic)
+#define PBL_IF_SMARTSTRAP_ELSE(smart, nosmart) (smart)
+#define PBL_IF_HEALTH_ELSE(health, nohealth) (health)
 #elif defined REBBLE_PLATFORM_CHALK
 #define PBL_PLATFORM_SWITCH(tintin, snowy, chalk, diorite, emery) (chalk)
+#define PBL_IF_MICROPHONE_ELSE(mic, nomic) (mic)
+#define PBL_IF_SMARTSTRAP_ELSE(smart, nosmart) (smart)
+#define PBL_IF_HEALTH_ELSE(health, nohealth) (health)
 #else
 #error Add the new platform to PBL_PLATFORM_SWITCH in pebble_defines.h
 #endif
@@ -79,6 +90,7 @@
 // text redefines
 #define GTextOverflowMode n_GTextOverflowMode
 #define GTextOverflowModeTrailingEllipsis n_GTextOverflowModeTrailingEllipsis
+#define GTextOverflowModeFill n_GTextOverflowModeFill
 #define GFont n_GFont
 #define GTextAlignment n_GTextAlignment
 #define GTextAlignmentLeft n_GTextAlignmentLeft

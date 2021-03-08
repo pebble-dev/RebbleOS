@@ -96,6 +96,13 @@ app_test _tests[] = {
         .test_init = &vibes_test_init,
         .test_execute = &vibes_test_exec,
         .test_deinit = &vibes_test_deinit
+    },
+    {
+        .test_name = "Alignment Test",
+        .test_desc = "Text Alignment",
+        .test_init = &text_alignment_test_init,
+        .test_execute = &text_alignment_test_exec,
+        .test_deinit = &text_alignment_test_deinit
     }
 };
 

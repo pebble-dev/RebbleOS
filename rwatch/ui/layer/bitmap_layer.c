@@ -18,7 +18,7 @@ void bitmap_layer_ctor(BitmapLayer *blayer, GRect frame)
     // give the layer a reference back to us
     blayer->layer.container = blayer;
     blayer->compositing_mode = GCompOpAssign;
-    blayer->background = GColorWhite;
+    blayer->background = GColorClear;
     blayer->alignment = GAlignCenter;
     
     layer_set_update_proc(&blayer->layer, _bitmap_update_proc);
@@ -82,13 +82,13 @@ static void _bitmap_update_proc(Layer *layer, GContext *nGContext)
     uint16_t x, y;
     uint16_t bw = bitmap_layer->bitmap->bounds.size.w;
     uint16_t bh = bitmap_layer->bitmap->bounds.size.h;
-    uint16_t lx = layer->bounds.origin.x;
-    uint16_t ly = layer->bounds.origin.y;
+    uint16_t lx = layer->window->frame.origin.x + layer->frame.origin.x;
+    uint16_t ly = layer->window->frame.origin.y + layer->frame.origin.y;
     uint16_t lw = layer->bounds.size.w;
     uint16_t lh = layer->bounds.size.h;
     
 //     printf("LX %d LY %d LW %d LH %d BW %d BH %d\n", lx, ly, lw, lh, bw, bh);
-        
+
     switch (bitmap_layer->alignment)
     {
         case GAlignCenter:
@@ -136,6 +136,7 @@ static void _bitmap_update_proc(Layer *layer, GContext *nGContext)
 
     // fill the background
     graphics_context_set_fill_color(nGContext, bitmap_layer->background);
+    graphics_context_set_compositing_mode(nGContext, bitmap_layer->compositing_mode);
     graphics_fill_rect(nGContext, layer->bounds, 0, GCornerNone);
     n_graphics_draw_bitmap_in_rect(nGContext, bitmap_layer->bitmap, target);
 }

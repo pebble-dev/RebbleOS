@@ -16,6 +16,7 @@ void action_bar_layer_ctor(ActionBarLayer *mlayer, GRect frame)
     mlayer->layer.container = mlayer;
 
     mlayer->context = mlayer;
+    action_bar->background_color = GColorBlack;
     layer_set_update_proc(&mlayer->layer, action_bar_layer_update_proc);
 }
 

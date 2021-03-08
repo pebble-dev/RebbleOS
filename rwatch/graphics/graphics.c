@@ -282,7 +282,7 @@ GRect grect_inset(GRect rect, GEdgeInsets insets)
     GRect r;
     // top, right, bottom, left
     r.origin.x = insets.left;
-    r.origin.x = insets.top;
+    r.origin.y = insets.top;
     r.size.w = rect.size.w - insets.right - insets.left;
     r.size.h = rect.size.h - insets.top - insets.bottom;
     return r;
