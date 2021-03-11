@@ -267,6 +267,10 @@ static void _action_menu_click_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_DOWN, _action_menu_select_next);
     window_single_click_subscribe(BUTTON_ID_SELECT, _action_menu_activate_item);
     window_single_click_subscribe(BUTTON_ID_BACK, _action_menu_prev_level);
+    window_set_click_context(BUTTON_ID_UP, context);
+    window_set_click_context(BUTTON_ID_DOWN, context);
+    window_set_click_context(BUTTON_ID_SELECT, context);
+    window_set_click_context(BUTTON_ID_BACK, context);
 }
 
 static void _action_menu_window_load(Window *window)
