@@ -307,5 +307,4 @@ void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
 
 void watchface_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
 {
-    window_dirty(true);
 }
