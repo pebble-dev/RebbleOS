@@ -22,6 +22,7 @@
 void back_long_click_handler(ClickRecognizerRef recognizer, void *context);
 void back_long_click_release_handler(ClickRecognizerRef recognizer, void *context);
 void app_select_single_click_handler(ClickRecognizerRef recognizer, void *context);
+void watchface_back_single_click_handler(ClickRecognizerRef recognizer, void *context);
 
 bool booted = false;
 
@@ -142,6 +143,7 @@ void app_event_loop(void)
     if (_running_app->type == AppTypeWatchface)
     {
         window_single_click_subscribe(BUTTON_ID_SELECT, app_select_single_click_handler);
+        window_single_click_subscribe(BUTTON_ID_BACK, watchface_back_single_click_handler);
     }
     
     if (_running_app->type == AppTypeApp)
@@ -301,4 +303,8 @@ void app_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
         appmanager_app_start("System");
     }
     window_dirty(true);
+}
+
+void watchface_back_single_click_handler(ClickRecognizerRef recognizer, void *context)
+{
 }
