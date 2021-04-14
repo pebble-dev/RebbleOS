@@ -333,7 +333,7 @@ def main():
     sdk_path = find_pebble_sdk()
     if args.sdk[0] is not None:
         sdk_path = os.path.expanduser(args.sdk[0])
-    if not os.path.isdir(sdk_path):
+    if (sdk_path is None) or (not os.path.isdir(sdk_path)):
         raise ValueError("could not find pebble sdk, please provide one with --sdk")
     global crush_png
     crush_png = convert_png_to_pebble_png_bytes
