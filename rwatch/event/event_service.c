@@ -26,23 +26,6 @@ typedef struct event_service_subscriber {
     list_node node;
 } event_service_subscriber;
 
-// static void _event_subscriber_insert(event_service_subscriber *conn)
-// {
-//     // subs in the main app thread are first
-//     // subs in the overlay thread after
-//     list_init_node(&conn->node);
-
-//     if (&conn->thread->thread_type == AppThreadMainApp)
-//     {
-//         // list_insert_before(&_subscriber_list_head, &_subscriber_list_head.node, &conn->node);
-//         list_insert_head(&_subscriber_list_head, &conn->node);
-//     }
-//     else
-//     {
-//         list_insert_before(&_subscriber_list_head, &_subscriber_list_head.node, &conn->node);
-//     }
-// }
-
 void event_service_subscribe(EventServiceCommand command, EventServiceProc callback)
 {
     app_running_thread *_this_thread = appmanager_get_current_thread();
