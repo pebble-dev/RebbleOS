@@ -139,22 +139,38 @@ void event_service_event_trigger(EventServiceCommand command, void *data, Destro
     {
         if (conn->command == command)
         {
-//             LOG_INFO("Triggering %x %x %x", data, destroy, conn->callback);
+            LOG_DEBUG(
+                "Checking %s subscriber %x for event type %x",
+                conn->thread->thread_type == AppThreadMainApp ? "main" : "overlay",
+                conn,
+                command);
+
+            /* Step 1. Invoke the subscriber callback - this can either
+             * be a handler on the app or overlay thread */
             if (conn->thread == _this_thread && conn->callback)
-                conn->callback(command, data, conn->context);
-            
-            /* Step 2. App processing done, post it to overlay thread */
-            if (_this_thread->thread_type == AppThreadMainApp)
-                overlay_window_post_event(command, data, destroy);
-                
-            /* Step 3. if we are the overlay thread, then destroy this packet */
-            else if (_this_thread->thread_type == AppThreadOverlay)
             {
-                if (destroy)
-                    destroy(data);
-                    
-                appmanager_post_draw_message(1);
+                LOG_DEBUG("Triggering callback %x with %x %x", conn->callback, command, data);
+                conn->callback(command, data, conn->context);
             }
         }
+    }
+
+    /* Step 2. Subscriber is done, post it to overlay thread if this is the main thread */
+    if (_this_thread->thread_type == AppThreadMainApp)
+    {
+        LOG_DEBUG("Posting event to overlay thread %x %x %x", command, data, destroy);
+        overlay_window_post_event(command, data, destroy);
+    }
+        
+    /* Step 3. if we are the overlay thread, then destroy this packet */
+    else if (_this_thread->thread_type == AppThreadOverlay)
+    {
+        if (destroy)
+        {
+            LOG_DEBUG("Destroying event packet data %x", data);
+            destroy(data);
+        }
+
+        appmanager_post_draw_message(1);
     }
 }
