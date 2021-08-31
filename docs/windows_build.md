@@ -1,8 +1,76 @@
 # Building on Windows
 
-So unfortunately there is no known way (yet), to fully work on Windows while working for Pebble. This document will guide you through the setup of a Ubuntu VM, the Pebble and Rebble development environment and finally look at some ways to move most of the development back to Windows.
+## Windows Subsystem for Linux
 
-## Setting up a virtual machine 
+First set up WSL2 and get RebbleOS building on it, for which you can use the [Building on Debian](docs/debian_build.md) steps.
+
+### Visual Studio Code integration
+
+To automate the process of building and debugging with VS Code on WSL2, you can use these template `tasks.json` and `launch.json`:
+
+```json
+{
+    // tasks.json
+
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build RebbleOS",
+            "type": "shell",
+            "command": "make ${input:buildTargets}",
+            "group": "build",
+            "problemMatcher": "$gcc",
+        },
+    ],
+    "inputs": [
+        {
+            "id": "buildTargets",
+            "type": "pickString",
+            "description": "Selects the build target from the list",
+            "options": [
+                "snowy",
+                "snowy_qemu",
+                "snowy_qemu QEMUFLAGS=-S",
+                "snowy_gdb",
+                "tintin"
+            ]
+        }
+    ]
+}
+```
+
+```json
+{
+    // launch.json
+
+    "version": "0.2.0",
+    "configurations": [
+        {
+        "type": "gdb",
+        "request": "attach",
+        "name": "Attach to gdbserver",
+        "executable": "${workspaceFolder}/build/snowy/tintin_fw.elf",
+        "target": "localhost:63770",
+        "remote": true,
+        "cwd": "${workspaceRoot}", 
+        "gdbpath": "/usr/bin/arm-none-eabi-gdb",
+        "autorun": [
+                // "any other gdb commands to initiate your environment, if it is needed"
+            ]
+        }
+    ]
+}
+```
+
+To build and step through RebbleOS, you need to:
+
+1. Set a breakpoint somewhere in the code, selecting the line and pressing `F9`.
+1. Invoke the build task with `CTRL+Shift+B` and select `make snowy_qemu QEMUFLAGS=-S`. The output from `qemu` will be displayed in the console. 
+1. Press `F5` to attach VSCode to `gdb`. The emulation will continue and stop at the breakpoint you set.
+
+
+## Linux VM
+### Setting up a virtual machine 
 
 - Install [VirtualBox](http://www.virtualbox.org/)
 - Download the Ubuntu's ISO from [their website](https://www.ubuntu.com/download/desktop)
@@ -58,39 +126,3 @@ Then you can start the emulator on the virtual machine by running `make snowy_qe
 ```batch
 C:\msys\bin\arm-none-eabi-gdb.exe -ex "target remote localhost:63770" -ex "sym build/snowy/tintin_fw.elf"
 ```
-
-### Integrating into VSCode
-
-For building you can use this `tasks.json`:
-
-```json
-{
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Build all",
-            "type": "shell",
-            "command": "C:\\msys\\bin\\make.exe",
-            "args": [ ],
-            "options": {
-                "env": {
-                    "PATH": "C:\\msys\\bin"
-                }
-            },
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": "$gcc",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": true,
-                "panel": "shared"
-            }
-        }
-    ]
-}
-```
-
-Unfortunately integrating remote debugging is still a problem, if you happen to solve it, please make a PR describing the solution!
