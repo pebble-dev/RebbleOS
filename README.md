@@ -67,8 +67,6 @@ these steps:
 * Obtain a checkout of the RebbleOS source code.  Ensure that you have also checked out the submodules required to build the resource tree: `git submodule update --init --recursive`
 * Create a `localconfig.mk` if your cross-compiler is in an unusual location.  For instance, if you have the SDK installed in `/home/me`, add the following line to your `localconfig.mk`: `PEBBLE_TOOLCHAIN_PATH=/home/me/Pebble/SDK/pebble-sdk-4.5-linux64/arm-cs-tools/bin`.  For more information on `localconfig.mk` variables, consult the `Makefile`.
 * Build the firmware: `make`
-* If you wish to run the firmware in `qemu`, copy the resources necessary into `Resources/`.  Take a look at [Utilities/mk_resources.sh](Utilities/mk_resources.sh) for more information on that.
-* To run the firmware in `qemu`, try `make snowy_qemu`.
 
 [Building on Debian Stretch](docs/debian_build.md)
 
@@ -84,7 +82,15 @@ currently out of scope for this document.
 
 > You need the `snowy_fpga.bin` and `chalk_fpga.bin` files to compile on their respective firmwares. They can be found on the `#firmware` channel in the [Rebble Discord](http://discord.gg/aRUAYFN).
 
-### Code structure
+### Debugging
+
+* If you wish to run the firmware in `qemu`, copy the resources necessary into `Resources/`.  Take a look at [Utilities/mk_resources.sh](Utilities/mk_resources.sh) for more information on that.
+* To run the firmware in `qemu`, try `make snowy_qemu`.
+
+You may want to set breakpoints and step through the code. First load  `qemu` with `make snowy_qemu QEMUFLAGS=-S`, which will also pause the emulation. In a separate console, and run `make snowy_gdb` and type `c` to continue.
+
+If you're using Visual Studio Code and Windows Subsystem for Linux (WSL2), see [Debugging on VS Code](docs/windows_build.md).
+## Code structure
 
 _(This section is, admittedly, somewhat aspirational.  Do not be surprised
 if code within RebbleOS does not necessarily conform to this structure
